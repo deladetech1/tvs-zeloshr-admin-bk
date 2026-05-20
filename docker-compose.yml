@@ -1,0 +1,68 @@
+# Compose loads variables from app/.env (see COMPOSE_ENV_FILES in README).
+# Required for build arg GITHUB_PACKAGES_TOKEN → Trovesuite.Package restore.
+version: "3.8"
+services:
+
+  db:
+    image: postgres:17
+    restart: always
+    env_file:
+      - app/.env
+    ports:
+      - "${DB_PORT:-5431}:5432"
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${DB_USER:-user}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
+      - POSTGRES_DB=${DB_NAME:-zeloshrdb}
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-user} -d ${DB_NAME:-zeloshrdb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis/redis-stack-server:latest
+    restart: always
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - default
+
+  api:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+      args:
+        GITHUB_PACKAGES_TOKEN: ${GITHUB_PACKAGES_TOKEN:-}
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-8000}:8000"
+    env_file:
+      - app/.env
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      App__DbHost: db
+      App__DbPort: "5432"
+      # Trovesuite.Package auth/notifications use Trovesuite:Database (defaults to localhost in appsettings)
+      Trovesuite__Database__Host: db
+      Trovesuite__Database__Port: "5432"
+      Trovesuite__Jwt__SecretKey: change-me-in-production-use-32-chars-min
+      TrovesuiteIntegration__RequireAuthentication: ${TROVESUITE_REQUIRE_AUTH:-false}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - default
+
+volumes:
+  postgresql_data:
+  redis_data:
+
+networks:
+  default:

@@ -1,0 +1,37 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.DotSettings.user
+
+## Environment
+.env
+app/.env
+func/local.settings.json
+
+## Logs
+logs/
+*.log
+
+## OS
+.DS_Store
+Thumbs.db
+
+## IDE
+.idea/
+*.swp
+
+## Azure Functions
+func/bin/
+func/obj/
+
+## Docker
+*.db
+
+## Crash dumps / local build artifacts
+core
+scripts/**/core
+scripts/gen-trovesuite-jwt/bin/
+scripts/gen-trovesuite-jwt/obj/

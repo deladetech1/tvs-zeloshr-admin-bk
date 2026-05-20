@@ -1,0 +1,51 @@
+# CI/CD — GitHub Actions
+
+Workflow: [`.github/workflows/build-and-deploy.yml`](../.github/workflows/build-and-deploy.yml)
+
+| Branch | Environment | Container App | Function App | ACR image |
+|--------|-------------|---------------|--------------|-----------|
+| `dev` | dev | `trovesuite-dev-zeloshr-ca` | `trovesuite-dev-zeloshr-func` | `{DEV_ACR}.azurecr.io/zeloshr:{run}` |
+| `main` | prod | `trovesuite-prod-zeloshr-ca` | `trovesuite-prod-zeloshr-func` | `{PROD_ACR}.azurecr.io/zeloshr:{run}` |
+
+Create these Azure resources (or rename the workflow outputs to match your naming) before the first deploy.
+
+## Repository secrets
+
+| Secret | Used for |
+|--------|----------|
+| `TROVESUITE_AZURE_CLIENT_ID` | OIDC federated login |
+| `AZURE_TENANT_ID` | Azure AD tenant |
+| `TROVESUITE_DEV_AZURE_SUBSCRIPTION_ID` | `dev` branch deploys |
+| `TROVESUITE_PROD_AZURE_SUBSCRIPTION_ID` | `main` branch deploys |
+| `GITHUB_PACKAGES_TOKEN` | Docker build — restore **Trovesuite.Package** (`read:packages` PAT) |
+
+## Repository variables
+
+| Variable | Example |
+|----------|---------|
+| `DEV_CONTAINER_REGISTRY_NAME` | `trovesuitedevacr` |
+| `PROD_CONTAINER_REGISTRY_NAME` | `trovesuiteprodacr` |
+| `DEV_RESOURCE_GROUP` | `rg-trovesuite-dev` |
+| `PROD_RESOURCE_GROUP` | `rg-trovesuite-prod` |
+
+Same names as Core Platform if both backends share one Trovesuite subscription.
+
+## Path filters
+
+- **API image** rebuilds on `app/**`, `nuget.config`, or workflow changes.
+- **Functions** deploy on `func/**` or workflow changes.
+- **`workflow_dispatch`** runs both jobs regardless of paths.
+
+## Local parity with CI
+
+```bash
+docker build \
+  --build-arg GITHUB_PACKAGES_TOKEN="$GITHUB_PACKAGES_TOKEN" \
+  -f app/Dockerfile .
+```
+
+Functions publish (same as CI):
+
+```bash
+dotnet publish func/ZelosHR.Functions.csproj -c Release -o ./func-publish
+```
