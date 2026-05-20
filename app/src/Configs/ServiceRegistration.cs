@@ -1,9 +1,18 @@
 using System.Reflection;
+using ZelosHR.Api.Shared.Abstractions;
+using ZelosHR.Api.Shared.Infrastructure;
 
 namespace ZelosHR.Api.Configs;
 
 public static class ServiceRegistration
 {
+  public static IServiceCollection AddSharedInfrastructure(this IServiceCollection services)
+  {
+    services.AddScoped<ITenantContext, TenantContextAdapter>();
+    services.AddScoped<ICurrentUserService, HttpContextCurrentUserService>();
+    return services;
+  }
+
   /// <summary>
   /// Registers all *Service classes from the assembly as scoped services.
   /// </summary>

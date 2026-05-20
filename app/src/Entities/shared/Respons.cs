@@ -12,6 +12,13 @@ public class Respons<T>
     public Dictionary<string, string>? FieldErrors { get; set; }
     public PaginationMeta? Pagination { get; set; }
 
+    /// <summary>Alias for <see cref="Detail"/> / <see cref="Error"/> for uplift-spec compatibility.</summary>
+    public string Message => Detail ?? Error ?? string.Empty;
+
+    /// <summary>Validation or business rule errors (alias of field map values).</summary>
+    public IReadOnlyList<string>? Errors =>
+        FieldErrors is null ? null : FieldErrors.Values.ToList();
+
     public static Respons<T> ValidationError(
         Dictionary<string, string> fieldErrors,
         string error = "Validation failed",
@@ -43,6 +50,12 @@ public class Respons<T>
             StatusCode = statusCode,
             Error = error,
         };
+
+    public static Respons<T> NotFound(string message = "Not found") =>
+        Fail(message, statusCode: 404, detail: message);
+
+    public static Respons<T> Forbidden(string message = "Forbidden") =>
+        Fail(message, statusCode: 403, detail: message);
 }
 
 public class PaginationMeta
@@ -51,6 +64,20 @@ public class PaginationMeta
     public int Size { get; set; }
     public int Total { get; set; }
     public bool HasNext { get; set; }
+
+    public int PageSize
+    {
+        get => Size;
+        set => Size = value;
+    }
+
+    public int TotalCount
+    {
+        get => Total;
+        set => Total = value;
+    }
+
+    public int TotalPages => Size > 0 ? (int)Math.Ceiling((double)Total / Size) : 0;
 }
 
 public class ResponseException : Exception

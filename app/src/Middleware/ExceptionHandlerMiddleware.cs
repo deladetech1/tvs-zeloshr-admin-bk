@@ -1,4 +1,3 @@
-using System.Net;
 using System.Text.Json;
 using ZelosHR.Api.Entities.Shared;
 
@@ -28,13 +27,35 @@ public class ExceptionHandlerMiddleware
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsync(JsonSerializer.Serialize(ex.Response));
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Forbidden");
+            await WriteResponsAsync(context, Respons<object>.Forbidden(ex.Message));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            _logger.LogInformation(ex, "Not found");
+            await WriteResponsAsync(context, Respons<object>.NotFound(ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogInformation(ex, "Bad request");
+            await WriteResponsAsync(context, Respons<object>.Fail(ex.Message, statusCode: 400));
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unhandled exception");
-            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-            context.Response.ContentType = "application/json";
-            var body = Respons<object>.Fail("An unexpected error occurred", 500);
-            await context.Response.WriteAsync(JsonSerializer.Serialize(body));
+            var message = context.RequestServices.GetService<IHostEnvironment>()?.IsDevelopment() == true
+                ? ex.Message
+                : "An unexpected error occurred";
+            await WriteResponsAsync(context, Respons<object>.Fail(message, statusCode: 500));
         }
+    }
+
+    private static async Task WriteResponsAsync(HttpContext context, Respons<object> body)
+    {
+        context.Response.StatusCode = body.StatusCode;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsync(JsonSerializer.Serialize(body));
     }
 }

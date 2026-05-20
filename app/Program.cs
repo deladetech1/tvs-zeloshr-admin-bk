@@ -17,6 +17,7 @@ builder.Services.AddSingleton<IDatabaseManager, DatabaseManager>();
 builder.Services.AddScoped<ISchemaInitializer, SchemaInitializer>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<ITenantContextAccessor, TenantContextAccessor>();
+builder.Services.AddSharedInfrastructure();
 builder.Services.AddEntityServices();
 
 builder.Services.AddControllers();
