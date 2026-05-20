@@ -35,21 +35,17 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      - name: Configure GitHub Packages NuGet source
+      - name: Require GitHub Packages token
         env:
           PKG: ${{ secrets.GITHUB_PACKAGES_TOKEN }}
         run: |
-          TOKEN="${PKG:-${{ secrets.GITHUB_TOKEN }}}"
-          if [[ -z "$TOKEN" ]]; then
-            echo "::error::Set repository secret GITHUB_PACKAGES_TOKEN (read:packages PAT) or ensure GITHUB_TOKEN can read org packages"
-            exit 1
-          fi
           if [[ -z "$PKG" ]]; then
-            echo "::warning::GITHUB_PACKAGES_TOKEN not set; using GITHUB_TOKEN for NuGet restore"
+            echo "::error::Repository secret GITHUB_PACKAGES_TOKEN is required (PAT with read:packages for Trovesuite.Package). See docs/CICD.md"
+            exit 1
           fi
           dotnet nuget update source github-deladetech1 \
             --username deladetech1 \
-            --password "$TOKEN" \
+            --password "$PKG" \
             --store-password-in-clear-text \
             --configfile nuget.config
 
@@ -60,10 +56,9 @@ jobs:
 
       - name: Docker build (API)
         env:
-          PKG: ${{ secrets.GITHUB_PACKAGES_TOKEN }}
+          GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_PACKAGES_TOKEN }}
         run: |
-          TOKEN="${PKG:-${{ secrets.GITHUB_TOKEN }}}"
           docker build \
-            --build-arg GITHUB_PACKAGES_TOKEN="$TOKEN" \
+            --build-arg GITHUB_PACKAGES_TOKEN="$GITHUB_PACKAGES_TOKEN" \
             -f app/Dockerfile \
             .
