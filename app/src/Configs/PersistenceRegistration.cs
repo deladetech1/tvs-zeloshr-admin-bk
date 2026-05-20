@@ -1,9 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Npgsql;
+using ZelosHR.Api.Entities.AuditLogs;
 using ZelosHR.Api.Entities.Branches;
 using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Employees;
+using ZelosHR.Api.Entities.LifecycleEvents;
 using ZelosHR.Api.Persistence;
 using ZelosHR.Api.Persistence.Repositories;
 
@@ -22,6 +24,8 @@ public static class PersistenceRegistration
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
         services.AddScoped<IDepartmentRepository, DepartmentRepository>();
         services.AddScoped<IBranchRepository, BranchRepository>();
+        services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+        services.AddScoped<ILifecycleEventRepository, LifecycleEventRepository>();
         return services;
     }
 

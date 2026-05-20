@@ -8,6 +8,8 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
     public DbSet<EmployeeEntity> Employees => Set<EmployeeEntity>();
     public DbSet<DepartmentEntity> Departments => Set<DepartmentEntity>();
     public DbSet<BranchEntity> Branches => Set<BranchEntity>();
+    public DbSet<AuditLogEntity> AuditLogs => Set<AuditLogEntity>();
+    public DbSet<LifecycleEventEntity> LifecycleEvents => Set<LifecycleEventEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -41,6 +43,18 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
         modelBuilder.Entity<BranchEntity>(b =>
         {
             b.ToTable("zhr_branches");
+            b.HasKey(x => x.Id);
+        });
+
+        modelBuilder.Entity<AuditLogEntity>(b =>
+        {
+            b.ToTable("zhr_audit_logs");
+            b.HasKey(x => x.Id);
+        });
+
+        modelBuilder.Entity<LifecycleEventEntity>(b =>
+        {
+            b.ToTable("zhr_lifecycle_events");
             b.HasKey(x => x.Id);
         });
     }
