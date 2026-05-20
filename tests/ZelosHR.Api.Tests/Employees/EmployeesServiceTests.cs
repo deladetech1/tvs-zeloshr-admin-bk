@@ -1,8 +1,8 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using NSubstitute;
-using ZelosHR.Api.Configs;
+using ZelosHR.Api.Entities.Branches;
+using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Persistence.Entities;
 using ZelosHR.Api.Shared.Abstractions;
@@ -12,8 +12,9 @@ namespace ZelosHR.Api.Tests.Employees;
 public class EmployeesServiceTests
 {
     private readonly IEmployeeRepository _repo = Substitute.For<IEmployeeRepository>();
+    private readonly IDepartmentRepository _departments = Substitute.For<IDepartmentRepository>();
+    private readonly IBranchRepository _branches = Substitute.For<IBranchRepository>();
     private readonly ITenantContext _tenant = Substitute.For<ITenantContext>();
-    private readonly IDatabaseManager _db = Substitute.For<IDatabaseManager>();
     private readonly EmployeesService _sut;
 
     private static readonly Guid EmployeeId = Guid.Parse("11111111-1111-1111-1111-111111111111");
@@ -24,10 +25,10 @@ public class EmployeesServiceTests
         _tenant.OrgId.Returns("demo-org");
 
         _sut = new EmployeesService(
-            _db,
-            Options.Create(new AppSettings()),
             Substitute.For<ILogger<EmployeesService>>(),
             _repo,
+            _departments,
+            _branches,
             _tenant);
     }
 

@@ -137,6 +137,13 @@ public sealed class EmployeeRepository(ZelosHrDbContext db) : IEmployeeRepositor
         await db.SaveChangesAsync(ct);
     }
 
+    public async Task<bool> ExistsActiveScopedAsync(
+        Guid id, string tenantId, string orgId, CancellationToken ct = default) =>
+        await db.Employees.AsNoTracking()
+            .AnyAsync(
+                e => e.Id == id && e.TenantId == tenantId && e.OrgId == orgId && !e.IsDeleted,
+                ct);
+
     public async Task<bool> SoftDeleteScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default)
     {

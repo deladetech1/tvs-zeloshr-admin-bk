@@ -26,6 +26,7 @@ public static class PersistenceRegistration
         services.AddScoped<IBranchRepository, BranchRepository>();
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
         services.AddScoped<ILifecycleEventRepository, LifecycleEventRepository>();
+        services.AddScoped<IEmployeeDirectoryRepository, EmployeeDirectoryRepository>();
         return services;
     }
 

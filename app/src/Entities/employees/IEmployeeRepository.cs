@@ -35,4 +35,7 @@ public interface IEmployeeRepository : IRepository<EmployeeEntity, Guid>
 
     Task<bool> SoftDeleteScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default);
+
+    Task<bool> ExistsActiveScopedAsync(
+        Guid id, string tenantId, string orgId, CancellationToken ct = default);
 }

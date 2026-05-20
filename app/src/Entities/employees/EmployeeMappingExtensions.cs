@@ -29,6 +29,29 @@ internal static class EmployeeMappingExtensions
         UpdatedAt = entity.UpdatedAt,
     };
 
+    public static EmployeeEntity ToEntity(
+        this CreateEmployeeServiceWriteDto dto, string tenantId, string orgId, string employeeCode) =>
+        new()
+        {
+            Id = Guid.NewGuid(),
+            EmployeeCode = employeeCode,
+            TenantId = tenantId,
+            OrgId = orgId,
+            FirstName = dto.FirstName.Trim(),
+            MiddleName = string.IsNullOrWhiteSpace(dto.MiddleName) ? null : dto.MiddleName.Trim(),
+            LastName = dto.LastName.Trim(),
+            DateOfBirth = dto.DateOfBirth,
+            Gender = dto.Gender.Trim(),
+            Nationality = dto.Nationality.Trim(),
+            GhanaCardNumber = NormalizeGhanaCard(dto.GhanaCardNumber),
+            PersonalEmail = dto.PersonalEmail.Trim().ToLowerInvariant(),
+            PersonalPhone = dto.PersonalPhone.Trim(),
+            ResidentialAddress = dto.ResidentialAddress.Trim(),
+            GhanaPostGps = dto.GhanaPostGps.Trim(),
+            LifecycleState = EmployeeLifecycleStates.PreHire,
+            EmploymentStatus = "Active",
+        };
+
     public static EmployeeEntity ToEntity(this EmployeeWriteDto dto, string tenantId, string orgId, string employeeCode) =>
         new()
         {

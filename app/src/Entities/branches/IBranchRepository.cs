@@ -13,6 +13,9 @@ public interface IBranchRepository
 
     Task<bool> ArchiveScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default);
+
+    Task<bool> ExistsActiveScopedAsync(
+        Guid id, string tenantId, string orgId, CancellationToken ct = default);
 }
 
 public sealed record BranchListRow(Guid Id, string Name, int EmployeeCount, bool IsArchived);

@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore;
+using ZelosHR.Api.Persistence.Entities;
+
 namespace ZelosHR.Api.Entities.Employees;
 
 /// <summary>Query parameters for the employee directory list (matches frontend filters).</summary>
@@ -106,5 +109,68 @@ public static class EmployeeDirectoryQueryBuilder
         return column.Contains(',')
             ? $"ORDER BY {column} {direction}"
             : $"ORDER BY {column} {direction} NULLS LAST";
+    }
+
+    public static IQueryable<EmployeeEntity> ApplyFilters(
+        IQueryable<EmployeeEntity> query, EmployeeDirectoryQuery directoryQuery)
+    {
+        if (!string.IsNullOrWhiteSpace(directoryQuery.Search)
+            && directoryQuery.Search.Trim().Length >= MinimumSearchLength)
+        {
+            var pattern = $"%{directoryQuery.Search.Trim()}%";
+            query = query.Where(e =>
+                EF.Functions.ILike(e.FirstName, pattern)
+                || EF.Functions.ILike(e.LastName, pattern)
+                || EF.Functions.ILike(e.EmployeeCode, pattern)
+                || (e.JobTitle != null && EF.Functions.ILike(e.JobTitle, pattern))
+                || EF.Functions.ILike(
+                    e.FirstName + " " + (e.MiddleName != null ? e.MiddleName + " " : "") + e.LastName,
+                    pattern));
+        }
+
+        if (directoryQuery.DepartmentId.HasValue)
+            query = query.Where(e => e.DepartmentId == directoryQuery.DepartmentId);
+
+        if (directoryQuery.BranchId.HasValue)
+            query = query.Where(e => e.BranchId == directoryQuery.BranchId);
+
+        if (!string.IsNullOrWhiteSpace(directoryQuery.EmploymentType))
+            query = query.Where(e => e.EmploymentType == directoryQuery.EmploymentType.Trim());
+
+        if (!string.IsNullOrWhiteSpace(directoryQuery.Status))
+            query = query.Where(e => e.EmploymentStatus == directoryQuery.Status.Trim());
+        else if (!directoryQuery.IncludeInactive)
+            query = query.Where(e => e.EmploymentStatus != "Terminated" && e.EmploymentStatus != "Resigned");
+
+        return query;
+    }
+
+    public static IQueryable<EmployeeEntity> ApplySort(
+        IQueryable<EmployeeEntity> query, string? sortBy, string? sortOrder)
+    {
+        var desc = string.Equals(sortOrder, "desc", StringComparison.OrdinalIgnoreCase);
+        var key = sortBy?.Trim().ToLowerInvariant();
+
+        return key switch
+        {
+            "employeecode" or "employeeid" or "id" => desc
+                ? query.OrderByDescending(e => e.EmployeeCode)
+                : query.OrderBy(e => e.EmployeeCode),
+            "department" => desc
+                ? query.OrderByDescending(e => e.Department!.Name)
+                : query.OrderBy(e => e.Department!.Name),
+            "status" => desc
+                ? query.OrderByDescending(e => e.EmploymentStatus)
+                : query.OrderBy(e => e.EmploymentStatus),
+            "employmenttype" or "type" => desc
+                ? query.OrderByDescending(e => e.EmploymentType)
+                : query.OrderBy(e => e.EmploymentType),
+            "jobtitle" => desc
+                ? query.OrderByDescending(e => e.JobTitle)
+                : query.OrderBy(e => e.JobTitle),
+            _ => desc
+                ? query.OrderByDescending(e => e.LastName).ThenByDescending(e => e.FirstName)
+                : query.OrderBy(e => e.LastName).ThenBy(e => e.FirstName),
+        };
     }
 }

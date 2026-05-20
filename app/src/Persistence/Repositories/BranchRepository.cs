@@ -63,6 +63,11 @@ public sealed class BranchRepository(ZelosHrDbContext db) : IBranchRepository
         return entity.Name;
     }
 
+    public async Task<bool> ExistsActiveScopedAsync(
+        Guid id, string tenantId, string orgId, CancellationToken ct = default) =>
+        await db.Branches.AsNoTracking()
+            .AnyAsync(b => b.Id == id && b.TenantId == tenantId && b.OrgId == orgId && !b.IsArchived, ct);
+
     public async Task<bool> ArchiveScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default)
     {

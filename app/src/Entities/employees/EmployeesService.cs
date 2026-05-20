@@ -1,7 +1,7 @@
-using Dapper;
-using Microsoft.Extensions.Options;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
-using ZelosHR.Api.Configs;
+using ZelosHR.Api.Entities.Branches;
+using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Persistence.Entities;
 using ZelosHR.Api.Shared.Abstractions;
@@ -14,23 +14,23 @@ public partial class EmployeesService : IEmployeesService
     internal const string DuplicateGhanaCardMessage =
         "This Ghana Card number is already registered to another employee";
 
-    private readonly IDatabaseManager _database;
-    private readonly AppSettings _settings;
     private readonly ILogger<EmployeesService> _logger;
     private readonly IEmployeeRepository _employees;
+    private readonly IDepartmentRepository _departments;
+    private readonly IBranchRepository _branches;
     private readonly ITenantContext _tenant;
 
     public EmployeesService(
-        IDatabaseManager database,
-        IOptions<AppSettings> settings,
         ILogger<EmployeesService> logger,
         IEmployeeRepository employees,
+        IDepartmentRepository departments,
+        IBranchRepository branches,
         ITenantContext tenant)
     {
-        _database = database;
-        _settings = settings.Value;
         _logger = logger;
         _employees = employees;
+        _departments = departments;
+        _branches = branches;
         _tenant = tenant;
     }
 
@@ -45,92 +45,39 @@ public partial class EmployeesService : IEmployeesService
             return Respons<CreateEmployeeServiceReadDto>.ValidationError(fieldErrors);
 
         var normalizedGhanaCard = NormalizeGhanaCard(data.GhanaCardNumber);
+        if (await _employees.ExistsByGhanaCardAsync(normalizedGhanaCard, tenantId, ct: ct))
+            return Respons<CreateEmployeeServiceReadDto>.Fail(DuplicateGhanaCardMessage, statusCode: 409);
+
+        var seq = await _employees.GetNextEmployeeSequenceAsync(tenantId, orgId, ct);
+        var employeeCode = $"ZEL-{seq:D4}";
+        var entity = data.ToEntity(tenantId, orgId, employeeCode);
 
         try
         {
-            await using var connection = await _database.GetConnectionAsync(ct);
-            await using var transaction = await connection.BeginTransactionAsync(ct);
-
-            var exists = await connection.ExecuteScalarAsync<bool>(
-                $"""
-                SELECT EXISTS(
-                    SELECT 1 FROM {_settings.EmployeesTable}
-                    WHERE tenant_id = @TenantId AND ghana_card_number = @GhanaCardNumber
-                )
-                """,
-                new { TenantId = tenantId, GhanaCardNumber = normalizedGhanaCard },
-                transaction);
-
-            if (exists)
-            {
-                return Respons<CreateEmployeeServiceReadDto>.Fail(
-                    DuplicateGhanaCardMessage,
-                    statusCode: 409);
-            }
-
-            var employeeCode = await GenerateEmployeeCodeAsync(connection, transaction, tenantId, orgId, ct);
-
-            var id = await connection.QuerySingleAsync<Guid>(
-                $"""
-                INSERT INTO {_settings.EmployeesTable} (
-                    employee_code, tenant_id, org_id,
-                    first_name, middle_name, last_name,
-                    date_of_birth, gender, nationality, ghana_card_number,
-                    personal_email, personal_phone, residential_address, ghana_post_gps,
-                    lifecycle_state
-                )
-                VALUES (
-                    @EmployeeCode, @TenantId, @OrgId,
-                    @FirstName, @MiddleName, @LastName,
-                    @DateOfBirth, @Gender, @Nationality, @GhanaCardNumber,
-                    @PersonalEmail, @PersonalPhone, @ResidentialAddress, @GhanaPostGps,
-                    @LifecycleState
-                )
-                RETURNING id
-                """,
-                new
-                {
-                    EmployeeCode = employeeCode,
-                    TenantId = tenantId,
-                    OrgId = orgId,
-                    FirstName = data.FirstName.Trim(),
-                    MiddleName = string.IsNullOrWhiteSpace(data.MiddleName) ? null : data.MiddleName.Trim(),
-                    LastName = data.LastName.Trim(),
-                    DateOfBirth = data.DateOfBirth,
-                    Gender = data.Gender.Trim(),
-                    Nationality = data.Nationality.Trim(),
-                    GhanaCardNumber = normalizedGhanaCard,
-                    PersonalEmail = data.PersonalEmail.Trim().ToLowerInvariant(),
-                    PersonalPhone = data.PersonalPhone.Trim(),
-                    ResidentialAddress = data.ResidentialAddress.Trim(),
-                    GhanaPostGps = data.GhanaPostGps.Trim(),
-                    LifecycleState = EmployeeLifecycleStates.PreHire,
-                },
-                transaction);
-
-            await transaction.CommitAsync(ct);
-
-            _logger.LogInformation(
-                "Created employee {EmployeeId} code={EmployeeCode} tenant={TenantId}",
-                id,
-                employeeCode,
-                tenantId);
-
-            return Respons<CreateEmployeeServiceReadDto>.Ok(new CreateEmployeeServiceReadDto
-            {
-                Id = id,
-                EmployeeCode = employeeCode,
-                FirstName = data.FirstName.Trim(),
-                MiddleName = string.IsNullOrWhiteSpace(data.MiddleName) ? null : data.MiddleName.Trim(),
-                LastName = data.LastName.Trim(),
-                LifecycleState = EmployeeLifecycleStates.PreHire,
-            });
+            await _employees.AddAsync(entity, ct);
         }
-        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UniqueViolation)
+        catch (DbUpdateException ex)
+            when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         {
             _logger.LogWarning(ex, "Duplicate Ghana Card on create");
             return Respons<CreateEmployeeServiceReadDto>.Fail(DuplicateGhanaCardMessage, statusCode: 409);
         }
+
+        _logger.LogInformation(
+            "Created employee {EmployeeId} code={EmployeeCode} tenant={TenantId}",
+            entity.Id,
+            employeeCode,
+            tenantId);
+
+        return Respons<CreateEmployeeServiceReadDto>.Ok(new CreateEmployeeServiceReadDto
+        {
+            Id = entity.Id,
+            EmployeeCode = employeeCode,
+            FirstName = entity.FirstName,
+            MiddleName = entity.MiddleName,
+            LastName = entity.LastName,
+            LifecycleState = entity.LifecycleState,
+        });
     }
 
     public async Task<Respons<GetEmployeesServiceReadDto>> ListEmployeesAsync(
@@ -167,80 +114,78 @@ public partial class EmployeesService : IEmployeesService
         string orgId,
         CancellationToken ct = default)
     {
-        var existing = await GetByIdAsync(id, tenantId, orgId, ct);
-        if (!existing.Success)
-            return existing;
-
         var fieldErrors = ValidateProfilePatch(data);
         if (fieldErrors.Count > 0)
             return Respons<EmployeeDetailDto>.ValidationError(fieldErrors);
 
+        var entity = await _employees.GetByIdScopedForUpdateAsync(id, tenantId, orgId, ct);
+        if (entity is null)
+            return Respons<EmployeeDetailDto>.NotFound("Employee not found.");
+
         if (!string.IsNullOrWhiteSpace(data.GhanaCardNumber))
         {
             var normalized = NormalizeGhanaCard(data.GhanaCardNumber);
-            await using var connection = await _database.GetConnectionAsync(ct);
-            var duplicate = await connection.ExecuteScalarAsync<bool>(
-                $"""
-                SELECT EXISTS(
-                    SELECT 1 FROM {_settings.EmployeesTable}
-                    WHERE tenant_id = @TenantId AND ghana_card_number = @GhanaCardNumber AND id <> @Id AND is_deleted = FALSE
-                )
-                """,
-                new { TenantId = tenantId, GhanaCardNumber = normalized, Id = id });
-            if (duplicate)
+            if (await _employees.ExistsByGhanaCardAsync(normalized, tenantId, id, ct))
                 return Respons<EmployeeDetailDto>.Fail(DuplicateGhanaCardMessage, statusCode: 409);
+            entity.GhanaCardNumber = normalized;
         }
 
-        var sets = new List<string>();
-        var parameters = new DynamicParameters(new { Id = id, TenantId = tenantId, OrgId = orgId });
-
-        void Set<T>(string column, string param, T? value)
-        {
-            if (value is null) return;
-            sets.Add($"{column} = @{param}");
-            parameters.Add(param, value);
-        }
-
+        var changed = data.GhanaCardNumber is not null;
         if (!string.IsNullOrWhiteSpace(data.FirstName))
-            Set("first_name", "FirstName", data.FirstName.Trim());
+        {
+            entity.FirstName = data.FirstName.Trim();
+            changed = true;
+        }
         if (data.MiddleName is not null)
-            Set("middle_name", "MiddleName", string.IsNullOrWhiteSpace(data.MiddleName) ? null : data.MiddleName.Trim());
+        {
+            entity.MiddleName = string.IsNullOrWhiteSpace(data.MiddleName) ? null : data.MiddleName.Trim();
+            changed = true;
+        }
         if (!string.IsNullOrWhiteSpace(data.LastName))
-            Set("last_name", "LastName", data.LastName.Trim());
+        {
+            entity.LastName = data.LastName.Trim();
+            changed = true;
+        }
         if (data.DateOfBirth.HasValue)
-            Set("date_of_birth", "DateOfBirth", data.DateOfBirth.Value);
+        {
+            entity.DateOfBirth = data.DateOfBirth.Value;
+            changed = true;
+        }
         if (!string.IsNullOrWhiteSpace(data.Gender))
-            Set("gender", "Gender", data.Gender.Trim());
+        {
+            entity.Gender = data.Gender.Trim();
+            changed = true;
+        }
         if (!string.IsNullOrWhiteSpace(data.Nationality))
-            Set("nationality", "Nationality", data.Nationality.Trim());
-        if (!string.IsNullOrWhiteSpace(data.GhanaCardNumber))
-            Set("ghana_card_number", "GhanaCardNumber", NormalizeGhanaCard(data.GhanaCardNumber));
+        {
+            entity.Nationality = data.Nationality.Trim();
+            changed = true;
+        }
         if (!string.IsNullOrWhiteSpace(data.PersonalEmail))
-            Set("personal_email", "PersonalEmail", data.PersonalEmail.Trim().ToLowerInvariant());
+        {
+            entity.PersonalEmail = data.PersonalEmail.Trim().ToLowerInvariant();
+            changed = true;
+        }
         if (!string.IsNullOrWhiteSpace(data.PersonalPhone))
-            Set("personal_phone", "PersonalPhone", data.PersonalPhone.Trim());
+        {
+            entity.PersonalPhone = data.PersonalPhone.Trim();
+            changed = true;
+        }
         if (!string.IsNullOrWhiteSpace(data.ResidentialAddress))
-            Set("residential_address", "ResidentialAddress", data.ResidentialAddress.Trim());
+        {
+            entity.ResidentialAddress = data.ResidentialAddress.Trim();
+            changed = true;
+        }
         if (!string.IsNullOrWhiteSpace(data.GhanaPostGps))
-            Set("ghana_post_gps", "GhanaPostGps", data.GhanaPostGps.Trim());
+        {
+            entity.GhanaPostGps = data.GhanaPostGps.Trim();
+            changed = true;
+        }
 
-        if (sets.Count == 0)
+        if (!changed)
             return Respons<EmployeeDetailDto>.Fail("No fields to update.", statusCode: 400);
 
-        sets.Add("updated_at = NOW()");
-        await using (var connection = await _database.GetConnectionAsync(ct))
-        {
-            var affected = await connection.ExecuteAsync(
-                $"""
-                UPDATE {_settings.EmployeesTable}
-                SET {string.Join(", ", sets)}
-                WHERE id = @Id AND tenant_id = @TenantId AND org_id = @OrgId AND is_deleted = FALSE
-                """,
-                parameters);
-            if (affected == 0)
-                return Respons<EmployeeDetailDto>.Fail("Employee not found.", statusCode: 404);
-        }
-
+        await _employees.UpdateAsync(entity, ct);
         return await GetByIdAsync(id, tenantId, orgId, ct);
     }
 
@@ -251,38 +196,20 @@ public partial class EmployeesService : IEmployeesService
         string orgId,
         CancellationToken ct = default)
     {
-        var existing = await GetByIdAsync(id, tenantId, orgId, ct);
-        if (!existing.Success)
-            return existing;
-
-        await using var connection = await _database.GetConnectionAsync(ct);
+        var entity = await _employees.GetByIdScopedForUpdateAsync(id, tenantId, orgId, ct);
+        if (entity is null)
+            return Respons<EmployeeDetailDto>.NotFound("Employee not found.");
 
         if (data.DepartmentId.HasValue)
         {
-            var deptOk = await connection.ExecuteScalarAsync<bool>(
-                """
-                SELECT EXISTS(
-                    SELECT 1 FROM zeloshr.zhr_departments
-                    WHERE id = @Id AND tenant_id = @TenantId AND org_id = @OrgId AND is_archived = FALSE
-                )
-                """,
-                new { Id = data.DepartmentId, TenantId = tenantId, OrgId = orgId });
-            if (!deptOk)
+            if (!await _departments.ExistsActiveScopedAsync(data.DepartmentId.Value, tenantId, orgId, ct))
                 return Respons<EmployeeDetailDto>.ValidationError(
                     new Dictionary<string, string> { ["departmentId"] = "Department not found." });
         }
 
         if (data.BranchId.HasValue)
         {
-            var branchOk = await connection.ExecuteScalarAsync<bool>(
-                """
-                SELECT EXISTS(
-                    SELECT 1 FROM zeloshr.zhr_branches
-                    WHERE id = @Id AND tenant_id = @TenantId AND org_id = @OrgId AND is_archived = FALSE
-                )
-                """,
-                new { Id = data.BranchId, TenantId = tenantId, OrgId = orgId });
-            if (!branchOk)
+            if (!await _branches.ExistsActiveScopedAsync(data.BranchId.Value, tenantId, orgId, ct))
                 return Respons<EmployeeDetailDto>.ValidationError(
                     new Dictionary<string, string> { ["branchId"] = "Branch not found." });
         }
@@ -292,54 +219,62 @@ public partial class EmployeesService : IEmployeesService
             if (data.ManagerId == id)
                 return Respons<EmployeeDetailDto>.ValidationError(
                     new Dictionary<string, string> { ["managerId"] = "Employee cannot be their own manager." });
-            var mgrOk = await connection.ExecuteScalarAsync<bool>(
-                $"""
-                SELECT EXISTS(
-                    SELECT 1 FROM {_settings.EmployeesTable}
-                    WHERE id = @ManagerId AND tenant_id = @TenantId AND org_id = @OrgId AND is_deleted = FALSE
-                )
-                """,
-                new { ManagerId = data.ManagerId, TenantId = tenantId, OrgId = orgId });
-            if (!mgrOk)
+            if (!await _employees.ExistsActiveScopedAsync(data.ManagerId.Value, tenantId, orgId, ct))
                 return Respons<EmployeeDetailDto>.ValidationError(
                     new Dictionary<string, string> { ["managerId"] = "Manager not found." });
         }
 
-        var sets = new List<string>();
-        var parameters = new DynamicParameters(new { Id = id, TenantId = tenantId, OrgId = orgId });
-
-        void SetNullable<T>(string column, string param, T? value, bool include)
+        var changed = false;
+        if (data.JobTitle is not null)
         {
-            if (!include) return;
-            sets.Add($"{column} = @{param}");
-            parameters.Add(param, value);
+            entity.JobTitle = string.IsNullOrWhiteSpace(data.JobTitle) ? null : data.JobTitle.Trim();
+            changed = true;
+        }
+        if (data.DepartmentId.HasValue)
+        {
+            entity.DepartmentId = data.DepartmentId;
+            changed = true;
+        }
+        if (data.BranchId.HasValue)
+        {
+            entity.BranchId = data.BranchId;
+            changed = true;
+        }
+        if (data.ManagerId.HasValue)
+        {
+            entity.ManagerId = data.ManagerId;
+            changed = true;
+        }
+        if (data.EmploymentType is not null)
+        {
+            entity.EmploymentType = data.EmploymentType.Trim();
+            changed = true;
+        }
+        if (!string.IsNullOrWhiteSpace(data.EmploymentStatus))
+        {
+            entity.EmploymentStatus = data.EmploymentStatus.Trim();
+            changed = true;
+        }
+        if (data.ContractType is not null)
+        {
+            entity.ContractType = data.ContractType.Trim();
+            changed = true;
+        }
+        if (data.ProbationEndDate is not null)
+        {
+            entity.ProbationEndDate = data.ProbationEndDate;
+            changed = true;
+        }
+        if (data.EmploymentStartDate is not null)
+        {
+            entity.EmploymentStartDate = data.EmploymentStartDate;
+            changed = true;
         }
 
-        SetNullable("job_title", "JobTitle", string.IsNullOrWhiteSpace(data.JobTitle) ? null : data.JobTitle.Trim(), data.JobTitle is not null);
-        SetNullable("department_id", "DepartmentId", data.DepartmentId, data.DepartmentId.HasValue);
-        SetNullable("branch_id", "BranchId", data.BranchId, data.BranchId.HasValue);
-        SetNullable("manager_id", "ManagerId", data.ManagerId, data.ManagerId.HasValue);
-        SetNullable("employment_type", "EmploymentType", data.EmploymentType?.Trim(), data.EmploymentType is not null);
-        SetNullable("employment_status", "EmploymentStatus", data.EmploymentStatus?.Trim(), !string.IsNullOrWhiteSpace(data.EmploymentStatus));
-        SetNullable("contract_type", "ContractType", data.ContractType?.Trim(), data.ContractType is not null);
-        SetNullable("probation_end_date", "ProbationEndDate", data.ProbationEndDate, data.ProbationEndDate is not null);
-        SetNullable("employment_start_date", "EmploymentStartDate", data.EmploymentStartDate, data.EmploymentStartDate is not null);
-
-        if (sets.Count == 0)
+        if (!changed)
             return Respons<EmployeeDetailDto>.Fail("No fields to update.", statusCode: 400);
 
-        sets.Add("updated_at = NOW()");
-        var affected = await connection.ExecuteAsync(
-            $"""
-            UPDATE {_settings.EmployeesTable}
-            SET {string.Join(", ", sets)}
-            WHERE id = @Id AND tenant_id = @TenantId AND org_id = @OrgId AND is_deleted = FALSE
-            """,
-            parameters);
-
-        if (affected == 0)
-            return Respons<EmployeeDetailDto>.Fail("Employee not found.", statusCode: 404);
-
+        await _employees.UpdateAsync(entity, ct);
         return await GetByIdAsync(id, tenantId, orgId, ct);
     }
 
@@ -354,18 +289,12 @@ public partial class EmployeesService : IEmployeesService
             return Respons<EmployeeDetailDto>.ValidationError(
                 new Dictionary<string, string> { ["lifecycleState"] = "Invalid lifecycle state." });
 
-        await using var connection = await _database.GetConnectionAsync(ct);
-        var affected = await connection.ExecuteAsync(
-            $"""
-            UPDATE {_settings.EmployeesTable}
-            SET lifecycle_state = @LifecycleState, updated_at = NOW()
-            WHERE id = @Id AND tenant_id = @TenantId AND org_id = @OrgId AND is_deleted = FALSE
-            """,
-            new { Id = id, TenantId = tenantId, OrgId = orgId, LifecycleState = lifecycleState.Trim() });
+        var entity = await _employees.GetByIdScopedForUpdateAsync(id, tenantId, orgId, ct);
+        if (entity is null)
+            return Respons<EmployeeDetailDto>.NotFound("Employee not found.");
 
-        if (affected == 0)
-            return Respons<EmployeeDetailDto>.Fail("Employee not found.", statusCode: 404);
-
+        entity.LifecycleState = lifecycleState.Trim();
+        await _employees.UpdateAsync(entity, ct);
         return await GetByIdAsync(id, tenantId, orgId, ct);
     }
 
@@ -382,16 +311,15 @@ public partial class EmployeesService : IEmployeesService
     public async Task<EmployeeDisplayInfo?> ResolveEmployeeDisplayAsync(
         Guid employeeId, string tenantId, string orgId, CancellationToken ct)
     {
-        await using var connection = await _database.GetConnectionAsync(ct);
-        return await connection.QuerySingleOrDefaultAsync<EmployeeDisplayInfo>(
-            $"""
-            SELECT
-                TRIM(CONCAT(first_name, ' ', COALESCE(middle_name || ' ', ''), last_name)) AS FullName,
-                employee_code AS EmployeeCode
-            FROM {_settings.EmployeesTable}
-            WHERE id = @Id AND tenant_id = @TenantId AND org_id = @OrgId AND is_deleted = FALSE
-            """,
-            new { Id = employeeId, TenantId = tenantId, OrgId = orgId });
+        var entity = await _employees.GetByIdScopedAsync(employeeId, tenantId, orgId, ct);
+        if (entity is null)
+            return null;
+
+        return new EmployeeDisplayInfo
+        {
+            FullName = NameFormatting.BuildFullName(entity.FirstName, entity.MiddleName, entity.LastName),
+            EmployeeCode = entity.EmployeeCode,
+        };
     }
 
     public sealed class EmployeeDisplayInfo
@@ -426,41 +354,6 @@ public partial class EmployeesService : IEmployeesService
         ManagerName = row.Manager is null
             ? null
             : NameFormatting.BuildFullName(row.Manager.FirstName, row.Manager.MiddleName, row.Manager.LastName),
-        EmploymentType = row.EmploymentType,
-        EmploymentStatus = row.EmploymentStatus,
-        ContractType = row.ContractType,
-        ProbationEndDate = row.ProbationEndDate,
-        EmploymentStartDate = row.EmploymentStartDate,
-        CreatedAt = row.CreatedAt,
-        UpdatedAt = row.UpdatedAt,
-    };
-
-    private static EmployeeDetailDto MapDetail(EmployeeDetailRow row) => new()
-    {
-        EmployeeId = row.Id.ToString(),
-        EmployeeCode = row.EmployeeCode,
-        FirstName = row.FirstName,
-        MiddleName = row.MiddleName,
-        LastName = row.LastName,
-        FullName = NameFormatting.BuildFullName(row.FirstName, row.MiddleName, row.LastName),
-        DateOfBirth = row.DateOfBirth,
-        Gender = row.Gender,
-        Nationality = row.Nationality,
-        GhanaCardNumber = row.GhanaCardNumber,
-        PersonalEmail = row.PersonalEmail,
-        PersonalPhone = row.PersonalPhone,
-        ResidentialAddress = row.ResidentialAddress,
-        GhanaPostGps = row.GhanaPostGps,
-        LifecycleState = row.LifecycleState,
-        JobTitle = row.JobTitle,
-        DepartmentId = row.DepartmentId?.ToString(),
-        DepartmentName = row.DepartmentName,
-        BranchId = row.BranchId?.ToString(),
-        BranchName = row.BranchName,
-        ManagerId = row.ManagerId?.ToString(),
-        ManagerName = row.ManagerFirstName is null
-            ? null
-            : NameFormatting.BuildFullName(row.ManagerFirstName, row.ManagerMiddleName, row.ManagerLastName!),
         EmploymentType = row.EmploymentType,
         EmploymentStatus = row.EmploymentStatus,
         ContractType = row.ContractType,
@@ -531,68 +424,5 @@ public partial class EmployeesService : IEmployeesService
     }
 
     private static string NormalizeGhanaCard(string value) =>
-        value.Trim().ToUpperInvariant();
-
-    private async Task<string> GenerateEmployeeCodeAsync(
-        NpgsqlConnection connection,
-        NpgsqlTransaction transaction,
-        string tenantId,
-        string orgId,
-        CancellationToken ct)
-    {
-        var next = await connection.ExecuteScalarAsync<long>(
-            $"""
-            SELECT COALESCE(MAX(
-                NULLIF(REGEXP_REPLACE(employee_code, '\\D', '', 'g'), '')::bigint
-            ), 0) + 1
-            FROM {_settings.EmployeesTable}
-            WHERE tenant_id = @TenantId AND org_id = @OrgId
-            """,
-            new { TenantId = tenantId, OrgId = orgId },
-            transaction);
-
-        return $"ZEL-{next:D4}";
-    }
-
-    private sealed class EmployeeListRow
-    {
-        public Guid Id { get; init; }
-        public required string EmployeeCode { get; init; }
-        public required string FullName { get; init; }
-        public required string LifecycleState { get; init; }
-    }
-
-    private sealed class EmployeeDetailRow
-    {
-        public Guid Id { get; init; }
-        public required string EmployeeCode { get; init; }
-        public required string FirstName { get; init; }
-        public string? MiddleName { get; init; }
-        public required string LastName { get; init; }
-        public DateOnly DateOfBirth { get; init; }
-        public required string Gender { get; init; }
-        public required string Nationality { get; init; }
-        public required string GhanaCardNumber { get; init; }
-        public required string PersonalEmail { get; init; }
-        public required string PersonalPhone { get; init; }
-        public required string ResidentialAddress { get; init; }
-        public required string GhanaPostGps { get; init; }
-        public required string LifecycleState { get; init; }
-        public string? JobTitle { get; init; }
-        public Guid? DepartmentId { get; init; }
-        public string? DepartmentName { get; init; }
-        public Guid? BranchId { get; init; }
-        public string? BranchName { get; init; }
-        public Guid? ManagerId { get; init; }
-        public string? ManagerFirstName { get; init; }
-        public string? ManagerMiddleName { get; init; }
-        public string? ManagerLastName { get; init; }
-        public string? EmploymentType { get; init; }
-        public required string EmploymentStatus { get; init; }
-        public string? ContractType { get; init; }
-        public DateOnly? ProbationEndDate { get; init; }
-        public DateOnly? EmploymentStartDate { get; init; }
-        public DateTimeOffset CreatedAt { get; init; }
-        public DateTimeOffset UpdatedAt { get; init; }
-    }
+        EmployeeMappingExtensions.NormalizeGhanaCard(value);
 }
