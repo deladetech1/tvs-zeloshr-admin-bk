@@ -1,6 +1,6 @@
 # Architecture audit — ZelosHR.Api (baseline: `4fedd06` / demo sprint)
 
-> **Audit date:** 2026-05-20  
+> **Audit date:** 2026-05-20 (baseline); **uplift completed:** 2026-05-21 on `feature/uplift`  
 > **Branch for uplift work:** `feature/uplift` (keep `main` / `demo/freeze` for demos)
 
 ## Executive summary
@@ -94,8 +94,8 @@ Tests today validate **SQL string builders and formatting**, not service behavio
 
 | Rule (uplift spec) | Current state |
 |--------------------|---------------|
-| EF Core only, no Dapper | **Violated** — `Dapper` + `Npgsql` connection per operation |
-| Repositories only touch `DbContext` | **Not started** — no `DbContext` in project |
+| EF Core only, no Dapper | **Done** — entity services use `ZelosHrDbContext` + repositories; `Dapper` package removed |
+| Repositories only touch `DbContext` | **Done** — `app/src/Persistence/Repositories/*` |
 | No SQL in this repo for schema | **Violated for dev** — `app/src/Database/Migrations/*.sql` still present (gated off via `RunDatabaseMigrations=false`) |
 | Schema in tvs-sqlscript | **Documented** in AGENTS.md; aligns when migrations disabled |
 
@@ -111,13 +111,13 @@ Tests today validate **SQL string builders and formatting**, not service behavio
 ## Swagger / navigation
 
 - Swashbuckle **10.x**, OpenAPI 3.0.3 compat middleware, **~55 paths**.
-- `NavigationController` returns a **hand-maintained** `NavigationMapResponse` — must be updated when routes change (Section 9 target: dynamic discovery).
+- `NavigationService` builds the map from `IApiDescriptionGroupCollectionProvider` (Swagger groups).
 
 ---
 
 ## Packages & framework
 
-- **.NET 10**, `Trovesuite.Package` 1.0.0, Swashbuckle 10, Dapper 2.1.66.
+- **.NET 10**, `Trovesuite.Package` 1.0.0, Swashbuckle 10, EF Core 10 + Npgsql.
 - Test project references **Microsoft.AspNetCore.Mvc.Testing 8.0.11** — should align to 10.x when adding integration tests.
 
 ---
