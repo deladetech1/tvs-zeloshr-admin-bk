@@ -90,4 +90,111 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
 
         return (rows, total);
     }
+
+    public async Task<IReadOnlyList<DepartmentListRow>> GetOrgChartScopedAsync(
+        string tenantId, string orgId, CancellationToken ct = default) =>
+        await Scoped(tenantId, orgId)
+            .Where(d => !d.IsArchived)
+            .OrderBy(d => d.Name)
+            .Select(d => new DepartmentListRow(
+                d.Id,
+                d.Name,
+                d.ParentDepartmentId,
+                null,
+                d.IsArchived,
+                d.HeadOfDepartmentId,
+                d.HeadOfDepartment != null ? d.HeadOfDepartment.FirstName : null,
+                d.HeadOfDepartment != null ? d.HeadOfDepartment.LastName : null,
+                d.HeadOfDepartment != null ? d.HeadOfDepartment.JobTitle : null,
+                db.Employees.Count(e =>
+                    e.DepartmentId == d.Id
+                    && e.TenantId == tenantId
+                    && e.OrgId == orgId
+                    && !e.IsDeleted)))
+            .ToListAsync(ct);
+
+    public async Task<Guid> CreateScopedAsync(
+        string tenantId,
+        string orgId,
+        string name,
+        Guid? parentDepartmentId,
+        Guid? headOfDepartmentId,
+        CancellationToken ct = default)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var entity = new DepartmentEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            OrgId = orgId,
+            Name = name.Trim(),
+            ParentDepartmentId = parentDepartmentId,
+            HeadOfDepartmentId = headOfDepartmentId,
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+        db.Departments.Add(entity);
+        await db.SaveChangesAsync(ct);
+        return entity.Id;
+    }
+
+    public async Task<bool> ExistsActiveScopedAsync(
+        Guid id, string tenantId, string orgId, CancellationToken ct = default) =>
+        await db.Departments.AsNoTracking()
+            .AnyAsync(
+                d => d.Id == id && d.TenantId == tenantId && d.OrgId == orgId && !d.IsArchived,
+                ct);
+
+    public async Task<string?> UpdateScopedAsync(
+        Guid id,
+        string tenantId,
+        string orgId,
+        string? name,
+        Guid? parentDepartmentId,
+        Guid? headOfDepartmentId,
+        CancellationToken ct = default)
+    {
+        var entity = await db.Departments.FirstOrDefaultAsync(
+            d => d.Id == id && d.TenantId == tenantId && d.OrgId == orgId && !d.IsArchived, ct);
+        if (entity is null)
+            return null;
+
+        var changed = false;
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            entity.Name = name.Trim();
+            changed = true;
+        }
+        if (parentDepartmentId.HasValue)
+        {
+            entity.ParentDepartmentId = parentDepartmentId;
+            changed = true;
+        }
+        if (headOfDepartmentId.HasValue)
+        {
+            entity.HeadOfDepartmentId = headOfDepartmentId;
+            changed = true;
+        }
+
+        if (!changed)
+            return string.Empty;
+
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return entity.Name;
+    }
+
+    public async Task<bool> ArchiveScopedAsync(
+        Guid id, string tenantId, string orgId, CancellationToken ct = default)
+    {
+        var entity = await db.Departments.FirstOrDefaultAsync(
+            d => d.Id == id && d.TenantId == tenantId && d.OrgId == orgId && !d.IsArchived, ct);
+        if (entity is null)
+            return false;
+
+        entity.IsArchived = true;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return true;
+    }
 }

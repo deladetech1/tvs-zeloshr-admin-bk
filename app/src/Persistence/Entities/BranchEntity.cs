@@ -7,4 +7,6 @@ public sealed class BranchEntity
     public string OrgId { get; set; } = default!;
     public string Name { get; set; } = default!;
     public bool IsArchived { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
 }

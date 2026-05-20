@@ -17,6 +17,32 @@ public interface IDepartmentRepository
         int page,
         int pageSize,
         CancellationToken ct = default);
+
+    Task<IReadOnlyList<DepartmentListRow>> GetOrgChartScopedAsync(
+        string tenantId, string orgId, CancellationToken ct = default);
+
+    Task<Guid> CreateScopedAsync(
+        string tenantId,
+        string orgId,
+        string name,
+        Guid? parentDepartmentId,
+        Guid? headOfDepartmentId,
+        CancellationToken ct = default);
+
+    Task<bool> ExistsActiveScopedAsync(
+        Guid id, string tenantId, string orgId, CancellationToken ct = default);
+
+    Task<string?> UpdateScopedAsync(
+        Guid id,
+        string tenantId,
+        string orgId,
+        string? name,
+        Guid? parentDepartmentId,
+        Guid? headOfDepartmentId,
+        CancellationToken ct = default);
+
+    Task<bool> ArchiveScopedAsync(
+        Guid id, string tenantId, string orgId, CancellationToken ct = default);
 }
 
 public sealed record DepartmentListRow(
