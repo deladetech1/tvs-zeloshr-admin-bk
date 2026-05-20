@@ -39,10 +39,17 @@ jobs:
         env:
           PKG: ${{ secrets.GITHUB_PACKAGES_TOKEN }}
         run: |
-          [[ -z "$PKG" ]] && echo "::error::GITHUB_PACKAGES_TOKEN secret is required" && exit 1
+          TOKEN="${PKG:-${{ secrets.GITHUB_TOKEN }}}"
+          if [[ -z "$TOKEN" ]]; then
+            echo "::error::Set repository secret GITHUB_PACKAGES_TOKEN (read:packages PAT) or ensure GITHUB_TOKEN can read org packages"
+            exit 1
+          fi
+          if [[ -z "$PKG" ]]; then
+            echo "::warning::GITHUB_PACKAGES_TOKEN not set; using GITHUB_TOKEN for NuGet restore"
+          fi
           dotnet nuget update source github-deladetech1 \
             --username deladetech1 \
-            --password "$PKG" \
+            --password "$TOKEN" \
             --store-password-in-clear-text \
             --configfile nuget.config
 
@@ -53,9 +60,10 @@ jobs:
 
       - name: Docker build (API)
         env:
-          GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_PACKAGES_TOKEN }}
+          PKG: ${{ secrets.GITHUB_PACKAGES_TOKEN }}
         run: |
+          TOKEN="${PKG:-${{ secrets.GITHUB_TOKEN }}}"
           docker build \
-            --build-arg GITHUB_PACKAGES_TOKEN="$GITHUB_PACKAGES_TOKEN" \
+            --build-arg GITHUB_PACKAGES_TOKEN="$TOKEN" \
             -f app/Dockerfile \
             .

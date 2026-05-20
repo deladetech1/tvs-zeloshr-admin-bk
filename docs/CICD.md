@@ -20,7 +20,7 @@ Create these Azure resources (or rename the workflow outputs to match your namin
 | `AZURE_TENANT_ID` | Azure AD tenant |
 | `TROVESUITE_DEV_AZURE_SUBSCRIPTION_ID` | `dev` branch deploys |
 | `TROVESUITE_PROD_AZURE_SUBSCRIPTION_ID` | `main` branch deploys |
-| `GITHUB_PACKAGES_TOKEN` | Docker build — restore **Trovesuite.Package** (`read:packages` PAT) |
+| `GITHUB_PACKAGES_TOKEN` | Docker build / CI — restore **Trovesuite.Package** (`read:packages` PAT). CI falls back to `GITHUB_TOKEN` if unset (same-org packages only). |
 
 ## Repository variables
 
