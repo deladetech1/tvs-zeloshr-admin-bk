@@ -3,27 +3,35 @@ using Microsoft.Extensions.Options;
 using Npgsql;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Shared;
+using ZelosHR.Api.Persistence.Entities;
+using ZelosHR.Api.Shared.Abstractions;
 using ZelosHR.Api.Shared.Formatting;
 
 namespace ZelosHR.Api.Entities.Employees;
 
-public class EmployeesService
+public partial class EmployeesService : IEmployeesService
 {
-    private const string DuplicateGhanaCardMessage =
+    internal const string DuplicateGhanaCardMessage =
         "This Ghana Card number is already registered to another employee";
 
     private readonly IDatabaseManager _database;
     private readonly AppSettings _settings;
     private readonly ILogger<EmployeesService> _logger;
+    private readonly IEmployeeRepository _employees;
+    private readonly ITenantContext _tenant;
 
     public EmployeesService(
         IDatabaseManager database,
         IOptions<AppSettings> settings,
-        ILogger<EmployeesService> logger)
+        ILogger<EmployeesService> logger,
+        IEmployeeRepository employees,
+        ITenantContext tenant)
     {
         _database = database;
         _settings = settings.Value;
         _logger = logger;
+        _employees = employees;
+        _tenant = tenant;
     }
 
     public async Task<Respons<CreateEmployeeServiceReadDto>> CreateEmployeeAsync(
@@ -130,26 +138,12 @@ public class EmployeesService
         string orgId,
         CancellationToken ct = default)
     {
-        await using var connection = await _database.GetConnectionAsync(ct);
-
-        var rows = await connection.QueryAsync<EmployeeListRow>(
-            $"""
-            SELECT
-                id,
-                employee_code AS EmployeeCode,
-                TRIM(CONCAT(first_name, ' ', COALESCE(middle_name || ' ', ''), last_name)) AS FullName,
-                lifecycle_state AS LifecycleState
-            FROM {_settings.EmployeesTable}
-            WHERE tenant_id = @TenantId AND org_id = @OrgId
-            ORDER BY created_at DESC
-            """,
-            new { TenantId = tenantId, OrgId = orgId });
-
+        var (rows, _) = await _employees.GetPagedScopedAsync(tenantId, orgId, page: 1, pageSize: 10_000, ct);
         var items = rows.Select(r => new EmployeeListItemServiceReadDto
         {
             Id = r.Id,
             EmployeeCode = r.EmployeeCode,
-            FullName = r.FullName,
+            FullName = NameFormatting.BuildFullName(r.FirstName, r.MiddleName, r.LastName),
             LifecycleState = r.LifecycleState,
         }).ToList();
 
@@ -159,52 +153,11 @@ public class EmployeesService
     public async Task<Respons<EmployeeDetailDto>> GetByIdAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default)
     {
-        await using var connection = await _database.GetConnectionAsync(ct);
-        var row = await connection.QuerySingleOrDefaultAsync<EmployeeDetailRow>(
-            $"""
-            SELECT
-                e.id AS Id,
-                e.employee_code AS EmployeeCode,
-                e.first_name AS FirstName,
-                e.middle_name AS MiddleName,
-                e.last_name AS LastName,
-                e.date_of_birth AS DateOfBirth,
-                e.gender AS Gender,
-                e.nationality AS Nationality,
-                e.ghana_card_number AS GhanaCardNumber,
-                e.personal_email AS PersonalEmail,
-                e.personal_phone AS PersonalPhone,
-                e.residential_address AS ResidentialAddress,
-                e.ghana_post_gps AS GhanaPostGps,
-                e.lifecycle_state AS LifecycleState,
-                e.job_title AS JobTitle,
-                e.department_id AS DepartmentId,
-                d.name AS DepartmentName,
-                e.branch_id AS BranchId,
-                b.name AS BranchName,
-                e.manager_id AS ManagerId,
-                m.first_name AS ManagerFirstName,
-                m.middle_name AS ManagerMiddleName,
-                m.last_name AS ManagerLastName,
-                e.employment_type AS EmploymentType,
-                e.employment_status AS EmploymentStatus,
-                e.contract_type AS ContractType,
-                e.probation_end_date AS ProbationEndDate,
-                e.employment_start_date AS EmploymentStartDate,
-                e.created_at AS CreatedAt,
-                e.updated_at AS UpdatedAt
-            FROM {_settings.EmployeesTable} e
-            LEFT JOIN zeloshr.zhr_departments d ON d.id = e.department_id
-            LEFT JOIN zeloshr.zhr_branches b ON b.id = e.branch_id
-            LEFT JOIN {_settings.EmployeesTable} m ON m.id = e.manager_id
-            WHERE e.id = @Id AND e.tenant_id = @TenantId AND e.org_id = @OrgId AND e.is_deleted = FALSE
-            """,
-            new { Id = id, TenantId = tenantId, OrgId = orgId });
+        var entity = await _employees.GetByIdScopedAsync(id, tenantId, orgId, ct);
+        if (entity is null)
+            return Respons<EmployeeDetailDto>.NotFound("Employee not found.");
 
-        if (row is null)
-            return Respons<EmployeeDetailDto>.Fail("Employee not found.", statusCode: 404);
-
-        return Respons<EmployeeDetailDto>.Ok(MapDetail(row));
+        return Respons<EmployeeDetailDto>.Ok(MapDetail(entity));
     }
 
     public async Task<Respons<EmployeeDetailDto>> UpdateProfileAsync(
@@ -419,17 +372,9 @@ public class EmployeesService
     public async Task<Respons<object>> SoftDeleteAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default)
     {
-        await using var connection = await _database.GetConnectionAsync(ct);
-        var affected = await connection.ExecuteAsync(
-            $"""
-            UPDATE {_settings.EmployeesTable}
-            SET is_deleted = TRUE, employment_status = 'Inactive', updated_at = NOW()
-            WHERE id = @Id AND tenant_id = @TenantId AND org_id = @OrgId AND is_deleted = FALSE
-            """,
-            new { Id = id, TenantId = tenantId, OrgId = orgId });
-
-        if (affected == 0)
-            return Respons<object>.Fail("Employee not found.", statusCode: 404);
+        var deleted = await _employees.SoftDeleteScopedAsync(id, tenantId, orgId, ct);
+        if (!deleted)
+            return Respons<object>.NotFound("Employee not found.");
 
         return Respons<object>.Ok(new { employeeId = id.ToString() }, "Employee removed.");
     }
@@ -454,6 +399,41 @@ public class EmployeesService
         public required string FullName { get; init; }
         public string? EmployeeCode { get; init; }
     }
+
+    private static EmployeeDetailDto MapDetail(EmployeeEntity row) => new()
+    {
+        EmployeeId = row.Id.ToString(),
+        EmployeeCode = row.EmployeeCode,
+        FirstName = row.FirstName,
+        MiddleName = row.MiddleName,
+        LastName = row.LastName,
+        FullName = NameFormatting.BuildFullName(row.FirstName, row.MiddleName, row.LastName),
+        DateOfBirth = row.DateOfBirth,
+        Gender = row.Gender,
+        Nationality = row.Nationality,
+        GhanaCardNumber = row.GhanaCardNumber,
+        PersonalEmail = row.PersonalEmail,
+        PersonalPhone = row.PersonalPhone,
+        ResidentialAddress = row.ResidentialAddress,
+        GhanaPostGps = row.GhanaPostGps,
+        LifecycleState = row.LifecycleState,
+        JobTitle = row.JobTitle,
+        DepartmentId = row.DepartmentId?.ToString(),
+        DepartmentName = row.Department?.Name,
+        BranchId = row.BranchId?.ToString(),
+        BranchName = row.Branch?.Name,
+        ManagerId = row.ManagerId?.ToString(),
+        ManagerName = row.Manager is null
+            ? null
+            : NameFormatting.BuildFullName(row.Manager.FirstName, row.Manager.MiddleName, row.Manager.LastName),
+        EmploymentType = row.EmploymentType,
+        EmploymentStatus = row.EmploymentStatus,
+        ContractType = row.ContractType,
+        ProbationEndDate = row.ProbationEndDate,
+        EmploymentStartDate = row.EmploymentStartDate,
+        CreatedAt = row.CreatedAt,
+        UpdatedAt = row.UpdatedAt,
+    };
 
     private static EmployeeDetailDto MapDetail(EmployeeDetailRow row) => new()
     {

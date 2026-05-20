@@ -95,11 +95,11 @@ public static class EmployeeDirectoryQueryBuilder
 
         var column = sortBy?.Trim().ToLowerInvariant() switch
         {
-            "employeeCode" or "employeeid" or "id" => "e.employee_code",
+            "employeecode" or "employeeid" or "id" => "e.employee_code",
             "department" => "d.name",
             "status" => "e.employment_status",
-            "employmentType" or "type" => "e.employment_type",
-            "jobTitle" => "e.job_title",
+            "employmenttype" or "type" => "e.employment_type",
+            "jobtitle" => "e.job_title",
             _ => "e.last_name, e.first_name",
         };
 

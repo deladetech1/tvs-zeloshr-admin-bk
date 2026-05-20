@@ -1,5 +1,6 @@
 using Trovesuite.Package.Configuration;
 using ZelosHR.Api.Configs;
+using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Database;
 using ZelosHR.Api.Middleware;
 using ZelosHR.Api.Shared.Tenant;
@@ -18,7 +19,9 @@ builder.Services.AddScoped<ISchemaInitializer, SchemaInitializer>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<ITenantContextAccessor, TenantContextAccessor>();
 builder.Services.AddSharedInfrastructure();
+builder.Services.AddZelosHrPersistence(builder.Configuration);
 builder.Services.AddEntityServices();
+builder.Services.AddScoped<IEmployeesService>(sp => sp.GetRequiredService<EmployeesService>());
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
