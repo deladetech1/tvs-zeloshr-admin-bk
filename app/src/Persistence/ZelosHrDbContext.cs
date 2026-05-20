@@ -10,6 +10,14 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
     public DbSet<BranchEntity> Branches => Set<BranchEntity>();
     public DbSet<AuditLogEntity> AuditLogs => Set<AuditLogEntity>();
     public DbSet<LifecycleEventEntity> LifecycleEvents => Set<LifecycleEventEntity>();
+    public DbSet<AttendanceRecordEntity> AttendanceRecords => Set<AttendanceRecordEntity>();
+    public DbSet<LeaveRequestEntity> LeaveRequests => Set<LeaveRequestEntity>();
+    public DbSet<LeaveBalanceEntity> LeaveBalances => Set<LeaveBalanceEntity>();
+    public DbSet<JobPostingEntity> JobPostings => Set<JobPostingEntity>();
+    public DbSet<OnboardingTaskEntity> OnboardingTasks => Set<OnboardingTaskEntity>();
+    public DbSet<PerformanceReviewEntity> PerformanceReviews => Set<PerformanceReviewEntity>();
+    public DbSet<DisciplinaryCaseEntity> DisciplinaryCases => Set<DisciplinaryCaseEntity>();
+    public DbSet<EmployeeDocumentEntity> EmployeeDocuments => Set<EmployeeDocumentEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -57,5 +65,14 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
             b.ToTable("zhr_lifecycle_events");
             b.HasKey(x => x.Id);
         });
+
+        modelBuilder.Entity<AttendanceRecordEntity>(b => { b.ToTable("zhr_attendance_records"); b.HasKey(x => x.Id); });
+        modelBuilder.Entity<LeaveRequestEntity>(b => { b.ToTable("zhr_leave_requests"); b.HasKey(x => x.Id); });
+        modelBuilder.Entity<LeaveBalanceEntity>(b => { b.ToTable("zhr_leave_balances"); b.HasKey(x => x.Id); });
+        modelBuilder.Entity<JobPostingEntity>(b => { b.ToTable("zhr_job_postings"); b.HasKey(x => x.Id); });
+        modelBuilder.Entity<OnboardingTaskEntity>(b => { b.ToTable("zhr_onboarding_tasks"); b.HasKey(x => x.Id); });
+        modelBuilder.Entity<PerformanceReviewEntity>(b => { b.ToTable("zhr_performance_reviews"); b.HasKey(x => x.Id); });
+        modelBuilder.Entity<DisciplinaryCaseEntity>(b => { b.ToTable("zhr_disciplinary_cases"); b.HasKey(x => x.Id); });
+        modelBuilder.Entity<EmployeeDocumentEntity>(b => { b.ToTable("zhr_employee_documents"); b.HasKey(x => x.Id); });
     }
 }

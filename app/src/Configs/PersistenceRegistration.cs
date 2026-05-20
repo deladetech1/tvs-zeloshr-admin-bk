@@ -1,11 +1,19 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Npgsql;
+using ZelosHR.Api.Entities.Attendance;
 using ZelosHR.Api.Entities.AuditLogs;
 using ZelosHR.Api.Entities.Branches;
+using ZelosHR.Api.Entities.Dashboard;
 using ZelosHR.Api.Entities.Departments;
+using ZelosHR.Api.Entities.Disciplinary;
+using ZelosHR.Api.Entities.Documents;
 using ZelosHR.Api.Entities.Employees;
+using ZelosHR.Api.Entities.Leave;
 using ZelosHR.Api.Entities.LifecycleEvents;
+using ZelosHR.Api.Entities.Onboarding;
+using ZelosHR.Api.Entities.Performance;
+using ZelosHR.Api.Entities.Recruitment;
 using ZelosHR.Api.Persistence;
 using ZelosHR.Api.Persistence.Repositories;
 
@@ -27,6 +35,14 @@ public static class PersistenceRegistration
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
         services.AddScoped<ILifecycleEventRepository, LifecycleEventRepository>();
         services.AddScoped<IEmployeeDirectoryRepository, EmployeeDirectoryRepository>();
+        services.AddScoped<IAttendanceRepository, AttendanceRepository>();
+        services.AddScoped<ILeaveRepository, LeaveRepository>();
+        services.AddScoped<IRecruitmentRepository, RecruitmentRepository>();
+        services.AddScoped<IOnboardingRepository, OnboardingRepository>();
+        services.AddScoped<IPerformanceRepository, PerformanceRepository>();
+        services.AddScoped<IDisciplinaryRepository, DisciplinaryRepository>();
+        services.AddScoped<IDocumentsRepository, DocumentsRepository>();
+        services.AddScoped<IDashboardRepository, DashboardRepository>();
         return services;
     }
 

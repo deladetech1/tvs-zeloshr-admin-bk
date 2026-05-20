@@ -1,35 +1,26 @@
-using Dapper;
-using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Shared;
+using ZelosHR.Api.Shared.Formatting;
 using ZelosHR.Api.Shared.Pagination;
 
 namespace ZelosHR.Api.Entities.Disciplinary;
 
 public class DisciplinaryService
 {
-    private readonly IDatabaseManager _database;
-    private readonly EmployeesService _employees;
+    private readonly IDisciplinaryRepository _disciplinary;
+    private readonly IEmployeeRepository _employees;
 
-    public DisciplinaryService(IDatabaseManager database, EmployeesService employees)
+    public DisciplinaryService(IDisciplinaryRepository disciplinary, IEmployeeRepository employees)
     {
-        _database = database;
+        _disciplinary = disciplinary;
         _employees = employees;
     }
 
-    public async Task<Respons<DisciplinarySummaryDto>> GetSummaryAsync(string tenantId, string orgId, CancellationToken ct)
+    public async Task<Respons<DisciplinarySummaryDto>> GetSummaryAsync(
+        string tenantId, string orgId, CancellationToken ct)
     {
-        await using var c = await _database.GetConnectionAsync(ct);
-        var s = await c.QuerySingleAsync<DisciplinarySummaryDto>(
-            """
-            SELECT
-                COUNT(*) FILTER (WHERE status = 'Open')::int AS OpenCases,
-                COUNT(*) FILTER (WHERE severity = 'High')::int AS HighSeverity,
-                COUNT(*) FILTER (WHERE status = 'Closed')::int AS ClosedCases,
-                COUNT(*)::int AS TotalCases
-            FROM zeloshr.zhr_disciplinary_cases WHERE tenant_id = @TenantId AND org_id = @OrgId
-            """, new { TenantId = tenantId, OrgId = orgId });
-        return Respons<DisciplinarySummaryDto>.Ok(s);
+        var summary = await _disciplinary.GetSummaryScopedAsync(tenantId, orgId, ct);
+        return Respons<DisciplinarySummaryDto>.Ok(summary);
     }
 
     public async Task<Respons<DisciplinaryListDto>> ListAsync(
@@ -37,65 +28,48 @@ public class DisciplinaryService
         int page, int size, string tenantId, string orgId, CancellationToken ct)
     {
         var paging = PagedQuery.From(page, size);
-        await using var c = await _database.GetConnectionAsync(ct);
-        var conditions = new List<string> { "tenant_id = @TenantId", "org_id = @OrgId" };
-        var p = new DynamicParameters(new { TenantId = tenantId, OrgId = orgId });
-        if (!string.IsNullOrWhiteSpace(search) && search.Length >= 3)
-        { conditions.Add("employee_full_name ILIKE @Search"); p.Add("Search", $"%{search}%"); }
-        if (!string.IsNullOrWhiteSpace(status) && status != "all") { conditions.Add("status = @Status"); p.Add("Status", status); }
-        if (!string.IsNullOrWhiteSpace(severity) && severity != "all") { conditions.Add("severity = @Severity"); p.Add("Severity", severity); }
-        var where = string.Join(" AND ", conditions);
-        p.Add("Limit", paging.Size); p.Add("Offset", paging.Offset);
-        var total = await c.ExecuteScalarAsync<int>($"SELECT COUNT(*) FROM zeloshr.zhr_disciplinary_cases WHERE {where}", p);
-        var items = (await c.QueryAsync<DisciplinaryCaseListItemDto>(
-            $"""
-            SELECT id::text AS CaseId, employee_id::text AS EmployeeId, employee_full_name AS EmployeeFullName,
-                   case_type AS CaseType, severity AS Severity, status AS Status, opened_at AS OpenedAt, description AS Description
-            FROM zeloshr.zhr_disciplinary_cases WHERE {where} ORDER BY opened_at DESC LIMIT @Limit OFFSET @Offset
-            """, p)).ToList();
-        var summary = (await GetSummaryAsync(tenantId, orgId, ct)).Data ?? new DisciplinarySummaryDto();
-        return Respons<DisciplinaryListDto>.Ok(new DisciplinaryListDto { Summary = summary, Items = items },
-            pagination: new PaginationMeta { Page = paging.Page, Size = paging.Size, Total = total, HasNext = paging.Offset + items.Count < total });
+        var (items, total) = await _disciplinary.ListScopedAsync(
+            tenantId, orgId, search, status, severity, paging.Page, paging.Size, ct);
+        var summary = await _disciplinary.GetSummaryScopedAsync(tenantId, orgId, ct);
+
+        return Respons<DisciplinaryListDto>.Ok(
+            new DisciplinaryListDto { Summary = summary, Items = items },
+            pagination: new PaginationMeta
+            {
+                Page = paging.Page,
+                Size = paging.Size,
+                Total = total,
+                HasNext = paging.Offset + items.Count < total,
+            });
     }
 
-    public async Task<Respons<DisciplinaryCaseListItemDto>> GetByIdAsync(
+    public Task<Respons<DisciplinaryCaseListItemDto>> GetByIdAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default) =>
-        await QueryOneAsync(id, tenantId, orgId, ct);
+        QueryOneAsync(id, tenantId, orgId, ct);
 
     public async Task<Respons<DisciplinaryCaseListItemDto>> CreateAsync(
         CreateDisciplinaryCaseDto data, string tenantId, string orgId, CancellationToken ct = default)
     {
-        var emp = await _employees.ResolveEmployeeDisplayAsync(data.EmployeeId, tenantId, orgId, ct);
+        var emp = await _employees.GetByIdScopedAsync(data.EmployeeId, tenantId, orgId, ct);
         if (emp is null)
             return Respons<DisciplinaryCaseListItemDto>.ValidationError(
                 new Dictionary<string, string> { ["employeeId"] = "Employee not found." });
 
         var status = string.IsNullOrWhiteSpace(data.Status) ? "Open" : data.Status.Trim();
         var openedAt = data.OpenedAt ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        var fullName = NameFormatting.BuildFullName(emp.FirstName, emp.MiddleName, emp.LastName);
 
-        await using var c = await _database.GetConnectionAsync(ct);
-        var id = await c.QuerySingleAsync<Guid>(
-            """
-            INSERT INTO zeloshr.zhr_disciplinary_cases (
-                tenant_id, org_id, employee_id, employee_full_name, case_type, severity, status, opened_at, description
-            )
-            VALUES (
-                @TenantId, @OrgId, @EmployeeId, @FullName, @CaseType, @Severity, @Status, @OpenedAt, @Description
-            )
-            RETURNING id
-            """,
-            new
-            {
-                TenantId = tenantId,
-                OrgId = orgId,
-                EmployeeId = data.EmployeeId,
-                FullName = emp.FullName,
-                CaseType = data.CaseType!.Trim(),
-                Severity = data.Severity!.Trim(),
-                Status = status,
-                OpenedAt = openedAt,
-                Description = string.IsNullOrWhiteSpace(data.Description) ? null : data.Description.Trim(),
-            });
+        var id = await _disciplinary.CreateScopedAsync(
+            tenantId,
+            orgId,
+            data.EmployeeId,
+            fullName,
+            data.CaseType!.Trim(),
+            data.Severity!.Trim(),
+            status,
+            openedAt,
+            string.IsNullOrWhiteSpace(data.Description) ? null : data.Description.Trim(),
+            ct);
 
         return await QueryOneAsync(id, tenantId, orgId, ct);
     }
@@ -103,48 +77,48 @@ public class DisciplinaryService
     public async Task<Respons<DisciplinaryCaseListItemDto>> UpdateAsync(
         Guid id, UpdateDisciplinaryCaseDto data, string tenantId, string orgId, CancellationToken ct = default)
     {
-        var sets = new List<string>();
-        var p = new DynamicParameters(new { Id = id, TenantId = tenantId, OrgId = orgId });
-        if (!string.IsNullOrWhiteSpace(data.CaseType)) { sets.Add("case_type = @CaseType"); p.Add("CaseType", data.CaseType.Trim()); }
-        if (!string.IsNullOrWhiteSpace(data.Severity)) { sets.Add("severity = @Severity"); p.Add("Severity", data.Severity.Trim()); }
-        if (data.OpenedAt.HasValue) { sets.Add("opened_at = @OpenedAt"); p.Add("OpenedAt", data.OpenedAt.Value); }
-        if (data.Description is not null) { sets.Add("description = @Description"); p.Add("Description", string.IsNullOrWhiteSpace(data.Description) ? null : data.Description.Trim()); }
-        if (!string.IsNullOrWhiteSpace(data.Status)) { sets.Add("status = @Status"); p.Add("Status", data.Status.Trim()); }
-        if (sets.Count == 0)
+        var hasCaseType = !string.IsNullOrWhiteSpace(data.CaseType);
+        var hasSeverity = !string.IsNullOrWhiteSpace(data.Severity);
+        var hasOpenedAt = data.OpenedAt.HasValue;
+        var hasDescription = data.Description is not null;
+        var hasStatus = !string.IsNullOrWhiteSpace(data.Status);
+        if (!hasCaseType && !hasSeverity && !hasOpenedAt && !hasDescription && !hasStatus)
             return Respons<DisciplinaryCaseListItemDto>.Fail("No fields to update.", statusCode: 400);
 
-        await using var c = await _database.GetConnectionAsync(ct);
-        if (await c.ExecuteAsync(
-                $"UPDATE zeloshr.zhr_disciplinary_cases SET {string.Join(", ", sets)} WHERE id = @Id AND tenant_id = @TenantId AND org_id = @OrgId", p) == 0)
-            return Respons<DisciplinaryCaseListItemDto>.Fail("Disciplinary case not found.", statusCode: 404);
+        var updated = await _disciplinary.UpdateScopedAsync(
+            id,
+            tenantId,
+            orgId,
+            hasCaseType ? data.CaseType : null,
+            hasSeverity ? data.Severity : null,
+            hasOpenedAt ? data.OpenedAt : null,
+            hasDescription ? data.Description : null,
+            hasStatus ? data.Status : null,
+            ct);
 
-        return await QueryOneAsync(id, tenantId, orgId, ct);
+        if (updated is null)
+        {
+            var exists = await _disciplinary.GetByIdScopedAsync(id, tenantId, orgId, ct);
+            return exists is null
+                ? Respons<DisciplinaryCaseListItemDto>.Fail("Disciplinary case not found.", statusCode: 404)
+                : Respons<DisciplinaryCaseListItemDto>.Fail("No fields to update.", statusCode: 400);
+        }
+
+        return Respons<DisciplinaryCaseListItemDto>.Ok(updated);
     }
 
     public async Task<Respons<object>> DeleteAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default)
     {
-        await using var c = await _database.GetConnectionAsync(ct);
-        var n = await c.ExecuteAsync(
-            "DELETE FROM zeloshr.zhr_disciplinary_cases WHERE id = @Id AND tenant_id = @TenantId AND org_id = @OrgId",
-            new { Id = id, TenantId = tenantId, OrgId = orgId });
-        return n == 0
-            ? Respons<object>.Fail("Disciplinary case not found.", statusCode: 404)
-            : Respons<object>.Ok(new { caseId = id.ToString() }, "Disciplinary case deleted.");
+        if (!await _disciplinary.DeleteScopedAsync(id, tenantId, orgId, ct))
+            return Respons<object>.Fail("Disciplinary case not found.", statusCode: 404);
+        return Respons<object>.Ok(new { caseId = id.ToString() }, "Disciplinary case deleted.");
     }
 
     private async Task<Respons<DisciplinaryCaseListItemDto>> QueryOneAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct)
     {
-        await using var c = await _database.GetConnectionAsync(ct);
-        var row = await c.QuerySingleOrDefaultAsync<DisciplinaryCaseListItemDto>(
-            """
-            SELECT id::text AS CaseId, employee_id::text AS EmployeeId, employee_full_name AS EmployeeFullName,
-                   case_type AS CaseType, severity AS Severity, status AS Status, opened_at AS OpenedAt, description AS Description
-            FROM zeloshr.zhr_disciplinary_cases
-            WHERE id = @Id AND tenant_id = @TenantId AND org_id = @OrgId
-            """,
-            new { Id = id, TenantId = tenantId, OrgId = orgId });
+        var row = await _disciplinary.GetByIdScopedAsync(id, tenantId, orgId, ct);
         return row is null
             ? Respons<DisciplinaryCaseListItemDto>.Fail("Disciplinary case not found.", statusCode: 404)
             : Respons<DisciplinaryCaseListItemDto>.Ok(row);
