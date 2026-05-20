@@ -26,7 +26,9 @@ public static class PersistenceRegistration
         services.AddDbContext<ZelosHrDbContext>((sp, options) =>
         {
             var settings = sp.GetRequiredService<IOptions<AppSettings>>().Value;
-            options.UseNpgsql(BuildConnectionString(settings));
+            options
+                .UseNpgsql(BuildConnectionString(settings))
+                .UseSnakeCaseNamingConvention();
         });
 
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
