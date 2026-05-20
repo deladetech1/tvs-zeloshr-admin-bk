@@ -28,6 +28,14 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
         {
             b.ToTable("zhr_departments");
             b.HasKey(x => x.Id);
+            b.HasOne(x => x.ParentDepartment)
+                .WithMany()
+                .HasForeignKey(x => x.ParentDepartmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(x => x.HeadOfDepartment)
+                .WithMany()
+                .HasForeignKey(x => x.HeadOfDepartmentId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<BranchEntity>(b =>
