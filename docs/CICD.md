@@ -1,6 +1,9 @@
 # CI/CD — GitHub Actions
 
-Workflow: [`.github/workflows/build-and-deploy.yml`](../.github/workflows/build-and-deploy.yml)
+Workflows:
+
+- [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) — PRs and feature branches: `dotnet test` + Docker build (no deploy)
+- [`.github/workflows/build-and-deploy.yml`](../.github/workflows/build-and-deploy.yml) — `main` / `dev`: build, push ACR, deploy Container Apps + Functions
 
 | Branch | Environment | Container App | Function App | ACR image |
 |--------|-------------|---------------|--------------|-----------|
