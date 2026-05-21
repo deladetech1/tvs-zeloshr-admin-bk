@@ -4,47 +4,41 @@
 
 **Database:** schema and seeds live in **[tvs-sqlscript](../tvs-sqlscript)** (.NET EF Core). See [AGENTS.md](AGENTS.md). This API does not run raw SQL migrations by default.
 
-```bash
-cd ../tvs-sqlscript && dotnet build
-TVS_SEED_ZELOSHR_DEMO=1 dotnet run --project src/Trovesuite.Database.Runner -- localhost 5431 user password zeloshrdb deploy
-```
-
-## Quick start
-
-### Option A — Docker only (no .NET SDK required)
+## Quick start (Compose — recommended)
 
 ```bash
 cp app/.env.example app/.env
-# Add GITHUB_PACKAGES_TOKEN=ghp_xxx to app/.env (read:packages scope)
-COMPOSE_ENV_FILES=app/.env docker compose up -d --build
+# Set GITHUB_PACKAGES_TOKEN in app/.env (read:packages)
+# Clone tvs-sqlscript as ../tvs-sqlscript
+
+chmod +x scripts/compose.sh scripts/compose/*.sh
+./scripts/compose.sh dev      # Postgres + migrate + API
+./scripts/compose.sh test     # unit tests (no DB)
+./scripts/compose.sh smoke    # HTTP checks
 ```
 
-- **Swagger:** http://localhost:8000/swagger (OpenAPI v1 — all CRUD routes, JWT + tenant headers; see [docs/SWAGGER.md](docs/SWAGGER.md))  
-- **Logs:** `docker compose logs -f api`
+- **Swagger:** http://localhost:8000/swagger  
+- **Full guide:** [docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)  
+- **Schema:** deployed by `./scripts/compose.sh migrate` from `../tvs-sqlscript` (not legacy SQL in this repo)
 
-### Option B — Run API on your Mac (requires .NET 10 SDK)
+### Option B — API on host (.NET 10 SDK)
 
 ```bash
-# https://dotnet.microsoft.com/download/dotnet/10.0
-cp app/.env.example app/.env
+./scripts/compose.sh db
+./scripts/compose.sh migrate
 export GITHUB_PACKAGES_TOKEN=ghp_your_token
-dotnet nuget add source "https://nuget.pkg.github.com/deladetech1/index.json" \
-  --name github-deladetech1 --username deladetech1 --password "$GITHUB_PACKAGES_TOKEN" \
-  --store-password-in-clear-text --configfile nuget.config
-docker compose up -d db redis
-dotnet restore app/ZelosHR.Api.csproj
+dotnet nuget update source github-deladetech1 --username deladetech1 \
+  --password "$GITHUB_PACKAGES_TOKEN" --store-password-in-clear-text --configfile nuget.config
 cd app && dotnet run
 ```
 
-- **Local tenancy:** `X-Tenant-Id` and `X-Org-Id` when JWT auth is off (see [docs/TROVESUITE.md](docs/TROVESUITE.md))
-
-## Tests (TDD)
+## Tests
 
 ```bash
-dotnet test
+./scripts/compose.sh test
+# CI parity:
+./scripts/compose.sh ci
 ```
-
-Unit tests cover query builders and formatting; run against `tests/ZelosHR.Api.Tests`.
 
 ## API map (enterprise CRUD)
 

@@ -42,10 +42,11 @@ Same names as Core Platform if both backends share one Trovesuite subscription.
 ## Local parity with CI
 
 ```bash
-docker build \
-  --build-arg GITHUB_PACKAGES_TOKEN="$GITHUB_PACKAGES_TOKEN" \
-  -f app/Dockerfile .
+cp app/.env.example app/.env   # set GITHUB_PACKAGES_TOKEN
+./scripts/compose.sh ci        # test (compose) + docker build
 ```
+
+See [LOCAL_DEV.md](LOCAL_DEV.md) for migrate, dev stack, and reset.
 
 Functions publish (same as CI):
 

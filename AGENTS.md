@@ -68,7 +68,16 @@ See `tvs-sqlscript/README.md` for CI dispatch, rollback, and validate.
 4. Update `Sql/Seeds/` when RBAC or reference data changes.
 5. Put demo/sprint data in `05_zeloshr_demo.sql` (or a new numbered seed file); keep inserts idempotent (`ON CONFLICT DO NOTHING`).
 6. Open a PR in **tvs-sqlscript**; link from ZelosHR PR if both repos change.
-7. Verify: deploy with tvs-sqlscript, then start ZelosHR API against the same database.
+7. Verify locally:
+
+   ```bash
+   ./scripts/compose.sh migrate   # tvs-sqlscript deploy into compose Postgres
+   ./scripts/compose.sh test
+   ./scripts/compose.sh dev       # or reset for a clean DB
+   ./scripts/compose.sh smoke
+   ```
+
+   See [docs/LOCAL_DEV.md](docs/LOCAL_DEV.md).
 
 ## What counts as a database change
 

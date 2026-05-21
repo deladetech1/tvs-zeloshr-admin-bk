@@ -7,6 +7,8 @@ on:
       - "app/**"
       - "tests/**"
       - "nuget.config"
+      - "docker-compose.yml"
+      - "scripts/**"
       - ".github/workflows/ci.yml"
   push:
     branches-ignore: [main, dev]
@@ -14,6 +16,8 @@ on:
       - "app/**"
       - "tests/**"
       - "nuget.config"
+      - "docker-compose.yml"
+      - "scripts/**"
       - ".github/workflows/ci.yml"
 
 concurrency:
@@ -31,10 +35,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "10.0.x"
-
       - name: Require GitHub Packages token
         env:
           PKG: ${{ secrets.GITHUB_PACKAGES_TOKEN }}
@@ -43,16 +43,12 @@ jobs:
             echo "::error::Repository secret GITHUB_PACKAGES_TOKEN is required (PAT with read:packages for Trovesuite.Package). See docs/CICD.md"
             exit 1
           fi
-          dotnet nuget update source github-deladetech1 \
-            --username deladetech1 \
-            --password "$PKG" \
-            --store-password-in-clear-text \
-            --configfile nuget.config
+          printf 'GITHUB_PACKAGES_TOKEN=%s\n' "$PKG" >> app/.env
 
-      - name: dotnet restore and test
+      - name: Unit tests (Docker Compose)
         run: |
-          dotnet restore tests/ZelosHR.Api.Tests/ZelosHR.Api.Tests.csproj
-          dotnet test tests/ZelosHR.Api.Tests/ZelosHR.Api.Tests.csproj -c Release --no-restore
+          chmod +x scripts/compose.sh scripts/compose/*.sh
+          ./scripts/compose.sh test
 
       - name: Docker build (API)
         env:

@@ -1,11 +1,17 @@
-# Compose loads variables from app/.env (see COMPOSE_ENV_FILES in README).
-# Required for build arg GITHUB_PACKAGES_TOKEN → Trovesuite.Package restore.
-version: "3.8"
-services:
+# ZelosHR local stack — use ./scripts/compose.sh (see docs/LOCAL_DEV.md).
+# Loads secrets from app/.env (GITHUB_PACKAGES_TOKEN, DB_*, etc.).
+#
+# Typical flow:
+#   ./scripts/compose.sh test      # unit tests (no DB)
+#   ./scripts/compose.sh dev       # db + tvs-sqlscript migrate + API
+#   ./scripts/compose.sh reset     # wipe volume, migrate, API
 
+name: zeloshr
+
+services:
   db:
     image: postgres:17
-    restart: always
+    restart: unless-stopped
     env_file:
       - app/.env
     ports:
@@ -13,26 +19,65 @@ services:
     volumes:
       - postgresql_data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_USER=${DB_USER:-user}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
-      - POSTGRES_DB=${DB_NAME:-zeloshrdb}
-    networks:
-      - default
+      POSTGRES_USER: ${DB_USER:-user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_DB: ${DB_NAME:-zeloshrdb}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-user} -d ${DB_NAME:-zeloshrdb}"]
-      interval: 10s
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USER:-user} -d ${DB_NAME:-zeloshrdb}",
+        ]
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 12
+      start_period: 5s
 
   redis:
     image: redis/redis-stack-server:latest
-    restart: always
+    restart: unless-stopped
     ports:
       - "6380:6379"
     volumes:
       - redis_data:/data
-    networks:
-      - default
+
+  # One-shot: EF migrations + Sql/Seeds from sibling tvs-sqlscript (source of truth).
+  migrate:
+    profiles: [tools]
+    image: mcr.microsoft.com/dotnet/sdk:10.0
+    working_dir: /sqlscript
+    env_file:
+      - app/.env
+    environment:
+      TVS_DB_HOST: db
+      TVS_DB_PORT: "5432"
+      TVS_SEED_ZELOSHR_DEMO: ${TVS_SEED_ZELOSHR_DEMO:-1}
+      TVS_SQLSCRIPT_ROOT: /sqlscript
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+    volumes:
+      - ${TVS_SQLSCRIPT_PATH:-../tvs-sqlscript}:/sqlscript
+      - ./scripts/compose/migrate-entrypoint.sh:/migrate-entrypoint.sh:ro
+    entrypoint: ["/bin/bash", "/migrate-entrypoint.sh"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # One-shot: unit tests (mocked repositories; no database).
+  test:
+    profiles: [tools]
+    image: mcr.microsoft.com/dotnet/sdk:10.0
+    working_dir: /src
+    env_file:
+      - app/.env
+    environment:
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+    volumes:
+      - .:/src
+      - dotnet_nuget:/root/.nuget/packages
+      - ./scripts/compose/test-entrypoint.sh:/test-entrypoint.sh:ro
+    entrypoint: ["/bin/bash", "/test-entrypoint.sh"]
 
   api:
     build:
@@ -49,7 +94,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       App__DbHost: db
       App__DbPort: "5432"
-      # Trovesuite.Package auth/notifications use Trovesuite:Database (defaults to localhost in appsettings)
+      App__RunDatabaseMigrations: "false"
       Trovesuite__Database__Host: db
       Trovesuite__Database__Port: "5432"
       Trovesuite__Jwt__SecretKey: change-me-in-production-use-32-chars-min
@@ -57,12 +102,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    networks:
-      - default
 
 volumes:
   postgresql_data:
   redis_data:
-
-networks:
-  default:
+  dotnet_nuget:
