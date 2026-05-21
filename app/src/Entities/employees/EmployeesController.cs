@@ -15,17 +15,20 @@ public class EmployeesController : ControllerBase
     private readonly EmployeesService _service;
     private readonly EmployeesDirectoryService _directory;
     private readonly EmployeeRegistrationService _registration;
+    private readonly EmployeeSubResourcesService _subResources;
     private readonly ITenantContextAccessor _tenant;
 
     public EmployeesController(
         EmployeesService service,
         EmployeesDirectoryService directory,
         EmployeeRegistrationService registration,
+        EmployeeSubResourcesService subResources,
         ITenantContextAccessor tenant)
     {
         _service = service;
         _directory = directory;
         _registration = registration;
+        _subResources = subResources;
         _tenant = tenant;
     }
 
@@ -134,6 +137,104 @@ public class EmployeesController : ControllerBase
         await using var stream = file.OpenReadStream();
         var result = await _registration.UploadProfilePhotoAsync(
             id, stream, file.FileName, file.ContentType, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpGet("{id:guid}/education")]
+    public async Task<ActionResult<Respons<IReadOnlyList<EmployeeEducationDto>>>> ListEducation(
+        Guid id, CancellationToken ct)
+    {
+        var result = await _subResources.ListEducationAsync(id, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("{id:guid}/education")]
+    public async Task<ActionResult<Respons<EmployeeEducationDto>>> AddEducation(
+        Guid id, [FromBody] EmployeeEducationWriteDto body, CancellationToken ct)
+    {
+        var result = await _subResources.AddEducationAsync(id, body, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPut("{id:guid}/education/{educationId:guid}")]
+    public async Task<ActionResult<Respons<EmployeeEducationDto>>> UpdateEducation(
+        Guid id, Guid educationId, [FromBody] EmployeeEducationWriteDto body, CancellationToken ct)
+    {
+        var result = await _subResources.UpdateEducationAsync(id, educationId, body, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpDelete("{id:guid}/education/{educationId:guid}")]
+    public async Task<ActionResult<Respons<object>>> DeleteEducation(
+        Guid id, Guid educationId, CancellationToken ct)
+    {
+        var result = await _subResources.DeleteEducationAsync(id, educationId, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpGet("{id:guid}/certifications")]
+    public async Task<ActionResult<Respons<IReadOnlyList<EmployeeCertificationDto>>>> ListCertifications(
+        Guid id, CancellationToken ct)
+    {
+        var result = await _subResources.ListCertificationsAsync(id, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("{id:guid}/certifications")]
+    public async Task<ActionResult<Respons<EmployeeCertificationDto>>> AddCertification(
+        Guid id, [FromBody] EmployeeCertificationWriteDto body, CancellationToken ct)
+    {
+        var result = await _subResources.AddCertificationAsync(id, body, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPut("{id:guid}/certifications/{certId:guid}")]
+    public async Task<ActionResult<Respons<EmployeeCertificationDto>>> UpdateCertification(
+        Guid id, Guid certId, [FromBody] EmployeeCertificationWriteDto body, CancellationToken ct)
+    {
+        var result = await _subResources.UpdateCertificationAsync(id, certId, body, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpDelete("{id:guid}/certifications/{certId:guid}")]
+    public async Task<ActionResult<Respons<object>>> DeleteCertification(
+        Guid id, Guid certId, CancellationToken ct)
+    {
+        var result = await _subResources.DeleteCertificationAsync(id, certId, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpGet("{id:guid}/documents")]
+    public async Task<ActionResult<Respons<IReadOnlyList<EmployeeWizardDocumentDto>>>> ListDocuments(
+        Guid id, [FromQuery] string? category, CancellationToken ct)
+    {
+        var result = await _subResources.ListDocumentsAsync(id, category, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("{id:guid}/documents")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<ActionResult<Respons<EmployeeWizardDocumentDto>>> UploadDocument(
+        Guid id,
+        IFormFile file,
+        [FromForm] string category,
+        CancellationToken ct)
+    {
+        if (file is null || file.Length == 0)
+            return BadRequest(Respons<EmployeeWizardDocumentDto>.ValidationError(
+                new Dictionary<string, string> { ["file"] = "File is required." }));
+
+        await using var stream = file.OpenReadStream();
+        var result = await _subResources.UploadDocumentAsync(
+            id, category, stream, file.FileName, file.ContentType, file.Length, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpDelete("{id:guid}/documents/{documentId:guid}")]
+    public async Task<ActionResult<Respons<object>>> DeleteDocument(
+        Guid id, Guid documentId, CancellationToken ct)
+    {
+        var result = await _subResources.DeleteDocumentAsync(id, documentId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
