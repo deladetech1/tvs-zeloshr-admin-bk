@@ -1,0 +1,64 @@
+namespace ZelosHR.Api.Entities.Employees;
+
+public sealed record CreateEmployeeRequest
+{
+    public string FullName { get; init; } = string.Empty;
+    public DateOnly? DateOfBirth { get; init; }
+    public string? Gender { get; init; }
+    public string? Nationality { get; init; }
+    public string? NationalityIdType { get; init; }
+    public string? IdNumber { get; init; }
+    public string? PersonalEmail { get; init; }
+    public string? WorkEmail { get; init; }
+    public string? Phone { get; init; }
+    public string? LinkedInUrl { get; init; }
+    public string? GpsAddress { get; init; }
+    public string? State { get; init; }
+    public string? ResidentialAddress { get; init; }
+    public string? JobTitle { get; init; }
+    public Guid? DepartmentId { get; init; }
+    public string? EmploymentType { get; init; }
+    public string? WorkArrangement { get; init; }
+    public string? WorkLocation { get; init; }
+    public string? PayGrade { get; init; }
+    public DateOnly? StartDate { get; init; }
+    public DateOnly? ProbationEndDate { get; init; }
+    public string? WorkingHours { get; init; }
+    public string? NoticePeriod { get; init; }
+    public Guid? ReportsToId { get; init; }
+    public Guid? DottedLineManagerId { get; init; }
+    public decimal? GrossSalary { get; init; }
+    public string? PayFrequency { get; init; }
+    public DateOnly? SalaryEffectiveFrom { get; init; }
+    public string? Currency { get; init; }
+    public string? SsnitNumber { get; init; }
+    public string? TinNumber { get; init; }
+    public string? Tier2PensionProvider { get; init; }
+    public string? Tier3PensionProvider { get; init; }
+    public string? PaymentMethod { get; init; }
+    public string? BankAccountNumber { get; init; }
+    public string? MobileMoneyNumber { get; init; }
+    public bool Finalise { get; init; }
+}
+
+public sealed record EmployeeRegistrationReadDto
+{
+    public required Guid Id { get; init; }
+    public required string EmployeeCode { get; init; }
+    public required string FullName { get; init; }
+    public string? UserId { get; init; }
+    public bool IsDraft { get; init; }
+    public string LifecycleStatus { get; init; } = "draft";
+    public string? JobTitle { get; init; }
+    public Guid? DepartmentId { get; init; }
+    public string? WorkEmail { get; init; }
+    public string? ProfilePhotoUrl { get; init; }
+    public decimal? AnnualizedCost { get; init; }
+    public string? Currency { get; init; }
+    public string? MaskedSsnitNumber { get; init; }
+    public string? MaskedTinNumber { get; init; }
+}
+
+public sealed record ImportEmployeeRequest(string UserId);
+
+public sealed record CreateDraftRequest(string FullName, string? ExistingUserId);

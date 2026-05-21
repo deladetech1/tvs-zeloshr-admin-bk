@@ -91,8 +91,10 @@ public class EmployeesDirectoryService
         {
             EmployeeId = row.Id.ToString(),
             EmployeeCode = row.EmployeeCode,
-            FullName = NameFormatting.BuildFullName(row.FirstName, row.MiddleName, row.LastName),
-            Initials = NameFormatting.BuildInitials(row.FirstName, row.LastName),
+            FullName = NameFormatting.ResolveFullName(row.FullName, row.FirstName, row.MiddleName, row.LastName),
+            Initials = NameFormatting.BuildInitials(
+                row.FirstName ?? row.FullName,
+                row.LastName ?? string.Empty),
             JobTitle = row.JobTitle,
             DepartmentId = row.DepartmentId?.ToString(),
             DepartmentName = row.DepartmentName,

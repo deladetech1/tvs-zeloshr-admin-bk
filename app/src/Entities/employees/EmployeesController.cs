@@ -14,16 +14,127 @@ public class EmployeesController : ControllerBase
 {
     private readonly EmployeesService _service;
     private readonly EmployeesDirectoryService _directory;
+    private readonly EmployeeRegistrationService _registration;
     private readonly ITenantContextAccessor _tenant;
 
     public EmployeesController(
         EmployeesService service,
         EmployeesDirectoryService directory,
+        EmployeeRegistrationService registration,
         ITenantContextAccessor tenant)
     {
         _service = service;
         _directory = directory;
+        _registration = registration;
         _tenant = tenant;
+    }
+
+    /// <summary>Check if email exists in core_platform.cp_users before creating an employee.</summary>
+    [HttpGet("check-user")]
+    [ProducesResponseType(typeof(Respons<CpUserCheckResult>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<Respons<CpUserCheckResult>>> CheckUser(
+        [FromQuery] string email,
+        CancellationToken ct)
+    {
+        var result = await _registration.CheckCpUserAsync(email, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    /// <summary>Search cp_users to import into ZelosHR (excludes already linked).</summary>
+    [HttpGet("import/search")]
+    [ProducesResponseType(typeof(Respons<IReadOnlyList<CpUserDto>>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<Respons<IReadOnlyList<CpUserDto>>>> ImportSearch(
+        [FromQuery] string query,
+        CancellationToken ct)
+    {
+        var result = await _registration.ImportSearchAsync(query, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    /// <summary>Create a draft employee linked to an existing cp_users row.</summary>
+    [HttpPost("import")]
+    [ProducesResponseType(typeof(Respons<EmployeeRegistrationReadDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<Respons<EmployeeRegistrationReadDto>>> Import(
+        [FromBody] ImportEmployeeRequest body,
+        CancellationToken ct)
+    {
+        var result = await _registration.ImportAsync(body.UserId, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    /// <summary>Create a draft employee (wizard step 1).</summary>
+    [HttpPost("draft")]
+    [ProducesResponseType(typeof(Respons<EmployeeRegistrationReadDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<Respons<EmployeeRegistrationReadDto>>> CreateDraft(
+        [FromBody] CreateDraftRequest body,
+        CancellationToken ct)
+    {
+        var result = await _registration.CreateDraftAsync(body.FullName, body.ExistingUserId, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    /// <summary>Update personal and contact fields (wizard step 1).</summary>
+    [HttpPatch("{id:guid}/personal-contact")]
+    [ProducesResponseType(typeof(Respons<EmployeeRegistrationReadDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<Respons<EmployeeRegistrationReadDto>>> UpdatePersonalContact(
+        Guid id,
+        [FromBody] CreateEmployeeRequest body,
+        CancellationToken ct)
+    {
+        var result = await _registration.UpdatePersonalContactAsync(id, body, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    /// <summary>Update employment details (wizard step 2).</summary>
+    [HttpPatch("{id:guid}/employment-details")]
+    [ProducesResponseType(typeof(Respons<EmployeeRegistrationReadDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<Respons<EmployeeRegistrationReadDto>>> UpdateEmploymentDetails(
+        Guid id,
+        [FromBody] CreateEmployeeRequest body,
+        CancellationToken ct)
+    {
+        var result = await _registration.UpdateEmploymentDetailsAsync(id, body, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    /// <summary>Update compensation and statutory fields (wizard step 4).</summary>
+    [HttpPatch("{id:guid}/compensation")]
+    [ProducesResponseType(typeof(Respons<EmployeeRegistrationReadDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<Respons<EmployeeRegistrationReadDto>>> UpdateCompensation(
+        Guid id,
+        [FromBody] CreateEmployeeRequest body,
+        CancellationToken ct)
+    {
+        var result = await _registration.UpdateCompensationAsync(id, body, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    /// <summary>Finalise draft employee (wizard step 6).</summary>
+    [HttpPost("{id:guid}/finalise")]
+    [ProducesResponseType(typeof(Respons<EmployeeRegistrationReadDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<Respons<EmployeeRegistrationReadDto>>> Finalise(Guid id, CancellationToken ct)
+    {
+        var result = await _registration.FinaliseAsync(id, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    /// <summary>Upload profile photo (max 5MB, jpeg/png).</summary>
+    [HttpPost("{id:guid}/photo")]
+    [ProducesResponseType(typeof(Respons<string>), StatusCodes.Status200OK)]
+    [RequestSizeLimit(5 * 1024 * 1024)]
+    public async Task<ActionResult<Respons<string>>> UploadPhoto(
+        Guid id,
+        IFormFile file,
+        CancellationToken ct)
+    {
+        if (file is null || file.Length == 0)
+            return BadRequest(Respons<string>.ValidationError(
+                new Dictionary<string, string> { ["file"] = "Photo file is required." }));
+
+        await using var stream = file.OpenReadStream();
+        var result = await _registration.UploadProfilePhotoAsync(
+            id, stream, file.FileName, file.ContentType, ct);
+        return StatusCode(result.StatusCode, result);
     }
 
     /// <summary>KPI cards on the Employee Directory page.</summary>

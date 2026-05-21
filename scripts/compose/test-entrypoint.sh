@@ -13,8 +13,7 @@ dotnet nuget update source github-deladetech1 \
   --username deladetech1 \
   --password "${GITHUB_PACKAGES_TOKEN}" \
   --store-password-in-clear-text \
-  --configfile nuget.config \
-  --nologo
+  --configfile nuget.config
 
 echo "==> dotnet test (Release)"
 dotnet test tests/ZelosHR.Api.Tests/ZelosHR.Api.Tests.csproj -c Release --nologo -v minimal

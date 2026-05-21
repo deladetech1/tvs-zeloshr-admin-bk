@@ -56,7 +56,7 @@ public class DocumentsService
                 new Dictionary<string, string> { ["employeeId"] = "Employee not found." });
 
         var status = string.IsNullOrWhiteSpace(data.Status) ? "Active" : data.Status.Trim();
-        var fullName = NameFormatting.BuildFullName(emp.FirstName, emp.MiddleName, emp.LastName);
+        var fullName = NameFormatting.ResolveFullName(emp.FullName, emp.FirstName, emp.MiddleName, emp.LastName);
 
         var id = await _documents.CreateScopedAsync(
             tenantId,

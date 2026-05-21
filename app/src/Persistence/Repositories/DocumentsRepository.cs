@@ -171,12 +171,12 @@ public sealed class DocumentsRepository(ZelosHrDbContext db) : IDocumentsReposit
     {
         DocumentId = d.Id.ToString(),
         EmployeeId = d.EmployeeId.ToString(),
-        EmployeeFullName = d.EmployeeFullName,
-        DocumentName = d.DocumentName,
+        EmployeeFullName = d.EmployeeFullName ?? string.Empty,
+        DocumentName = d.DocumentName ?? d.FileName,
         Category = d.Category,
-        FileSizeKb = d.FileSizeKb,
-        UploadedBy = d.UploadedBy,
+        FileSizeKb = d.FileSizeKb ?? (int)Math.Max(1, d.FileSizeBytes / 1024),
+        UploadedBy = d.UploadedBy ?? string.Empty,
         UploadedAt = d.UploadedAt,
-        Status = d.Status,
+        Status = d.Status ?? "Active",
     };
 }

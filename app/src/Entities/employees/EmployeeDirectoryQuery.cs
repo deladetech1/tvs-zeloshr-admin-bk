@@ -119,13 +119,11 @@ public static class EmployeeDirectoryQueryBuilder
         {
             var pattern = $"%{directoryQuery.Search.Trim()}%";
             query = query.Where(e =>
-                EF.Functions.ILike(e.FirstName, pattern)
-                || EF.Functions.ILike(e.LastName, pattern)
+                EF.Functions.ILike(e.FullName, pattern)
+                || (e.FirstName != null && EF.Functions.ILike(e.FirstName, pattern))
+                || (e.LastName != null && EF.Functions.ILike(e.LastName, pattern))
                 || EF.Functions.ILike(e.EmployeeCode, pattern)
-                || (e.JobTitle != null && EF.Functions.ILike(e.JobTitle, pattern))
-                || EF.Functions.ILike(
-                    e.FirstName + " " + (e.MiddleName != null ? e.MiddleName + " " : "") + e.LastName,
-                    pattern));
+                || (e.JobTitle != null && EF.Functions.ILike(e.JobTitle, pattern)));
         }
 
         if (directoryQuery.DepartmentId.HasValue)

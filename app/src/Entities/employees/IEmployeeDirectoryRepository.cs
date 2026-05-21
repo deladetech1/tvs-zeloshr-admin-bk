@@ -15,9 +15,10 @@ public interface IEmployeeDirectoryRepository
 public sealed record EmployeeDirectoryListRow(
     Guid Id,
     string EmployeeCode,
-    string FirstName,
+    string FullName,
+    string? FirstName,
     string? MiddleName,
-    string LastName,
+    string? LastName,
     string? JobTitle,
     Guid? DepartmentId,
     string? DepartmentName,

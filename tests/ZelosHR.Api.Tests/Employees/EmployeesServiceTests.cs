@@ -38,6 +38,7 @@ public class EmployeesServiceTests
         EmployeeCode = "ZEL-0001",
         TenantId = "demo-tenant",
         OrgId = "demo-org",
+        FullName = "Ama Mensah",
         FirstName = "Ama",
         LastName = "Mensah",
         DateOfBirth = new DateOnly(1990, 1, 1),

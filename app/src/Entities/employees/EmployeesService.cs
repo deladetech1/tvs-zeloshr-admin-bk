@@ -90,7 +90,7 @@ public partial class EmployeesService : IEmployeesService
         {
             Id = r.Id,
             EmployeeCode = r.EmployeeCode,
-            FullName = NameFormatting.BuildFullName(r.FirstName, r.MiddleName, r.LastName),
+            FullName = NameFormatting.ResolveFullName(r.FullName, r.FirstName, r.MiddleName, r.LastName),
             LifecycleState = r.LifecycleState,
         }).ToList();
 
@@ -317,7 +317,7 @@ public partial class EmployeesService : IEmployeesService
 
         return new EmployeeDisplayInfo
         {
-            FullName = NameFormatting.BuildFullName(entity.FirstName, entity.MiddleName, entity.LastName),
+            FullName = NameFormatting.ResolveFullName(entity.FullName, entity.FirstName, entity.MiddleName, entity.LastName),
             EmployeeCode = entity.EmployeeCode,
         };
     }
@@ -332,18 +332,18 @@ public partial class EmployeesService : IEmployeesService
     {
         EmployeeId = row.Id.ToString(),
         EmployeeCode = row.EmployeeCode,
-        FirstName = row.FirstName,
+        FirstName = row.FirstName ?? string.Empty,
         MiddleName = row.MiddleName,
-        LastName = row.LastName,
-        FullName = NameFormatting.BuildFullName(row.FirstName, row.MiddleName, row.LastName),
-        DateOfBirth = row.DateOfBirth,
-        Gender = row.Gender,
-        Nationality = row.Nationality,
-        GhanaCardNumber = row.GhanaCardNumber,
-        PersonalEmail = row.PersonalEmail,
-        PersonalPhone = row.PersonalPhone,
-        ResidentialAddress = row.ResidentialAddress,
-        GhanaPostGps = row.GhanaPostGps,
+        LastName = row.LastName ?? string.Empty,
+        FullName = NameFormatting.ResolveFullName(row.FullName, row.FirstName, row.MiddleName, row.LastName),
+        DateOfBirth = row.DateOfBirth ?? DateOnly.FromDateTime(DateTime.UtcNow),
+        Gender = row.Gender ?? string.Empty,
+        Nationality = row.Nationality ?? string.Empty,
+        GhanaCardNumber = row.GhanaCardNumber ?? string.Empty,
+        PersonalEmail = row.PersonalEmail ?? string.Empty,
+        PersonalPhone = row.PersonalPhone ?? string.Empty,
+        ResidentialAddress = row.ResidentialAddress ?? string.Empty,
+        GhanaPostGps = row.GhanaPostGps ?? string.Empty,
         LifecycleState = row.LifecycleState,
         JobTitle = row.JobTitle,
         DepartmentId = row.DepartmentId?.ToString(),

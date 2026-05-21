@@ -110,11 +110,16 @@ public sealed class EmployeeDocumentEntity
     public string TenantId { get; set; } = default!;
     public string OrgId { get; set; } = default!;
     public Guid EmployeeId { get; set; }
-    public string EmployeeFullName { get; set; } = default!;
-    public string DocumentName { get; set; } = default!;
+    public string? EmployeeFullName { get; set; }
     public string Category { get; set; } = default!;
-    public int FileSizeKb { get; set; }
-    public string UploadedBy { get; set; } = default!;
+    public string FileName { get; set; } = default!;
+    public long FileSizeBytes { get; set; }
+    public string BlobUrl { get; set; } = default!;
+    public string ContentType { get; set; } = default!;
+    public string? UploadedBy { get; set; }
     public DateTimeOffset UploadedAt { get; set; }
-    public string Status { get; set; } = "Active";
+    public bool IsDeleted { get; set; }
+    public string? Status { get; set; }
+    public int? FileSizeKb { get; set; }
+    public string? DocumentName { get; set; }
 }

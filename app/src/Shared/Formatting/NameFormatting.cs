@@ -2,6 +2,21 @@ namespace ZelosHR.Api.Shared.Formatting;
 
 public static class NameFormatting
 {
+    public static string ResolveFullName(
+        string? fullName,
+        string? firstName,
+        string? middleName,
+        string? lastName)
+    {
+        if (!string.IsNullOrWhiteSpace(fullName))
+            return fullName.Trim();
+
+        if (!string.IsNullOrWhiteSpace(firstName) && !string.IsNullOrWhiteSpace(lastName))
+            return BuildFullName(firstName, middleName, lastName);
+
+        return firstName?.Trim() ?? lastName?.Trim() ?? string.Empty;
+    }
+
     public static string BuildFullName(string firstName, string? middleName, string lastName)
     {
         if (string.IsNullOrWhiteSpace(middleName))
