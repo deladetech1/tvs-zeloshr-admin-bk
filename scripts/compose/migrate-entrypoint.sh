@@ -25,7 +25,8 @@ dotnet restore Trovesuite.Database.sln --nologo -v q
 dotnet build Trovesuite.Database.sln -c Release --no-restore --nologo -v q
 
 export TVS_SEED_ZELOSHR_DEMO="${SEED_DEMO}"
-dotnet run --project "${RUNNER_PROJECT}" -c Release --no-build -- \
+# Runner prompts for module selection; "0" = all modules (core_platform → human_resource).
+printf '0\n' | dotnet run --project "${RUNNER_PROJECT}" -c Release --no-build -- \
   "${DB_HOST}" "${DB_PORT}" "${DB_USER}" "${DB_PASSWORD}" "${DB_NAME}" deploy
 
 echo "==> Deploy finished."
