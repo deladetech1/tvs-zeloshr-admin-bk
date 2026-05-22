@@ -7,6 +7,9 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
 {
     public DbSet<EmployeeEntity> Employees => Set<EmployeeEntity>();
     public DbSet<CpUserEntity> CpUsers => Set<CpUserEntity>();
+    public DbSet<CpLoginSettingsEntity> CpLoginSettings => Set<CpLoginSettingsEntity>();
+    public DbSet<CpUserLocationEntity> CpUserLocations => Set<CpUserLocationEntity>();
+    public DbSet<HrEmployeeEntity> HrEmployees => Set<HrEmployeeEntity>();
     public DbSet<DepartmentEntity> Departments => Set<DepartmentEntity>();
     public DbSet<BranchEntity> Branches => Set<BranchEntity>();
     public DbSet<AuditLogEntity> AuditLogs => Set<AuditLogEntity>();
@@ -30,6 +33,30 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
         {
             b.ToTable("cp_users", "core_platform", t => t.ExcludeFromMigrations());
             b.HasKey(x => new { x.Id, x.TenantId });
+            b.Property(x => x.Fullname).HasColumnName("fullname");
+            b.Property(x => x.Gender).HasColumnName("gender");
+            b.Property(x => x.Dob).HasColumnName("dob");
+            b.Property(x => x.Address).HasColumnName("address");
+            b.Property(x => x.ProfilePic).HasColumnName("profile_pic");
+        });
+
+        modelBuilder.Entity<CpLoginSettingsEntity>(b =>
+        {
+            b.ToTable("cp_login_settings", "core_platform", t => t.ExcludeFromMigrations());
+            b.HasKey(x => new { x.Id, x.TenantId });
+        });
+
+        modelBuilder.Entity<CpUserLocationEntity>(b =>
+        {
+            b.ToTable("cp_user_locations", "core_platform", t => t.ExcludeFromMigrations());
+            b.HasKey(x => new { x.Id, x.TenantId });
+        });
+
+        modelBuilder.Entity<HrEmployeeEntity>(b =>
+        {
+            b.ToTable("hr_employees", "human_resource", t => t.ExcludeFromMigrations());
+            b.HasKey(x => new { x.Id, x.TenantId });
+            b.HasIndex(x => new { x.UserId, x.TenantId }).IsUnique();
         });
 
         modelBuilder.Entity<EmployeeEntity>(b =>

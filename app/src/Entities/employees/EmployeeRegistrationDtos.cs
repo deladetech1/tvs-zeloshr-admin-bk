@@ -61,4 +61,12 @@ public sealed record EmployeeRegistrationReadDto
 
 public sealed record ImportEmployeeRequest(string UserId);
 
-public sealed record CreateDraftRequest(string FullName, string? ExistingUserId);
+/// <summary>Step 1 — draft only. Platform user is created on finalise (see <c>cp_users</c>).</summary>
+public sealed record CreateDraftRequest
+{
+    /// <summary>Display name until finalise; maps to <c>cp_users.fullname</c> when the platform user is created.</summary>
+    public string FullName { get; init; } = string.Empty;
+
+    /// <summary>Import an existing <c>cp_users</c> row instead of creating one on finalise.</summary>
+    public string? ExistingUserId { get; init; }
+}

@@ -6,7 +6,7 @@ See [ENTERPRISE_API.md](ENTERPRISE_API.md) for the full CRUD matrix and [GET /ap
 
 | Item | Rule |
 |------|------|
-| Auth | Bearer JWT (production) or `X-Tenant-Id` + `X-Org-Id` (local dev) |
+| Auth | `authorization: Bearer <JWT>` plus `app-id`, `bus-id`, `loc-id`, `org-id` on every `/api/v1/*` request |
 | Envelope | `{ success, statusCode, detail, data, pagination?, fieldErrors? }` |
 | Updates | `PATCH` with partial JSON bodies |
 | Deletes | `DELETE` — employees soft-delete; departments/branches archive |

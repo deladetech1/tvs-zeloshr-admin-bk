@@ -58,7 +58,7 @@ public sealed class EmployeeRegistrationService
                 new Dictionary<string, string> { ["fullName"] = "Full name is required." });
 
         string? userId = null;
-        var resolvedName = fullName?.Trim() ?? string.Empty;
+        var draftDisplayName = string.Empty;
 
         if (!string.IsNullOrWhiteSpace(existingUserId))
         {
@@ -71,7 +71,10 @@ public sealed class EmployeeRegistrationService
                 return Respons<EmployeeRegistrationReadDto>.Fail("User is already linked to an employee.", statusCode: 409);
 
             userId = cp.Id;
-            resolvedName = cp.FullName;
+        }
+        else
+        {
+            draftDisplayName = fullName?.Trim() ?? string.Empty;
         }
 
         var seq = await _employees.GetNextEmployeeSequenceAsync(_tenant.TenantId, _tenant.OrgId, ct);
@@ -83,7 +86,7 @@ public sealed class EmployeeRegistrationService
             TenantId = _tenant.TenantId,
             OrgId = _tenant.OrgId,
             UserId = userId,
-            FullName = resolvedName,
+            FullName = draftDisplayName,
             LifecycleState = "Draft",
             LifecycleStatus = "draft",
             IsDraft = true,
@@ -94,7 +97,7 @@ public sealed class EmployeeRegistrationService
         };
 
         await _employees.AddAsync(entity, ct);
-        return Respons<EmployeeRegistrationReadDto>.Ok(ToReadDto(entity));
+        return Respons<EmployeeRegistrationReadDto>.Ok(await ToReadDtoAsync(entity, ct));
     }
 
     public Task<Respons<EmployeeRegistrationReadDto>> ImportAsync(string userId, CancellationToken ct = default) =>
@@ -107,11 +110,20 @@ public sealed class EmployeeRegistrationService
         if (entity.Error is not null)
             return entity.Error;
 
-        ApplyPersonalContact(entity.Value!, dto);
-        entity.Value!.UpdatedAt = DateTimeOffset.UtcNow;
-        entity.Value.UpdatedBy = _currentUser.UserId?.ToString();
-        await _employees.UpdateAsync(entity.Value, ct);
-        return Respons<EmployeeRegistrationReadDto>.Ok(ToReadDto(entity.Value));
+        var e = entity.Value!;
+        ApplyHrPersonalFields(e, dto);
+
+        var syncError = await SyncPlatformIdentityAsync(e, dto, ct);
+        if (syncError is not null)
+            return syncError;
+
+        if (string.IsNullOrWhiteSpace(e.UserId))
+            StageIdentityOnEmployeeUntilEmail(e, dto);
+
+        e.UpdatedAt = DateTimeOffset.UtcNow;
+        e.UpdatedBy = _currentUser.UserId?.ToString();
+        await _employees.UpdateAsync(e, ct);
+        return Respons<EmployeeRegistrationReadDto>.Ok(await ToReadDtoAsync(e, ct));
     }
 
     public async Task<Respons<EmployeeRegistrationReadDto>> UpdateEmploymentDetailsAsync(
@@ -128,7 +140,7 @@ public sealed class EmployeeRegistrationService
         ApplyEmployment(entity.Value!, dto);
         entity.Value!.UpdatedAt = DateTimeOffset.UtcNow;
         await _employees.UpdateAsync(entity.Value, ct);
-        return Respons<EmployeeRegistrationReadDto>.Ok(ToReadDto(entity.Value));
+        return Respons<EmployeeRegistrationReadDto>.Ok(await ToReadDtoAsync(entity.Value, ct));
     }
 
     public async Task<Respons<EmployeeRegistrationReadDto>> UpdateCompensationAsync(
@@ -141,7 +153,7 @@ public sealed class EmployeeRegistrationService
         ApplyCompensation(entity.Value!, dto);
         entity.Value!.UpdatedAt = DateTimeOffset.UtcNow;
         await _employees.UpdateAsync(entity.Value, ct);
-        return Respons<EmployeeRegistrationReadDto>.Ok(ToReadDto(entity.Value));
+        return Respons<EmployeeRegistrationReadDto>.Ok(await ToReadDtoAsync(entity.Value, ct));
     }
 
     public async Task<Respons<EmployeeRegistrationReadDto>> FinaliseAsync(Guid id, CancellationToken ct = default)
@@ -151,7 +163,8 @@ public sealed class EmployeeRegistrationService
             return entity.Error;
 
         var e = entity.Value!;
-        if (string.IsNullOrWhiteSpace(e.FullName))
+        var displayName = await ResolveDraftDisplayNameAsync(e, ct);
+        if (string.IsNullOrWhiteSpace(displayName))
             return Respons<EmployeeRegistrationReadDto>.ValidationError(
                 new Dictionary<string, string> { ["fullName"] = "Full name is required." });
         if (string.IsNullOrWhiteSpace(e.JobTitle))
@@ -161,14 +174,200 @@ public sealed class EmployeeRegistrationService
             return Respons<EmployeeRegistrationReadDto>.ValidationError(
                 new Dictionary<string, string> { ["departmentId"] = "Department is required." });
 
-        // User linking on finalise: Trovesuite.Package user creation is wired when platform API is available.
+        var userLink = await ResolvePlatformUserForFinaliseAsync(e, displayName, ct);
+        if (userLink.Error is not null)
+            return userLink.Error;
+
+        e.UserId = userLink.UserId;
+        ClearCpUserIdentityFromEmployee(e);
         e.IsDraft = false;
         e.LifecycleStatus = "pre_hire";
         e.LifecycleState = "Pre-hire";
         e.EmploymentStatus = "Pre-hire";
         e.UpdatedAt = DateTimeOffset.UtcNow;
+        e.UpdatedBy = _currentUser.UserId?.ToString();
         await _employees.UpdateAsync(e, ct);
-        return Respons<EmployeeRegistrationReadDto>.Ok(ToReadDto(e));
+        return Respons<EmployeeRegistrationReadDto>.Ok(await ToReadDtoAsync(e, ct));
+    }
+
+    /// <summary>
+    /// Writes identity to cp_users when work email is available; links employee via user_id + tenant_id.
+    /// </summary>
+    private async Task<Respons<EmployeeRegistrationReadDto>?> SyncPlatformIdentityAsync(
+        EmployeeEntity e, CreateEmployeeRequest dto, CancellationToken ct)
+    {
+        var identity = CpUserIdentityMapper.FromEmployeeAndRequest(e, dto);
+        var createdBy = _currentUser.UserId?.ToString();
+
+        if (!string.IsNullOrWhiteSpace(e.UserId))
+        {
+            await _cpUsers.UpdateIdentityAsync(e.UserId, _tenant.TenantId, identity, ct);
+            await _cpUsers.EnsureUserLocationAsync(e.UserId, _tenant.TenantId, _tenant.OrgId, ct);
+            ClearCpUserIdentityFromEmployee(e);
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(identity.Email))
+            return null;
+
+        if (string.IsNullOrWhiteSpace(identity.FullName))
+            return Respons<EmployeeRegistrationReadDto>.ValidationError(
+                new Dictionary<string, string> { ["fullName"] = "Full name is required." });
+
+        var existing = await _cpUsers.FindByEmailAsync(identity.Email, _tenant.TenantId, ct);
+        if (existing is not null)
+        {
+            if (await _cpUsers.IsLinkedToEmployeeAsync(existing.Id, _tenant.TenantId, ct))
+            {
+                return Respons<EmployeeRegistrationReadDto>.Fail(
+                    "Platform user for this email is already linked to another employee.",
+                    statusCode: StatusCodes.Status409Conflict);
+            }
+
+            e.UserId = existing.Id;
+            await _cpUsers.UpdateIdentityAsync(existing.Id, _tenant.TenantId, identity, ct);
+            await _cpUsers.EnsureHrMembershipAsync(existing.Id, _tenant.TenantId, createdBy, ct);
+            await _cpUsers.EnsureUserLocationAsync(existing.Id, _tenant.TenantId, _tenant.OrgId, ct);
+        }
+        else
+        {
+            try
+            {
+                var provisioned = await _cpUsers.ProvisionEmployeeUserAsync(
+                    ToProvisionRequest(identity, createdBy), ct);
+                e.UserId = provisioned.Id;
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Respons<EmployeeRegistrationReadDto>.Fail(ex.Message, statusCode: 409);
+            }
+        }
+
+        ClearCpUserIdentityFromEmployee(e);
+        return null;
+    }
+
+    private async Task<(string? UserId, Respons<EmployeeRegistrationReadDto>? Error)> ResolvePlatformUserForFinaliseAsync(
+        EmployeeEntity employee, string displayName, CancellationToken ct)
+    {
+        var createdBy = _currentUser.UserId?.ToString();
+        var identity = CpUserIdentityMapper.FromEmployeeAndRequest(employee);
+        if (string.IsNullOrWhiteSpace(identity.FullName))
+            identity = identity with { FullName = displayName };
+
+        if (!string.IsNullOrWhiteSpace(employee.UserId))
+        {
+            await _cpUsers.UpdateIdentityAsync(employee.UserId, _tenant.TenantId, identity, ct);
+            await _cpUsers.EnsureHrMembershipAsync(employee.UserId, _tenant.TenantId, createdBy, ct);
+            await _cpUsers.EnsureUserLocationAsync(employee.UserId, _tenant.TenantId, _tenant.OrgId, ct);
+            return (employee.UserId, null);
+        }
+
+        var workEmail = identity.Email;
+        if (string.IsNullOrWhiteSpace(workEmail))
+        {
+            return (null, Respons<EmployeeRegistrationReadDto>.ValidationError(
+                new Dictionary<string, string>
+                {
+                    ["workEmail"] = "Work email is required to create or link a platform user.",
+                }));
+        }
+
+        var existing = await _cpUsers.FindByEmailAsync(workEmail, _tenant.TenantId, ct);
+        if (existing is not null)
+        {
+            if (await _cpUsers.IsLinkedToEmployeeAsync(existing.Id, _tenant.TenantId, ct))
+            {
+                return (null, Respons<EmployeeRegistrationReadDto>.Fail(
+                    "Platform user for this email is already linked to another employee.",
+                    statusCode: StatusCodes.Status409Conflict));
+            }
+
+            await _cpUsers.UpdateIdentityAsync(existing.Id, _tenant.TenantId, identity, ct);
+            await _cpUsers.EnsureHrMembershipAsync(existing.Id, _tenant.TenantId, createdBy, ct);
+            await _cpUsers.EnsureUserLocationAsync(existing.Id, _tenant.TenantId, _tenant.OrgId, ct);
+            return (existing.Id, null);
+        }
+
+        try
+        {
+            var provisioned = await _cpUsers.ProvisionEmployeeUserAsync(
+                ToProvisionRequest(identity, createdBy), ct);
+            return (provisioned.Id, null);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return (null, Respons<EmployeeRegistrationReadDto>.Fail(ex.Message, statusCode: 409));
+        }
+    }
+
+    private ProvisionCpUserRequest ToProvisionRequest(CpUserIdentityData identity, string? createdBy) =>
+        new(
+            _tenant.TenantId,
+            _tenant.OrgId,
+            identity.FullName,
+            identity.Email,
+            identity.Contact,
+            identity.Gender,
+            identity.Dob,
+            identity.Address,
+            identity.ProfilePic,
+            createdBy);
+
+    /// <summary>Identity lives in cp_users; remove duplicated columns from zhr_employees after link.</summary>
+    private static void ClearCpUserIdentityFromEmployee(EmployeeEntity e)
+    {
+        e.FullName = string.Empty;
+        e.FirstName = null;
+        e.MiddleName = null;
+        e.LastName = null;
+        e.DateOfBirth = null;
+        e.Gender = null;
+        e.WorkEmail = null;
+        e.Phone = null;
+        e.PersonalPhone = null;
+        e.ResidentialAddress = null;
+        e.GhanaPostGps = null;
+        e.State = null;
+        e.ProfilePhotoUrl = null;
+    }
+
+    /// <summary>Temporary staging on zhr_employees until work email enables cp_users sync.</summary>
+    private static void StageIdentityOnEmployeeUntilEmail(EmployeeEntity e, CreateEmployeeRequest dto)
+    {
+        if (!string.IsNullOrWhiteSpace(dto.FullName))
+            e.FullName = dto.FullName.Trim();
+        e.DateOfBirth = dto.DateOfBirth ?? e.DateOfBirth;
+        e.Gender = dto.Gender ?? e.Gender;
+        e.Phone = dto.Phone ?? e.Phone;
+        e.WorkEmail = dto.WorkEmail ?? e.WorkEmail;
+        e.ResidentialAddress = dto.ResidentialAddress ?? e.ResidentialAddress;
+        e.GhanaPostGps = dto.GpsAddress ?? e.GhanaPostGps;
+        e.State = dto.State ?? e.State;
+    }
+
+    private static void ApplyHrPersonalFields(EmployeeEntity e, CreateEmployeeRequest dto)
+    {
+        e.Nationality = dto.Nationality ?? e.Nationality;
+        e.NationalityIdType = dto.NationalityIdType ?? e.NationalityIdType;
+        e.IdNumber = dto.IdNumber ?? e.IdNumber;
+        e.PersonalEmail = dto.PersonalEmail ?? e.PersonalEmail;
+        e.LinkedInUrl = dto.LinkedInUrl ?? e.LinkedInUrl;
+    }
+
+    private async Task<string> ResolveDraftDisplayNameAsync(EmployeeEntity e, CancellationToken ct)
+    {
+        if (!string.IsNullOrWhiteSpace(e.UserId))
+        {
+            var cp = await _cpUsers.GetByIdAsync(e.UserId, _tenant.TenantId, ct);
+            if (!string.IsNullOrWhiteSpace(cp?.FullName))
+                return cp.FullName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(e.FullName))
+            return e.FullName.Trim();
+
+        return NameFormatting.ResolveFullName(e.FullName, e.FirstName, e.MiddleName, e.LastName);
     }
 
     public async Task<Respons<string>> UploadProfilePhotoAsync(
@@ -182,9 +381,18 @@ public sealed class EmployeeRegistrationService
         if (entity is null)
             return Respons<string>.Fail("Employee not found.", statusCode: 404);
 
+        if (string.IsNullOrWhiteSpace(entity.UserId))
+        {
+            return Respons<string>.ValidationError(
+                new Dictionary<string, string>
+                {
+                    ["workEmail"] = "Save personal contact with work email first so the platform user exists.",
+                });
+        }
+
         var url = await _files.UploadAsync(
             photoStream, fileName, contentType, "profile-photos", _tenant.TenantId, id, ct);
-        entity.ProfilePhotoUrl = url;
+        await _cpUsers.UpdateProfilePicAsync(entity.UserId, _tenant.TenantId, url, ct);
         entity.UpdatedAt = DateTimeOffset.UtcNow;
         await _employees.UpdateAsync(entity, ct);
         return Respons<string>.Ok(url);
@@ -197,25 +405,6 @@ public sealed class EmployeeRegistrationService
         if (entity is null)
             return (null, Respons<EmployeeRegistrationReadDto>.Fail("Employee not found.", statusCode: 404));
         return (entity, null);
-    }
-
-    private static void ApplyPersonalContact(EmployeeEntity e, CreateEmployeeRequest dto)
-    {
-        if (!string.IsNullOrWhiteSpace(dto.FullName))
-            e.FullName = dto.FullName.Trim();
-        e.DateOfBirth = dto.DateOfBirth ?? e.DateOfBirth;
-        e.Gender = dto.Gender ?? e.Gender;
-        e.Nationality = dto.Nationality ?? e.Nationality;
-        e.NationalityIdType = dto.NationalityIdType ?? e.NationalityIdType;
-        e.IdNumber = dto.IdNumber ?? e.IdNumber;
-        e.PersonalEmail = dto.PersonalEmail ?? e.PersonalEmail;
-        e.WorkEmail = dto.WorkEmail ?? e.WorkEmail;
-        e.Phone = dto.Phone ?? e.Phone;
-        e.PersonalPhone = dto.Phone ?? e.PersonalPhone;
-        e.LinkedInUrl = dto.LinkedInUrl ?? e.LinkedInUrl;
-        e.GhanaPostGps = dto.GpsAddress ?? e.GhanaPostGps;
-        e.State = dto.State ?? e.State;
-        e.ResidentialAddress = dto.ResidentialAddress ?? e.ResidentialAddress;
     }
 
     private static void ApplyEmployment(EmployeeEntity e, CreateEmployeeRequest dto)
@@ -270,21 +459,28 @@ public sealed class EmployeeRegistrationService
         return $"{v[..2]}XXXXX{v[^2..]}";
     }
 
-    private static EmployeeRegistrationReadDto ToReadDto(EmployeeEntity e) => new()
+    private async Task<EmployeeRegistrationReadDto> ToReadDtoAsync(EmployeeEntity e, CancellationToken ct)
     {
-        Id = e.Id,
-        EmployeeCode = e.EmployeeCode,
-        FullName = NameFormatting.ResolveFullName(e.FullName, e.FirstName, e.MiddleName, e.LastName),
-        UserId = e.UserId,
-        IsDraft = e.IsDraft,
-        LifecycleStatus = e.LifecycleStatus,
-        JobTitle = e.JobTitle,
-        DepartmentId = e.DepartmentId,
-        WorkEmail = e.WorkEmail,
-        ProfilePhotoUrl = e.ProfilePhotoUrl,
-        AnnualizedCost = e.AnnualizedCost,
-        Currency = e.Currency,
-        MaskedSsnitNumber = MaskSensitive(e.SsnitNumber),
-        MaskedTinNumber = MaskSensitive(e.TinNumber),
-    };
+        CpUserDto? cp = null;
+        if (!string.IsNullOrWhiteSpace(e.UserId))
+            cp = await _cpUsers.GetByIdAsync(e.UserId, _tenant.TenantId, ct);
+
+        return new EmployeeRegistrationReadDto
+        {
+            Id = e.Id,
+            EmployeeCode = e.EmployeeCode,
+            FullName = EmployeeIdentityResolver.ResolveFullName(e, cp),
+            UserId = e.UserId,
+            IsDraft = e.IsDraft,
+            LifecycleStatus = e.LifecycleStatus,
+            JobTitle = e.JobTitle,
+            DepartmentId = e.DepartmentId,
+            WorkEmail = EmployeeIdentityResolver.ResolveWorkEmail(e, cp),
+            ProfilePhotoUrl = EmployeeIdentityResolver.ResolveProfilePhoto(e, cp),
+            AnnualizedCost = e.AnnualizedCost,
+            Currency = e.Currency,
+            MaskedSsnitNumber = MaskSensitive(e.SsnitNumber),
+            MaskedTinNumber = MaskSensitive(e.TinNumber),
+        };
+    }
 }

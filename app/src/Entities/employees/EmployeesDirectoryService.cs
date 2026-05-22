@@ -9,15 +9,18 @@ namespace ZelosHR.Api.Entities.Employees;
 public class EmployeesDirectoryService
 {
     private readonly IEmployeeDirectoryRepository _directory;
+    private readonly ICpUserRepository _cpUsers;
     private readonly IDepartmentRepository _departments;
     private readonly IBranchRepository _branches;
 
     public EmployeesDirectoryService(
         IEmployeeDirectoryRepository directory,
+        ICpUserRepository cpUsers,
         IDepartmentRepository departments,
         IBranchRepository branches)
     {
         _directory = directory;
+        _cpUsers = cpUsers;
         _departments = departments;
         _branches = branches;
     }
@@ -40,7 +43,14 @@ public class EmployeesDirectoryService
         var paging = PagedQuery.From(query.Page, query.Size);
         var (rows, total) = await _directory.ListScopedAsync(query, tenantId, orgId, ct);
 
-        var items = rows.Select(MapRow).ToList();
+        var platformUserIds = rows
+            .SelectMany(r => new[] { r.UserId, r.ManagerUserId })
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id!)
+            .Distinct();
+        var platformUsers = await _cpUsers.GetByIdsAsync(platformUserIds, tenantId, ct);
+
+        var items = rows.Select(r => MapRow(r, platformUsers)).ToList();
         var summary = await _directory.GetSummaryScopedAsync(tenantId, orgId, ct);
 
         var list = new EmployeeDirectoryListDto
@@ -86,15 +96,27 @@ public class EmployeesDirectoryService
         });
     }
 
-    private static EmployeeDirectoryItemDto MapRow(EmployeeDirectoryListRow row) =>
-        new()
+    private static EmployeeDirectoryItemDto MapRow(
+        EmployeeDirectoryListRow row, IReadOnlyDictionary<string, CpUserDto> platformUsers)
+    {
+        platformUsers.TryGetValue(row.UserId ?? string.Empty, out var employeeUser);
+        platformUsers.TryGetValue(row.ManagerUserId ?? string.Empty, out var managerUser);
+
+        var fullName = employeeUser?.FullName
+            ?? NameFormatting.ResolveFullName(row.FullName, row.FirstName, row.MiddleName, row.LastName);
+        var (first, last) = employeeUser is not null
+            ? (first: fullName.Split(' ').FirstOrDefault() ?? fullName, last: string.Join(' ', fullName.Split(' ').Skip(1)))
+            : (row.FirstName ?? row.FullName, row.LastName ?? string.Empty);
+
+        var managerName = managerUser?.FullName
+            ?? (row.ManagerFirstName is null ? null : $"{row.ManagerFirstName} {row.ManagerLastName}".Trim());
+
+        return new EmployeeDirectoryItemDto
         {
             EmployeeId = row.Id.ToString(),
             EmployeeCode = row.EmployeeCode,
-            FullName = NameFormatting.ResolveFullName(row.FullName, row.FirstName, row.MiddleName, row.LastName),
-            Initials = NameFormatting.BuildInitials(
-                row.FirstName ?? row.FullName,
-                row.LastName ?? string.Empty),
+            FullName = fullName,
+            Initials = NameFormatting.BuildInitials(first, last),
             JobTitle = row.JobTitle,
             DepartmentId = row.DepartmentId?.ToString(),
             DepartmentName = row.DepartmentName,
@@ -102,9 +124,8 @@ public class EmployeesDirectoryService
             BranchName = row.BranchName,
             EmploymentType = row.EmploymentType,
             ManagerId = row.ManagerId?.ToString(),
-            ManagerName = row.ManagerFirstName is null
-                ? null
-                : $"{row.ManagerFirstName} {row.ManagerLastName}".Trim(),
+            ManagerName = managerName,
             Status = row.Status,
         };
+    }
 }

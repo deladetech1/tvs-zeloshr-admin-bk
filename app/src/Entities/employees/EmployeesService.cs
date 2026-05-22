@@ -16,6 +16,7 @@ public partial class EmployeesService : IEmployeesService
 
     private readonly ILogger<EmployeesService> _logger;
     private readonly IEmployeeRepository _employees;
+    private readonly ICpUserRepository _cpUsers;
     private readonly IDepartmentRepository _departments;
     private readonly IBranchRepository _branches;
     private readonly ITenantContext _tenant;
@@ -23,12 +24,14 @@ public partial class EmployeesService : IEmployeesService
     public EmployeesService(
         ILogger<EmployeesService> logger,
         IEmployeeRepository employees,
+        ICpUserRepository cpUsers,
         IDepartmentRepository departments,
         IBranchRepository branches,
         ITenantContext tenant)
     {
         _logger = logger;
         _employees = employees;
+        _cpUsers = cpUsers;
         _departments = departments;
         _branches = branches;
         _tenant = tenant;
@@ -86,12 +89,18 @@ public partial class EmployeesService : IEmployeesService
         CancellationToken ct = default)
     {
         var (rows, _) = await _employees.GetPagedScopedAsync(tenantId, orgId, page: 1, pageSize: 10_000, ct);
-        var items = rows.Select(r => new EmployeeListItemServiceReadDto
+        var userIds = rows.Select(r => r.UserId).Where(id => !string.IsNullOrWhiteSpace(id)).Select(id => id!).Distinct();
+        var platformUsers = await _cpUsers.GetByIdsAsync(userIds, tenantId, ct);
+        var items = rows.Select(r =>
         {
-            Id = r.Id,
-            EmployeeCode = r.EmployeeCode,
-            FullName = NameFormatting.ResolveFullName(r.FullName, r.FirstName, r.MiddleName, r.LastName),
-            LifecycleState = r.LifecycleState,
+            platformUsers.TryGetValue(r.UserId ?? string.Empty, out var cp);
+            return new EmployeeListItemServiceReadDto
+            {
+                Id = r.Id,
+                EmployeeCode = r.EmployeeCode,
+                FullName = EmployeeIdentityResolver.ResolveFullName(r, cp),
+                LifecycleState = r.LifecycleState,
+            };
         }).ToList();
 
         return Respons<GetEmployeesServiceReadDto>.Ok(new GetEmployeesServiceReadDto { Items = items });
@@ -104,7 +113,7 @@ public partial class EmployeesService : IEmployeesService
         if (entity is null)
             return Respons<EmployeeDetailDto>.NotFound("Employee not found.");
 
-        return Respons<EmployeeDetailDto>.Ok(MapDetail(entity));
+        return Respons<EmployeeDetailDto>.Ok(await MapDetailAsync(entity, tenantId, ct));
     }
 
     public async Task<Respons<EmployeeDetailDto>> UpdateProfileAsync(
@@ -315,9 +324,13 @@ public partial class EmployeesService : IEmployeesService
         if (entity is null)
             return null;
 
+        CpUserDto? cp = null;
+        if (!string.IsNullOrWhiteSpace(entity.UserId))
+            cp = await _cpUsers.GetByIdAsync(entity.UserId, tenantId, ct);
+
         return new EmployeeDisplayInfo
         {
-            FullName = NameFormatting.ResolveFullName(entity.FullName, entity.FirstName, entity.MiddleName, entity.LastName),
+            FullName = EmployeeIdentityResolver.ResolveFullName(entity, cp),
             EmployeeCode = entity.EmployeeCode,
         };
     }
@@ -328,40 +341,55 @@ public partial class EmployeesService : IEmployeesService
         public string? EmployeeCode { get; init; }
     }
 
-    private static EmployeeDetailDto MapDetail(EmployeeEntity row) => new()
+    private async Task<EmployeeDetailDto> MapDetailAsync(EmployeeEntity row, string tenantId, CancellationToken ct)
     {
-        EmployeeId = row.Id.ToString(),
-        EmployeeCode = row.EmployeeCode,
-        FirstName = row.FirstName ?? string.Empty,
-        MiddleName = row.MiddleName,
-        LastName = row.LastName ?? string.Empty,
-        FullName = NameFormatting.ResolveFullName(row.FullName, row.FirstName, row.MiddleName, row.LastName),
-        DateOfBirth = row.DateOfBirth ?? DateOnly.FromDateTime(DateTime.UtcNow),
-        Gender = row.Gender ?? string.Empty,
-        Nationality = row.Nationality ?? string.Empty,
-        GhanaCardNumber = row.GhanaCardNumber ?? string.Empty,
-        PersonalEmail = row.PersonalEmail ?? string.Empty,
-        PersonalPhone = row.PersonalPhone ?? string.Empty,
-        ResidentialAddress = row.ResidentialAddress ?? string.Empty,
-        GhanaPostGps = row.GhanaPostGps ?? string.Empty,
-        LifecycleState = row.LifecycleState,
-        JobTitle = row.JobTitle,
-        DepartmentId = row.DepartmentId?.ToString(),
-        DepartmentName = row.Department?.Name,
-        BranchId = row.BranchId?.ToString(),
-        BranchName = row.Branch?.Name,
-        ManagerId = row.ManagerId?.ToString(),
-        ManagerName = row.Manager is null
-            ? null
-            : NameFormatting.BuildFullName(row.Manager.FirstName, row.Manager.MiddleName, row.Manager.LastName),
-        EmploymentType = row.EmploymentType,
-        EmploymentStatus = row.EmploymentStatus,
-        ContractType = row.ContractType,
-        ProbationEndDate = row.ProbationEndDate,
-        EmploymentStartDate = row.EmploymentStartDate,
-        CreatedAt = row.CreatedAt,
-        UpdatedAt = row.UpdatedAt,
-    };
+        CpUserDto? cp = null;
+        if (!string.IsNullOrWhiteSpace(row.UserId))
+            cp = await _cpUsers.GetByIdAsync(row.UserId, tenantId, ct);
+
+        CpUserDto? managerCp = null;
+        if (row.Manager is not null && !string.IsNullOrWhiteSpace(row.Manager.UserId))
+            managerCp = await _cpUsers.GetByIdAsync(row.Manager.UserId, tenantId, ct);
+
+        var (first, last) = EmployeeIdentityResolver.ResolveNameParts(row, cp);
+
+        return new EmployeeDetailDto
+        {
+            EmployeeId = row.Id.ToString(),
+            EmployeeCode = row.EmployeeCode,
+            UserId = row.UserId,
+            FirstName = first,
+            MiddleName = row.MiddleName,
+            LastName = last,
+            FullName = EmployeeIdentityResolver.ResolveFullName(row, cp),
+            WorkEmail = EmployeeIdentityResolver.ResolveWorkEmail(row, cp),
+            DateOfBirth = row.DateOfBirth ?? DateOnly.FromDateTime(DateTime.UtcNow),
+            Gender = row.Gender ?? string.Empty,
+            Nationality = row.Nationality ?? string.Empty,
+            GhanaCardNumber = row.GhanaCardNumber ?? string.Empty,
+            PersonalEmail = row.PersonalEmail ?? string.Empty,
+            PersonalPhone = EmployeeIdentityResolver.ResolvePhone(row, cp) ?? row.PersonalPhone ?? string.Empty,
+            ResidentialAddress = row.ResidentialAddress ?? string.Empty,
+            GhanaPostGps = row.GhanaPostGps ?? string.Empty,
+            LifecycleState = row.LifecycleState,
+            JobTitle = row.JobTitle,
+            DepartmentId = row.DepartmentId?.ToString(),
+            DepartmentName = row.Department?.Name,
+            BranchId = row.BranchId?.ToString(),
+            BranchName = row.Branch?.Name,
+            ManagerId = row.ManagerId?.ToString(),
+            ManagerName = row.Manager is null
+                ? null
+                : EmployeeIdentityResolver.ResolveFullName(row.Manager, managerCp),
+            EmploymentType = row.EmploymentType,
+            EmploymentStatus = row.EmploymentStatus,
+            ContractType = row.ContractType,
+            ProbationEndDate = row.ProbationEndDate,
+            EmploymentStartDate = row.EmploymentStartDate,
+            CreatedAt = row.CreatedAt,
+            UpdatedAt = row.UpdatedAt,
+        };
+    }
 
     private static bool IsAllowedLifecycleState(string state) =>
         state is EmployeeLifecycleStates.PreHire

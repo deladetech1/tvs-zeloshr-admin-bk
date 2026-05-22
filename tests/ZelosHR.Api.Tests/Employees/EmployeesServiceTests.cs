@@ -12,6 +12,7 @@ namespace ZelosHR.Api.Tests.Employees;
 public class EmployeesServiceTests
 {
     private readonly IEmployeeRepository _repo = Substitute.For<IEmployeeRepository>();
+    private readonly ICpUserRepository _cpUsers = Substitute.For<ICpUserRepository>();
     private readonly IDepartmentRepository _departments = Substitute.For<IDepartmentRepository>();
     private readonly IBranchRepository _branches = Substitute.For<IBranchRepository>();
     private readonly ITenantContext _tenant = Substitute.For<ITenantContext>();
@@ -24,9 +25,13 @@ public class EmployeesServiceTests
         _tenant.TenantId.Returns("demo-tenant");
         _tenant.OrgId.Returns("demo-org");
 
+        _cpUsers.GetByIdsAsync(Arg.Any<IEnumerable<string>>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new Dictionary<string, CpUserDto>());
+
         _sut = new EmployeesService(
             Substitute.For<ILogger<EmployeesService>>(),
             _repo,
+            _cpUsers,
             _departments,
             _branches,
             _tenant);

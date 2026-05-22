@@ -64,7 +64,8 @@ case "${cmd}" in
     compose up -d --build api
     echo ""
     echo "Swagger: http://localhost:${API_PORT:-8000}/swagger"
-    echo "Headers:  X-Tenant-Id: demo-tenant  X-Org-Id: demo-org"
+    echo "Headers:  app-id, authorization (Bearer JWT), bus-id, loc-id, org-id"
+    echo "JWT:      ./scripts/gen-trovesuite-jwt.sh"
     ;;
   api)
     compose up -d --build api
@@ -87,10 +88,22 @@ case "${cmd}" in
     ;;
   smoke)
     BASE="http://localhost:${API_PORT:-8000}"
-    H1="X-Tenant-Id: demo-tenant"
-    H2="X-Org-Id: demo-org"
-    for path in /api/v1/health /api/v1/navigation /api/v1/employees/directory/summary; do
-      code=$(curl -s -o /dev/null -w "%{http_code}" -H "${H1}" -H "${H2}" "${BASE}${path}" || echo "000")
+    TOKEN="$(ROOT="${ROOT}" "${ROOT}/scripts/gen-trovesuite-jwt.sh" 2>/dev/null | tail -1 || true)"
+    if [[ -z "${TOKEN}" ]]; then
+      echo "smoke: could not generate JWT (run ./scripts/gen-trovesuite-jwt.sh)" >&2
+      exit 1
+    fi
+    curl_headers=(
+      -H "app-id: app-hr"
+      -H "authorization: Bearer ${TOKEN}"
+      -H "bus-id: ${TROVE_BUS_ID:-bus_demo}"
+      -H "loc-id: ${TROVE_LOC_ID:-loc_demo}"
+      -H "org-id: ${TROVE_ORG_ID:-demo-org}"
+    )
+    code=$(curl -s -o /dev/null -w "%{http_code}" "${curl_headers[@]}" "${BASE}/api/v1/health" || echo "000")
+    echo "/api/v1/health → HTTP ${code}"
+    for path in /api/v1/navigation /api/v1/employees/directory/summary; do
+      code=$(curl -s -o /dev/null -w "%{http_code}" "${curl_headers[@]}" "${BASE}${path}" || echo "000")
       echo "${path} → HTTP ${code}"
     done
     ;;

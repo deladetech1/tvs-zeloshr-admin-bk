@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Shared;
+using ZelosHR.Api.Shared.Authorization;
 using ZelosHR.Api.Shared.Tenant;
 
 namespace ZelosHR.Api.Entities.Employees;
@@ -33,6 +34,7 @@ public class EmployeesController : ControllerBase
     }
 
     /// <summary>Check if email exists in core_platform.cp_users before creating an employee.</summary>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("check-user")]
     [ProducesResponseType(typeof(Respons<CpUserCheckResult>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<CpUserCheckResult>>> CheckUser(
@@ -44,6 +46,7 @@ public class EmployeesController : ControllerBase
     }
 
     /// <summary>Search cp_users to import into ZelosHR (excludes already linked).</summary>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("import/search")]
     [ProducesResponseType(typeof(Respons<IReadOnlyList<CpUserDto>>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<IReadOnlyList<CpUserDto>>>> ImportSearch(
@@ -55,6 +58,7 @@ public class EmployeesController : ControllerBase
     }
 
     /// <summary>Create a draft employee linked to an existing cp_users row.</summary>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeCreate)]
     [HttpPost("import")]
     [ProducesResponseType(typeof(Respons<EmployeeRegistrationReadDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<EmployeeRegistrationReadDto>>> Import(
@@ -65,7 +69,11 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Create a draft employee (wizard step 1).</summary>
+    /// <summary>
+    /// Create employee (registration wizard, step 1). Use <c>fullName</c> here; platform identity
+    /// (<c>cp_users.fullname</c>, <c>email</c>, <c>contact</c>) is created on <c>POST …/finalise</c>, not split first/last name.
+    /// </summary>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeCreate)]
     [HttpPost("draft")]
     [ProducesResponseType(typeof(Respons<EmployeeRegistrationReadDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<EmployeeRegistrationReadDto>>> CreateDraft(
@@ -76,7 +84,11 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Update personal and contact fields (wizard step 1).</summary>
+    /// <summary>
+    /// Update personal/contact (wizard). Identity is written to <c>cp_users</c> when <c>workEmail</c> is set;
+    /// HR-only fields (nationality, ID, personal email) stay on <c>zhr_employees</c>.
+    /// </summary>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpPatch("{id:guid}/personal-contact")]
     [ProducesResponseType(typeof(Respons<EmployeeRegistrationReadDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<EmployeeRegistrationReadDto>>> UpdatePersonalContact(
@@ -89,6 +101,7 @@ public class EmployeesController : ControllerBase
     }
 
     /// <summary>Update employment details (wizard step 2).</summary>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpPatch("{id:guid}/employment-details")]
     [ProducesResponseType(typeof(Respons<EmployeeRegistrationReadDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<EmployeeRegistrationReadDto>>> UpdateEmploymentDetails(
@@ -101,6 +114,7 @@ public class EmployeesController : ControllerBase
     }
 
     /// <summary>Update compensation and statutory fields (wizard step 4).</summary>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpPatch("{id:guid}/compensation")]
     [ProducesResponseType(typeof(Respons<EmployeeRegistrationReadDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<EmployeeRegistrationReadDto>>> UpdateCompensation(
@@ -113,6 +127,7 @@ public class EmployeesController : ControllerBase
     }
 
     /// <summary>Finalise draft employee (wizard step 6).</summary>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpPost("{id:guid}/finalise")]
     [ProducesResponseType(typeof(Respons<EmployeeRegistrationReadDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<EmployeeRegistrationReadDto>>> Finalise(Guid id, CancellationToken ct)
@@ -122,6 +137,7 @@ public class EmployeesController : ControllerBase
     }
 
     /// <summary>Upload profile photo (max 5MB, jpeg/png).</summary>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpPost("{id:guid}/photo")]
     [ProducesResponseType(typeof(Respons<string>), StatusCodes.Status200OK)]
     [RequestSizeLimit(5 * 1024 * 1024)]
@@ -140,6 +156,7 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("{id:guid}/education")]
     public async Task<ActionResult<Respons<IReadOnlyList<EmployeeEducationDto>>>> ListEducation(
         Guid id, CancellationToken ct)
@@ -148,6 +165,7 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpPost("{id:guid}/education")]
     public async Task<ActionResult<Respons<EmployeeEducationDto>>> AddEducation(
         Guid id, [FromBody] EmployeeEducationWriteDto body, CancellationToken ct)
@@ -156,6 +174,7 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpPut("{id:guid}/education/{educationId:guid}")]
     public async Task<ActionResult<Respons<EmployeeEducationDto>>> UpdateEducation(
         Guid id, Guid educationId, [FromBody] EmployeeEducationWriteDto body, CancellationToken ct)
@@ -164,6 +183,7 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpDelete("{id:guid}/education/{educationId:guid}")]
     public async Task<ActionResult<Respons<object>>> DeleteEducation(
         Guid id, Guid educationId, CancellationToken ct)
@@ -172,6 +192,7 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("{id:guid}/certifications")]
     public async Task<ActionResult<Respons<IReadOnlyList<EmployeeCertificationDto>>>> ListCertifications(
         Guid id, CancellationToken ct)
@@ -180,6 +201,7 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpPost("{id:guid}/certifications")]
     public async Task<ActionResult<Respons<EmployeeCertificationDto>>> AddCertification(
         Guid id, [FromBody] EmployeeCertificationWriteDto body, CancellationToken ct)
@@ -188,6 +210,7 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpPut("{id:guid}/certifications/{certId:guid}")]
     public async Task<ActionResult<Respons<EmployeeCertificationDto>>> UpdateCertification(
         Guid id, Guid certId, [FromBody] EmployeeCertificationWriteDto body, CancellationToken ct)
@@ -196,6 +219,7 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpDelete("{id:guid}/certifications/{certId:guid}")]
     public async Task<ActionResult<Respons<object>>> DeleteCertification(
         Guid id, Guid certId, CancellationToken ct)
@@ -204,6 +228,7 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("{id:guid}/documents")]
     public async Task<ActionResult<Respons<IReadOnlyList<EmployeeWizardDocumentDto>>>> ListDocuments(
         Guid id, [FromQuery] string? category, CancellationToken ct)
@@ -212,6 +237,7 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpPost("{id:guid}/documents")]
     [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<ActionResult<Respons<EmployeeWizardDocumentDto>>> UploadDocument(
@@ -230,6 +256,7 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpDelete("{id:guid}/documents/{documentId:guid}")]
     public async Task<ActionResult<Respons<object>>> DeleteDocument(
         Guid id, Guid documentId, CancellationToken ct)
@@ -239,6 +266,7 @@ public class EmployeesController : ControllerBase
     }
 
     /// <summary>KPI cards on the Employee Directory page.</summary>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("directory/summary")]
     [ProducesResponseType(typeof(Respons<EmployeeDirectorySummaryDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<EmployeeDirectorySummaryDto>>> DirectorySummary(CancellationToken ct)
@@ -249,6 +277,7 @@ public class EmployeesController : ControllerBase
     }
 
     /// <summary>Employee directory table with search, filters, sort, and pagination.</summary>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("directory")]
     [ProducesResponseType(typeof(Respons<EmployeeDirectoryListDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<EmployeeDirectoryListDto>>> Directory(
@@ -284,6 +313,7 @@ public class EmployeesController : ControllerBase
     }
 
     /// <summary>Filter dropdown options for the directory toolbar.</summary>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("directory/filter-options")]
     [ProducesResponseType(typeof(Respons<EmployeeFilterOptionsDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<EmployeeFilterOptionsDto>>> FilterOptions(CancellationToken ct)
@@ -294,6 +324,7 @@ public class EmployeesController : ControllerBase
     }
 
     /// <summary>Full employee record for profile and HR admin screens.</summary>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(Respons<EmployeeDetailDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Respons<EmployeeDetailDto>), StatusCodes.Status404NotFound)]
@@ -304,6 +335,13 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>
+    /// Legacy one-shot create (split first/last + Ghana Card). Hidden from Swagger — use
+    /// <c>POST /api/v1/employees/draft</c> and the wizard instead (aligns with <c>cp_users</c>).
+    /// </summary>
+    [ApiExplorerSettings(IgnoreApi = true)]
+    [Obsolete("Use POST /api/v1/employees/draft and the registration wizard; identity is stored in cp_users on finalise.")]
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeCreate)]
     [HttpPost]
     [ProducesResponseType(typeof(Respons<CreateEmployeeControllerReadDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Respons<CreateEmployeeControllerReadDto>), StatusCodes.Status400BadRequest)]
@@ -357,6 +395,7 @@ public class EmployeesController : ControllerBase
     }
 
     /// <summary>Update personal / identity fields (partial PATCH).</summary>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpPatch("{id:guid}")]
     [ProducesResponseType(typeof(Respons<EmployeeDetailDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<EmployeeDetailDto>>> UpdateEmployee(
@@ -378,6 +417,7 @@ public class EmployeesController : ControllerBase
     }
 
     /// <summary>Assign department, branch, manager, contract, and employment status.</summary>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpPatch("{id:guid}/employment")]
     [ProducesResponseType(typeof(Respons<EmployeeDetailDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<EmployeeDetailDto>>> UpdateEmployment(
@@ -391,6 +431,7 @@ public class EmployeesController : ControllerBase
     }
 
     /// <summary>Transition lifecycle state (Pre-hire → Active → Terminated, etc.).</summary>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpPatch("{id:guid}/lifecycle-state")]
     [ProducesResponseType(typeof(Respons<EmployeeDetailDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<EmployeeDetailDto>>> UpdateLifecycleState(
@@ -409,6 +450,7 @@ public class EmployeesController : ControllerBase
     }
 
     /// <summary>Soft-delete employee (sets is_deleted, employment inactive).</summary>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(typeof(Respons<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Respons<object>), StatusCodes.Status404NotFound)]
@@ -419,6 +461,7 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet]
     [ProducesResponseType(typeof(Respons<GetEmployeesControllerReadDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<GetEmployeesControllerReadDto>>> ListEmployees(CancellationToken ct)

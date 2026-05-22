@@ -99,6 +99,7 @@ services:
       Trovesuite__Database__Port: "5432"
       Trovesuite__Jwt__SecretKey: change-me-in-production-use-32-chars-min
       TrovesuiteIntegration__RequireAuthentication: ${TROVESUITE_REQUIRE_AUTH:-false}
+      TrovesuiteIntegration__RequireStandardHeaders: ${TROVE_REQUIRE_STANDARD_HEADERS:-true}
     depends_on:
       db:
         condition: service_healthy

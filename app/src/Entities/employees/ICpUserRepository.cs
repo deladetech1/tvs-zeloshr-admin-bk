@@ -5,7 +5,11 @@ public sealed record CpUserDto(
     string FullName,
     string Email,
     string? Phone,
-    bool IsActive);
+    bool IsActive,
+    string? Gender = null,
+    string? Dob = null,
+    string? Address = null,
+    string? ProfilePic = null);
 
 public sealed record CpUserCheckResult(
     bool Exists,
@@ -17,6 +21,28 @@ public interface ICpUserRepository
 {
     Task<CpUserDto?> FindByEmailAsync(string email, string tenantId, CancellationToken ct = default);
     Task<CpUserDto?> GetByIdAsync(string userId, string tenantId, CancellationToken ct = default);
+    Task<IReadOnlyDictionary<string, CpUserDto>> GetByIdsAsync(
+        IEnumerable<string> userIds, string tenantId, CancellationToken ct = default);
     Task<IReadOnlyList<CpUserDto>> SearchAsync(string query, string tenantId, int limit = 20, CancellationToken ct = default);
     Task<bool> IsLinkedToEmployeeAsync(string userId, string tenantId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Creates cp_users + login_settings + user_locations + hr_employees in one transaction.
+    /// </summary>
+    Task<CpUserDto> ProvisionEmployeeUserAsync(ProvisionCpUserRequest request, CancellationToken ct = default);
+
+    /// <summary>Updates identity columns on an existing cp_users row.</summary>
+    Task<CpUserDto> UpdateIdentityAsync(
+        string userId, string tenantId, CpUserIdentityData identity, CancellationToken ct = default);
+
+    Task UpdateProfilePicAsync(
+        string userId, string tenantId, string profilePicUrl, CancellationToken ct = default);
+
+    /// <summary>Ensures human_resource.hr_employees exists for an existing platform user.</summary>
+    Task EnsureHrMembershipAsync(
+        string userId, string tenantId, string? createdBy, CancellationToken ct = default);
+
+    /// <summary>Ensures cp_user_locations includes HR app + org for the tenant.</summary>
+    Task EnsureUserLocationAsync(
+        string userId, string tenantId, string orgId, CancellationToken ct = default);
 }

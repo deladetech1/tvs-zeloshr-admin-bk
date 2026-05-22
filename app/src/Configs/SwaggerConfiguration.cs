@@ -10,8 +10,6 @@ namespace ZelosHR.Api.Configs;
 public static class SwaggerConfiguration
 {
     public const string BearerScheme = "Bearer";
-    public const string TenantHeader = "X-Tenant-Id";
-    public const string OrgHeader = "X-Org-Id";
 
     public static IServiceCollection AddZelosHrSwagger(this IServiceCollection services)
     {
@@ -24,14 +22,19 @@ public static class SwaggerConfiguration
                 Description = """
                     Enterprise multi-tenant HR platform API.
 
-                    **Tenancy:** All `/api/v1/*` routes are scoped by tenant and organisation.
-                    - Production: `Authorization: Bearer <JWT>` (claims `user_id`, `tenant_id`).
-                    - Local dev (auth off): `X-Tenant-Id` and `X-Org-Id` headers.
+                    **Required headers** on every `/api/v1/*` request (exact names, lowercase):
+
+                    | Header | Example |
+                    |--------|---------|
+                    | `app-id` | `app-hr` |
+                    | `authorization` | `Bearer <JWT>` |
+                    | `bus-id` | `bus_…` |
+                    | `loc-id` | `loc_…` |
+                    | `org-id` | `org_…` |
+
+                    Tenant scope comes from the JWT claim `tenant_id` (or legacy `X-Tenant-Id` when header enforcement is off).
 
                     **Envelope:** `{ success, statusCode, detail, data, pagination?, fieldErrors? }`
-
-                    **CRUD:** List, get-by-id, create (`POST`), update (`PATCH`), delete (`DELETE`) on HR modules.
-                    Audit logs are read-only.
 
                     Route map: `GET /api/v1/navigation` · Contracts: `docs/ENTERPRISE_API.md`
                     """,
@@ -40,7 +43,7 @@ public static class SwaggerConfiguration
 
             options.AddSecurityDefinition(BearerScheme, new OpenApiSecurityScheme
             {
-                Description = "Trovesuite JWT. Example: `Bearer eyJhbGciOiJIUzI1NiIs...`",
+                Description = "Trove JWT in the `authorization` header. Example: `Bearer eyJhbGciOiJIUzI1NiIs...`",
                 Type = SecuritySchemeType.Http,
                 Scheme = "bearer",
                 BearerFormat = "JWT",
@@ -51,10 +54,9 @@ public static class SwaggerConfiguration
                 [new OpenApiSecuritySchemeReference(BearerScheme, document)] = [],
             });
 
-            // GroupName on controllers is for Swagger UI tags only — not the OpenAPI doc id ("v1").
             options.DocInclusionPredicate((docName, _) => docName == "v1");
 
-            options.OperationFilter<TenantHeadersOperationFilter>();
+            options.OperationFilter<TroveStandardHeadersOperationFilter>();
             options.OperationFilter<StandardResponsesOperationFilter>();
             options.TagActionsBy(api =>
             {
@@ -116,48 +118,54 @@ public static class SwaggerConfiguration
     };
 }
 
-/// <summary>Adds tenant/org headers to every business API operation (Try it out).</summary>
-public sealed class TenantHeadersOperationFilter : IOperationFilter
+/// <summary>Adds Trove standard headers to every <c>/api/v1/*</c> operation (Try it out).</summary>
+public sealed class TroveStandardHeadersOperationFilter : IOperationFilter
 {
     public void Apply(OpenApiOperation operation, OperationFilterContext context)
     {
         var path = context.ApiDescription.RelativePath ?? "";
         if (!path.StartsWith("api/v1", StringComparison.OrdinalIgnoreCase))
             return;
+        if (path.StartsWith("api/v1/health", StringComparison.OrdinalIgnoreCase))
+            return;
 
         operation.Parameters ??= [];
 
-        if (!operation.Parameters.Any(p => p.Name == SwaggerConfiguration.TenantHeader))
-        {
-            operation.Parameters.Add(new OpenApiParameter
-            {
-                Name = SwaggerConfiguration.TenantHeader,
-                In = ParameterLocation.Header,
-                Required = false,
-                Description = $"Tenant scope. Default dev value: `{TenantContext.DefaultTenantId}`.",
-                Schema = new OpenApiSchema
-                {
-                    Type = JsonSchemaType.String,
-                    Default = JsonValue.Create(TenantContext.DefaultTenantId),
-                },
-            });
-        }
+        AddHeader(operation, TroveStandardHeaders.AppId, required: true,
+            $"Must be `{TroveStandardHeaders.HrAppId}`.", TroveStandardHeaders.HrAppId);
+        AddHeader(operation, TroveStandardHeaders.Authorization, required: true,
+            "Bearer JWT from Trove platform login.", "Bearer <paste-token>");
+        AddHeader(operation, TroveStandardHeaders.BusId, required: true,
+            "Business scope from platform context.", TenantContext.DefaultBusId);
+        AddHeader(operation, TroveStandardHeaders.LocId, required: true,
+            "Location scope from platform context.", TenantContext.DefaultLocId);
+        AddHeader(operation, TroveStandardHeaders.OrgId, required: true,
+            "Organisation scope.", TenantContext.DefaultOrgId);
+    }
 
-        if (!operation.Parameters.Any(p => p.Name == SwaggerConfiguration.OrgHeader))
+    private static void AddHeader(
+        OpenApiOperation operation,
+        string name,
+        bool required,
+        string description,
+        string defaultValue)
+    {
+        if (operation.Parameters.Any(p =>
+                string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        operation.Parameters.Add(new OpenApiParameter
         {
-            operation.Parameters.Add(new OpenApiParameter
+            Name = name,
+            In = ParameterLocation.Header,
+            Required = required,
+            Description = description,
+            Schema = new OpenApiSchema
             {
-                Name = SwaggerConfiguration.OrgHeader,
-                In = ParameterLocation.Header,
-                Required = false,
-                Description = $"Organisation scope. Default dev value: `{TenantContext.DefaultOrgId}`.",
-                Schema = new OpenApiSchema
-                {
-                    Type = JsonSchemaType.String,
-                    Default = JsonValue.Create(TenantContext.DefaultOrgId),
-                },
-            });
-        }
+                Type = JsonSchemaType.String,
+                Default = JsonValue.Create(defaultValue),
+            },
+        });
     }
 }
 
@@ -166,8 +174,8 @@ public sealed class StandardResponsesOperationFilter : IOperationFilter
 {
     public void Apply(OpenApiOperation operation, OperationFilterContext context)
     {
-        operation.Responses.TryAdd("400", new OpenApiResponse { Description = "Validation error (`fieldErrors` populated)" });
-        operation.Responses.TryAdd("401", new OpenApiResponse { Description = "Missing or invalid Bearer token (when auth required)" });
+        operation.Responses.TryAdd("400", new OpenApiResponse { Description = "Validation error or missing required Trove header (`fieldErrors` when applicable)" });
+        operation.Responses.TryAdd("401", new OpenApiResponse { Description = "Missing or invalid Bearer token" });
         operation.Responses.TryAdd("404", new OpenApiResponse { Description = "Resource not found" });
         operation.Responses.TryAdd("409", new OpenApiResponse { Description = "Conflict (duplicate unique field)" });
         operation.Responses.TryAdd("500", new OpenApiResponse { Description = "Unexpected server error" });

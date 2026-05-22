@@ -15,6 +15,7 @@ public interface IEmployeeDirectoryRepository
 public sealed record EmployeeDirectoryListRow(
     Guid Id,
     string EmployeeCode,
+    string? UserId,
     string FullName,
     string? FirstName,
     string? MiddleName,
@@ -26,6 +27,7 @@ public sealed record EmployeeDirectoryListRow(
     string? BranchName,
     string? EmploymentType,
     Guid? ManagerId,
+    string? ManagerUserId,
     string? ManagerFirstName,
     string? ManagerLastName,
     string Status);

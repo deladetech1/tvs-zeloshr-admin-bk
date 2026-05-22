@@ -92,7 +92,7 @@ See `tvs-sqlscript/README.md` for CI dispatch, rollback, and validate.
 - [ ] Seeds updated (`01`–`03`, and `05` if demo data changed)
 - [ ] `dotnet build` passes in tvs-sqlscript
 - [ ] Deploy tested (`deploy` + optional `TVS_SEED_ZELOSHR_DEMO=1`)
-- [ ] ZelosHR API smoke-tested (`X-Tenant-Id: demo-tenant`, `X-Org-Id: demo-org`)
+- [ ] ZelosHR API smoke-tested (Trove headers: `app-id`, `authorization`, `bus-id`, `loc-id`, `org-id`)
 - [ ] No new `.sql` files added under ZelosHR `app/src/Database/Migrations/`
 - [ ] **Swagger kept in sync:** `GET /api/v1/navigation` and `GET /swagger/v1/swagger.json` list the same routes (~55 paths); use `Swashbuckle.AspNetCore` 10.x on .NET 10; `ApiExplorerSettings(GroupName)` is the UI **tag** only (doc id stays `v1` via `DocInclusionPredicate`); add XML `<summary>` on new controllers (see [docs/SWAGGER.md](docs/SWAGGER.md))
 

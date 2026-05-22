@@ -41,6 +41,7 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 app.UseMiddleware<LoggingMiddleware>();
+app.UseMiddleware<TroveRequestHeadersMiddleware>();
 app.UseMiddleware<TrovesuiteAuthMiddleware>();
 app.UseMiddleware<ExceptionHandlerMiddleware>();
 app.UseCors();

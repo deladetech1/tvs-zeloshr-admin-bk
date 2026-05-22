@@ -153,6 +153,27 @@ public class EmployeeRegistrationTests
     }
 
     [Fact]
+    public async Task UpdateCompensation_AutoCalculatesAnnualizedCost_BiWeekly()
+    {
+        var id = Guid.NewGuid();
+        var entity = new EmployeeEntity
+        {
+            Id = id,
+            TenantId = "demo-tenant",
+            OrgId = "demo-org",
+            FullName = "X",
+            IsDraft = true,
+        };
+        _employees.GetByIdScopedForUpdateAsync(id, "demo-tenant", "demo-org", Arg.Any<CancellationToken>())
+            .Returns(entity);
+
+        var result = await _sut.UpdateCompensationAsync(
+            id, new CreateEmployeeRequest { GrossSalary = 1000m, PayFrequency = "bi-weekly" });
+
+        result.Data!.AnnualizedCost.Should().Be(26000m);
+    }
+
+    [Fact]
     public async Task FinaliseEmployee_WithDraft_SetsIsDraftFalse_AndLifecycleToPreHire()
     {
         var id = Guid.NewGuid();
@@ -164,15 +185,150 @@ public class EmployeeRegistrationTests
             FullName = "Ada",
             JobTitle = "Engineer",
             DepartmentId = Guid.NewGuid(),
+            UserId = "u-existing",
             IsDraft = true,
         };
         _employees.GetByIdScopedForUpdateAsync(id, "demo-tenant", "demo-org", Arg.Any<CancellationToken>())
             .Returns(entity);
+        _cpUsers.IsLinkedToEmployeeAsync("u-existing", "demo-tenant", Arg.Any<CancellationToken>())
+            .Returns(false);
+        _cpUsers.EnsureHrMembershipAsync("u-existing", "demo-tenant", Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        _cpUsers.UpdateIdentityAsync("u-existing", "demo-tenant", Arg.Any<CpUserIdentityData>(), Arg.Any<CancellationToken>())
+            .Returns(new CpUserDto("u-existing", "Ada", "ada@test.com", null, true));
+        _cpUsers.EnsureUserLocationAsync("u-existing", "demo-tenant", "demo-org", Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
 
         var result = await _sut.FinaliseAsync(id);
 
         result.Data!.IsDraft.Should().BeFalse();
         result.Data.LifecycleStatus.Should().Be("pre_hire");
+        result.Data.UserId.Should().Be("u-existing");
         entity.IsDraft.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task FinaliseEmployee_LinksCpUser_ByWorkEmail_WhenUserIdUnset()
+    {
+        var id = Guid.NewGuid();
+        var entity = new EmployeeEntity
+        {
+            Id = id,
+            TenantId = "demo-tenant",
+            OrgId = "demo-org",
+            FullName = "Ada",
+            JobTitle = "Engineer",
+            DepartmentId = Guid.NewGuid(),
+            WorkEmail = "ada@corp.com",
+            IsDraft = true,
+        };
+        _employees.GetByIdScopedForUpdateAsync(id, "demo-tenant", "demo-org", Arg.Any<CancellationToken>())
+            .Returns(entity);
+        _cpUsers.FindByEmailAsync("ada@corp.com", "demo-tenant", Arg.Any<CancellationToken>())
+            .Returns(new CpUserDto("u-ada", "Ada", "ada@corp.com", null, true));
+        _cpUsers.IsLinkedToEmployeeAsync("u-ada", "demo-tenant", Arg.Any<CancellationToken>())
+            .Returns(false);
+        _cpUsers.EnsureHrMembershipAsync("u-ada", "demo-tenant", Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        _cpUsers.UpdateIdentityAsync("u-ada", "demo-tenant", Arg.Any<CpUserIdentityData>(), Arg.Any<CancellationToken>())
+            .Returns(new CpUserDto("u-ada", "Ada", "ada@corp.com", null, true));
+        _cpUsers.EnsureUserLocationAsync("u-ada", "demo-tenant", "demo-org", Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        _cpUsers.GetByIdAsync("u-ada", "demo-tenant", Arg.Any<CancellationToken>())
+            .Returns(new CpUserDto("u-ada", "Ada", "ada@corp.com", null, true));
+
+        var result = await _sut.FinaliseAsync(id);
+
+        result.Success.Should().BeTrue();
+        result.Data!.UserId.Should().Be("u-ada");
+        entity.UserId.Should().Be("u-ada");
+        await _cpUsers.Received(1).UpdateIdentityAsync(
+            "u-ada", "demo-tenant", Arg.Any<CpUserIdentityData>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task FinaliseEmployee_ProvisionsCpUser_WhenEmailNotInPlatform()
+    {
+        var id = Guid.NewGuid();
+        var entity = new EmployeeEntity
+        {
+            Id = id,
+            TenantId = "demo-tenant",
+            OrgId = "demo-org",
+            FullName = "Ada",
+            JobTitle = "Engineer",
+            DepartmentId = Guid.NewGuid(),
+            WorkEmail = "new@corp.com",
+            Phone = "+233201111111",
+            IsDraft = true,
+        };
+        _employees.GetByIdScopedForUpdateAsync(id, "demo-tenant", "demo-org", Arg.Any<CancellationToken>())
+            .Returns(entity);
+        _cpUsers.FindByEmailAsync("new@corp.com", "demo-tenant", Arg.Any<CancellationToken>())
+            .Returns((CpUserDto?)null);
+        _cpUsers.ProvisionEmployeeUserAsync(Arg.Any<ProvisionCpUserRequest>(), Arg.Any<CancellationToken>())
+            .Returns(new CpUserDto("u-new", "Ada", "new@corp.com", "+233201111111", true));
+        _cpUsers.GetByIdAsync("u-new", "demo-tenant", Arg.Any<CancellationToken>())
+            .Returns(new CpUserDto("u-new", "Ada", "new@corp.com", "+233201111111", true));
+
+        var result = await _sut.FinaliseAsync(id);
+
+        result.Success.Should().BeTrue();
+        result.Data!.UserId.Should().Be("u-new");
+        entity.UserId.Should().Be("u-new");
+        entity.FullName.Should().BeEmpty();
+        entity.WorkEmail.Should().BeNull();
+        entity.Phone.Should().BeNull();
+        await _cpUsers.Received(1).ProvisionEmployeeUserAsync(
+            Arg.Is<ProvisionCpUserRequest>(r => r.Email == "new@corp.com" && r.FullName == "Ada"),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task UpdatePersonalContact_WithWorkEmail_ProvisionsCpUser_AndClearsIdentityOnEmployee()
+    {
+        var id = Guid.NewGuid();
+        var entity = new EmployeeEntity
+        {
+            Id = id,
+            TenantId = "demo-tenant",
+            OrgId = "demo-org",
+            FullName = "Isaac Kumi",
+            IsDraft = true,
+        };
+        _employees.GetByIdScopedForUpdateAsync(id, "demo-tenant", "demo-org", Arg.Any<CancellationToken>())
+            .Returns(entity);
+        _cpUsers.FindByEmailAsync("isaac@corp.com", "demo-tenant", Arg.Any<CancellationToken>())
+            .Returns((CpUserDto?)null);
+        _cpUsers.ProvisionEmployeeUserAsync(Arg.Any<ProvisionCpUserRequest>(), Arg.Any<CancellationToken>())
+            .Returns(new CpUserDto("u-new", "Isaac Kumi", "isaac@corp.com", "+233201111111", true));
+        _cpUsers.GetByIdAsync("u-new", "demo-tenant", Arg.Any<CancellationToken>())
+            .Returns(new CpUserDto("u-new", "Isaac Kumi", "isaac@corp.com", "+233201111111", true));
+
+        var result = await _sut.UpdatePersonalContactAsync(
+            id,
+            new CreateEmployeeRequest
+            {
+                FullName = "Isaac Kumi",
+                WorkEmail = "isaac@corp.com",
+                Phone = "+233201111111",
+                Gender = "Female",
+                DateOfBirth = new DateOnly(1990, 5, 1),
+                ResidentialAddress = "Accra",
+            });
+
+        result.Success.Should().BeTrue();
+        entity.UserId.Should().Be("u-new");
+        entity.FullName.Should().BeEmpty();
+        entity.WorkEmail.Should().BeNull();
+        entity.Gender.Should().BeNull();
+        entity.ResidentialAddress.Should().BeNull();
+        await _cpUsers.Received(1).ProvisionEmployeeUserAsync(
+            Arg.Is<ProvisionCpUserRequest>(r =>
+                r.Email == "isaac@corp.com"
+                && r.FullName == "Isaac Kumi"
+                && r.Gender == "FEMALE"
+                && r.Dob == "1990-05-01"),
+            Arg.Any<CancellationToken>());
     }
 }

@@ -43,6 +43,7 @@ public sealed class EmployeeDirectoryRepository(ZelosHrDbContext db) : IEmployee
             .Select(e => new EmployeeDirectoryListRow(
                 e.Id,
                 e.EmployeeCode,
+                e.UserId,
                 e.FullName,
                 e.FirstName,
                 e.MiddleName,
@@ -54,6 +55,7 @@ public sealed class EmployeeDirectoryRepository(ZelosHrDbContext db) : IEmployee
                 e.Branch != null ? e.Branch.Name : null,
                 e.EmploymentType,
                 e.ManagerId,
+                e.Manager != null ? e.Manager.UserId : null,
                 e.Manager != null ? e.Manager.FirstName : null,
                 e.Manager != null ? e.Manager.LastName : null,
                 e.EmploymentStatus))

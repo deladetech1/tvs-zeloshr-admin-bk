@@ -50,7 +50,7 @@ Demo rows (`demo-tenant` / `demo-org`) load when `TVS_SEED_ZELOSHR_DEMO=1` (defa
 After `./scripts/compose.sh dev`:
 
 - Swagger: http://localhost:8000/swagger  
-- Demo headers: `X-Tenant-Id: demo-tenant`, `X-Org-Id: demo-org`  
+- Trove headers on every `/api/v1/*` call: `app-id`, `authorization` (Bearer JWT), `bus-id`, `loc-id`, `org-id` — see `docs/SWAGGER.md`  
 - Optional JWT: see [TROVESUITE.md](TROVESUITE.md)
 
 ```bash

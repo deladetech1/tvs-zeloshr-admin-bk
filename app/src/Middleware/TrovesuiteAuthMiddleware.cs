@@ -39,10 +39,10 @@ public class TrovesuiteAuthMiddleware
             return;
         }
 
-        var token = ExtractBearerToken(context);
+        var token = TroveBearerTokenHelper.ExtractBearerToken(context);
         if (string.IsNullOrWhiteSpace(token))
         {
-            await WriteUnauthorizedAsync(context, "Bearer token is required.");
+            await WriteUnauthorizedAsync(context, "Header 'authorization' must be a Bearer JWT.");
             return;
         }
 
@@ -57,10 +57,13 @@ public class TrovesuiteAuthMiddleware
         }
 
         var principal = result.Data[0];
+        var orgFromHeader = context.Items[TrovesuiteHttpContextKeys.OrgId] as string;
+
         context.Items[TrovesuiteHttpContextKeys.AuthEntries] = result.Data;
         context.Items[TrovesuiteHttpContextKeys.UserId] = principal.UserId;
         context.Items[TrovesuiteHttpContextKeys.TenantId] = principal.TenantId;
-        context.Items[TrovesuiteHttpContextKeys.OrgId] = principal.OrgId;
+        context.Items[TrovesuiteHttpContextKeys.OrgId] =
+            !string.IsNullOrWhiteSpace(orgFromHeader) ? orgFromHeader : principal.OrgId;
         context.Items[TrovesuiteHttpContextKeys.Permissions] =
             result.Data.SelectMany(e => e.Permissions ?? []).Distinct().ToList();
 
@@ -76,18 +79,6 @@ public class TrovesuiteAuthMiddleware
         }
 
         return false;
-    }
-
-    private static string? ExtractBearerToken(HttpContext context)
-    {
-        var header = context.Request.Headers.Authorization.ToString();
-        if (string.IsNullOrWhiteSpace(header))
-            return null;
-
-        const string prefix = "Bearer ";
-        return header.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
-            ? header[prefix.Length..].Trim()
-            : null;
     }
 
     private static Task WriteUnauthorizedAsync(HttpContext context, string message)

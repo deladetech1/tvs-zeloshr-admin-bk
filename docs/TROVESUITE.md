@@ -35,21 +35,24 @@ The `api` service must reach Postgres for **both** ZelosHR queries and Trovesuit
 | `Trovesuite__Database__Host=db` | `IAuthService` / platform tables in `core_platform` |
 | `Trovesuite__Jwt__SecretKey` | Must be **≥ 32 characters** for HS256 (IdentityModel v8) |
 
-Demo HR data: deploy `tvs-sqlscript` with `TVS_SEED_ZELOSHR_DEMO=1`, then call APIs with `X-Tenant-Id: demo-tenant` and `X-Org-Id: demo-org`.
+Demo HR data: deploy `tvs-sqlscript` with `TVS_SEED_ZELOSHR_DEMO=1`, then call APIs with Trove standard headers (see below).
 
 JWT mode (optional): `TROVESUITE_REQUIRE_AUTH=true docker compose up -d api` — send `Authorization: Bearer <token>` (claims `user_id`, `tenant_id`).
 
 ### How to get a Bearer token for testing
 
-**Option A — Demo mode (no JWT)**  
-Leave `TrovesuiteIntegration__RequireAuthentication=false` (default). Use headers only:
+**Option A — Demo mode (JWT present, auth not validated against DB)**  
+Leave `TrovesuiteIntegration__RequireAuthentication=false` (default). Every `/api/v1/*` request still requires:
 
 ```http
-X-Tenant-Id: demo-tenant
-X-Org-Id: demo-org
+app-id: app-hr
+authorization: Bearer <JWT>
+bus-id: <business-id>
+loc-id: <location-id>
+org-id: <organisation-id>
 ```
 
-Swagger: skip **Authorize**; tenant headers are pre-filled on `/api/v1/*` routes.
+Tenant scope is read from the JWT claim `tenant_id`. Use ids from your Trove platform session (same as the mobile/web client).
 
 **Option B — Local dev JWT (fastest for JWT testing)**  
 The API validates HS256 tokens signed with `Trovesuite__Jwt__SecretKey` (must be **≥ 32 characters**). Generate one from the repo root (uses Docker if `dotnet` is not installed):
@@ -73,9 +76,12 @@ Copy the printed token, then:
 
 ```bash
 export TOKEN="<paste>"
-curl -s -H "Authorization: Bearer $TOKEN" \
-  -H "X-Tenant-Id: demo-tenant" -H "X-Org-Id: demo-org" \
-  http://localhost:8000/api/v1/employees | jq .
+curl -s http://localhost:8000/api/v1/employees/directory/summary \
+  -H "app-id: app-hr" \
+  -H "authorization: Bearer $TOKEN" \
+  -H "bus-id: bus_demo" \
+  -H "loc-id: loc_demo" \
+  -H "org-id: demo-org" | jq .
 ```
 
 In Swagger → **Authorize** → `Bearer <token>` (include the word `Bearer` only in the value field if the UI adds it automatically; otherwise paste `Bearer eyJ...`).
@@ -117,7 +123,8 @@ Or export once in your shell: `export GITHUB_PACKAGES_TOKEN=ghp_xxx` then `docke
 | `Trovesuite:Jwt` | JWT secret (must match token issuer) |
 | `Trovesuite:Mail` | SMTP fallback for emails |
 | `Trovesuite:AzureStorage` | Blob storage account |
-| `TrovesuiteIntegration:RequireAuthentication` | `false` = demo headers; `true` = Bearer JWT required |
+| `TrovesuiteIntegration:RequireAuthentication` | `false` = JWT read for tenant/user without DB auth; `true` = full Trovesuite auth |
+| `TrovesuiteIntegration:RequireStandardHeaders` | `true` = require `app-id`, `authorization`, `bus-id`, `loc-id`, `org-id` (default) |
 
 ## Platform API (Swagger)
 
@@ -131,10 +138,7 @@ Or export once in your shell: `export GITHUB_PACKAGES_TOKEN=ghp_xxx` then `docke
 
 ## Demo mode (default)
 
-`TrovesuiteIntegration:RequireAuthentication` is `false`. HR APIs use:
-
-- `X-Tenant-Id: demo-tenant`
-- `X-Org-Id: demo-org`
+`TrovesuiteIntegration:RequireAuthentication` is `false`. HR APIs still require Trove standard headers (`app-id`, `authorization`, `bus-id`, `loc-id`, `org-id`). See `docs/SWAGGER.md`.
 
 ## Production auth
 
@@ -145,3 +149,16 @@ Authorization: Bearer <jwt-from-core-platform>
 ```
 
 Middleware calls `IAuthService.AuthorizeUserFromTokenAsync` and sets tenant/org/user on the request.
+
+Registration endpoints use `[RequiresZelosHrPermission]` with `permission-zeloshr-employee-*` (enforced only when `RequireAuthentication` is true).
+
+**Employee registration and `cp_users`:** Person fields (`fullname`, `email`, `contact`, `gender`, `dob`, `address`, `profile_pic`) live in `core_platform.cp_users`. `zeloshr.zhr_employees` links via `(user_id, tenant_id)` and stores HR-only data (job, pay, nationality/ID, etc.).
+
+| Step | API | Platform |
+|------|-----|----------|
+| 1 | `POST .../draft` | Optional link to existing `cp_users` (`existingUserId`); else HR shell only |
+| 2 | `PATCH .../personal-contact` | When `workEmail` is set: create/update `cp_users` + link `user_id`; identity columns cleared on employee row |
+| 3 | `PATCH .../employment-details`, compensation | HR fields on `zhr_employees` only |
+| 4 | `POST .../finalise` | Ensures `hr_employees` + pre-hire; provisions if step 2 was skipped but `workEmail` is present |
+
+Profile photo upload writes `cp_users.profile_pic` (requires `user_id` from step 2).
