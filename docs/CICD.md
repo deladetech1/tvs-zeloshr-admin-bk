@@ -20,7 +20,7 @@ Create these Azure resources (or rename the workflow outputs to match your namin
 | `AZURE_TENANT_ID` | Azure AD tenant |
 | `TROVESUITE_DEV_AZURE_SUBSCRIPTION_ID` | `dev` branch deploys |
 | `TROVESUITE_PROD_AZURE_SUBSCRIPTION_ID` | `main` branch deploys |
-| `GITHUB_PACKAGES_TOKEN` | Docker build / CI — restore **Trovesuite.Package** (`read:packages` PAT). CI falls back to `GITHUB_TOKEN` if unset (same-org packages only). |
+| `PACKAGES_TOKEN` | Docker build / CI — restore **Trovesuite.Package** (`read:packages` PAT). Required for PR workflow (`ci.yml`) and deploy build. |
 
 ## Repository variables
 
@@ -42,7 +42,7 @@ Same names as Core Platform if both backends share one Trovesuite subscription.
 ## Local parity with CI
 
 ```bash
-cp app/.env.example app/.env   # set GITHUB_PACKAGES_TOKEN
+cp app/.env.example app/.env   # set GITHUB_PACKAGES_TOKEN (local Docker) and/or App__DatabaseUrl for shared dev
 ./scripts/compose.sh ci        # test (compose) + docker build
 ```
 
