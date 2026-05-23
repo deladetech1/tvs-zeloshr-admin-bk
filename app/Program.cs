@@ -10,6 +10,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<AppSettings>(builder.Configuration.GetSection(AppSettings.SectionName));
 builder.Services.Configure<TrovesuiteIntegrationOptions>(
     builder.Configuration.GetSection(TrovesuiteIntegrationOptions.SectionName));
+builder.Services.Configure<LocalDevelopmentOptions>(
+    builder.Configuration.GetSection(LocalDevelopmentOptions.SectionName));
 
 // TroveSuite shared package: auth, notifications, Azure storage (core_platform schema)
 builder.Services.AddTrovesuite(builder.Configuration);
@@ -47,6 +49,7 @@ app.UseMiddleware<ExceptionHandlerMiddleware>();
 app.UseCors();
 
 app.UseZelosHrSwagger();
+app.MapZelosHrSwaggerDevBootstrap();
 
 app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 app.MapControllers();

@@ -4,6 +4,8 @@ namespace ZelosHR.Api.Entities.Employees;
 public sealed record ProvisionCpUserRequest(
     string TenantId,
     string OrgId,
+    string BusId,
+    string LocId,
     string FullName,
     string Email,
     string Contact,

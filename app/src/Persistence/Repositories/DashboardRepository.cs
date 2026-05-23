@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ZelosHR.Api.Entities.Dashboard;
+using ZelosHR.Api.Entities.Employees;
 
 namespace ZelosHR.Api.Persistence.Repositories;
 
@@ -34,7 +35,7 @@ public sealed class DashboardRepository(ZelosHrDbContext db) : IDashboardReposit
         return new DashboardSummaryDto
         {
             TotalEmployees = await employees.CountAsync(e => !e.IsDeleted, ct),
-            ActiveEmployees = await employees.CountAsync(e => e.EmploymentStatus == "Active", ct),
+            ActiveEmployees = await employees.CountAsync(e => e.EmploymentStatus == EmploymentStatusValues.Active, ct),
             OnLeaveToday = await leaveRequests.CountAsync(
                 r => r.Status == "Approved" && r.StartDate <= today && r.EndDate >= today, ct),
             AbsentToday = await attendance.CountAsync(

@@ -1,3 +1,5 @@
+using ZelosHR.Api.Shared.Constants;
+
 namespace ZelosHR.Api.Persistence.Entities;
 
 /// <summary>Writable map to core_platform.cp_users (identity source of truth).</summary>
@@ -10,7 +12,7 @@ public sealed class CpUserEntity
     public string Contact { get; set; } = default!;
     public bool IsOwner { get; set; }
     public bool CanLogin { get; set; } = true;
-    public string DeleteStatus { get; set; } = "NOT_DELETED";
+    public string DeleteStatus { get; set; } = CorePlatformConstants.DeleteStatus.NotDeleted;
     public bool IsActive { get; set; } = true;
     public string? Gender { get; set; }
     public string? Dob { get; set; }
@@ -30,7 +32,20 @@ public sealed class CpLoginSettingsEntity
     public bool IsMultiFactorEnabled { get; set; }
     public bool IsLoginBefore { get; set; }
     public bool CanAlwaysLogin { get; set; } = true;
-    public string DeleteStatus { get; set; } = "NOT_DELETED";
+    public string DeleteStatus { get; set; } = CorePlatformConstants.DeleteStatus.NotDeleted;
+    public bool IsActive { get; set; } = true;
+}
+
+/// <summary>core_platform.cp_business_app_locations — org + business + app + location tuple.</summary>
+public sealed class CpBusinessAppLocationEntity
+{
+    public string Id { get; set; } = default!;
+    public string TenantId { get; set; } = default!;
+    public string? OrgId { get; set; }
+    public string? BusId { get; set; }
+    public string? AppId { get; set; }
+    public string? LocId { get; set; }
+    public string DeleteStatus { get; set; } = CorePlatformConstants.DeleteStatus.NotDeleted;
     public bool IsActive { get; set; } = true;
 }
 
@@ -41,8 +56,10 @@ public sealed class CpUserLocationEntity
     public string TenantId { get; set; } = default!;
     public string UserId { get; set; } = default!;
     public string? OrgId { get; set; }
+    public string? BusId { get; set; }
     public string? AppId { get; set; }
-    public string DeleteStatus { get; set; } = "NOT_DELETED";
+    public string? BusAppLocId { get; set; }
+    public string DeleteStatus { get; set; } = CorePlatformConstants.DeleteStatus.NotDeleted;
     public bool IsActive { get; set; } = true;
 }
 
@@ -52,7 +69,7 @@ public sealed class HrEmployeeEntity
     public string Id { get; set; } = default!;
     public string TenantId { get; set; } = default!;
     public string UserId { get; set; } = default!;
-    public string DeleteStatus { get; set; } = "NOT_DELETED";
+    public string DeleteStatus { get; set; } = CorePlatformConstants.DeleteStatus.NotDeleted;
     public bool IsActive { get; set; } = true;
     public string? CreatedBy { get; set; }
     public DateTimeOffset? Cdatetime { get; set; }

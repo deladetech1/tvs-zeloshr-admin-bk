@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using ZelosHR.Api.Shared.Constants;
 using ZelosHR.Api.Shared.Tenant;
 
 namespace ZelosHR.Api.Middleware;
@@ -15,9 +16,8 @@ internal static class TroveBearerTokenHelper
         if (string.IsNullOrWhiteSpace(header))
             return null;
 
-        const string prefix = "Bearer ";
-        return header.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
-            ? header[prefix.Length..].Trim()
+        return header.StartsWith(AuthConstants.BearerPrefix, StringComparison.OrdinalIgnoreCase)
+            ? header[AuthConstants.BearerPrefix.Length..].Trim()
             : null;
     }
 

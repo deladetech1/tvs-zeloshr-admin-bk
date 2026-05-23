@@ -36,12 +36,17 @@ Tenant scope is taken from the JWT claim `tenant_id` (read without DB validation
 
 ## Try it out (local)
 
-1. Start API: `./scripts/compose.sh dev`
-2. Generate a dev JWT: `./scripts/gen-trovesuite-jwt.sh`
-3. Open http://localhost:8000/swagger
-4. **Authorize** → paste `Bearer <token>` (Swagger adds the `Bearer ` prefix if you paste only the token, use full `Bearer …` in the header field if needed)
-5. On any operation, confirm headers: `app-id=app-hr`, `bus-id`, `loc-id`, `org-id` (defaults shown in Try it out)
-6. Execute
+1. Start API: `./scripts/compose.sh dev` (must run with `ASPNETCORE_ENVIRONMENT=Development`)
+2. Open http://localhost:8000/swagger
+3. **Development prefills automatically:**
+   - **Authorize** → Bearer JWT for demo admin (`demo-tenant`, `u1000001-…`)
+   - Operation headers → `app-id`, `org-id`, `bus-id`, `loc-id` (demo seed values)
+   - Every **Execute** also sends headers via a request interceptor (even if a field looks empty)
+4. Pick any `/api/v1/*` operation → **Try it out** → **Execute**
+
+Optional manual token: `./scripts/gen-trovesuite-jwt.sh` → paste into **Authorize** or the `authorization` header.
+
+Bootstrap JSON (dev only): http://localhost:8000/swagger/dev-bootstrap.json
 
 Example `curl` (replace ids and token from your platform session):
 
@@ -55,3 +60,16 @@ curl -s "http://localhost:8000/api/v1/employees/directory/summary" \
 ```
 
 Legacy `X-Tenant-Id` / `X-Org-Id` still work only when `RequireStandardHeaders` is `false` (not recommended).
+
+## Local demo header values (after migrate + seed)
+
+When `TVS_SEED_ZELOSHR_DEMO=1`, Swagger prefills Trove-style ids (same shape as production curl). JWT from `./scripts/gen-trovesuite-jwt.sh` (`tenant_id=demo-tenant`, `user_id=u1000001-...`):
+
+| Header | Value |
+|--------|--------|
+| `app-id` | `app-hr` |
+| `org-id` | `org_bcf5a0951f5ed22448dc5262e641e428caa3638d38b94cfa3b79c13d38a` |
+| `bus-id` | `bus_5d929457b0ea7e6d55c5da25c8cfb38aeef0573658121bf5399f6f1e64d` |
+| `loc-id` | `loc_c79fd9a5c53a8eaa82805e63a84da112387743c5dcdff7f7b254c02302c` |
+
+Wrong `bus-id` / `loc-id` / `org-id` returns **403** when `ValidatePlatformContext` is enabled (checks `cp_business_app_locations` and `cp_user_locations`).

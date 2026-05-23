@@ -8,6 +8,9 @@ public sealed class TenantContextAdapter(ITenantContextAccessor accessor) : ITen
 {
     public string TenantId => accessor.Current.TenantId;
     public string OrgId => accessor.Current.OrgId;
+    public string AppId => accessor.Current.AppId;
+    public string BusId => accessor.Current.BusId;
+    public string LocId => accessor.Current.LocId;
     public string? UserId => accessor.Current.UserId;
     public IReadOnlyList<string> Permissions => accessor.Current.Permissions;
 }

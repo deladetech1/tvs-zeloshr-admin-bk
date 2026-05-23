@@ -79,9 +79,9 @@ export TOKEN="<paste>"
 curl -s http://localhost:8000/api/v1/employees/directory/summary \
   -H "app-id: app-hr" \
   -H "authorization: Bearer $TOKEN" \
-  -H "bus-id: bus_demo" \
-  -H "loc-id: loc_demo" \
-  -H "org-id: demo-org" | jq .
+  -H "bus-id: bus_5d929457b0ea7e6d55c5da25c8cfb38aeef0573658121bf5399f6f1e64d" \
+  -H "loc-id: loc_c79fd9a5c53a8eaa82805e63a84da112387743c5dcdff7f7b254c02302c" \
+  -H "org-id: org_bcf5a0951f5ed22448dc5262e641e428caa3638d38b94cfa3b79c13d38a" | jq .
 ```
 
 In Swagger → **Authorize** → `Bearer <token>` (include the word `Bearer` only in the value field if the UI adds it automatically; otherwise paste `Bearer eyJ...`).

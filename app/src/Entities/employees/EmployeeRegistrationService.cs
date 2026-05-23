@@ -87,10 +87,10 @@ public sealed class EmployeeRegistrationService
             OrgId = _tenant.OrgId,
             UserId = userId,
             FullName = draftDisplayName,
-            LifecycleState = "Draft",
+            LifecycleState = EmployeeLifecycleStates.Draft,
             LifecycleStatus = "draft",
             IsDraft = true,
-            EmploymentStatus = "Draft",
+            EmploymentStatus = EmploymentStatusValues.Draft,
             CreatedAt = now,
             UpdatedAt = now,
             CreatedBy = _currentUser.UserId?.ToString(),
@@ -182,8 +182,8 @@ public sealed class EmployeeRegistrationService
         ClearCpUserIdentityFromEmployee(e);
         e.IsDraft = false;
         e.LifecycleStatus = "pre_hire";
-        e.LifecycleState = "Pre-hire";
-        e.EmploymentStatus = "Pre-hire";
+        e.LifecycleState = EmployeeLifecycleStates.PreHire;
+        e.EmploymentStatus = EmploymentStatusValues.PreHire;
         e.UpdatedAt = DateTimeOffset.UtcNow;
         e.UpdatedBy = _currentUser.UserId?.ToString();
         await _employees.UpdateAsync(e, ct);
@@ -202,7 +202,8 @@ public sealed class EmployeeRegistrationService
         if (!string.IsNullOrWhiteSpace(e.UserId))
         {
             await _cpUsers.UpdateIdentityAsync(e.UserId, _tenant.TenantId, identity, ct);
-            await _cpUsers.EnsureUserLocationAsync(e.UserId, _tenant.TenantId, _tenant.OrgId, ct);
+            await _cpUsers.EnsureUserLocationAsync(
+                e.UserId, _tenant.TenantId, _tenant.OrgId, _tenant.BusId, _tenant.LocId, ct);
             ClearCpUserIdentityFromEmployee(e);
             return null;
         }
@@ -227,7 +228,8 @@ public sealed class EmployeeRegistrationService
             e.UserId = existing.Id;
             await _cpUsers.UpdateIdentityAsync(existing.Id, _tenant.TenantId, identity, ct);
             await _cpUsers.EnsureHrMembershipAsync(existing.Id, _tenant.TenantId, createdBy, ct);
-            await _cpUsers.EnsureUserLocationAsync(existing.Id, _tenant.TenantId, _tenant.OrgId, ct);
+            await _cpUsers.EnsureUserLocationAsync(
+                existing.Id, _tenant.TenantId, _tenant.OrgId, _tenant.BusId, _tenant.LocId, ct);
         }
         else
         {
@@ -259,7 +261,8 @@ public sealed class EmployeeRegistrationService
         {
             await _cpUsers.UpdateIdentityAsync(employee.UserId, _tenant.TenantId, identity, ct);
             await _cpUsers.EnsureHrMembershipAsync(employee.UserId, _tenant.TenantId, createdBy, ct);
-            await _cpUsers.EnsureUserLocationAsync(employee.UserId, _tenant.TenantId, _tenant.OrgId, ct);
+            await _cpUsers.EnsureUserLocationAsync(
+                employee.UserId, _tenant.TenantId, _tenant.OrgId, _tenant.BusId, _tenant.LocId, ct);
             return (employee.UserId, null);
         }
 
@@ -285,7 +288,8 @@ public sealed class EmployeeRegistrationService
 
             await _cpUsers.UpdateIdentityAsync(existing.Id, _tenant.TenantId, identity, ct);
             await _cpUsers.EnsureHrMembershipAsync(existing.Id, _tenant.TenantId, createdBy, ct);
-            await _cpUsers.EnsureUserLocationAsync(existing.Id, _tenant.TenantId, _tenant.OrgId, ct);
+            await _cpUsers.EnsureUserLocationAsync(
+                existing.Id, _tenant.TenantId, _tenant.OrgId, _tenant.BusId, _tenant.LocId, ct);
             return (existing.Id, null);
         }
 
@@ -305,6 +309,8 @@ public sealed class EmployeeRegistrationService
         new(
             _tenant.TenantId,
             _tenant.OrgId,
+            _tenant.BusId,
+            _tenant.LocId,
             identity.FullName,
             identity.Email,
             identity.Contact,

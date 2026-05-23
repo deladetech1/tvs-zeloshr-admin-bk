@@ -9,6 +9,7 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
     public DbSet<CpUserEntity> CpUsers => Set<CpUserEntity>();
     public DbSet<CpLoginSettingsEntity> CpLoginSettings => Set<CpLoginSettingsEntity>();
     public DbSet<CpUserLocationEntity> CpUserLocations => Set<CpUserLocationEntity>();
+    public DbSet<CpBusinessAppLocationEntity> BusinessAppLocations => Set<CpBusinessAppLocationEntity>();
     public DbSet<HrEmployeeEntity> HrEmployees => Set<HrEmployeeEntity>();
     public DbSet<DepartmentEntity> Departments => Set<DepartmentEntity>();
     public DbSet<BranchEntity> Branches => Set<BranchEntity>();
@@ -50,6 +51,18 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
         {
             b.ToTable("cp_user_locations", "core_platform", t => t.ExcludeFromMigrations());
             b.HasKey(x => new { x.Id, x.TenantId });
+            b.Property(x => x.BusAppLocId).HasColumnName("bus_app_loc_id");
+            b.Property(x => x.BusId).HasColumnName("bus_id");
+        });
+
+        modelBuilder.Entity<CpBusinessAppLocationEntity>(b =>
+        {
+            b.ToTable("cp_business_app_locations", "core_platform", t => t.ExcludeFromMigrations());
+            b.HasKey(x => new { x.Id, x.TenantId });
+            b.Property(x => x.OrgId).HasColumnName("org_id");
+            b.Property(x => x.BusId).HasColumnName("bus_id");
+            b.Property(x => x.AppId).HasColumnName("app_id");
+            b.Property(x => x.LocId).HasColumnName("loc_id");
         });
 
         modelBuilder.Entity<HrEmployeeEntity>(b =>

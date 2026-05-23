@@ -1,20 +1,37 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using NSubstitute;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Middleware;
+using ZelosHR.Api.Persistence.Repositories;
 using ZelosHR.Api.Shared.Tenant;
 
 namespace ZelosHR.Api.Tests.Middleware;
 
 public class TroveRequestHeadersMiddlewareTests
 {
-    private static TroveRequestHeadersMiddleware CreateSut(Action? onNext = null) =>
-        new(_ =>
+    private static IPlatformContextRepository ValidPlatform() =>
+        Substitute.For<IPlatformContextRepository>();
+
+    private static TroveRequestHeadersMiddleware CreateSut(RequestDelegate next) =>
+        new(next);
+
+    private static (TroveRequestHeadersMiddleware Sut, IPlatformContextRepository Platform) CreateWithPlatform(
+        Action? onNext = null)
+    {
+        var platform = ValidPlatform();
+        platform.ValidateSessionContextAsync(
+                Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string>(), Arg.Any<string>(),
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(true);
+        var sut = CreateSut(_ =>
         {
             onNext?.Invoke();
             return Task.CompletedTask;
         });
+        return (sut, platform);
+    }
 
     private static DefaultHttpContext CreateContext(string path = "/api/v1/employees")
     {
@@ -26,20 +43,23 @@ public class TroveRequestHeadersMiddlewareTests
 
     private static IOptions<TrovesuiteIntegrationOptions> IntegrationOptions(
         bool requireHeaders = true,
-        bool requireAuth = false) =>
-        Microsoft.Extensions.Options.Options.Create(new TrovesuiteIntegrationOptions
+        bool requireAuth = false,
+        bool validatePlatform = true) =>
+        Options.Create(new TrovesuiteIntegrationOptions
         {
             RequireStandardHeaders = requireHeaders,
             RequireAuthentication = requireAuth,
+            ValidatePlatformContext = validatePlatform,
         });
 
     [Fact]
     public async Task Invoke_WhenRequiredHeadersMissing_Returns400()
     {
         var ctx = CreateContext();
-        var sut = CreateSut();
+        var sut = CreateSut(_ => Task.CompletedTask);
+        var platform = ValidPlatform();
 
-        await sut.InvokeAsync(ctx, IntegrationOptions());
+        await sut.InvokeAsync(ctx, IntegrationOptions(), platform);
 
         ctx.Response.StatusCode.Should().Be(StatusCodes.Status400BadRequest);
     }
@@ -49,18 +69,19 @@ public class TroveRequestHeadersMiddlewareTests
     {
         var ctx = CreateContext();
         ctx.Request.Headers[TroveStandardHeaders.AppId] = TroveStandardHeaders.HrAppId;
-        ctx.Request.Headers[TroveStandardHeaders.Authorization] = "Bearer eyJhbGciOiJIUzI1NiJ9.e30.sig";
-        ctx.Request.Headers[TroveStandardHeaders.BusId] = "bus_demo";
-        ctx.Request.Headers[TroveStandardHeaders.LocId] = "loc_demo";
-        ctx.Request.Headers[TroveStandardHeaders.OrgId] = "org_demo";
+        ctx.Request.Headers[TroveStandardHeaders.Authorization] =
+            "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoidTEiLCJ0ZW5hbnRfaWQiOiJkZW1vLXRlbmFudCJ9.sig";
+        ctx.Request.Headers[TroveStandardHeaders.BusId] = TestDefaults.BusId;
+        ctx.Request.Headers[TroveStandardHeaders.LocId] = TestDefaults.LocId;
+        ctx.Request.Headers[TroveStandardHeaders.OrgId] = TestDefaults.OrgId;
 
         var nextCalled = false;
-        var sut = CreateSut(() => nextCalled = true);
-        await sut.InvokeAsync(ctx, IntegrationOptions());
+        var (sut, platform) = CreateWithPlatform(() => nextCalled = true);
+        await sut.InvokeAsync(ctx, IntegrationOptions(), platform);
 
         nextCalled.Should().BeTrue();
-        ctx.Items[TrovesuiteHttpContextKeys.OrgId].Should().Be("org_demo");
-        ctx.Items[TrovesuiteHttpContextKeys.BusId].Should().Be("bus_demo");
+        ctx.Items[TrovesuiteHttpContextKeys.OrgId].Should().Be(TestDefaults.OrgId);
+        ctx.Items[TrovesuiteHttpContextKeys.BusId].Should().Be(TestDefaults.BusId);
     }
 
     [Fact]
@@ -69,14 +90,37 @@ public class TroveRequestHeadersMiddlewareTests
         var ctx = CreateContext();
         ctx.Request.Headers[TroveStandardHeaders.AppId] = "app-other";
         ctx.Request.Headers[TroveStandardHeaders.Authorization] = "Bearer eyJhbGciOiJIUzI1NiJ9.e30.sig";
-        ctx.Request.Headers[TroveStandardHeaders.BusId] = "bus_demo";
-        ctx.Request.Headers[TroveStandardHeaders.LocId] = "loc_demo";
-        ctx.Request.Headers[TroveStandardHeaders.OrgId] = "org_demo";
+        ctx.Request.Headers[TroveStandardHeaders.BusId] = TestDefaults.BusId;
+        ctx.Request.Headers[TroveStandardHeaders.LocId] = TestDefaults.LocId;
+        ctx.Request.Headers[TroveStandardHeaders.OrgId] = TestDefaults.OrgId;
 
-        var sut = CreateSut();
-        await sut.InvokeAsync(ctx, IntegrationOptions());
+        var (sut, platform) = CreateWithPlatform();
+        await sut.InvokeAsync(ctx, IntegrationOptions(), platform);
 
         ctx.Response.StatusCode.Should().Be(StatusCodes.Status400BadRequest);
+    }
+
+    [Fact]
+    public async Task Invoke_WhenPlatformContextInvalid_Returns403()
+    {
+        var ctx = CreateContext();
+        ctx.Request.Headers[TroveStandardHeaders.AppId] = TroveStandardHeaders.HrAppId;
+        ctx.Request.Headers[TroveStandardHeaders.Authorization] =
+            "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoidTEiLCJ0ZW5hbnRfaWQiOiJkZW1vLXRlbmFudCJ9.sig";
+        ctx.Request.Headers[TroveStandardHeaders.BusId] = TestDefaults.BusId;
+        ctx.Request.Headers[TroveStandardHeaders.LocId] = TestDefaults.LocId;
+        ctx.Request.Headers[TroveStandardHeaders.OrgId] = TestDefaults.OrgId;
+
+        var platform = ValidPlatform();
+        platform.ValidateSessionContextAsync(
+                TestDefaults.TenantId, "u1", TestDefaults.OrgId, TestDefaults.BusId, TestDefaults.LocId,
+                TestDefaults.AppId, Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        var sut = CreateSut(_ => Task.CompletedTask);
+        await sut.InvokeAsync(ctx, IntegrationOptions(), platform);
+
+        ctx.Response.StatusCode.Should().Be(StatusCodes.Status403Forbidden);
     }
 
     [Fact]
@@ -84,9 +128,14 @@ public class TroveRequestHeadersMiddlewareTests
     {
         var ctx = CreateContext("/api/v1/health");
         var nextCalled = false;
-        var sut = CreateSut(() => nextCalled = true);
+        var sut = CreateSut(_ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        });
+        var platform = ValidPlatform();
 
-        await sut.InvokeAsync(ctx, IntegrationOptions());
+        await sut.InvokeAsync(ctx, IntegrationOptions(), platform);
 
         nextCalled.Should().BeTrue();
     }

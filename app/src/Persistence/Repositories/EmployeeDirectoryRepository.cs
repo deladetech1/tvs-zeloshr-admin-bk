@@ -17,8 +17,8 @@ public sealed class EmployeeDirectoryRepository(ZelosHrDbContext db) : IEmployee
         return new EmployeeDirectorySummaryDto
         {
             TotalEmployees = await query.CountAsync(ct),
-            ActiveEmployees = await query.CountAsync(e => e.EmploymentStatus == "Active", ct),
-            OnProbation = await query.CountAsync(e => e.EmploymentStatus == "Probation", ct),
+            ActiveEmployees = await query.CountAsync(e => e.EmploymentStatus == EmploymentStatusValues.Active, ct),
+            OnProbation = await query.CountAsync(e => e.EmploymentStatus == EmploymentStatusValues.Probation, ct),
             OnContract = await query.CountAsync(
                 e => e.EmploymentType == "Contractor" || e.ContractType == "Fixed-term", ct),
         };

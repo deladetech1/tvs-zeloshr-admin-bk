@@ -138,7 +138,8 @@ public static class EmployeeDirectoryQueryBuilder
         if (!string.IsNullOrWhiteSpace(directoryQuery.Status))
             query = query.Where(e => e.EmploymentStatus == directoryQuery.Status.Trim());
         else if (!directoryQuery.IncludeInactive)
-            query = query.Where(e => e.EmploymentStatus != "Terminated" && e.EmploymentStatus != "Resigned");
+            query = query.Where(e => e.EmploymentStatus != EmploymentStatusValues.Terminated
+                && e.EmploymentStatus != EmploymentStatusValues.Resigned);
 
         return query;
     }

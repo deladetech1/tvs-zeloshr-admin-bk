@@ -44,5 +44,10 @@ public interface ICpUserRepository
 
     /// <summary>Ensures cp_user_locations includes HR app + org for the tenant.</summary>
     Task EnsureUserLocationAsync(
-        string userId, string tenantId, string orgId, CancellationToken ct = default);
+        string userId,
+        string tenantId,
+        string orgId,
+        string busId,
+        string locId,
+        CancellationToken ct = default);
 }

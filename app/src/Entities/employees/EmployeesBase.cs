@@ -2,12 +2,26 @@ namespace ZelosHR.Api.Entities.Employees;
 
 public static class EmployeeLifecycleStates
 {
+    public const string Draft = "Draft";
     public const string PreHire = "Pre-hire";
     public const string Active = "Active";
     public const string OnLeave = "On Leave";
     public const string Suspended = "Suspended";
     public const string Resigned = "Resigned";
     public const string Terminated = "Terminated";
+}
+
+public static class EmploymentStatusValues
+{
+    public const string Draft = "Draft";
+    public const string PreHire = "Pre-hire";
+    public const string Active = "Active";
+    public const string Probation = "Probation";
+    public const string OnLeave = "On Leave";
+    public const string Suspended = "Suspended";
+    public const string Resigned = "Resigned";
+    public const string Terminated = "Terminated";
+    public const string Inactive = "Inactive";
 }
 
 public sealed class EmployeeRecord

@@ -152,7 +152,7 @@ public sealed class EmployeeRepository(ZelosHrDbContext db) : IEmployeeRepositor
             .ExecuteUpdateAsync(
                 s => s
                     .SetProperty(e => e.IsDeleted, true)
-                    .SetProperty(e => e.EmploymentStatus, "Inactive")
+                    .SetProperty(e => e.EmploymentStatus, EmploymentStatusValues.Inactive)
                     .SetProperty(e => e.UpdatedAt, DateTimeOffset.UtcNow),
                 ct);
         return affected > 0;

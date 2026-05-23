@@ -22,8 +22,8 @@ public class EmployeesServiceTests
 
     public EmployeesServiceTests()
     {
-        _tenant.TenantId.Returns("demo-tenant");
-        _tenant.OrgId.Returns("demo-org");
+        _tenant.TenantId.Returns(TestDefaults.TenantId);
+        _tenant.OrgId.Returns(TestDefaults.OrgId);
 
         _cpUsers.GetByIdsAsync(Arg.Any<IEnumerable<string>>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new Dictionary<string, CpUserDto>());
@@ -41,8 +41,8 @@ public class EmployeesServiceTests
     {
         Id = EmployeeId,
         EmployeeCode = "ZEL-0001",
-        TenantId = "demo-tenant",
-        OrgId = "demo-org",
+        TenantId = TestDefaults.TenantId,
+        OrgId = TestDefaults.OrgId,
         FullName = "Ama Mensah",
         FirstName = "Ama",
         LastName = "Mensah",
@@ -64,7 +64,7 @@ public class EmployeesServiceTests
     public async Task GetById_WhenEmployeeExists_ReturnsSuccessRespons()
     {
         var entity = SampleEmployee();
-        _repo.GetByIdScopedAsync(EmployeeId, "demo-tenant", "demo-org", Arg.Any<CancellationToken>())
+        _repo.GetByIdScopedAsync(EmployeeId, TestDefaults.TenantId, TestDefaults.OrgId, Arg.Any<CancellationToken>())
             .Returns(entity);
 
         var result = await _sut.GetByIdAsync(EmployeeId);
@@ -77,7 +77,7 @@ public class EmployeesServiceTests
     [Fact]
     public async Task GetById_WhenEmployeeNotFound_ReturnsNotFoundRespons()
     {
-        _repo.GetByIdScopedAsync(EmployeeId, "demo-tenant", "demo-org", Arg.Any<CancellationToken>())
+        _repo.GetByIdScopedAsync(EmployeeId, TestDefaults.TenantId, TestDefaults.OrgId, Arg.Any<CancellationToken>())
             .Returns((EmployeeEntity?)null);
 
         var result = await _sut.GetByIdAsync(EmployeeId);
@@ -90,7 +90,7 @@ public class EmployeesServiceTests
     public async Task GetAll_ReturnsPaginatedRespons()
     {
         var entity = SampleEmployee();
-        _repo.GetPagedScopedAsync("demo-tenant", "demo-org", 1, 20, Arg.Any<CancellationToken>())
+        _repo.GetPagedScopedAsync(TestDefaults.TenantId, TestDefaults.OrgId, 1, 20, Arg.Any<CancellationToken>())
             .Returns((new[] { entity }, 1));
 
         var result = await _sut.GetAllAsync(1, 20);
@@ -103,9 +103,9 @@ public class EmployeesServiceTests
     [Fact]
     public async Task Create_WithValidData_CallsRepositoryAddAndReturnsCreated()
     {
-        _repo.ExistsByGhanaCardAsync(Arg.Any<string>(), "demo-tenant", null, Arg.Any<CancellationToken>())
+        _repo.ExistsByGhanaCardAsync(Arg.Any<string>(), TestDefaults.TenantId, null, Arg.Any<CancellationToken>())
             .Returns(false);
-        _repo.GetNextEmployeeSequenceAsync("demo-tenant", "demo-org", Arg.Any<CancellationToken>())
+        _repo.GetNextEmployeeSequenceAsync(TestDefaults.TenantId, TestDefaults.OrgId, Arg.Any<CancellationToken>())
             .Returns(1L);
         _repo.AddAsync(Arg.Any<EmployeeEntity>(), Arg.Any<CancellationToken>())
             .Returns(ci => ci.Arg<EmployeeEntity>());
@@ -124,14 +124,14 @@ public class EmployeesServiceTests
         result.Success.Should().BeTrue();
         result.StatusCode.Should().Be(201);
         await _repo.Received(1).AddAsync(
-            Arg.Is<EmployeeEntity>(e => e.TenantId == "demo-tenant" && e.OrgId == "demo-org"),
+            Arg.Is<EmployeeEntity>(e => e.TenantId == TestDefaults.TenantId && e.OrgId == TestDefaults.OrgId),
             Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task Create_WithDuplicateGhanaCard_ReturnsConflictRespons()
     {
-        _repo.ExistsByGhanaCardAsync(Arg.Any<string>(), "demo-tenant", null, Arg.Any<CancellationToken>())
+        _repo.ExistsByGhanaCardAsync(Arg.Any<string>(), TestDefaults.TenantId, null, Arg.Any<CancellationToken>())
             .Returns(true);
 
         var dto = new EmployeeWriteDto
@@ -151,7 +151,7 @@ public class EmployeesServiceTests
     public async Task Update_WhenEmployeeExists_CallsRepositoryUpdate()
     {
         var entity = SampleEmployee();
-        _repo.GetByIdScopedForUpdateAsync(EmployeeId, "demo-tenant", "demo-org", Arg.Any<CancellationToken>())
+        _repo.GetByIdScopedForUpdateAsync(EmployeeId, TestDefaults.TenantId, TestDefaults.OrgId, Arg.Any<CancellationToken>())
             .Returns(entity);
 
         var dto = new EmployeeWriteDto { FirstName = "Ama", LastName = "Updated" };
@@ -164,7 +164,7 @@ public class EmployeesServiceTests
     [Fact]
     public async Task Update_WhenEmployeeNotFound_ReturnsNotFoundRespons()
     {
-        _repo.GetByIdScopedForUpdateAsync(EmployeeId, "demo-tenant", "demo-org", Arg.Any<CancellationToken>())
+        _repo.GetByIdScopedForUpdateAsync(EmployeeId, TestDefaults.TenantId, TestDefaults.OrgId, Arg.Any<CancellationToken>())
             .Returns((EmployeeEntity?)null);
 
         var result = await _sut.UpdateAsync(EmployeeId, new EmployeeWriteDto { FirstName = "X", LastName = "Y" });
@@ -176,7 +176,7 @@ public class EmployeesServiceTests
     [Fact]
     public async Task Delete_WhenEmployeeExists_ReturnsSuccess()
     {
-        _repo.SoftDeleteScopedAsync(EmployeeId, "demo-tenant", "demo-org", Arg.Any<CancellationToken>())
+        _repo.SoftDeleteScopedAsync(EmployeeId, TestDefaults.TenantId, TestDefaults.OrgId, Arg.Any<CancellationToken>())
             .Returns(true);
 
         var result = await _sut.DeleteAsync(EmployeeId);
@@ -188,7 +188,7 @@ public class EmployeesServiceTests
     [Fact]
     public async Task Delete_WhenEmployeeNotFound_ReturnsNotFoundRespons()
     {
-        _repo.SoftDeleteScopedAsync(EmployeeId, "demo-tenant", "demo-org", Arg.Any<CancellationToken>())
+        _repo.SoftDeleteScopedAsync(EmployeeId, TestDefaults.TenantId, TestDefaults.OrgId, Arg.Any<CancellationToken>())
             .Returns(false);
 
         var result = await _sut.DeleteAsync(EmployeeId);
@@ -200,14 +200,14 @@ public class EmployeesServiceTests
     [Fact]
     public async Task GetAll_QueryScopedToCurrentTenant()
     {
-        _repo.GetPagedScopedAsync("demo-tenant", "demo-org", 1, 10, Arg.Any<CancellationToken>())
+        _repo.GetPagedScopedAsync(TestDefaults.TenantId, TestDefaults.OrgId, 1, 10, Arg.Any<CancellationToken>())
             .Returns((Array.Empty<EmployeeEntity>(), 0));
 
         await _sut.GetAllAsync(1, 10);
 
         await _repo.Received(1).GetPagedScopedAsync(
-            "demo-tenant",
-            "demo-org",
+            TestDefaults.TenantId,
+            TestDefaults.OrgId,
             1,
             10,
             Arg.Any<CancellationToken>());

@@ -1,3 +1,5 @@
+using ZelosHR.Api.Entities.Employees;
+
 namespace ZelosHR.Api.Persistence.Entities;
 
 /// <summary>Maps to zeloshr.zhr_employees (schema owned by tvs-sqlscript).</summary>
@@ -29,7 +31,7 @@ public sealed class EmployeeEntity
     public string? State { get; set; }
     public string? ProfilePhotoUrl { get; set; }
 
-    public string LifecycleState { get; set; } = "Pre-hire";
+    public string LifecycleState { get; set; } = EmployeeLifecycleStates.PreHire;
     public string LifecycleStatus { get; set; } = "draft";
     public bool IsDraft { get; set; } = true;
 
@@ -48,7 +50,7 @@ public sealed class EmployeeEntity
     public EmployeeEntity? ReportsTo { get; set; }
     public Guid? DottedLineManagerId { get; set; }
     public EmployeeEntity? DottedLineManager { get; set; }
-    public string EmploymentStatus { get; set; } = "Active";
+    public string EmploymentStatus { get; set; } = EmploymentStatusValues.Active;
     public string? ContractType { get; set; } = "Permanent";
     public DateOnly? ProbationEndDate { get; set; }
     public DateOnly? EmploymentStartDate { get; set; }

@@ -1,6 +1,8 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using ZelosHR.Api.Configs;
+using ZelosHR.Api.Persistence.Repositories;
+using ZelosHR.Api.Shared.Constants;
 using ZelosHR.Api.Shared.Tenant;
 
 namespace ZelosHR.Api.Middleware;
@@ -17,7 +19,8 @@ public sealed class TroveRequestHeadersMiddleware
 
     public async Task InvokeAsync(
         HttpContext context,
-        IOptions<TrovesuiteIntegrationOptions> integrationOptions)
+        IOptions<TrovesuiteIntegrationOptions> integrationOptions,
+        IPlatformContextRepository platformContext)
     {
         if (!RequiresStandardHeaders(context.Request.Path))
         {
@@ -69,6 +72,36 @@ public sealed class TroveRequestHeadersMiddleware
         if (!options.RequireAuthentication)
             PopulateClaimsFromBearerWithoutValidation(context);
 
+        if (options.ValidatePlatformContext)
+        {
+            var tenantId = context.Items[TrovesuiteHttpContextKeys.TenantId] as string;
+            if (string.IsNullOrWhiteSpace(tenantId))
+            {
+                await WriteErrorAsync(
+                    context,
+                    StatusCodes.Status401Unauthorized,
+                    "JWT must include a tenant_id claim for platform context validation.");
+                return;
+            }
+
+            var userId = context.Items[TrovesuiteHttpContextKeys.UserId] as string;
+            var orgId = (string)context.Items[TrovesuiteHttpContextKeys.OrgId]!;
+            var busId = (string)context.Items[TrovesuiteHttpContextKeys.BusId]!;
+            var locId = (string)context.Items[TrovesuiteHttpContextKeys.LocId]!;
+
+            var valid = await platformContext.ValidateSessionContextAsync(
+                tenantId, userId, orgId, busId, locId, TroveStandardHeaders.HrAppId, context.RequestAborted);
+
+            if (!valid)
+            {
+                await WriteErrorAsync(
+                    context,
+                    StatusCodes.Status403Forbidden,
+                    "Invalid platform context: org-id, bus-id, loc-id, and app-id are not configured for this user/tenant, or the user has no access.");
+                return;
+            }
+        }
+
         await _next(context);
     }
 
@@ -95,9 +128,11 @@ public sealed class TroveRequestHeadersMiddleware
             return;
 
         var claims = TroveBearerTokenHelper.ReadUnvalidatedClaims(token);
-        if (claims.TryGetValue("tenant_id", out var tenantId) && !string.IsNullOrWhiteSpace(tenantId))
+        if (claims.TryGetValue(CorePlatformConstants.JwtClaims.TenantId, out var tenantId)
+            && !string.IsNullOrWhiteSpace(tenantId))
             context.Items[TrovesuiteHttpContextKeys.TenantId] = tenantId;
-        if (claims.TryGetValue("user_id", out var userId) && !string.IsNullOrWhiteSpace(userId))
+        if (claims.TryGetValue(CorePlatformConstants.JwtClaims.UserId, out var userId)
+            && !string.IsNullOrWhiteSpace(userId))
             context.Items[TrovesuiteHttpContextKeys.UserId] = userId;
     }
 

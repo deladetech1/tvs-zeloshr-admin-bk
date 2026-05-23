@@ -12,13 +12,13 @@ public class EmployeeDirectoryQueryBuilderTests
         var (where, parameters) = EmployeeDirectoryQueryBuilder.Build(
             new EmployeeDirectoryQuery(),
             Table,
-            "demo-tenant",
-            "demo-org");
+            TestDefaults.TenantId,
+            TestDefaults.OrgId);
 
         Assert.Contains("e.tenant_id = @TenantId", where);
         Assert.Contains("e.org_id = @OrgId", where);
-        Assert.Equal("demo-tenant", parameters["TenantId"]);
-        Assert.Equal("demo-org", parameters["OrgId"]);
+        Assert.Equal(TestDefaults.TenantId, parameters["TenantId"]);
+        Assert.Equal(TestDefaults.OrgId, parameters["OrgId"]);
     }
 
     [Fact]
@@ -27,8 +27,8 @@ public class EmployeeDirectoryQueryBuilderTests
         var (where, _) = EmployeeDirectoryQueryBuilder.Build(
             new EmployeeDirectoryQuery(),
             Table,
-            "demo-tenant",
-            "demo-org");
+            TestDefaults.TenantId,
+            TestDefaults.OrgId);
 
         Assert.Contains("employment_status NOT IN ('Terminated', 'Resigned')", where);
     }
@@ -39,8 +39,8 @@ public class EmployeeDirectoryQueryBuilderTests
         var (where, parameters) = EmployeeDirectoryQueryBuilder.Build(
             new EmployeeDirectoryQuery { Search = "Ama" },
             Table,
-            "demo-tenant",
-            "demo-org");
+            TestDefaults.TenantId,
+            TestDefaults.OrgId);
 
         Assert.Contains("ILIKE @Search", where);
         Assert.Equal("%Ama%", parameters["Search"]);
@@ -52,8 +52,8 @@ public class EmployeeDirectoryQueryBuilderTests
         var (where, parameters) = EmployeeDirectoryQueryBuilder.Build(
             new EmployeeDirectoryQuery { Search = "Am" },
             Table,
-            "demo-tenant",
-            "demo-org");
+            TestDefaults.TenantId,
+            TestDefaults.OrgId);
 
         Assert.DoesNotContain("@Search", where);
         Assert.False(parameters.ContainsKey("Search"));
@@ -65,8 +65,8 @@ public class EmployeeDirectoryQueryBuilderTests
         var (where, parameters) = EmployeeDirectoryQueryBuilder.Build(
             new EmployeeDirectoryQuery { Status = "Terminated" },
             Table,
-            "demo-tenant",
-            "demo-org");
+            TestDefaults.TenantId,
+            TestDefaults.OrgId);
 
         Assert.Contains("e.employment_status = @EmploymentStatus", where);
         Assert.Equal("Terminated", parameters["EmploymentStatus"]);

@@ -94,11 +94,11 @@ case "${cmd}" in
       exit 1
     fi
     curl_headers=(
-      -H "app-id: app-hr"
+      -H "app-id: ${TROVE_APP_ID:-app-hr}"
       -H "authorization: Bearer ${TOKEN}"
-      -H "bus-id: ${TROVE_BUS_ID:-bus_demo}"
-      -H "loc-id: ${TROVE_LOC_ID:-loc_demo}"
-      -H "org-id: ${TROVE_ORG_ID:-demo-org}"
+      -H "bus-id: ${TROVE_BUS_ID:-bus_5d929457b0ea7e6d55c5da25c8cfb38aeef0573658121bf5399f6f1e64d}"
+      -H "loc-id: ${TROVE_LOC_ID:-loc_c79fd9a5c53a8eaa82805e63a84da112387743c5dcdff7f7b254c02302c}"
+      -H "org-id: ${TROVE_ORG_ID:-org_bcf5a0951f5ed22448dc5262e641e428caa3638d38b94cfa3b79c13d38a}"
     )
     code=$(curl -s -o /dev/null -w "%{http_code}" "${curl_headers[@]}" "${BASE}/api/v1/health" || echo "000")
     echo "/api/v1/health → HTTP ${code}"

@@ -11,6 +11,11 @@ public class TrovesuiteIntegrationOptions
     /// <summary>When true, every /api/v1/* request must include app-id, authorization, bus-id, loc-id, org-id.</summary>
     public bool RequireStandardHeaders { get; set; } = true;
 
+    /// <summary>
+    /// When true, validates org/bus/loc/app headers against core_platform and user cp_user_locations.
+    /// </summary>
+    public bool ValidatePlatformContext { get; set; } = true;
+
     /// <summary>Permission required for HR Admin routes (optional). Example: permission-zeloshr-admin.</summary>
     public string? HrAdminPermission { get; set; }
 }

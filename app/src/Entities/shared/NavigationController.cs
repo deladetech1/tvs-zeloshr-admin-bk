@@ -35,6 +35,6 @@ public sealed class NavigationModuleDto
 /// <summary>Development fallback when JWT is disabled. Production uses Trovesuite JWT claims.</summary>
 public sealed class TenantHeadersDto
 {
-    public string TenantId { get; init; } = TenantContext.DefaultTenantId;
-    public string OrgId { get; init; } = TenantContext.DefaultOrgId;
+    public string TenantId { get; init; } = LocalDevelopmentDefaults.TenantId;
+    public string OrgId { get; init; } = LocalDevelopmentDefaults.OrgId;
 }

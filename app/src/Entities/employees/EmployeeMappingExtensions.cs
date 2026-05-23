@@ -50,7 +50,7 @@ internal static class EmployeeMappingExtensions
             ResidentialAddress = dto.ResidentialAddress.Trim(),
             GhanaPostGps = dto.GhanaPostGps.Trim(),
             LifecycleState = EmployeeLifecycleStates.PreHire,
-            EmploymentStatus = "Active",
+            EmploymentStatus = EmploymentStatusValues.Active,
         };
 
     public static EmployeeEntity ToEntity(this EmployeeWriteDto dto, string tenantId, string orgId, string employeeCode) =>
@@ -79,7 +79,7 @@ internal static class EmployeeMappingExtensions
             ContractType = dto.ContractType,
             EmploymentStartDate = dto.StartDate,
             ProbationEndDate = dto.ProbationEndDate,
-            EmploymentStatus = "Active",
+            EmploymentStatus = EmploymentStatusValues.Active,
         };
 
     public static string NormalizeGhanaCard(string value) => value.Trim().ToUpperInvariant();

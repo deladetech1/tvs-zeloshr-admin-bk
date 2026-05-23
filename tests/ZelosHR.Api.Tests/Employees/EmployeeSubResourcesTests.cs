@@ -19,8 +19,8 @@ public class EmployeeSubResourcesTests
 
     public EmployeeSubResourcesTests()
     {
-        _tenant.TenantId.Returns("demo-tenant");
-        _tenant.OrgId.Returns("demo-org");
+        _tenant.TenantId.Returns(TestDefaults.TenantId);
+        _tenant.OrgId.Returns(TestDefaults.OrgId);
         _sut = new EmployeeSubResourcesService(
             _education, _certifications, _documents, _employees, _files, _tenant, _currentUser);
     }
@@ -29,7 +29,7 @@ public class EmployeeSubResourcesTests
     public async Task UploadDocument_WhenFileExceeds10Mb_ReturnsValidationError()
     {
         var employeeId = Guid.NewGuid();
-        _employees.GetByIdScopedAsync(employeeId, "demo-tenant", "demo-org", Arg.Any<CancellationToken>())
+        _employees.GetByIdScopedAsync(employeeId, TestDefaults.TenantId, TestDefaults.OrgId, Arg.Any<CancellationToken>())
             .Returns(new EmployeeEntity { Id = employeeId, FullName = "Test" });
 
         await using var stream = new MemoryStream([1, 2, 3]);

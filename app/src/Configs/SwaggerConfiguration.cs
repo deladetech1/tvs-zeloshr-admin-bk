@@ -2,14 +2,16 @@ using System.Reflection;
 using System.Text.Json.Nodes;
 using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using Microsoft.Extensions.Options;
 using ZelosHR.Api.Middleware;
+using ZelosHR.Api.Shared.Constants;
 using ZelosHR.Api.Shared.Tenant;
 
 namespace ZelosHR.Api.Configs;
 
 public static class SwaggerConfiguration
 {
-    public const string BearerScheme = "Bearer";
+    public const string BearerScheme = AuthConstants.BearerScheme;
 
     public static IServiceCollection AddZelosHrSwagger(this IServiceCollection services)
     {
@@ -37,13 +39,18 @@ public static class SwaggerConfiguration
                     **Envelope:** `{ success, statusCode, detail, data, pagination?, fieldErrors? }`
 
                     Route map: `GET /api/v1/navigation` · Contracts: `docs/ENTERPRISE_API.md`
+
+                    **Local development:** Bearer JWT and Trove headers (`org_*`, `bus_*`, `loc_*`) are prefilled from `LocalDevelopment` config.
                     """,
                 Contact = new OpenApiContact { Name = "Deladetech — ZelosHR" },
             });
 
             options.AddSecurityDefinition(BearerScheme, new OpenApiSecurityScheme
             {
-                Description = "Trove JWT in the `authorization` header. Example: `Bearer eyJhbGciOiJIUzI1NiIs...`",
+                Description = """
+                    Trove JWT (`tenant_id`, `user_id` claims). In Development the token is prefilled on load.
+                    Manual: `./scripts/gen-trovesuite-jwt.sh` or paste `Bearer eyJ...` into the `authorization` header.
+                    """,
                 Type = SecuritySchemeType.Http,
                 Scheme = "bearer",
                 BearerFormat = "JWT",
@@ -81,6 +88,9 @@ public static class SwaggerConfiguration
 
     public static WebApplication UseZelosHrSwagger(this WebApplication app)
     {
+        if (app.Environment.IsDevelopment())
+            app.UseStaticFiles();
+
         app.UseMiddleware<SwaggerOpenApiVersionCompatMiddleware>();
         app.UseSwagger(options => options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0);
         app.UseSwaggerUI(options =>
@@ -91,9 +101,70 @@ public static class SwaggerConfiguration
             options.DisplayRequestDuration();
             options.EnablePersistAuthorization();
             options.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.List);
+
+            if (app.Environment.IsDevelopment())
+            {
+                options.HeadContent = """
+                    <div style="margin:0.5rem 0;padding:0.5rem 1rem;background:#e8f4fc;border-left:4px solid #0b6efd;font-size:14px;">
+                      <strong>Development:</strong> Bearer JWT and Trove headers (<code>org_*</code> / <code>bus_*</code> / <code>loc_*</code>) are prefilled — see <code>LocalDevelopment</code> in appsettings.
+                      Use <strong>Authorize</strong> or expand any operation → <strong>Try it out</strong> → <strong>Execute</strong>.
+                    </div>
+                    """;
+                options.InjectJavascript("/swagger/swagger-dev-bootstrap.js");
+                options.UseRequestInterceptor(
+                    """
+                    (req) => {
+                      const h = window.__zeloshrSwaggerHeaders;
+                      if (!h) return req;
+                      req.headers['app-id'] = h.appId;
+                      req.headers['bus-id'] = h.busId;
+                      req.headers['loc-id'] = h.locId;
+                      req.headers['org-id'] = h.orgId;
+                      if (h.authorization) req.headers['authorization'] = h.authorization;
+                      return req;
+                    }
+                    """);
+            }
         });
         return app;
     }
+
+    /// <summary>Development-only JSON used by Swagger UI to prefill Trove headers and JWT.</summary>
+    public static WebApplication MapZelosHrSwaggerDevBootstrap(this WebApplication app)
+    {
+        if (!app.Environment.IsDevelopment())
+            return app;
+
+        app.MapGet("/swagger/dev-bootstrap.json", (
+            IConfiguration configuration,
+            IOptions<LocalDevelopmentOptions> localDev) =>
+        {
+            var dev = localDev.Value;
+            var token = SwaggerDevJwt.CreateToken(configuration, dev.DemoAdminUserId, dev.TenantId);
+
+            return Results.Json(new SwaggerDevBootstrapResponse(
+                TroveStandardHeaders.HrAppId,
+                dev.OrgId,
+                dev.BusId,
+                dev.LocId,
+                $"{AuthConstants.BearerPrefix}{token}",
+                token,
+                dev.DemoAdminUserId,
+                dev.TenantId));
+        }).ExcludeFromDescription();
+
+        return app;
+    }
+
+    private sealed record SwaggerDevBootstrapResponse(
+        string AppId,
+        string OrgId,
+        string BusId,
+        string LocId,
+        string Authorization,
+        string BearerToken,
+        string UserId,
+        string TenantId);
 
     private static string MapControllerTag(string controller) => controller switch
     {
@@ -119,7 +190,7 @@ public static class SwaggerConfiguration
 }
 
 /// <summary>Adds Trove standard headers to every <c>/api/v1/*</c> operation (Try it out).</summary>
-public sealed class TroveStandardHeadersOperationFilter : IOperationFilter
+public sealed class TroveStandardHeadersOperationFilter(IHostEnvironment environment) : IOperationFilter
 {
     public void Apply(OpenApiOperation operation, OperationFilterContext context)
     {
@@ -133,14 +204,20 @@ public sealed class TroveStandardHeadersOperationFilter : IOperationFilter
 
         AddHeader(operation, TroveStandardHeaders.AppId, required: true,
             $"Must be `{TroveStandardHeaders.HrAppId}`.", TroveStandardHeaders.HrAppId);
+        var authHint = environment.IsDevelopment()
+            ? "Prefilled in Development (see Authorize and Try it out)."
+            : "Bearer JWT from Trove platform login.";
         AddHeader(operation, TroveStandardHeaders.Authorization, required: true,
-            "Bearer JWT from Trove platform login.", "Bearer <paste-token>");
+            authHint,
+            environment.IsDevelopment()
+                ? $"{AuthConstants.BearerPrefix}<loaded-on-open>"
+                : $"{AuthConstants.BearerPrefix}<paste-token>");
         AddHeader(operation, TroveStandardHeaders.BusId, required: true,
-            "Business scope from platform context.", TenantContext.DefaultBusId);
+            "Business scope from platform context.", LocalDevelopmentDefaults.BusId);
         AddHeader(operation, TroveStandardHeaders.LocId, required: true,
-            "Location scope from platform context.", TenantContext.DefaultLocId);
+            "Location scope from platform context.", LocalDevelopmentDefaults.LocId);
         AddHeader(operation, TroveStandardHeaders.OrgId, required: true,
-            "Organisation scope.", TenantContext.DefaultOrgId);
+            "Organisation scope.", LocalDevelopmentDefaults.OrgId);
     }
 
     private static void AddHeader(
@@ -164,7 +241,9 @@ public sealed class TroveStandardHeadersOperationFilter : IOperationFilter
             {
                 Type = JsonSchemaType.String,
                 Default = JsonValue.Create(defaultValue),
+                Example = JsonValue.Create(defaultValue),
             },
+            Example = JsonValue.Create(defaultValue),
         });
     }
 }

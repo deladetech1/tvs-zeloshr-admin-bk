@@ -1,13 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Persistence.Entities;
+using ZelosHR.Api.Shared.Constants;
+using ZelosHR.Api.Shared.Tenant;
 
 namespace ZelosHR.Api.Persistence.Repositories;
 
 public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
 {
-    private const string HrAppId = "app-hr";
-
     private static CpUserDto ToDto(CpUserEntity u) =>
         new(u.Id, u.Fullname, u.Email, u.Contact, u.IsActive, u.Gender, u.Dob, u.Address, u.ProfilePic);
 
@@ -89,7 +89,7 @@ public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
                 ProfilePic = request.ProfilePic,
                 CanLogin = true,
                 IsOwner = false,
-                DeleteStatus = "NOT_DELETED",
+                DeleteStatus = CorePlatformConstants.DeleteStatus.NotDeleted,
                 IsActive = true,
                 CreatedBy = request.CreatedBy,
                 Cdatetime = now,
@@ -101,9 +101,14 @@ public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
                 TenantId = request.TenantId,
                 UserId = userId,
                 CanAlwaysLogin = true,
-                DeleteStatus = "NOT_DELETED",
+                DeleteStatus = CorePlatformConstants.DeleteStatus.NotDeleted,
                 IsActive = true,
             });
+
+            var busAppLocId = await ResolveBusAppLocationIdAsync(
+                request.TenantId, request.OrgId, request.BusId, request.LocId, TroveStandardHeaders.HrAppId, ct)
+                ?? throw new InvalidOperationException(
+                    "Platform context (org, business, location, app) is not configured for this tenant.");
 
             db.CpUserLocations.Add(new CpUserLocationEntity
             {
@@ -111,8 +116,10 @@ public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
                 TenantId = request.TenantId,
                 UserId = userId,
                 OrgId = request.OrgId,
-                AppId = HrAppId,
-                DeleteStatus = "NOT_DELETED",
+                BusId = request.BusId,
+                AppId = TroveStandardHeaders.HrAppId,
+                BusAppLocId = busAppLocId,
+                DeleteStatus = CorePlatformConstants.DeleteStatus.NotDeleted,
                 IsActive = true,
             });
 
@@ -203,12 +210,28 @@ public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
     }
 
     public async Task EnsureUserLocationAsync(
-        string userId, string tenantId, string orgId, CancellationToken ct = default)
+        string userId,
+        string tenantId,
+        string orgId,
+        string busId,
+        string locId,
+        CancellationToken ct = default)
     {
         var exists = await db.CpUserLocations.AsNoTracking()
-            .AnyAsync(l => l.TenantId == tenantId && l.UserId == userId && l.OrgId == orgId && l.AppId == HrAppId, ct);
+            .AnyAsync(
+                l => l.TenantId == tenantId
+                     && l.UserId == userId
+                     && l.OrgId == orgId
+                     && l.BusId == busId
+                     && l.AppId == TroveStandardHeaders.HrAppId,
+                ct);
         if (exists)
             return;
+
+        var busAppLocId = await ResolveBusAppLocationIdAsync(tenantId, orgId, busId, locId, TroveStandardHeaders.HrAppId, ct);
+        if (busAppLocId is null)
+            throw new InvalidOperationException(
+                "Platform context (org, business, location, app) is not configured for this tenant.");
 
         db.CpUserLocations.Add(new CpUserLocationEntity
         {
@@ -216,10 +239,31 @@ public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
             TenantId = tenantId,
             UserId = userId,
             OrgId = orgId,
-            AppId = HrAppId,
-            DeleteStatus = "NOT_DELETED",
+            BusId = busId,
+            AppId = TroveStandardHeaders.HrAppId,
+            BusAppLocId = busAppLocId,
+            DeleteStatus = CorePlatformConstants.DeleteStatus.NotDeleted,
             IsActive = true,
         });
         await db.SaveChangesAsync(ct);
     }
+
+    private Task<string?> ResolveBusAppLocationIdAsync(
+        string tenantId,
+        string orgId,
+        string busId,
+        string locId,
+        string appId,
+        CancellationToken ct) =>
+        db.BusinessAppLocations.AsNoTracking()
+            .Where(
+                b => b.TenantId == tenantId
+                     && b.OrgId == orgId
+                     && b.BusId == busId
+                     && b.LocId == locId
+                     && b.AppId == appId
+                     && b.DeleteStatus == CorePlatformConstants.DeleteStatus.NotDeleted
+                     && b.IsActive)
+            .Select(b => b.Id)
+            .FirstOrDefaultAsync(ct);
 }
