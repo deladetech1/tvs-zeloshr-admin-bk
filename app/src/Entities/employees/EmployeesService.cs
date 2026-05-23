@@ -9,7 +9,7 @@ using ZelosHR.Api.Shared.Formatting;
 
 namespace ZelosHR.Api.Entities.Employees;
 
-public partial class EmployeesService : IEmployeesService
+public partial class EmployeesService : IEmployeesService, IEmployeeLookup
 {
     internal const string DuplicateGhanaCardMessage =
         "This Ghana Card number is already registered to another employee";
@@ -328,17 +328,9 @@ public partial class EmployeesService : IEmployeesService
         if (!string.IsNullOrWhiteSpace(entity.UserId))
             cp = await _cpUsers.GetByIdAsync(entity.UserId, tenantId, ct);
 
-        return new EmployeeDisplayInfo
-        {
-            FullName = EmployeeIdentityResolver.ResolveFullName(entity, cp),
-            EmployeeCode = entity.EmployeeCode,
-        };
-    }
-
-    public sealed class EmployeeDisplayInfo
-    {
-        public required string FullName { get; init; }
-        public string? EmployeeCode { get; init; }
+        return new EmployeeDisplayInfo(
+            EmployeeIdentityResolver.ResolveFullName(entity, cp),
+            entity.EmployeeCode);
     }
 
     private async Task<EmployeeDetailDto> MapDetailAsync(EmployeeEntity row, string tenantId, CancellationToken ct)

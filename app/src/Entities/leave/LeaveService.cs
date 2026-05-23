@@ -7,9 +7,9 @@ namespace ZelosHR.Api.Entities.Leave;
 public class LeaveService
 {
     private readonly ILeaveRepository _leave;
-    private readonly EmployeesService _employees;
+    private readonly IEmployeeLookup _employees;
 
-    public LeaveService(ILeaveRepository leave, EmployeesService employees)
+    public LeaveService(ILeaveRepository leave, IEmployeeLookup employees)
     {
         _leave = leave;
         _employees = employees;

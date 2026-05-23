@@ -1,131 +1,86 @@
-# Architecture audit — ZelosHR.Api (baseline: `4fedd06` / demo sprint)
+# Architecture audit — ZelosHR.Api
 
-> **Audit date:** 2026-05-20 (baseline); **uplift completed:** 2026-05-21 on `feature/uplift`  
-> **Branch for uplift work:** `feature/uplift` (keep `main` / `demo/freeze` for demos)
+> **Baseline:** `4fedd06` (Dapper monolith)  
+> **Uplift branch:** `feature/uplift` — EF Core, repositories, Trove headers (2026-05)  
+> **Schema owner:** [tvs-sqlscript](https://github.com/deladetech1/tvs-sqlscript) — never extend `app/src/Database/Migrations/*.sql` for new DDL
 
 ## Executive summary
 
-The API is a **working demo-ready** .NET 10 monolith with **Dapper + raw SQL** across all HR modules. The uplift spec targets **EF Core + repository pattern + strict SOLID**. That is the right direction but is a **multi-phase migration**, not a single refactor — schema remains in **tvs-sqlscript**; this repo must not add EF migrations or `.sql` ownership here.
+The uplift **delivered** the main architectural goals: **EF Core + repository pattern**, **tenant-scoped persistence**, **unit tests with mocks**, and **platform/Trove integration**. The API is suitable to merge against a database deployed from tvs-sqlscript (shared dev or production).
+
+**SOLID is improved, not exhaustive.** Repositories and infrastructure depend on abstractions; most controllers still inject concrete `*Service` types because those services expose module-specific methods beyond shared interfaces.
 
 ---
 
-## SOLID violations (current)
+## Completed (uplift)
 
-| Principle | Where | Finding |
-|-----------|--------|---------|
-| **S** | `EmployeesService`, `*Service` in `Entities/*` | Services mix validation, SQL, mapping, and orchestration in one class (~500+ lines for employees). |
-| **O** | All `*Service` classes | Closed to extension: new query shapes require editing service SQL strings. |
-| **L** | N/A | Few inheritance hierarchies; low risk today. |
-| **I** | DI registration | `AddEntityServices()` registers concrete `*Service` types only — **no repository or service interfaces**. |
-| **D** | Controllers → `EmployeesService` | Controllers depend on **concrete** services (`EmployeesService`, `EmployeesDirectoryService`), not abstractions. |
-
----
-
-## Interfaces: exist vs missing
-
-| Area | Exists | Missing (per target architecture) |
-|------|--------|-------------------------------------|
-| Tenant | `ITenantContextAccessor`, `TenantContext` | `ITenantContext` abstraction (thin wrapper acceptable) |
-| Auth | Trovesuite.Package `IAuthService`, middleware | `ICurrentUserService` only if not provided by package |
-| Repositories | — | `IRepository<T>`, `IEmployeeRepository`, module repos |
-| Services | — | `IService<TRead,TWrite,TKey>`, `IEmployeesService`, etc. |
-| Result | `Respons<T>` with `Ok` / `Fail` / `ValidationError` | `NotFound` / `Forbidden` helpers; optional `Message` alias |
-| Controller mapping | Manual `StatusCode(result.StatusCode, result)` | `ToActionResult()` extension |
+| Area | State |
+|------|--------|
+| Data access | EF Core 10 + Npgsql; Dapper removed |
+| Repositories | Module-specific interfaces in `Persistence/Repositories/` |
+| Tenant scoping | `ITenantContext` / `TenantContextAdapter`; repos filter by tenant/org |
+| Employees | `IEmployeesService` (CRUD/search); `IEmployeeLookup` (cross-module display resolve) |
+| Platform | `ICpUserRepository`, `IPlatformContextRepository`; Trove header middleware |
+| Tests | Service + middleware tests (xUnit, NSubstitute, FluentAssertions) |
+| Schema | `RunDatabaseMigrations=false`; deploy via tvs-sqlscript only |
+| Navigation | Dynamic routes from OpenAPI groups |
 
 ---
 
-## Test coverage (rough)
+## SOLID — current assessment
 
-| Metric | Value |
-|--------|--------|
-| Test project | `tests/ZelosHR.Api.Tests` (xUnit) |
-| Test files | **4** (query builder, name formatting, department summary, demo data constants) |
-| Service tests | **0** — no `EmployeesServiceTests`, no repository tests |
-| Integration / API tests | **0** |
-| Mocking | **No** NSubstitute / FluentAssertions in `.csproj` yet |
-
-Tests today validate **SQL string builders and formatting**, not service behaviour or tenant scoping.
+| Principle | Status | Notes |
+|-----------|--------|--------|
+| **S** Single responsibility | Partial | Repositories vs services split is clear; `EmployeesService` / `EmployeeRegistrationService` remain large orchestrators (acceptable for one use case per class). |
+| **O** Open/closed | Partial | Swappable repos/storage; new features still edit existing services (normal for this codebase size). |
+| **L** Liskov substitution | OK | No broken inheritance; interface fakes work in tests. |
+| **I** Interface segregation | Partial | Lean repo interfaces; `IEmployeeLookup` added for cross-module employee reads; most `*Service` types have no interface. |
+| **D** Dependency inversion | Partial | Repos + infra use DI abstractions; **controllers → concrete services** except Trovesuite platform types. |
 
 ---
 
-## Entity modules — CRUD completeness
+## Intentionally deferred (low ROI / higher risk)
 
-| Module | List | Get | Create | Update | Delete | Notes |
-|--------|------|-----|--------|--------|--------|-------|
-| Employees | ✓ | ✓ | ✓ | PATCH (profile, employment, lifecycle) | Soft delete | + directory sub-routes |
-| Departments | ✓ | ✓ | ✓ | PATCH | DELETE | Legacy controller + org-structure |
-| Branches | ✓ | ✓ | ✓ | PATCH | DELETE | Same |
-| Org structure | ✓ | — | POST/PATCH departments & branches | — | Aggregated reads |
-| Attendance | ✓ | ✓ | ✓ | PATCH | DELETE | Dapper |
-| Leave | ✓ | ✓ | ✓ | PATCH | DELETE | Under `/requests` |
-| Lifecycle events | ✓ | ✓ | ✓ | PATCH | DELETE | |
-| Audit logs | ✓ | ✓ | — | — | — | Read-only (correct) |
-| Recruitment, Onboarding, Performance, Disciplinary, Documents | ✓ | ✓ | ✓ | PATCH | DELETE | Dapper |
-| Dashboard | ✓ | — | — | — | — | Read aggregates |
-| Platform (Trovesuite) | — | — | POST auth/notify | — | — | Package-backed |
-| Health / Navigation | ✓ | — | — | — | — | Navigation is **static** list, not `IApiDescriptionGroupCollectionProvider` |
+- Service interfaces for every module (`ILeaveService`, …) — ceremony unless adding HTTP integration tests.
+- Splitting registration wizard into many classes — high regression risk; defer until new flows.
+- Controller-wide interface injection — `EmployeesController` needs legacy methods not on `IEmployeesService`.
+- Domain events / outbox — not required for current scope.
 
 ---
 
-## `Respons<T>` usage
+## Removed dead abstractions
 
-- **Used consistently** on HR endpoints as JSON envelope (`success`, `statusCode`, `detail`, `data`, `pagination`, `fieldErrors`).
-- **Gap vs spec:** property names use `Detail` / `Error` / `FieldErrors`, not `Message` / `Errors`; no `NotFound()` / `Forbidden()` factories.
-- **Control flow:** `ResponseException` exists; most services return `Respons.Fail` instead of throwing (good).
+- Generic `IService<TRead,TWrite,TKey>` — unused; HR modules are not uniform CRUD.
 
 ---
 
-## Tenant scoping
+## Test coverage
 
-- **Middleware:** `TrovesuiteAuthMiddleware` + `ITenantContextAccessor` (headers or JWT claims; defaults `demo-tenant` / `demo-org`).
-- **Controllers:** Pass `ctx.TenantId` / `ctx.OrgId` into services explicitly.
-- **Services:** SQL includes `tenant_id` / `org_id` filters in employee paths reviewed — **pattern is manual per query**, not enforced by a repository base class.
-- **Risk:** New queries can omit tenant filter; no single `IQueryable` global filter (EF would enable that later).
-
----
-
-## Domain events
-
-- **None.** No `IDomainEvent`, no outbox, no lifecycle event → employee status sync abstraction.
+| Layer | Coverage |
+|-------|----------|
+| Unit (services, middleware, query builders) | Yes — `tests/ZelosHR.Api.Tests` |
+| Integration / WebApplicationFactory | No |
+| Against live Azure dev-db | Manual (Swagger + Trove headers) |
 
 ---
 
-## Data access vs uplift rules
+## Tenant & platform
 
-| Rule (uplift spec) | Current state |
-|--------------------|---------------|
-| EF Core only, no Dapper | **Done** — entity services use `ZelosHrDbContext` + repositories; `Dapper` package removed |
-| Repositories only touch `DbContext` | **Done** — `app/src/Persistence/Repositories/*` |
-| No SQL in this repo for schema | **Violated for dev** — `app/src/Database/Migrations/*.sql` still present (gated off via `RunDatabaseMigrations=false`) |
-| Schema in tvs-sqlscript | **Documented** in AGENTS.md; aligns when migrations disabled |
-
-**Recommended phases:**
-
-1. **Foundations** — `Respons` extensions, abstractions, exception middleware, test packages (no Dapper removal).
-2. **EF infrastructure** — `ZelosHrDbContext`, entity types mapped to `zeloshr.zhr_*` (coordinate column shapes with tvs-sqlscript EF migration `ZelosHrAppTables`).
-3. **Vertical slices** — Employees first: repository + service interfaces, swap Dapper implementation for EF behind `IEmployeeRepository`.
-4. **Repeat** departments → branches → audit (read-only) → lifecycle.
+- Headers: `app-id`, `authorization`, `bus-id`, `loc-id`, `org-id` (see `docs/SWAGGER.md`).
+- `ValidatePlatformContext` checks `cp_business_app_locations` + `cp_user_locations` against the **live** database.
+- Demo rows are **not** seeded by tvs-sqlscript deploy; align `LocalDevelopment` with real rows or insert locally.
 
 ---
 
-## Swagger / navigation
+## Related PRs
 
-- Swashbuckle **10.x**, OpenAPI 3.0.3 compat middleware, **~55 paths**.
-- `NavigationService` builds the map from `IApiDescriptionGroupCollectionProvider` (Swagger groups).
-
----
-
-## Packages & framework
-
-- **.NET 10**, `Trovesuite.Package` 1.0.0, Swashbuckle 10, EF Core 10 + Npgsql.
-- Test project references **Microsoft.AspNetCore.Mvc.Testing 8.0.11** — should align to 10.x when adding integration tests.
+1. [tvs-sqlscript — EF schema + RBAC](https://github.com/deladetech1/tvs-sqlscript/pull/1) — merge/deploy first.
+2. [ZelosHR API — uplift](https://github.com/deladetech1/tvs-zeloshr-bk/pull/1)
 
 ---
 
-## Next actions (ordered)
+## Safe follow-ups (optional)
 
-1. `docs: architecture audit` (this file) on `feature/uplift`.
-2. `refactor(shared):` foundations (Section 3).
-3. `test(employees):` red tests + NSubstitute/FluentAssertions.
-4. EF `DbContext` + `Employee` entity mapping to `zeloshr.zhr_employees`.
-5. `feat(employees):` repository + service behind interfaces; keep route contracts stable for demo.
+1. Narrow interfaces when a second module depends on another service (pattern: `IEmployeeLookup`).
+2. Refresh `ARCHITECTURE_AUDIT.md` when major modules land.
+3. Add integration tests only when stabilizing against shared dev-db.
