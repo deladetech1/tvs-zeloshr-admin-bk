@@ -37,13 +37,13 @@ The `migrate` service runs:
 ```bash
 # Equivalent to:
 cd ../tvs-sqlscript
-TVS_SEED_ZELOSHR_DEMO=1 dotnet run --project src/Trovesuite.Database.Runner -- \
+dotnet run --project src/Trovesuite.Database.Runner -- \
   db 5432 user password zeloshrdb deploy
 ```
 
-Deploy order inside Runner: `core_platform` → `loandrift` → `mystoreguard` → `human_resource` (includes `zeloshr` + `Sql/Seeds`).
+Deploy order inside Runner: `core_platform` → `loandrift` → `mystoreguard` → `human_resource` (EF migrations + RBAC/reference `Sql/Seeds` only).
 
-Demo rows (`demo-tenant` / `demo-org`) load when `TVS_SEED_ZELOSHR_DEMO=1` (default in compose).
+**No demo tenant or `zhr_*` rows** are inserted by deploy. For local API calls, insert matching `core_platform` context (`cp_organizations`, `cp_businesses`, `cp_locations`, `cp_business_app_locations`, `cp_users`, `cp_user_locations`) and any `zeloshr` data you need, then align `LocalDevelopment` in `appsettings.Development.json` / `app/.env` and Trove headers (see `docs/SWAGGER.md`). Production uses the real Trovesuite database as-is.
 
 ## API
 

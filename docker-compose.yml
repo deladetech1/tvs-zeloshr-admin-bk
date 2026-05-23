@@ -51,7 +51,6 @@ services:
     environment:
       TVS_DB_HOST: db
       TVS_DB_PORT: "5432"
-      TVS_SEED_ZELOSHR_DEMO: ${TVS_SEED_ZELOSHR_DEMO:-1}
       TVS_SQLSCRIPT_ROOT: /sqlscript
       DOTNET_CLI_TELEMETRY_OPTOUT: "1"
       DOTNET_NOLOGO: "1"

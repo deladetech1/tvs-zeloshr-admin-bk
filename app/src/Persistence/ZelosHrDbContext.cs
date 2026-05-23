@@ -85,6 +85,9 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
                 .HasFilter("user_id IS NOT NULL");
             b.Property(x => x.GrossSalary).HasPrecision(18, 4);
             b.Property(x => x.AnnualizedCost).HasPrecision(18, 4);
+            // Match tvs-sqlscript migration column names (snake_case convention would produce tier2_pension_provider).
+            b.Property(x => x.Tier2PensionProvider).HasColumnName("tier2pension_provider");
+            b.Property(x => x.Tier3PensionProvider).HasColumnName("tier3pension_provider");
             b.HasOne(x => x.Department).WithMany().HasForeignKey(x => x.DepartmentId);
             b.HasOne(x => x.Branch).WithMany().HasForeignKey(x => x.BranchId);
             b.HasOne(x => x.Manager).WithMany().HasForeignKey(x => x.ManagerId);

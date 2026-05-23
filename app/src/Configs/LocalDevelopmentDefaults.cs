@@ -1,8 +1,8 @@
 namespace ZelosHR.Api.Configs;
 
 /// <summary>
-/// Default local/demo identifiers (Trove format: <c>org_</c> / <c>bus_</c> / <c>loc_</c> prefixes).
-/// Must match <c>tvs-sqlscript</c> seed <c>05_zeloshr_demo.sql</c>.
+/// Swagger / local Trove header defaults (format: <c>org_</c> / <c>bus_</c> / <c>loc_</c> prefixes).
+/// Must match rows in your database (<c>cp_*</c> context + JWT <c>tenant_id</c>) — insert locally or use a shared dev DB.
 /// </summary>
 public static class LocalDevelopmentDefaults
 {

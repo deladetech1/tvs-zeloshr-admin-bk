@@ -33,11 +33,7 @@ All business modules support **list + summary + get-by-id + create + update + de
 
 Schema and reference data: **tvs-sqlscript** (see [AGENTS.md](../AGENTS.md)).
 
-Optional sprint seed rows (`demo-tenant` / `demo-org`) for UI dev only:
-
-```bash
-TVS_SEED_ZELOSHR_DEMO=1 dotnet run --project src/Trovesuite.Database.Runner -- localhost 5431 user password zeloshrdb deploy
-```
+Sprint UI data (`demo-tenant`, `zhr_*` rows) is **not** deployed from tvs-sqlscript — add locally (pgAdmin/SQL) or use a shared environment. Align `LocalDevelopment` / Trove headers with whatever ids you use.
 
 ## Next sprints (enterprise hardening)
 

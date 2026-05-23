@@ -35,7 +35,7 @@ The `api` service must reach Postgres for **both** ZelosHR queries and Trovesuit
 | `Trovesuite__Database__Host=db` | `IAuthService` / platform tables in `core_platform` |
 | `Trovesuite__Jwt__SecretKey` | Must be **≥ 32 characters** for HS256 (IdentityModel v8) |
 
-Demo HR data: deploy `tvs-sqlscript` with `TVS_SEED_ZELOSHR_DEMO=1`, then call APIs with Trove standard headers (see below).
+Local testing: deploy `tvs-sqlscript` for schema + RBAC seeds only, insert your own `cp_*` / `zhr_*` rows (or use a shared dev DB), then call APIs with Trove standard headers matching those rows (see below).
 
 JWT mode (optional): `TROVESUITE_REQUIRE_AUTH=true docker compose up -d api` — send `Authorization: Bearer <token>` (claims `user_id`, `tenant_id`).
 

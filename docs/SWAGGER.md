@@ -61,9 +61,9 @@ curl -s "http://localhost:8000/api/v1/employees/directory/summary" \
 
 Legacy `X-Tenant-Id` / `X-Org-Id` still work only when `RequireStandardHeaders` is `false` (not recommended).
 
-## Local demo header values (after migrate + seed)
+## Local header values (Swagger prefill)
 
-When `TVS_SEED_ZELOSHR_DEMO=1`, Swagger prefills Trove-style ids (same shape as production curl). JWT from `./scripts/gen-trovesuite-jwt.sh` (`tenant_id=demo-tenant`, `user_id=u1000001-...`):
+In Development, Swagger prefills Trove-style ids from `LocalDevelopment` (same shape as production curl). Values must exist in **your** database (`cp_business_app_locations`, `cp_user_locations`, etc.) — add rows locally or point at a shared dev instance. JWT from `./scripts/gen-trovesuite-jwt.sh` should use the same `tenant_id` / `user_id` as those rows:
 
 | Header | Value |
 |--------|--------|

@@ -16,15 +16,12 @@ DB_PORT="${TVS_DB_PORT:-5432}"
 DB_USER="${DB_USER:-user}"
 DB_PASSWORD="${DB_PASSWORD:-password}"
 DB_NAME="${DB_NAME:-zeloshrdb}"
-SEED_DEMO="${TVS_SEED_ZELOSHR_DEMO:-1}"
-
-echo "==> tvs-sqlscript deploy → ${DB_HOST}:${DB_PORT}/${DB_NAME} (seed demo=${SEED_DEMO})"
+echo "==> tvs-sqlscript deploy → ${DB_HOST}:${DB_PORT}/${DB_NAME} (schema + reference seeds only)"
 cd "${SQLSCRIPT_ROOT}"
 
 dotnet restore Trovesuite.Database.sln --nologo -v q
 dotnet build Trovesuite.Database.sln -c Release --no-restore --nologo -v q
 
-export TVS_SEED_ZELOSHR_DEMO="${SEED_DEMO}"
 # Runner prompts for module selection; "0" = all modules (core_platform → human_resource).
 printf '0\n' | dotnet run --project "${RUNNER_PROJECT}" -c Release --no-build -- \
   "${DB_HOST}" "${DB_PORT}" "${DB_USER}" "${DB_PASSWORD}" "${DB_NAME}" deploy

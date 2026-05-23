@@ -39,7 +39,6 @@ ZelosHR Compose workflow (see docs/LOCAL_DEV.md)
 
 Env:
   TVS_SQLSCRIPT_PATH   Path to tvs-sqlscript repo (default: ../tvs-sqlscript)
-  TVS_SEED_ZELOSHR_DEMO  1 to seed demo-tenant data on migrate (default: 1)
 EOF
 }
 
