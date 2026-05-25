@@ -16,14 +16,14 @@ Full key reference: [APPCONFIG.md](APPCONFIG.md).
 
 | appsettings path | Env var override | Notes |
 |------------------|------------------|--------|
-| `App:ConnectionString` | `App__ConnectionString` | Single PostgreSQL URI (ZelosHR + Trovesuite auth) |
+| `App:ConnectionString` | `App__ConnectionString` | Single PostgreSQL URI for ZelosHR (same DB hosts `core_platform` auth used by Trovesuite.Package) |
 | `Trovesuite:Jwt:SecretKey` | `Trovesuite__Jwt__SecretKey` | Match Core Platform issuer (≥ 32 chars) |
 | `App:SecretKey` | `App__SecretKey` | Same as Jwt secret |
 | `AzureStorage:ConnectionString` | `AzureStorage__ConnectionString` | Employee docs / profile photos |
 | `App:CorsOrigins` | `App__CorsOrigins` | Admin UI origin(s), comma-separated |
 | `TrovesuiteIntegration:RequireAuthentication` | `TrovesuiteIntegration__RequireAuthentication` | `true` (in Production json) |
 
-`App:ConnectionString` is copied into `Trovesuite:Database:*` at startup for Trovesuite.Package — you only set **`App__ConnectionString`** on the Container App.
+You only set **`App__ConnectionString`** on the Container App. Do not set `Trovesuite__Database__*` — that is wired from `App:ConnectionString` for the NuGet package.
 
 ## Optional
 

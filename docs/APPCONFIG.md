@@ -15,7 +15,7 @@ Environment variables and Container App secrets **override** the same keys using
 
 | Key | Purpose |
 |-----|---------|
-| `ConnectionString` | PostgreSQL URI for ZelosHR + EF (`postgresql://user:pass@host:5432/db`) |
+| `ConnectionString` | PostgreSQL URI for ZelosHR (`postgresql://user:pass@host:5432/db`) |
 | `AppName`, `AppVersion`, `Environment`, `Debug` | Metadata |
 | `LogLevel`, `LogDir` | Logging |
 | `SecretKey`, `Algorithm`, `AccessTokenExpireMinutes` | Legacy JWT helpers / Swagger dev token fallback |
@@ -25,12 +25,12 @@ Environment variables and Container App secrets **override** the same keys using
 | `CorePlatformUsersTable`, `CorePlatformMembersTable` | Optional table overrides |
 | `ActivityLogsTable`, `EmployeesTable` | Optional table overrides |
 
-## Trovesuite (Trovesuite.Package)
+## Trovesuite (NuGet package — optional overrides)
+
+The package expects a `Trovesuite` section in configuration. **Database host/user/password come from `App:ConnectionString` automatically** — you do not configure `Trovesuite:Database` yourself.
 
 | Key | Purpose |
 |-----|---------|
-| `Trovesuite:Database:ApplicationName` | Npgsql application name |
-| *(Host, Port, Database, Username, Password)* | Filled from `App:ConnectionString` at startup |
 | `Trovesuite:Jwt:SecretKey` | HS256 secret (≥ 32 chars; match Core Platform) |
 | `Trovesuite:Jwt:Algorithm` | `HS256` |
 | `Trovesuite:Jwt:AccessTokenExpireMinutes` | Token lifetime hint |
@@ -72,7 +72,7 @@ Used for Swagger dev bootstrap and dev fallbacks only. Leave empty in production
 
 Set these on the Container App (same names as appsettings, `__` separator):
 
-- `App__ConnectionString` (PostgreSQL URI; Trovesuite auth uses the same DB)
+- `App__ConnectionString` (PostgreSQL URI)
 - `Trovesuite__Jwt__SecretKey` and `App__SecretKey` (same value)
 - `AzureStorage__ConnectionString`
 - `Trovesuite__Mail__SenderEmail`, `Trovesuite__Mail__SenderPassword`

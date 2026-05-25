@@ -20,9 +20,10 @@ internal static class AppConnectionString
     }
 
     /// <summary>
-    /// Copies <see cref="AppSettings.ConnectionString"/> into Trovesuite:Database:* for Trovesuite.Package.
+    /// Internal: Trovesuite.Package reads <c>Trovesuite:Database:*</c> from configuration.
+    /// Operators only set <see cref="AppSettings.ConnectionString"/>; this maps it for the package.
     /// </summary>
-    internal static void SyncTrovesuiteDatabase(ConfigurationManager configuration)
+    internal static void ApplyPackageDatabaseConfiguration(ConfigurationManager configuration)
     {
         var connectionString = NullIfWhiteSpace(
             configuration[$"{AppSettings.SectionName}:ConnectionString"]);
@@ -37,6 +38,7 @@ internal static class AppConnectionString
             ["Trovesuite:Database:Database"] = builder.Database,
             ["Trovesuite:Database:Username"] = builder.Username,
             ["Trovesuite:Database:Password"] = builder.Password,
+            ["Trovesuite:Database:ApplicationName"] = "ZelosHR.Api",
         });
     }
 

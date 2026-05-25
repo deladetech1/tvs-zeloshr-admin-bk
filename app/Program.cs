@@ -7,7 +7,7 @@ using ZelosHR.Api.Shared.Tenant;
 
 var builder = WebApplication.CreateBuilder(args);
 
-AppConnectionString.SyncTrovesuiteDatabase(builder.Configuration);
+AppConnectionString.ApplyPackageDatabaseConfiguration(builder.Configuration);
 
 builder.Services.Configure<AppSettings>(builder.Configuration.GetSection(AppSettings.SectionName));
 builder.Services.Configure<TrovesuiteIntegrationOptions>(
