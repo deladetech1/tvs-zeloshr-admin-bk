@@ -27,7 +27,7 @@ public static class PersistenceRegistration
         {
             var settings = sp.GetRequiredService<IOptions<AppSettings>>().Value;
             options
-                .UseNpgsql(BuildConnectionString(settings))
+                .UseNpgsql(AppConnectionString.Build(settings))
                 .UseSnakeCaseNamingConvention();
         });
 
@@ -51,20 +51,5 @@ public static class PersistenceRegistration
         services.AddScoped<IDocumentsRepository, DocumentsRepository>();
         services.AddScoped<IDashboardRepository, DashboardRepository>();
         return services;
-    }
-
-    internal static string BuildConnectionString(AppSettings settings)
-    {
-        if (!string.IsNullOrWhiteSpace(settings.DatabaseUrl))
-            return settings.DatabaseUrl;
-
-        return new NpgsqlConnectionStringBuilder
-        {
-            Host = settings.DbHost ?? "localhost",
-            Port = int.TryParse(settings.DbPort, out var port) ? port : 5431,
-            Database = settings.DbName ?? "zeloshrdb",
-            Username = settings.DbUser ?? "user",
-            Password = settings.DbPassword ?? "password",
-        }.ConnectionString;
     }
 }

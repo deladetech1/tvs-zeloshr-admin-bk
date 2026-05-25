@@ -1,31 +1,44 @@
 # Production configuration — ZelosHR API
 
-The API runs as **`trovesuite-prod-zeloshr-ca`** (or dev equivalent) with `ASPNETCORE_ENVIRONMENT=Production`, which loads [`app/appsettings.Production.json`](../app/appsettings.Production.json).
+Production uses **`ASPNETCORE_ENVIRONMENT=Production`**, which loads the complete template in [`app/appsettings.Production.json`](../app/appsettings.Production.json).
 
-**Never commit secrets.** Set them as Container App **secrets** or environment variables (Azure Portal, Bicep, or `az containerapp update`).
+Every key the app needs is listed there. **Secrets** are empty strings in JSON; set real values on the Azure Container App (secrets or environment variables) using the same keys with `__` notation.
 
-## Prerequisites (database)
+Full key reference: [APPCONFIG.md](APPCONFIG.md).
 
-1. Deploy **tvs-sqlscript** to the production PostgreSQL database (`core_platform` → `human_resource` / `zeloshr` schemas, EF RBAC seeds).
-2. Use the **same database** for:
-   - `App` / EF (`zeloshr.*`, `human_resource.hr_employees`)
-   - `Trovesuite:Database` (auth queries on `core_platform.*`)
-3. Do **not** set `App__RunDatabaseMigrations=true` in production (schema comes from tvs-sqlscript only).
+## Prerequisites
 
-## Required secrets (Container App)
+1. Deploy **tvs-sqlscript** to production PostgreSQL (`core_platform`, `human_resource`, `zeloshr`, EF RBAC seeds).
+2. Set `App__RunDatabaseMigrations=false` (default in Production json).
+3. Configure Container App env (below).
 
-| Setting | Env var (preferred) | Notes |
-|---------|---------------------|--------|
-| Postgres URL | `App__DatabaseUrl` | Full Npgsql URL, e.g. `postgresql://USER:PASS@HOST:5432/DB?sslmode=require` |
-| Same DB for Trovesuite auth | `Trovesuite__Database__Host`, `Trovesuite__Database__Port`, `Trovesuite__Database__Database`, `Trovesuite__Database__Username`, `Trovesuite__Database__Password` | Required if not using only `App__DatabaseUrl` for Trovesuite.Package |
-| JWT signing key | `Trovesuite__Jwt__SecretKey` | **Must match** Core Platform / token issuer (≥ 32 chars) |
-| Legacy JWT (if used) | `App__SecretKey` | Set to **same value** as `Trovesuite__Jwt__SecretKey` if anything reads `App:SecretKey` |
-| Blob storage | `AzureStorage__ConnectionString` | Required for profile photos / employee documents (not local disk) |
-| SMTP (optional) | `Trovesuite__Mail__SenderEmail`, `Trovesuite__Mail__SenderPassword` | Email notifications |
+## Required Container App settings
 
-### Example: Azure Database for PostgreSQL
+| appsettings path | Env var override | Notes |
+|------------------|------------------|--------|
+| `App:DatabaseUrl` | `App__DatabaseUrl` | Preferred: full URL with `sslmode=require` |
+| `App:DbHost` … `DbPassword` | `App__DbHost`, etc. | Alternative to DatabaseUrl |
+| `Trovesuite:Database:*` | `Trovesuite__Database__*` | Same DB as App (auth on `core_platform`) |
+| `Trovesuite:Jwt:SecretKey` | `Trovesuite__Jwt__SecretKey` | Match Core Platform issuer (≥ 32 chars) |
+| `App:SecretKey` | `App__SecretKey` | Same as Jwt secret |
+| `AzureStorage:ConnectionString` | `AzureStorage__ConnectionString` | Employee docs / profile photos |
+| `App:CorsOrigins` | `App__CorsOrigins` | Admin UI origin(s), comma-separated |
+| `TrovesuiteIntegration:RequireAuthentication` | `TrovesuiteIntegration__RequireAuthentication` | `true` (in Production json) |
+
+## Optional
+
+| appsettings path | Env var |
+|------------------|---------|
+| `Trovesuite:Mail:SenderEmail` | `Trovesuite__Mail__SenderEmail` |
+| `Trovesuite:Mail:SenderPassword` | `Trovesuite__Mail__SenderPassword` |
+| `Trovesuite:AzureStorage:AccountName` | `Trovesuite__AzureStorage__AccountName` |
+| `App:AppUrl` | `App__AppUrl` |
+
+## Example (Azure Database for PostgreSQL)
 
 ```bash
+ASPNETCORE_ENVIRONMENT=Production
+
 App__DatabaseUrl=postgresql://zeloshr_api%40myserver:SECRET@myserver.postgres.database.azure.com:5432/trovesuite?sslmode=require
 
 Trovesuite__Database__Host=myserver.postgres.database.azure.com
@@ -34,82 +47,43 @@ Trovesuite__Database__Database=trovesuite
 Trovesuite__Database__Username=zeloshr_api@myserver
 Trovesuite__Database__Password=SECRET
 
-Trovesuite__Jwt__SecretKey=<same-as-core-platform-jwt-secret>
-App__SecretKey=<same-as-core-platform-jwt-secret>
+Trovesuite__Jwt__SecretKey=<shared-with-core-platform>
+App__SecretKey=<shared-with-core-platform>
 
 AzureStorage__ConnectionString=DefaultEndpointsProtocol=https;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net
+
+App__CorsOrigins=https://admin.zeloshr.com
+App__AppUrl=https://api.zeloshr.com
 ```
 
-## Required non-secret settings
-
-| Setting | Env var | Production value |
-|---------|---------|------------------|
-| Environment | `ASPNETCORE_ENVIRONMENT` | `Production` |
-| Auth enforcement | `TrovesuiteIntegration__RequireAuthentication` | `true` |
-| Trove headers | `TrovesuiteIntegration__RequireStandardHeaders` | `true` |
-| Platform validation | `TrovesuiteIntegration__ValidatePlatformContext` | `true` |
-| HR app id | `App__AppId` | `app-hr` (must match `app-id` header) |
-| CORS | `App__CorsOrigins` | Your admin UI origin(s), comma-separated |
-| Public URL | `App__AppUrl` | e.g. `https://api.zeloshr.com` or Container App FQDN |
-| Migrations off | `App__RunDatabaseMigrations` | `false` (default in Production json) |
-
-## API contract (every `/api/v1/*` call)
-
-Clients must send Trove standard headers (see [SWAGGER.md](SWAGGER.md)):
+## API contract
 
 | Header | Value |
 |--------|--------|
-| `app-id` | `app-hr` |
-| `authorization` | `Bearer <JWT>` with claims `tenant_id`, `user_id` |
-| `org-id` | Valid `cp_organizations.id` for tenant |
-| `bus-id` | Valid `cp_businesses.id` |
-| `loc-id` | Valid `cp_locations.id` + user `cp_user_locations` |
+| `app-id` | `app-hr` (`App:AppId`) |
+| `authorization` | `Bearer <JWT>` with `tenant_id`, `user_id` |
+| `org-id`, `bus-id`, `loc-id` | Valid `core_platform` ids |
 
-JWT must be issued by Core Platform with the same `Trovesuite__Jwt__SecretKey`.
+## Troubleshooting
 
-## RBAC
+### `Format of the initialization string does not conform to specification starting at index 0`
 
-Permissions are seeded in production DB via tvs-sqlscript (`permission-zeloshr-*`, `role-subscribed-app-hr-admin`). Users need roles assigned in `core_platform.cp_assign_roles` with matching permissions.
+The Container App is running with **empty** database settings from `appsettings.Production.json` and no overrides. Set at least one of:
 
-## Optional
+- **`App__DatabaseUrl`** — full `postgresql://user:password@host:5432/dbname?sslmode=require` (preferred), or
+- **`App__DbHost`**, **`App__DbName`**, **`App__DbUser`**, **`App__DbPassword`** (and optionally **`App__DbPort`**)
 
-| Setting | Env var | Purpose |
-|---------|---------|---------|
-| Azure storage account name | `Trovesuite__AzureStorage__AccountName` | Trovesuite.Package SAS URLs |
-| Mail | `Trovesuite__Mail__SmtpHost`, `SmtpPort`, `UseSsl` | Defaults in appsettings.Production.json |
-| Log level | `Logging__LogLevel__Default` | `Information` or `Warning` |
+Also set **`Trovesuite__Database__Host`**, **`Trovesuite__Database__Database`**, **`Trovesuite__Database__Username`**, **`Trovesuite__Database__Password`** (same server as `App`; auth reads `core_platform`).
 
-## Verify after deploy
+In Azure Portal: Container App → **Containers** → your container → **Environment variables** (or **Secrets** referenced by env vars). Redeploy is not required after env changes; the revision restarts automatically.
+
+## Verify
 
 ```bash
-# Health of DB pool (if you expose a health route)
-curl -s -o /dev/null -w "%{http_code}\n" https://<container-app-fqdn>/api/v1/navigation \
+curl -s -o /dev/null -w "%{http_code}\n" https://<fqdn>/api/v1/navigation \
   -H "app-id: app-hr" \
-  -H "authorization: Bearer <prod-jwt>" \
+  -H "authorization: Bearer <token>" \
   -H "org-id: <org>" -H "bus-id: <bus>" -H "loc-id: <loc>"
 ```
 
-Expect **200** when JWT, headers, and DB/RBAC are correct; **401** / **403** when auth or permissions fail.
-
-## `az containerapp` env template (prod)
-
-Replace placeholders; store secrets in Container App secret refs.
-
-```bash
-az containerapp update \
-  --name trovesuite-prod-zeloshr-ca \
-  --resource-group "<PROD_RESOURCE_GROUP>" \
-  --set-env-vars \
-    ASPNETCORE_ENVIRONMENT=Production \
-    TrovesuiteIntegration__RequireAuthentication=true \
-    TrovesuiteIntegration__RequireStandardHeaders=true \
-    TrovesuiteIntegration__ValidatePlatformContext=true \
-    App__AppId=app-hr \
-    App__RunDatabaseMigrations=false \
-    App__CorsOrigins="https://<your-admin-ui>" \
-    App__AppUrl="https://<container-app-fqdn>" \
-  --replace-env-vars
-# Add secrets separately: App__DatabaseUrl, Trovesuite__Jwt__SecretKey, AzureStorage__ConnectionString, etc.
-```
-
-See also [CICD.md](CICD.md) for deploy workflow and [TROVESUITE.md](TROVESUITE.md) for auth details.
+See [CICD.md](CICD.md) for deploy workflow and [TROVESUITE.md](TROVESUITE.md) for auth.

@@ -59,18 +59,5 @@ public class DatabaseManager : IDatabaseManager
         }
     }
 
-    private string BuildConnectionString()
-    {
-        if (!string.IsNullOrWhiteSpace(_settings.DatabaseUrl))
-            return _settings.DatabaseUrl;
-
-        return new NpgsqlConnectionStringBuilder
-        {
-            Host = _settings.DbHost ?? "localhost",
-            Port = int.TryParse(_settings.DbPort, out var port) ? port : 5431,
-            Database = _settings.DbName ?? "zeloshrdb",
-            Username = _settings.DbUser ?? "user",
-            Password = _settings.DbPassword ?? "password",
-        }.ConnectionString;
-    }
+    private string BuildConnectionString() => AppConnectionString.Build(_settings);
 }
