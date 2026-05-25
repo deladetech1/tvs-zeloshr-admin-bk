@@ -17,7 +17,13 @@ public class HealthController : ControllerBase
     public async Task<IActionResult> HealthCheck(CancellationToken ct)
     {
         var db = await _database.HealthCheckAsync(ct);
-        return Ok(new { status = "healthy", database = db });
+        return Ok(new
+        {
+            status = "healthy",
+            database = db,
+            build = Environment.GetEnvironmentVariable("BUILD_VERSION")
+                ?? typeof(HealthController).Assembly.GetName().Version?.ToString(),
+        });
     }
 
     [HttpGet("live")]

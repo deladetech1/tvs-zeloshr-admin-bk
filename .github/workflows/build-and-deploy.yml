@@ -189,6 +189,7 @@ jobs:
 
           docker build \
             --build-arg PACKAGES_TOKEN="$PACKAGES_TOKEN" \
+            --build-arg BUILD_VERSION="${{ github.sha }}" \
             -t "${ACR_LOGIN_SERVER}/${{ env.SERVICE_NAME }}:${IMAGE_TAG}" \
             -t "${ACR_LOGIN_SERVER}/${{ env.SERVICE_NAME }}:latest" \
             -f "${{ env.DOCKERFILE_PATH }}" \

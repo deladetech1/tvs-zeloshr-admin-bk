@@ -1,14 +1,13 @@
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace ZelosHR.Api.Middleware;
 
 /// <summary>
-/// Rewrites <c>"openapi": "3.0.4"</c> to <c>3.0.3</c> so bundled Swagger UI can render the spec
-/// (see https://github.com/swagger-api/swagger-ui/issues/10502).
+/// Rewrites OpenAPI 3.0.4+ to 3.0.3 for bundled Swagger UI and disables caching of the spec.
 /// </summary>
-internal sealed class SwaggerOpenApiVersionCompatMiddleware(RequestDelegate next)
+internal sealed partial class SwaggerOpenApiVersionCompatMiddleware(RequestDelegate next)
 {
-    private const string UnsupportedVersion = "\"openapi\": \"3.0.4\"";
     private const string UiCompatibleVersion = "\"openapi\": \"3.0.3\"";
 
     public async Task InvokeAsync(HttpContext context)
@@ -21,6 +20,9 @@ internal sealed class SwaggerOpenApiVersionCompatMiddleware(RequestDelegate next
             await next(context);
             return;
         }
+
+        context.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
+        context.Response.Headers.Pragma = "no-cache";
 
         var originalBody = context.Response.Body;
         await using var buffer = new MemoryStream();
@@ -39,8 +41,7 @@ internal sealed class SwaggerOpenApiVersionCompatMiddleware(RequestDelegate next
 
             using var reader = new StreamReader(buffer, Encoding.UTF8);
             var json = await reader.ReadToEndAsync(context.RequestAborted);
-            if (json.Contains(UnsupportedVersion, StringComparison.Ordinal))
-                json = json.Replace(UnsupportedVersion, UiCompatibleVersion, StringComparison.Ordinal);
+            json = OpenApiVersionRegex().Replace(json, UiCompatibleVersion);
 
             var bytes = Encoding.UTF8.GetBytes(json);
             context.Response.Body = originalBody;
@@ -52,4 +53,7 @@ internal sealed class SwaggerOpenApiVersionCompatMiddleware(RequestDelegate next
             context.Response.Body = originalBody;
         }
     }
+
+    [GeneratedRegex("\"openapi\":\\s*\"3\\.0\\.(?:[4-9]|[1-9]\\d+)\"", RegexOptions.CultureInvariant)]
+    private static partial Regex OpenApiVersionRegex();
 }

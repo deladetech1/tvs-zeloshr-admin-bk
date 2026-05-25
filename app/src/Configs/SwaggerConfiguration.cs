@@ -13,16 +13,20 @@ public static class SwaggerConfiguration
 {
     public const string BearerScheme = AuthConstants.BearerScheme;
 
-    public static IServiceCollection AddZelosHrSwagger(this IServiceCollection services)
+    public static IServiceCollection AddZelosHrSwagger(this IServiceCollection services, IConfiguration configuration)
     {
+        var buildVersion = ResolveBuildVersion(configuration);
+
         services.AddSwaggerGen(options =>
         {
             options.SwaggerDoc("v1", new OpenApiInfo
             {
                 Title = "ZelosHR API",
-                Version = "v1",
-                Description = """
+                Version = $"v1 · build {buildVersion}",
+                Description = $"""
                     Enterprise multi-tenant HR platform API.
+
+                    **Deployed build:** `{buildVersion}` (compare with latest CI image on Container App).
 
                     **Required headers** on every `/api/v1/*` request (exact names, lowercase):
 
@@ -39,8 +43,6 @@ public static class SwaggerConfiguration
                     **Envelope:** `{ success, statusCode, detail, data, pagination?, fieldErrors? }`
 
                     Route map: `GET /api/v1/navigation` · Contracts: `docs/ENTERPRISE_API.md`
-
-                    **Local development:** Bearer JWT and Trove headers (`org_*`, `bus_*`, `loc_*`) are prefilled from `LocalDevelopment` config.
                     """,
                 Contact = new OpenApiContact { Name = "Deladetech — ZelosHR" },
             });
@@ -93,11 +95,13 @@ public static class SwaggerConfiguration
 
         app.UseMiddleware<SwaggerOpenApiVersionCompatMiddleware>();
         app.UseSwagger(options => options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0);
+        var buildVersion = ResolveBuildVersion(app.Configuration);
+
         app.UseSwaggerUI(options =>
         {
-            options.SwaggerEndpoint("/swagger/v1/swagger.json", "ZelosHR API v1");
+            options.SwaggerEndpoint($"/swagger/v1/swagger.json?build={Uri.EscapeDataString(buildVersion)}", "ZelosHR API v1");
             options.RoutePrefix = "swagger";
-            options.DocumentTitle = "ZelosHR API";
+            options.DocumentTitle = $"ZelosHR API · {buildVersion}";
             options.DisplayRequestDuration();
             options.EnablePersistAuthorization();
             options.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.List);
@@ -127,6 +131,19 @@ public static class SwaggerConfiguration
             }
         });
         return app;
+    }
+
+    private static string ResolveBuildVersion(IConfiguration configuration)
+    {
+        var fromEnv = Environment.GetEnvironmentVariable("BUILD_VERSION");
+        if (!string.IsNullOrWhiteSpace(fromEnv))
+            return fromEnv.Trim();
+
+        var fromConfig = configuration[$"{AppSettings.SectionName}:AppVersion"];
+        if (!string.IsNullOrWhiteSpace(fromConfig))
+            return fromConfig.Trim();
+
+        return Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown";
     }
 
     /// <summary>Development-only JSON used by Swagger UI to prefill Trove headers and JWT.</summary>

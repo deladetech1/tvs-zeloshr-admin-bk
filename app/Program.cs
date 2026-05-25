@@ -31,7 +31,7 @@ builder.Services.AddScoped<IEmployeeLookup>(sp => sp.GetRequiredService<Employee
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddZelosHrSwagger();
+builder.Services.AddZelosHrSwagger(builder.Configuration);
 
 builder.Services.AddCors(options =>
 {
@@ -53,11 +53,11 @@ app.UseMiddleware<TrovesuiteAuthMiddleware>();
 app.UseMiddleware<ExceptionHandlerMiddleware>();
 app.UseCors();
 
+app.MapControllers();
 app.UseZelosHrSwagger();
 app.MapZelosHrSwaggerDevBootstrap();
 
 app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
-app.MapControllers();
 
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 try

@@ -73,3 +73,16 @@ In Development, Swagger prefills Trove-style ids from `LocalDevelopment` (same s
 | `loc-id` | `loc_c79fd9a5c53a8eaa82805e63a84da112387743c5dcdff7f7b254c02302c` |
 
 Wrong `bus-id` / `loc-id` / `org-id` returns **403** when `ValidatePlatformContext` is enabled (checks `cp_business_app_locations` and `cp_user_locations`).
+
+## Production (Container App)
+
+Swagger is enabled in **Production** at `/swagger` (same spec as local). The OpenAPI document is generated at request time from the running assembly — it is not a static file checked into git.
+
+If production looks **out of date** compared to local:
+
+1. **Confirm the running build** — open `/swagger` and check the title or `info.version` in `/swagger/v1/swagger.json` for `build <git-sha>`. Compare with the latest successful **Build & Deploy** workflow on `dev`/`main`.
+2. **Hard-refresh** the browser (spec responses use `Cache-Control: no-store`; shift+reload on `/swagger`).
+3. **Confirm the new image is live** — `GET /health` includes `build` (same `BUILD_VERSION` env from CI). After deploy, revision must be healthy (not crash-looping on config).
+4. **Compare route counts** — `GET /api/v1/navigation` and `/swagger/v1/swagger.json` should list the same endpoints (~55 paths). If `paths` is empty, the image was built without **Swashbuckle.AspNetCore 10.x** (see top of this doc).
+
+Production does **not** prefill JWT/headers (Development only). Use a real Trove Bearer token and platform `org-id` / `bus-id` / `loc-id` in **Authorize** / **Try it out**.
