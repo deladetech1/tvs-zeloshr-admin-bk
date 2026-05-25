@@ -4,14 +4,15 @@ set -euo pipefail
 
 cd /src
 
-if [[ -z "${GITHUB_PACKAGES_TOKEN:-}" ]]; then
-  echo "ERROR: GITHUB_PACKAGES_TOKEN is not set (add to app/.env)." >&2
+PKG="${PACKAGES_TOKEN:-}"
+if [[ -z "$PKG" ]]; then
+  echo "ERROR: PACKAGES_TOKEN is not set (add to app/.env — org secret name for Trovesuite.Package)." >&2
   exit 1
 fi
 
 dotnet nuget update source github-deladetech1 \
   --username deladetech1 \
-  --password "${GITHUB_PACKAGES_TOKEN}" \
+  --password "${PKG}" \
   --store-password-in-clear-text \
   --configfile nuget.config
 

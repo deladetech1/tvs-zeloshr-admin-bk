@@ -1,5 +1,5 @@
 # ZelosHR local stack — use ./scripts/compose.sh (see docs/LOCAL_DEV.md).
-# Loads secrets from app/.env (GITHUB_PACKAGES_TOKEN, DB_*, etc.).
+# Loads secrets from app/.env (PACKAGES_TOKEN, DB_*, etc.).
 #
 # Typical flow:
 #   ./scripts/compose.sh test      # unit tests (no DB)
@@ -83,7 +83,7 @@ services:
       context: .
       dockerfile: app/Dockerfile
       args:
-        GITHUB_PACKAGES_TOKEN: ${GITHUB_PACKAGES_TOKEN:-}
+        PACKAGES_TOKEN: ${PACKAGES_TOKEN:-}
     restart: unless-stopped
     ports:
       - "${API_PORT:-8000}:8000"

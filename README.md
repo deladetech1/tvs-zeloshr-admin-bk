@@ -8,7 +8,7 @@
 
 ```bash
 cp app/.env.example app/.env
-# Set GITHUB_PACKAGES_TOKEN in app/.env (read:packages)
+# Set PACKAGES_TOKEN in app/.env (read:packages; same name as org secret)
 # Clone tvs-sqlscript as ../tvs-sqlscript
 
 chmod +x scripts/compose.sh scripts/compose/*.sh
@@ -26,9 +26,9 @@ chmod +x scripts/compose.sh scripts/compose/*.sh
 ```bash
 ./scripts/compose.sh db
 ./scripts/compose.sh migrate
-export GITHUB_PACKAGES_TOKEN=ghp_your_token
+export PACKAGES_TOKEN=ghp_your_token
 dotnet nuget update source github-deladetech1 --username deladetech1 \
-  --password "$GITHUB_PACKAGES_TOKEN" --store-password-in-clear-text --configfile nuget.config
+  --password "$PACKAGES_TOKEN" --store-password-in-clear-text --configfile nuget.config
 cd app && dotnet run
 ```
 

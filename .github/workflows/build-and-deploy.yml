@@ -92,7 +92,7 @@ jobs:
           CID: ${{ secrets.TROVESUITE_AZURE_CLIENT_ID }}
           TID: ${{ secrets.AZURE_TENANT_ID }}
           SID: ${{ steps.env.outputs.subscription_id }}
-          PKG: ${{ secrets.GITHUB_PACKAGES_TOKEN }}
+          PKG: ${{ secrets.PACKAGES_TOKEN }}
         run: |
           echo "branch          = ${{ github.ref_name }}"
           echo "env             = ${{ steps.env.outputs.env }}"
@@ -100,11 +100,12 @@ jobs:
           echo "client-id       length=${#CID}"
           echo "tenant-id       length=${#TID}"
           echo "subscription-id length=${#SID}"
-          echo "github-packages length=${#PKG}"
+          echo "packages-token  length=${#PKG}"
           [[ -z "$CID" ]] && echo "::error::client-id is empty (TROVESUITE_AZURE_CLIENT_ID)" && exit 1
           [[ -z "$TID" ]] && echo "::error::tenant-id is empty (AZURE_TENANT_ID)" && exit 1
           [[ -z "$SID" ]] && echo "::error::subscription-id is empty (TROVESUITE_*_AZURE_SUBSCRIPTION_ID)" && exit 1
-          [[ -z "$PKG" ]] && echo "::error::GITHUB_PACKAGES_TOKEN is empty (PAT with read:packages for Trovesuite.Package)" && exit 1
+          [[ -z "$PKG" ]] && echo "::error::PACKAGES_TOKEN is empty (org secret — PAT with read:packages for Trovesuite.Package)" && exit 1
+          echo "PACKAGES_TOKEN=$PKG" >> "$GITHUB_ENV"
           echo "All required deploy inputs are present."
 
       - name: OIDC subject (must exist in Azure App Registration)
@@ -124,7 +125,6 @@ jobs:
           TROVESUITE_DEV_AZURE_SUBSCRIPTION_ID: ${{ secrets.TROVESUITE_DEV_AZURE_SUBSCRIPTION_ID }}
           TROVESUITE_SHARED_AZURE_SUBSCRIPTION_ID: ${{ secrets.TROVESUITE_SHARED_AZURE_SUBSCRIPTION_ID }}
           PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
-          GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_PACKAGES_TOKEN }}
         run: |
           set -euo pipefail
           echo "=== GitHub context ==="
@@ -147,7 +147,7 @@ jobs:
           echo "subscription_id(step)=${{ steps.env.outputs.subscription_id }}"
           echo ""
           echo "=== Secrets (values masked by GitHub if non-empty) ==="
-          for name in TROVESUITE_AZURE_CLIENT_ID AZURE_TENANT_ID TROVESUITE_PROD_AZURE_SUBSCRIPTION_ID TROVESUITE_DEV_AZURE_SUBSCRIPTION_ID TROVESUITE_SHARED_AZURE_SUBSCRIPTION_ID PACKAGES_TOKEN GITHUB_PACKAGES_TOKEN; do
+          for name in TROVESUITE_AZURE_CLIENT_ID AZURE_TENANT_ID TROVESUITE_PROD_AZURE_SUBSCRIPTION_ID TROVESUITE_DEV_AZURE_SUBSCRIPTION_ID TROVESUITE_SHARED_AZURE_SUBSCRIPTION_ID PACKAGES_TOKEN; do
             val="${!name-}"
             if [[ -z "$val" ]]; then
               echo "${name}=<empty>"
@@ -168,14 +168,12 @@ jobs:
 
       - name: Build and push Docker image
         id: build
-        env:
-          GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_PACKAGES_TOKEN }}
         run: |
           ACR_LOGIN_SERVER="${{ steps.env.outputs.acr_name }}.azurecr.io"
           IMAGE_TAG="${{ github.run_number }}"
 
           docker build \
-            --build-arg GITHUB_PACKAGES_TOKEN="$GITHUB_PACKAGES_TOKEN" \
+            --build-arg PACKAGES_TOKEN="$PACKAGES_TOKEN" \
             -t "${ACR_LOGIN_SERVER}/${{ env.SERVICE_NAME }}:${IMAGE_TAG}" \
             -t "${ACR_LOGIN_SERVER}/${{ env.SERVICE_NAME }}:latest" \
             -f "${{ env.DOCKERFILE_PATH }}" \

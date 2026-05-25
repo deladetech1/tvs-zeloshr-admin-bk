@@ -81,7 +81,7 @@ case "${cmd}" in
   ci)
     compose --profile tools run --rm test
     docker build \
-      --build-arg GITHUB_PACKAGES_TOKEN="${GITHUB_PACKAGES_TOKEN:-}" \
+      --build-arg PACKAGES_TOKEN="${PACKAGES_TOKEN:-}" \
       -f app/Dockerfile \
       .
     ;;

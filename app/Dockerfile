@@ -1,14 +1,14 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-ARG GITHUB_PACKAGES_TOKEN
+ARG PACKAGES_TOKEN
 WORKDIR /src
 
 COPY nuget.config ./
 COPY app/ZelosHR.Api.csproj app/
 
-RUN if [ -n "$GITHUB_PACKAGES_TOKEN" ]; then \
+RUN if [ -n "$PACKAGES_TOKEN" ]; then \
       dotnet nuget update source github-deladetech1 \
         --username deladetech1 \
-        --password "$GITHUB_PACKAGES_TOKEN" \
+        --password "$PACKAGES_TOKEN" \
         --store-password-in-clear-text \
         --configfile nuget.config; \
     fi \

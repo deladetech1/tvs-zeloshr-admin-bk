@@ -5,7 +5,7 @@ All local testing and database setup go through **Docker Compose** and `./script
 ## Prerequisites
 
 1. **Docker** (Compose v2)
-2. **`app/.env`** — copy from `app/.env.example` and set `GITHUB_PACKAGES_TOKEN` (`read:packages`)
+2. **`app/.env`** — copy from `app/.env.example` and set `PACKAGES_TOKEN` (`read:packages`; same name as org secret)
 3. **`tvs-sqlscript`** cloned as a sibling repo:
 
    ```text
@@ -72,7 +72,7 @@ GitHub Actions runs:
 
 ```bash
 ./scripts/compose.sh test
-docker build --build-arg GITHUB_PACKAGES_TOKEN=... -f app/Dockerfile .
+docker build --build-arg PACKAGES_TOKEN=... -f app/Dockerfile .
 ```
 
 DB migrate is **not** run in CI today (unit tests use mocks). Add an integration profile later if needed.
@@ -82,6 +82,6 @@ DB migrate is **not** run in CI today (unit tests use mocks). Add an integration
 | Issue | Fix |
 |-------|-----|
 | `tvs-sqlscript not found` | Clone repo or set `TVS_SQLSCRIPT_PATH` |
-| `GITHUB_PACKAGES_TOKEN is not set` | Add PAT to `app/.env` |
+| `PACKAGES_TOKEN is not set` | Add PAT to `app/.env` as `PACKAGES_TOKEN=` |
 | API 500 / missing column | `./scripts/compose.sh migrate` or `reset` |
 | Port 5431 in use | Change `DB_PORT` in `app/.env` |

@@ -5,6 +5,6 @@
     <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />
     <add key="github-deladetech1" value="https://nuget.pkg.github.com/deladetech1/index.json" />
   </packageSources>
-  <!-- Do not commit credentials. Use GITHUB_PACKAGES_TOKEN in app/.env (Docker) or:
-       dotnet nuget update source github-deladetech1 --username deladetech1 --password "$GITHUB_PACKAGES_TOKEN" --store-password-in-clear-text --configfile nuget.config -->
+  <!-- Do not commit credentials. Use PACKAGES_TOKEN in app/.env (Docker) or:
+       dotnet nuget update source github-deladetech1 --username deladetech1 --password "$PACKAGES_TOKEN" --store-password-in-clear-text --configfile nuget.config -->
 </configuration>

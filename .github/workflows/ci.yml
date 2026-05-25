@@ -43,7 +43,7 @@ jobs:
             echo "::error::Repository secret PACKAGES_TOKEN is required (PAT with read:packages for Trovesuite.Package). See docs/CICD.md"
             exit 1
           fi
-          printf 'GITHUB_PACKAGES_TOKEN=%s\n' "$PKG" >> app/.env
+          printf 'PACKAGES_TOKEN=%s\n' "$PKG" >> app/.env
 
       - name: Unit tests (Docker Compose)
         run: |
@@ -52,9 +52,9 @@ jobs:
 
       - name: Docker build (API)
         env:
-          GITHUB_PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
         run: |
           docker build \
-            --build-arg GITHUB_PACKAGES_TOKEN="$GITHUB_PACKAGES_TOKEN" \
+            --build-arg PACKAGES_TOKEN="$PACKAGES_TOKEN" \
             -f app/Dockerfile \
             .

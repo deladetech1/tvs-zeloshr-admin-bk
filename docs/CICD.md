@@ -43,7 +43,7 @@ Same names as Core Platform if both backends share one Trovesuite subscription.
 ## Local parity with CI
 
 ```bash
-cp app/.env.example app/.env   # set GITHUB_PACKAGES_TOKEN (local Docker) and/or App__DatabaseUrl for shared dev
+cp app/.env.example app/.env   # set PACKAGES_TOKEN (local Docker; same name as org secret) and/or App__DatabaseUrl for shared dev
 ./scripts/compose.sh ci        # test (compose) + docker build
 ```
 

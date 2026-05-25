@@ -15,10 +15,10 @@ ZelosHR uses [Trovesuite.Package](https://github.com/deladetech1/tvs-package-dot
 ## Authenticate NuGet (local)
 
 ```bash
-export GITHUB_PACKAGES_TOKEN=ghp_xxxxxxxx
+export PACKAGES_TOKEN=ghp_xxxxxxxx
 dotnet nuget update source github-deladetech1 \
   --username deladetech1 \
-  --password "$GITHUB_PACKAGES_TOKEN" \
+  --password "$PACKAGES_TOKEN" \
   --store-password-in-clear-text \
   --configfile nuget.config
 ```
@@ -103,17 +103,17 @@ Platform auth also requires `core_platform.cp_login_settings` for the user (see 
 Put the token in **`app/.env`** (same file as DB settings):
 
 ```bash
-GITHUB_PACKAGES_TOKEN=ghp_xxxxxxxx
+PACKAGES_TOKEN=ghp_xxxxxxxx
 ```
 
-Compose only substitutes `${GITHUB_PACKAGES_TOKEN}` from env files you pass in. Point it at `app/.env`:
+Compose only substitutes `${PACKAGES_TOKEN}` from env files you pass in. Point it at `app/.env`:
 
 ```bash
 COMPOSE_ENV_FILES=app/.env docker compose build api
 COMPOSE_ENV_FILES=app/.env docker compose up -d
 ```
 
-Or export once in your shell: `export GITHUB_PACKAGES_TOKEN=ghp_xxx` then `docker compose up -d --build`.
+Or export once in your shell: `export PACKAGES_TOKEN=ghp_xxx` then `docker compose up -d --build`.
 
 ## Configuration
 
