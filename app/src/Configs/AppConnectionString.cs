@@ -16,7 +16,7 @@ internal static class AppConnectionString
                 "Database is not configured. " + ConfigureHint);
         }
 
-        return connectionString;
+        return PostgresConnectionStringParser.Normalize(connectionString);
     }
 
     /// <summary>
@@ -30,7 +30,7 @@ internal static class AppConnectionString
         if (connectionString is null)
             return;
 
-        var builder = new NpgsqlConnectionStringBuilder(connectionString);
+        var builder = PostgresConnectionStringParser.Parse(connectionString);
         configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Trovesuite:Database:Host"] = builder.Host,
