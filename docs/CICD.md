@@ -10,7 +10,9 @@ Workflows:
 | `dev` | dev | `trovesuite-dev-zeloshr-ca` | `trovesuite-dev-zeloshr-func` | `{DEV_ACR}.azurecr.io/zeloshr:{run}` |
 | `main` | prod | `trovesuite-prod-zeloshr-ca` | `trovesuite-prod-zeloshr-func` | `{PROD_ACR}.azurecr.io/zeloshr:{run}` |
 
-Create these Azure resources (or rename the workflow outputs to match your naming) before the first deploy.
+Create these Azure resources before the first deploy (mirror **MyStoreGuard** naming: `trovesuite-dev-mystoreguard-ca` / `trovesuite-dev-mystoreguard-func`).
+
+If a resource is missing, the workflow **still builds and pushes the image to ACR** but **skips** deploy with a warning (job stays green).
 
 ## Repository secrets
 
@@ -51,7 +53,7 @@ See [LOCAL_DEV.md](LOCAL_DEV.md) for migrate, dev stack, and reset.
 
 ## Production runtime config
 
-After the image is deployed, configure the Container App environment variables (secrets + non-secrets). Full list: [PRODUCTION_CONFIG.md](PRODUCTION_CONFIG.md). Base JSON: [`app/appsettings.Production.json`](../app/appsettings.Production.json).
+After the image is deployed, set Container App secrets to override empty values in [`app/appsettings.Production.json`](../app/appsettings.Production.json). Full key list: [APPCONFIG.md](APPCONFIG.md), deploy checklist: [PRODUCTION_CONFIG.md](PRODUCTION_CONFIG.md).
 
 Functions publish (same as CI):
 
