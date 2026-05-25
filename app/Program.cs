@@ -7,6 +7,8 @@ using ZelosHR.Api.Shared.Tenant;
 
 var builder = WebApplication.CreateBuilder(args);
 
+AppConnectionString.SyncTrovesuiteDatabase(builder.Configuration);
+
 builder.Services.Configure<AppSettings>(builder.Configuration.GetSection(AppSettings.SectionName));
 builder.Services.Configure<TrovesuiteIntegrationOptions>(
     builder.Configuration.GetSection(TrovesuiteIntegrationOptions.SectionName));
@@ -35,8 +37,10 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        var origins = builder.Configuration["CORS_ORIGINS"]?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            ?? ["http://localhost:3000"];
+        var cors = builder.Configuration[$"{AppSettings.SectionName}:CorsOrigins"];
+        var origins = string.IsNullOrWhiteSpace(cors)
+            ? ["http://localhost:3000"]
+            : cors.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         policy.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
     });
 });

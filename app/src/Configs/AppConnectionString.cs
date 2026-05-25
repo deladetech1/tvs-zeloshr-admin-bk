@@ -5,33 +5,39 @@ namespace ZelosHR.Api.Configs;
 internal static class AppConnectionString
 {
     private const string ConfigureHint =
-        "Set App__DatabaseUrl (postgresql://… with sslmode=require) or App__DbHost, App__DbName, App__DbUser, and App__DbPassword on the Container App. See docs/PRODUCTION_CONFIG.md.";
+        "Set App__ConnectionString to a PostgreSQL URI, e.g. postgresql://user:password@host:5432/dbname?sslmode=require. See docs/PRODUCTION_CONFIG.md.";
 
     internal static string Build(AppSettings settings)
     {
-        var databaseUrl = NullIfWhiteSpace(settings.DatabaseUrl);
-        if (databaseUrl is not null)
-            return databaseUrl;
-
-        var host = NullIfWhiteSpace(settings.DbHost);
-        var database = NullIfWhiteSpace(settings.DbName);
-        var username = NullIfWhiteSpace(settings.DbUser);
-        var password = settings.DbPassword;
-
-        if (host is null && database is null && username is null && string.IsNullOrEmpty(password))
+        var connectionString = NullIfWhiteSpace(settings.ConnectionString);
+        if (connectionString is null)
         {
             throw new InvalidOperationException(
-                "Database is not configured for Production. " + ConfigureHint);
+                "Database is not configured. " + ConfigureHint);
         }
 
-        return new NpgsqlConnectionStringBuilder
+        return connectionString;
+    }
+
+    /// <summary>
+    /// Copies <see cref="AppSettings.ConnectionString"/> into Trovesuite:Database:* for Trovesuite.Package.
+    /// </summary>
+    internal static void SyncTrovesuiteDatabase(ConfigurationManager configuration)
+    {
+        var connectionString = NullIfWhiteSpace(
+            configuration[$"{AppSettings.SectionName}:ConnectionString"]);
+        if (connectionString is null)
+            return;
+
+        var builder = new NpgsqlConnectionStringBuilder(connectionString);
+        configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            Host = host ?? "localhost",
-            Port = int.TryParse(settings.DbPort, out var port) ? port : 5432,
-            Database = database ?? "zeloshrdb",
-            Username = username ?? "user",
-            Password = password ?? "password",
-        }.ConnectionString;
+            ["Trovesuite:Database:Host"] = builder.Host,
+            ["Trovesuite:Database:Port"] = builder.Port.ToString(),
+            ["Trovesuite:Database:Database"] = builder.Database,
+            ["Trovesuite:Database:Username"] = builder.Username,
+            ["Trovesuite:Database:Password"] = builder.Password,
+        });
     }
 
     private static string? NullIfWhiteSpace(string? value) =>

@@ -31,8 +31,7 @@ The `api` service must reach Postgres for **both** ZelosHR queries and Trovesuit
 
 | Env override | Purpose |
 |--------------|---------|
-| `App__DbHost=db` | ZelosHR `DatabaseManager` |
-| `Trovesuite__Database__Host=db` | `IAuthService` / platform tables in `core_platform` |
+| `App__ConnectionString` | PostgreSQL URI (ZelosHR + Trovesuite auth; Docker default in `appsettings.Docker.json`) |
 | `Trovesuite__Jwt__SecretKey` | Must be **≥ 32 characters** for HS256 (IdentityModel v8) |
 
 Local testing: deploy `tvs-sqlscript` for schema + RBAC seeds only, insert your own `cp_*` / `zhr_*` rows (or use a shared dev DB), then call APIs with Trove standard headers matching those rows (see below).

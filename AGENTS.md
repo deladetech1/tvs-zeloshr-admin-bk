@@ -11,9 +11,7 @@ This repo (**ZelosHR.Api**) does **not** own production schema. Do **not** add o
 | Change type | Where to implement (tvs-sqlscript) |
 |-------------|-----------------------------------|
 | New table / column / index | `Entities/` + `Configurations/` + `dotnet ef migrations add` in `Trovesuite.Database.HumanResource` |
-| RBAC resource types | `Sql/Seeds/01_resource_types.sql` (embedded in .NET project) |
-| RBAC permissions | `Sql/Seeds/02_permissions.sql` |
-| RBAC roles | `Sql/Seeds/03_roles.sql` |
+| RBAC resource types, permissions, roles | `Seeds/HumanResourceRbacSeedData.cs` (EF seeder) |
 | Demo / sprint **data rows** | **Not** in tvs-sqlscript — insert locally or use shared dev/staging DB |
 | Platform HR link (`human_resource.hr_employees`) | EF entity `Employee` + existing `Initial` migration |
 
@@ -28,9 +26,11 @@ tvs-sqlscript/src/Trovesuite.Database.HumanResource/
 ├── Migrations/            # EF Core migrations (source of truth for DDL)
 │   ├── 20260516195150_Initial.cs
 │   └── 20260520095923_ZelosHrAppTables.cs
-├── Sql/Seeds/             # RBAC reference data only (embedded SQL)
+├── Seeds/                 # RBAC reference data (EF seeder)
 └── HumanResourceModule.cs
 ```
+
+**ZelosHR.Api runtime config:** `app/appsettings.json` and environment-specific files — see `docs/APPCONFIG.md`. Do not rely on loose env vars not documented there.
 
 **Schemas:**
 

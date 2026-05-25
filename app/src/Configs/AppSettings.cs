@@ -4,12 +4,10 @@ public class AppSettings
 {
     public const string SectionName = "App";
 
-    public string? DatabaseUrl { get; set; }
-    public string? DbHost { get; set; }
-    public string? DbPort { get; set; }
-    public string? DbName { get; set; }
-    public string? DbUser { get; set; }
-    public string? DbPassword { get; set; }
+    /// <summary>
+    /// PostgreSQL URI, e.g. postgresql://user:password@host:5432/dbname?sslmode=require
+    /// </summary>
+    public string? ConnectionString { get; set; }
 
     public bool Debug { get; set; }
     public string AppName { get; set; } = "ZelosHR API";
