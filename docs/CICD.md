@@ -36,8 +36,9 @@ Same names as Core Platform if both backends share one Trovesuite subscription.
 ## Path filters
 
 - **API image** rebuilds on `app/**`, `nuget.config`, or workflow changes.
-- **Functions** deploy on `func/**` or workflow changes.
-- **`workflow_dispatch`** runs both jobs regardless of paths.
+- **Functions** deploy only on `func/**` changes (workflow edits alone do **not** trigger Functions).
+- **`workflow_dispatch`**: choose **Deploy Container App** and/or **Deploy Functions** (Functions default off).
+- If the Function App does not exist in Azure (`trovesuite-dev-zeloshr-func` / `trovesuite-prod-zeloshr-func`), the workflow **skips** Functions deploy with a warning instead of failing.
 
 ## Local parity with CI
 
@@ -47,6 +48,10 @@ cp app/.env.example app/.env   # set GITHUB_PACKAGES_TOKEN (local Docker) and/or
 ```
 
 See [LOCAL_DEV.md](LOCAL_DEV.md) for migrate, dev stack, and reset.
+
+## Production runtime config
+
+After the image is deployed, configure the Container App environment variables (secrets + non-secrets). Full list: [PRODUCTION_CONFIG.md](PRODUCTION_CONFIG.md). Base JSON: [`app/appsettings.Production.json`](../app/appsettings.Production.json).
 
 Functions publish (same as CI):
 

@@ -11,6 +11,15 @@ on:
       - "nuget.config"
       - ".github/workflows/build-and-deploy.yml"
   workflow_dispatch:
+    inputs:
+      deploy_container_app:
+        description: Deploy Container App (API image)
+        type: boolean
+        default: true
+      deploy_functions:
+        description: Deploy Azure Functions (requires Function App in Azure)
+        type: boolean
+        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -47,12 +56,11 @@ jobs:
               - '.github/workflows/build-and-deploy.yml'
             func:
               - 'func/**'
-              - '.github/workflows/build-and-deploy.yml'
 
   build-and-deploy-app:
     name: Build & Deploy Container App
     needs: detect-changes
-    if: needs.detect-changes.outputs.app_changed == 'true' || github.event_name == 'workflow_dispatch'
+    if: needs.detect-changes.outputs.app_changed == 'true' || (github.event_name == 'workflow_dispatch' && inputs.deploy_container_app)
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -188,7 +196,7 @@ jobs:
   deploy-functions:
     name: Deploy Azure Functions
     needs: detect-changes
-    if: needs.detect-changes.outputs.func_changed == 'true' || github.event_name == 'workflow_dispatch'
+    if: needs.detect-changes.outputs.func_changed == 'true' || (github.event_name == 'workflow_dispatch' && inputs.deploy_functions)
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -211,15 +219,6 @@ jobs:
             echo "function_app_name=trovesuite-dev-zeloshr-func" >> "$GITHUB_OUTPUT"
             echo "resource_group=${{ vars.DEV_RESOURCE_GROUP }}" >> "$GITHUB_OUTPUT"
           fi
-
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "8.0.x"
-
-      - name: Publish Functions (.NET isolated)
-        run: |
-          dotnet restore func/ZelosHR.Functions.csproj
-          dotnet publish func/ZelosHR.Functions.csproj -c Release -o ./func-publish
 
       - name: Sanity-check OIDC inputs
         env:
@@ -285,7 +284,33 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ steps.env.outputs.subscription_id }}
 
+      - name: Verify Function App exists in Azure
+        id: funcapp
+        run: |
+          NAME="${{ steps.env.outputs.function_app_name }}"
+          RG="${{ steps.env.outputs.resource_group }}"
+          if az functionapp show --name "$NAME" --resource-group "$RG" --query id -o tsv 2>/dev/null | grep -q .; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Function App $NAME found in $RG"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Skipping Functions deploy — $NAME does not exist in $RG."
+            echo "Create the Function App in Azure, then re-run with func/** changes or workflow_dispatch + deploy_functions."
+          fi
+
+      - uses: actions/setup-dotnet@v4
+        if: steps.funcapp.outputs.exists == 'true'
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Publish Functions (.NET isolated)
+        if: steps.funcapp.outputs.exists == 'true'
+        run: |
+          dotnet restore func/ZelosHR.Functions.csproj
+          dotnet publish func/ZelosHR.Functions.csproj -c Release -o ./func-publish
+
       - name: Deploy Azure Functions
+        if: steps.funcapp.outputs.exists == 'true'
         uses: azure/functions-action@v1
         with:
           app-name: ${{ steps.env.outputs.function_app_name }}
