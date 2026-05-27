@@ -5,6 +5,15 @@ public interface IBranchRepository
     Task<IReadOnlyList<BranchListRow>> ListScopedAsync(
         string tenantId, string orgId, bool includeArchived, CancellationToken ct = default);
 
+    Task<(IReadOnlyList<BranchListRow> Items, int Total)> ListPagedScopedAsync(
+        string tenantId,
+        string orgId,
+        string? search,
+        bool includeArchived,
+        int page,
+        int pageSize,
+        CancellationToken ct = default);
+
     Task<Guid> CreateScopedAsync(
         string tenantId, string orgId, string name, CancellationToken ct = default);
 

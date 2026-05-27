@@ -1,13 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Shared;
+using ZelosHR.Api.Shared.Constants;
 using ZelosHR.Api.Shared.Tenant;
 
 namespace ZelosHR.Api.Entities.LifecycleEvents;
 
-/// <summary>Employee lifecycle events — list, create, update, delete.</summary>
 [ApiController]
-[ApiExplorerSettings(GroupName = SwaggerGroups.LifecycleEvents)]
+[ApiExplorerSettings(GroupName = SwaggerGroups.LifecycleEvents, IgnoreApi = true)]
 [Route("api/v1/lifecycle-events")]
 [Produces("application/json")]
 public class LifecycleEventsController : ControllerBase
@@ -21,15 +21,15 @@ public class LifecycleEventsController : ControllerBase
         _tenant = tenant;
     }
 
-    [HttpGet("summary")]
-    public async Task<ActionResult<Respons<LifecycleEventSummaryDto>>> Summary(CancellationToken ct)
+    [HttpGet("statistics")]
+    public async Task<ActionResult<Respons<LifecycleEventSummaryDto>>> Statistics(CancellationToken ct)
     {
         var ctx = _tenant.Current;
         var result = await _service.GetSummaryAsync(ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpGet]
+    [HttpGet("list")]
     public async Task<ActionResult<Respons<LifecycleEventListDto>>> List(
         [FromQuery] string? search,
         [FromQuery] string? eventType,
@@ -45,37 +45,44 @@ public class LifecycleEventsController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpGet("{id:guid}")]
-    public async Task<ActionResult<Respons<LifecycleEventListItemDto>>> Get(Guid id, CancellationToken ct)
+    [HttpGet("get")]
+    public async Task<ActionResult<Respons<LifecycleEventListItemDto>>> Get(
+        [FromQuery(Name = PlatformQueryParams.LifecycleEventId)] Guid lifecycleEventId,
+        CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.GetByIdAsync(id, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.GetByIdAsync(lifecycleEventId, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpPost]
+    [HttpPost("add")]
     public async Task<ActionResult<Respons<LifecycleEventListItemDto>>> Create(
-        [FromBody] CreateLifecycleEventDto body, CancellationToken ct)
+        [FromBody] CreateLifecycleEventDto body,
+        CancellationToken ct)
     {
         var ctx = _tenant.Current;
         var result = await _service.CreateAsync(body, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpPatch("{id:guid}")]
+    [HttpPut("update")]
     public async Task<ActionResult<Respons<LifecycleEventListItemDto>>> Update(
-        Guid id, [FromBody] UpdateLifecycleEventDto body, CancellationToken ct)
+        [FromQuery(Name = PlatformQueryParams.LifecycleEventId)] Guid lifecycleEventId,
+        [FromBody] UpdateLifecycleEventDto body,
+        CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.UpdateAsync(id, body, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.UpdateAsync(lifecycleEventId, body, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpDelete("{id:guid}")]
-    public async Task<ActionResult<Respons<object>>> Delete(Guid id, CancellationToken ct)
+    [HttpDelete("delete")]
+    public async Task<ActionResult<Respons<object>>> Delete(
+        [FromQuery(Name = PlatformQueryParams.LifecycleEventId)] Guid lifecycleEventId,
+        CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.DeleteAsync(id, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.DeleteAsync(lifecycleEventId, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 }

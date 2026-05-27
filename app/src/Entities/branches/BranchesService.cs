@@ -1,4 +1,5 @@
 using ZelosHR.Api.Entities.Shared;
+using ZelosHR.Api.Shared.Pagination;
 
 namespace ZelosHR.Api.Entities.Branches;
 
@@ -11,10 +12,15 @@ public class BranchesService
     public async Task<Respons<BranchListDto>> ListBranchesAsync(
         string tenantId,
         string orgId,
-        bool includeArchived = false,
+        string? search,
+        bool includeArchived,
+        int page,
+        int size,
         CancellationToken ct = default)
     {
-        var rows = await _branches.ListScopedAsync(tenantId, orgId, includeArchived, ct);
+        var paging = PagedQuery.From(page, size);
+        var (rows, total) = await _branches.ListPagedScopedAsync(
+            tenantId, orgId, search, includeArchived, paging.Page, paging.Size, ct);
         var items = rows.Select(r => new BranchListItemDto
         {
             BranchId = r.Id.ToString(),
@@ -23,6 +29,14 @@ public class BranchesService
             IsArchived = r.IsArchived,
         }).ToList();
 
-        return Respons<BranchListDto>.Ok(new BranchListDto { Items = items });
+        return Respons<BranchListDto>.Ok(
+            new BranchListDto { Items = items },
+            pagination: new PaginationMeta
+            {
+                Page = paging.Page,
+                Size = paging.Size,
+                Total = total,
+                HasNext = paging.Offset + items.Count < total,
+            });
     }
 }

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ZelosHR.Api.Configs;
 using Microsoft.Extensions.Options;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Persistence.Repositories;
@@ -143,8 +144,8 @@ public sealed class TroveRequestHeadersMiddleware
         return context.Response.WriteAsync(JsonSerializer.Serialize(new
         {
             success = false,
-            statusCode,
+            status_code = statusCode,
             error = message,
-        }));
+        }, PlatformJson.SerializerOptions));
     }
 }

@@ -7,9 +7,11 @@ See [ENTERPRISE_API.md](ENTERPRISE_API.md) for the full CRUD matrix and [GET /ap
 | Item | Rule |
 |------|------|
 | Auth | `authorization: Bearer <JWT>` plus `app-id`, `bus-id`, `loc-id`, `org-id` on every `/api/v1/*` request |
-| Envelope | `{ success, statusCode, detail, data, pagination?, fieldErrors? }` |
-| Updates | `PATCH` with partial JSON bodies |
-| Deletes | `DELETE` — employees soft-delete; departments/branches archive |
+| Envelope | `{ success, status_code, detail, data, pagination?, field_errors? }` (snake_case — [MYSTOREGUARD_API_CONFORMANCE.md](MYSTOREGUARD_API_CONFORMANCE.md)) |
+| Resource IDs | Query params only (`employee_id`, `department_id`, …) — **no** `{id}` path segments |
+| Updates | `PUT` with partial JSON bodies |
+| Deletes | `DELETE /{module}/delete?{resource}_id=` — employees soft-delete; departments/branches archive |
+| KPIs | `GET /{module}/statistics` (not `summary` on the public surface) |
 
 ---
 
@@ -17,16 +19,21 @@ See [ENTERPRISE_API.md](ENTERPRISE_API.md) for the full CRUD matrix and [GET /ap
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| GET | `/directory/summary` | KPI cards |
+| GET | `/statistics` | Directory KPIs |
 | GET | `/directory` | Table (search, filters, pagination) |
 | GET | `/directory/filter-options` | Dropdown values |
-| GET | `/` | Simple list |
-| GET | `/{id}` | Full profile + employment |
-| POST | `/` | Create (Pre-hire) |
-| PATCH | `/{id}` | Update personal fields |
-| PATCH | `/{id}/employment` | Job title, dept, branch, manager, status |
-| PATCH | `/{id}/lifecycle-state` | State transition |
-| DELETE | `/{id}` | Soft delete |
+| GET | `/list` | Platform list |
+| GET | `/get?employee_id=` | Aggregate read |
+| GET | `/detail?employee_id=` | Flat profile DTO |
+| POST | `/add` | Create (aggregate body) |
+| PUT | `/update?employee_id=` | Update personal fields |
+| PUT | `/employment/update?employee_id=` | Job title, dept, branch, manager, status |
+| PUT | `/lifecycle-state/update?employee_id=` | State transition |
+| DELETE | `/delete?employee_id=` | Soft delete |
+
+Wizard (draft flow): `POST /draft`, `PUT /personal-contact/update?employee_id=`, `PUT /employment-details/update?employee_id=`, `PUT /compensation/update?employee_id=`, `POST /finalise?employee_id=`, etc.
+
+Sub-resources use the same `employee_id` query param: `GET /education/list`, `PUT /education/update?employee_id=&education_id=`, …
 
 ---
 
@@ -34,44 +41,48 @@ See [ENTERPRISE_API.md](ENTERPRISE_API.md) for the full CRUD matrix and [GET /ap
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| GET | `/summary` | Tab counts |
+| GET | `/statistics` | Tab counts |
 | GET | `/departments` | Department table |
-| POST | `/departments` | Create department |
-| PATCH | `/departments/{id}` | Update department |
-| DELETE | `/departments/{id}` | Archive |
+| POST | `/departments/add` | Create department |
+| PUT | `/departments/update?department_id=` | Update department |
+| DELETE | `/departments/delete?department_id=` | Archive |
 | GET | `/branches` | Branch list |
-| POST | `/branches` | Create branch |
-| PATCH | `/branches/{id}` | Rename branch |
-| DELETE | `/branches/{id}` | Archive |
+| POST | `/branches/add` | Create branch |
+| PUT | `/branches/update?branch_id=` | Rename branch |
+| DELETE | `/branches/delete?branch_id=` | Archive |
 | GET | `/chart` | Nested org chart |
 
 ---
 
 ## Lifecycle & audit
 
-| Module | Write routes |
-|--------|----------------|
-| Lifecycle | `POST /`, `PATCH /{id}`, `DELETE /{id}` |
-| Audit | Read-only: `GET /`, `GET /{id}` |
+| Module | Pattern |
+|--------|---------|
+| Lifecycle | `GET /statistics`, `GET /list`, `GET /get?lifecycle_event_id=`, `POST /add`, `PUT /update?lifecycle_event_id=`, `DELETE /delete?lifecycle_event_id=` |
+| Audit | Read-only list/get + `GET /statistics` |
 
 ---
 
 ## Operations modules
 
-Each module follows: `GET /summary`, `GET /`, `GET /{id}`, `POST /`, `PATCH /{id}`, `DELETE /{id}`.
+Each module: `GET /statistics`, `GET /list`, `GET /get?{resource}_id=`, `POST /add`, `PUT /update?{resource}_id=`, `DELETE /delete?{resource}_id=`.
 
-| Module | Base path | Notes |
-|--------|-----------|--------|
-| Attendance | `/attendance` | Clock times as `HH:mm` strings on create |
-| Leave | `/leave` | Requests under `/requests` |
-| Recruitment | `/recruitment` | Job postings |
-| Onboarding | `/onboarding` | Per-employee tasks |
-| Performance | `/performance` | Review cycles |
-| Disciplinary | `/disciplinary` | Cases |
-| Documents | `/documents` | Metadata only until file upload sprint |
+| Module | Base path | Resource id param |
+|--------|-----------|-------------------|
+| Attendance | `/attendance` | `attendance_id` |
+| Leave | `/leave` | `leave_request_id` |
+| Recruitment | `/recruitment` | `recruitment_id` |
+| Onboarding | `/onboarding` | `onboarding_id` |
+| Performance | `/performance` | `performance_id` |
+| Disciplinary | `/disciplinary` | `disciplinary_id` |
+| Documents | `/documents` | `document_id` |
+| Custom fields | `/custom-fields` | `custom_field_id` |
+| Dashboard | `/dashboard` | — (`GET /statistics` only) |
 
 ---
 
-## Dashboard
+## Breaking changes (Mystoreguard alignment)
 
-`GET /dashboard` and `GET /dashboard/summary` — aggregated KPIs (read-only).
+- No `PATCH` — use `PUT …/update?…`
+- No path UUIDs — use `?employee_id=` (etc.)
+- Public KPI route is `/statistics`, not `/summary`

@@ -29,7 +29,25 @@ builder.Services.AddEntityServices();
 builder.Services.AddScoped<IEmployeesService>(sp => sp.GetRequiredService<EmployeesService>());
 builder.Services.AddScoped<IEmployeeLookup>(sp => sp.GetRequiredService<EmployeesService>());
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = PlatformJson.SerializerOptions.PropertyNamingPolicy;
+        options.JsonSerializerOptions.DictionaryKeyPolicy = PlatformJson.SerializerOptions.DictionaryKeyPolicy;
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive =
+            PlatformJson.SerializerOptions.PropertyNameCaseInsensitive;
+        options.JsonSerializerOptions.DefaultIgnoreCondition =
+            PlatformJson.SerializerOptions.DefaultIgnoreCondition;
+    });
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.PropertyNamingPolicy = PlatformJson.SerializerOptions.PropertyNamingPolicy;
+    options.SerializerOptions.DictionaryKeyPolicy = PlatformJson.SerializerOptions.DictionaryKeyPolicy;
+    options.SerializerOptions.PropertyNameCaseInsensitive =
+        PlatformJson.SerializerOptions.PropertyNameCaseInsensitive;
+    options.SerializerOptions.DefaultIgnoreCondition =
+        PlatformJson.SerializerOptions.DefaultIgnoreCondition;
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddZelosHrSwagger(builder.Configuration);
 

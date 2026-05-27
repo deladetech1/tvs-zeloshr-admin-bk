@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ZelosHR.Api.Configs;
 using Microsoft.Extensions.Options;
 using Trovesuite.Package.Auth;
 using ZelosHR.Api.Configs;
@@ -52,7 +53,7 @@ public class TrovesuiteAuthMiddleware
             _logger.LogWarning("Trovesuite auth failed: {Error}", result.Error);
             context.Response.StatusCode = result.StatusCode > 0 ? result.StatusCode : StatusCodes.Status401Unauthorized;
             context.Response.ContentType = "application/json";
-            await context.Response.WriteAsync(JsonSerializer.Serialize(result));
+            await context.Response.WriteAsync(JsonSerializer.Serialize(result, PlatformJson.SerializerOptions));
             return;
         }
 
@@ -88,8 +89,8 @@ public class TrovesuiteAuthMiddleware
         return context.Response.WriteAsync(JsonSerializer.Serialize(new
         {
             success = false,
-            statusCode = 401,
+            status_code = 401,
             error = message,
-        }));
+        }, PlatformJson.SerializerOptions));
     }
 }

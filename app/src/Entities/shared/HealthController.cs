@@ -5,7 +5,7 @@ namespace ZelosHR.Api.Entities.Shared;
 
 /// <summary>Liveness and readiness probes (no tenant headers).</summary>
 [ApiController]
-[ApiExplorerSettings(GroupName = SwaggerGroups.Health)]
+[ApiExplorerSettings(GroupName = SwaggerGroups.Health, IgnoreApi = true)]
 [Route("health")]
 public class HealthController : ControllerBase
 {

@@ -2,11 +2,11 @@ using Microsoft.AspNetCore.Mvc;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Shared.Authorization;
+using ZelosHR.Api.Shared.Constants;
 using ZelosHR.Api.Shared.Tenant;
 
 namespace ZelosHR.Api.Entities.CustomFields;
 
-/// <summary>Custom field definitions — admin CRUD, filterable list, form schema, audit log.</summary>
 [ApiController]
 [ApiExplorerSettings(GroupName = SwaggerGroups.CustomFields)]
 [Route("api/v1/custom-fields")]
@@ -22,17 +22,15 @@ public class CustomFieldsController : ControllerBase
         _tenant = tenant;
     }
 
-    /// <summary>Counts of definitions (total, active, soft-deleted).</summary>
-    [HttpGet("summary")]
+    [HttpGet("statistics")]
     [RequiresZelosHrPermission(ZelosHrPermissions.CustomFieldsGet)]
-    public async Task<ActionResult<Respons<CustomFieldsSummaryDto>>> Summary(CancellationToken ct)
+    public async Task<ActionResult<Respons<CustomFieldsSummaryDto>>> Statistics(CancellationToken ct)
     {
         var ctx = _tenant.Current;
         var result = await _service.GetSummaryAsync(ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Supported <c>entity_type</c> values for definitions.</summary>
     [HttpGet("entity-types")]
     [RequiresZelosHrPermission(ZelosHrPermissions.CustomFieldsGet)]
     public async Task<ActionResult<Respons<IReadOnlyList<string>>>> EntityTypes(CancellationToken ct)
@@ -41,22 +39,18 @@ public class CustomFieldsController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Active field definitions for forms (ordered by section and display order).</summary>
     [HttpGet("schema")]
     [RequiresZelosHrPermission(ZelosHrPermissions.CustomFieldsGet)]
     public async Task<ActionResult<Respons<CustomFieldSchemaDto>>> Schema(
-        [FromQuery] string entityType, CancellationToken ct)
+        [FromQuery] string entityType,
+        CancellationToken ct)
     {
         var ctx = _tenant.Current;
         var result = await _service.GetSchemaAsync(entityType, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>
-    /// Paginated list with filters on all definition properties:
-    /// search, entityType, fieldKey, label, fieldType, flags, sectionName, includeDeleted, sortBy, sortOrder.
-    /// </summary>
-    [HttpGet]
+    [HttpGet("list")]
     [RequiresZelosHrPermission(ZelosHrPermissions.CustomFieldsGet)]
     public async Task<ActionResult<Respons<CustomFieldDefinitionListDto>>> List(
         [FromQuery] string? search,
@@ -101,7 +95,6 @@ public class CustomFieldsController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Value change history for custom fields on host entities.</summary>
     [HttpGet("audit-logs")]
     [RequiresZelosHrPermission(ZelosHrPermissions.CustomFieldValuesGet)]
     public async Task<ActionResult<Respons<CustomFieldAuditLogListDto>>> AuditLogs(
@@ -123,51 +116,59 @@ public class CustomFieldsController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpPatch("reorder")]
+    [HttpPut("reorder")]
     [RequiresZelosHrPermission(ZelosHrPermissions.CustomFieldsAdmin)]
     public async Task<ActionResult<Respons<object>>> Reorder(
-        [FromBody] ReorderCustomFieldDefinitionDto body, CancellationToken ct)
+        [FromBody] ReorderCustomFieldDefinitionDto body,
+        CancellationToken ct)
     {
         var ctx = _tenant.Current;
         var result = await _service.ReorderAsync(body, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpGet("{id:guid}")]
+    [HttpGet("get")]
     [RequiresZelosHrPermission(ZelosHrPermissions.CustomFieldsGet)]
-    public async Task<ActionResult<Respons<CustomFieldDefinitionDto>>> Get(Guid id, CancellationToken ct)
+    public async Task<ActionResult<Respons<CustomFieldDefinitionDto>>> Get(
+        [FromQuery(Name = PlatformQueryParams.CustomFieldId)] Guid customFieldId,
+        CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.GetByIdAsync(id, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.GetByIdAsync(customFieldId, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpPost]
+    [HttpPost("add")]
     [RequiresZelosHrPermission(ZelosHrPermissions.CustomFieldsCreate)]
     public async Task<ActionResult<Respons<CustomFieldDefinitionDto>>> Create(
-        [FromBody] CreateCustomFieldDefinitionDto body, CancellationToken ct)
+        [FromBody] CreateCustomFieldDefinitionDto body,
+        CancellationToken ct)
     {
         var ctx = _tenant.Current;
         var result = await _service.CreateAsync(body, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpPatch("{id:guid}")]
+    [HttpPut("update")]
     [RequiresZelosHrPermission(ZelosHrPermissions.CustomFieldsUpdate)]
     public async Task<ActionResult<Respons<CustomFieldDefinitionDto>>> Update(
-        Guid id, [FromBody] UpdateCustomFieldDefinitionDto body, CancellationToken ct)
+        [FromQuery(Name = PlatformQueryParams.CustomFieldId)] Guid customFieldId,
+        [FromBody] UpdateCustomFieldDefinitionDto body,
+        CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.UpdateAsync(id, body, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.UpdateAsync(customFieldId, body, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpDelete("{id:guid}")]
+    [HttpDelete("delete")]
     [RequiresZelosHrPermission(ZelosHrPermissions.CustomFieldsDelete)]
-    public async Task<ActionResult<Respons<object>>> Delete(Guid id, CancellationToken ct)
+    public async Task<ActionResult<Respons<object>>> Delete(
+        [FromQuery(Name = PlatformQueryParams.CustomFieldId)] Guid customFieldId,
+        CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.DeleteAsync(id, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.DeleteAsync(customFieldId, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 }

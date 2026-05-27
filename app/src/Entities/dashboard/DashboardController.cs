@@ -7,7 +7,7 @@ namespace ZelosHR.Api.Entities.Dashboard;
 
 /// <summary>Executive dashboard KPIs and recent activity (read-only).</summary>
 [ApiController]
-[ApiExplorerSettings(GroupName = SwaggerGroups.Dashboard)]
+[ApiExplorerSettings(GroupName = SwaggerGroups.Dashboard, IgnoreApi = true)]
 [Route("api/v1/dashboard")]
 [Produces("application/json")]
 public class DashboardController : ControllerBase
@@ -29,8 +29,8 @@ public class DashboardController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpGet("summary")]
-    public async Task<ActionResult<Respons<DashboardSummaryDto>>> Summary(CancellationToken ct)
+    [HttpGet("statistics")]
+    public async Task<ActionResult<Respons<DashboardSummaryDto>>> Statistics(CancellationToken ct)
     {
         var ctx = _tenant.Current;
         var result = await _service.GetDashboardAsync(ctx.TenantId, ctx.OrgId, ct);

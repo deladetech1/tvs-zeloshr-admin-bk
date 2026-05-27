@@ -15,13 +15,13 @@ public class BranchesServiceTests
     public async Task ListBranches_maps_repository_rows()
     {
         var branchId = Guid.NewGuid();
-        _repo.ListScopedAsync("t1", "o1", false, Arg.Any<CancellationToken>())
-            .Returns(new List<BranchListRow>
+        _repo.ListPagedScopedAsync("t1", "o1", null, false, 1, 20, Arg.Any<CancellationToken>())
+            .Returns((new List<BranchListRow>
             {
                 new(branchId, "Accra", 5, false),
-            });
+            }, 1));
 
-        var result = await _sut.ListBranchesAsync("t1", "o1");
+        var result = await _sut.ListBranchesAsync("t1", "o1", null, false, 1, 20);
 
         result.Success.Should().BeTrue();
         result.Data!.Items.Should().ContainSingle(i =>

@@ -35,8 +35,14 @@ public class OrgStructureService
         _departments.ListDepartmentsAsync(search, sortBy, sortOrder, includeArchived, page, size, tenantId, orgId, ct);
 
     public Task<Respons<BranchListDto>> ListBranchesAsync(
-        string tenantId, string orgId, bool includeArchived, CancellationToken ct) =>
-        _branches.ListBranchesAsync(tenantId, orgId, includeArchived, ct);
+        string? search,
+        bool includeArchived,
+        int page,
+        int size,
+        string tenantId,
+        string orgId,
+        CancellationToken ct) =>
+        _branches.ListBranchesAsync(tenantId, orgId, search, includeArchived, page, size, ct);
 
     public async Task<Respons<OrgChartDto>> GetOrgChartAsync(
         string tenantId, string orgId, CancellationToken ct = default)

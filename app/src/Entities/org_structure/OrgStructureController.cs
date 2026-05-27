@@ -3,13 +3,13 @@ using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Branches;
 using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Shared;
+using ZelosHR.Api.Shared.Constants;
 using ZelosHR.Api.Shared.Tenant;
 
 namespace ZelosHR.Api.Entities.OrgStructure;
 
-/// <summary>Departments, branches, org chart — full CRUD (archive on delete).</summary>
 [ApiController]
-[ApiExplorerSettings(GroupName = SwaggerGroups.Organisation)]
+[ApiExplorerSettings(GroupName = SwaggerGroups.Organisation, IgnoreApi = true)]
 [Route("api/v1/org-structure")]
 [Produces("application/json")]
 public class OrgStructureController : ControllerBase
@@ -23,8 +23,8 @@ public class OrgStructureController : ControllerBase
         _tenant = tenant;
     }
 
-    [HttpGet("summary")]
-    public async Task<ActionResult<Respons<OrganisationSummaryDto>>> Summary(CancellationToken ct)
+    [HttpGet("statistics")]
+    public async Task<ActionResult<Respons<OrganisationSummaryDto>>> Statistics(CancellationToken ct)
     {
         var ctx = _tenant.Current;
         var result = await _service.GetSummaryAsync(ctx.TenantId, ctx.OrgId, ct);
@@ -49,15 +49,18 @@ public class OrgStructureController : ControllerBase
 
     [HttpGet("branches")]
     public async Task<ActionResult<Respons<BranchListDto>>> Branches(
+        [FromQuery] string? search,
         [FromQuery] bool includeArchived = false,
+        [FromQuery] int page = 1,
+        [FromQuery] int size = 20,
         CancellationToken ct = default)
     {
         var ctx = _tenant.Current;
-        var result = await _service.ListBranchesAsync(ctx.TenantId, ctx.OrgId, includeArchived, ct);
+        var result = await _service.ListBranchesAsync(
+            search, includeArchived, page, size, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Hierarchical org chart for "View org chart" (nested departments).</summary>
     [HttpGet("chart")]
     public async Task<ActionResult<Respons<OrgChartDto>>> Chart(CancellationToken ct)
     {
@@ -66,7 +69,7 @@ public class OrgStructureController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpPost("departments")]
+    [HttpPost("departments/add")]
     public async Task<ActionResult<Respons<CreateDepartmentResponseDto>>> CreateDepartment(
         [FromBody] CreateDepartmentRequestDto body,
         CancellationToken ct)
@@ -76,46 +79,55 @@ public class OrgStructureController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpPatch("departments/{id:guid}")]
+    [HttpPut("departments/update")]
     public async Task<ActionResult<Respons<CreateDepartmentResponseDto>>> UpdateDepartment(
-        Guid id, [FromBody] UpdateDepartmentRequestDto body, CancellationToken ct)
+        [FromQuery(Name = PlatformQueryParams.DepartmentId)] Guid departmentId,
+        [FromBody] UpdateDepartmentRequestDto body,
+        CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.UpdateDepartmentAsync(id, body, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.UpdateDepartmentAsync(departmentId, body, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpDelete("departments/{id:guid}")]
-    public async Task<ActionResult<Respons<object>>> ArchiveDepartment(Guid id, CancellationToken ct)
+    [HttpDelete("departments/delete")]
+    public async Task<ActionResult<Respons<object>>> ArchiveDepartment(
+        [FromQuery(Name = PlatformQueryParams.DepartmentId)] Guid departmentId,
+        CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.ArchiveDepartmentAsync(id, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.ArchiveDepartmentAsync(departmentId, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpPost("branches")]
+    [HttpPost("branches/add")]
     public async Task<ActionResult<Respons<BranchMutationResponseDto>>> CreateBranch(
-        [FromBody] CreateBranchRequestDto body, CancellationToken ct)
+        [FromBody] CreateBranchRequestDto body,
+        CancellationToken ct)
     {
         var ctx = _tenant.Current;
         var result = await _service.CreateBranchAsync(body, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpPatch("branches/{id:guid}")]
+    [HttpPut("branches/update")]
     public async Task<ActionResult<Respons<BranchMutationResponseDto>>> UpdateBranch(
-        Guid id, [FromBody] UpdateBranchRequestDto body, CancellationToken ct)
+        [FromQuery(Name = PlatformQueryParams.BranchId)] Guid branchId,
+        [FromBody] UpdateBranchRequestDto body,
+        CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.UpdateBranchAsync(id, body, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.UpdateBranchAsync(branchId, body, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpDelete("branches/{id:guid}")]
-    public async Task<ActionResult<Respons<object>>> ArchiveBranch(Guid id, CancellationToken ct)
+    [HttpDelete("branches/delete")]
+    public async Task<ActionResult<Respons<object>>> ArchiveBranch(
+        [FromQuery(Name = PlatformQueryParams.BranchId)] Guid branchId,
+        CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.ArchiveBranchAsync(id, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.ArchiveBranchAsync(branchId, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 }

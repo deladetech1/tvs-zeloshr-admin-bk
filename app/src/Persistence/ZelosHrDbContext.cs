@@ -90,6 +90,7 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
             // Match tvs-sqlscript migration column names (snake_case convention would produce tier2_pension_provider).
             b.Property(x => x.Tier2PensionProvider).HasColumnName("tier2pension_provider");
             b.Property(x => x.Tier3PensionProvider).HasColumnName("tier3pension_provider");
+            b.Property(x => x.CustomFieldsData).HasColumnType("jsonb").HasDefaultValue("{}");
             b.HasOne(x => x.Department).WithMany().HasForeignKey(x => x.DepartmentId);
             b.HasOne(x => x.Branch).WithMany().HasForeignKey(x => x.BranchId);
             b.HasOne(x => x.Manager).WithMany().HasForeignKey(x => x.ManagerId);

@@ -10,6 +10,8 @@ public sealed class EmployeeDirectoryQuery
     public Guid? DepartmentId { get; init; }
     public Guid? BranchId { get; init; }
     public string? EmploymentType { get; init; }
+    public string? LifecycleState { get; init; }
+    public string? WorkLocation { get; init; }
     public string? Status { get; init; }
     public string SortBy { get; init; } = "name";
     public string SortOrder { get; init; } = "asc";
@@ -76,6 +78,18 @@ public static class EmployeeDirectoryQueryBuilder
             parameters["EmploymentType"] = query.EmploymentType.Trim();
         }
 
+        if (!string.IsNullOrWhiteSpace(query.LifecycleState))
+        {
+            conditions.Add("e.lifecycle_state = @LifecycleState");
+            parameters["LifecycleState"] = query.LifecycleState.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.WorkLocation))
+        {
+            conditions.Add("e.work_location ILIKE @WorkLocation");
+            parameters["WorkLocation"] = $"%{query.WorkLocation.Trim()}%";
+        }
+
         if (!string.IsNullOrWhiteSpace(query.Status))
         {
             conditions.Add("e.employment_status = @EmploymentStatus");
@@ -134,6 +148,15 @@ public static class EmployeeDirectoryQueryBuilder
 
         if (!string.IsNullOrWhiteSpace(directoryQuery.EmploymentType))
             query = query.Where(e => e.EmploymentType == directoryQuery.EmploymentType.Trim());
+
+        if (!string.IsNullOrWhiteSpace(directoryQuery.LifecycleState))
+            query = query.Where(e => e.LifecycleState == directoryQuery.LifecycleState.Trim());
+
+        if (!string.IsNullOrWhiteSpace(directoryQuery.WorkLocation))
+        {
+            var loc = directoryQuery.WorkLocation.Trim();
+            query = query.Where(e => e.WorkLocation != null && EF.Functions.ILike(e.WorkLocation, $"%{loc}%"));
+        }
 
         if (!string.IsNullOrWhiteSpace(directoryQuery.Status))
             query = query.Where(e => e.EmploymentStatus == directoryQuery.Status.Trim());

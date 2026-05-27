@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
+using ZelosHR.Api.Configs;
 
 namespace ZelosHR.Api.Entities.Shared;
 
@@ -9,6 +10,7 @@ public sealed class NavigationService(IApiDescriptionGroupCollectionProvider api
         var endpointsByGroup = apiDescriptions.ApiDescriptionGroups.Items
             .SelectMany(g => g.Items)
             .Where(d => !string.IsNullOrWhiteSpace(d.RelativePath))
+            .Where(d => SwaggerGroups.IsVisibleInSwagger(d.GroupName))
             .GroupBy(d => d.GroupName ?? "default", StringComparer.OrdinalIgnoreCase)
             .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
             .ToList();

@@ -1,13 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Shared;
+using ZelosHR.Api.Shared.Constants;
 using ZelosHR.Api.Shared.Tenant;
 
 namespace ZelosHR.Api.Entities.Attendance;
 
-/// <summary>Daily attendance records — clock-in/out, status, hours.</summary>
 [ApiController]
-[ApiExplorerSettings(GroupName = SwaggerGroups.Attendance)]
+[ApiExplorerSettings(GroupName = SwaggerGroups.Attendance, IgnoreApi = true)]
 [Route("api/v1/attendance")]
 [Produces("application/json")]
 public class AttendanceController : ControllerBase
@@ -21,16 +21,19 @@ public class AttendanceController : ControllerBase
         _tenant = tenant;
     }
 
-    [HttpGet("summary")]
-    public async Task<ActionResult<Respons<AttendanceSummaryDto>>> Summary(
-        [FromQuery] DateOnly? date, CancellationToken ct)
+    [HttpGet("statistics")]
+    public async Task<ActionResult<Respons<AttendanceSummaryDto>>> Statistics(
+        [FromQuery] DateOnly? date,
+        [FromQuery(Name = "from_date")] DateOnly? fromDate,
+        [FromQuery(Name = "to_date")] DateOnly? toDate,
+        CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.GetSummaryAsync(ctx.TenantId, ctx.OrgId, date, ct);
+        var result = await _service.GetSummaryAsync(ctx.TenantId, ctx.OrgId, date ?? fromDate, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpGet]
+    [HttpGet("list")]
     public async Task<ActionResult<Respons<AttendanceListDto>>> List(
         [FromQuery] string? search,
         [FromQuery] string? status,
@@ -46,37 +49,44 @@ public class AttendanceController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpGet("{id:guid}")]
-    public async Task<ActionResult<Respons<AttendanceListItemDto>>> Get(Guid id, CancellationToken ct)
+    [HttpGet("get")]
+    public async Task<ActionResult<Respons<AttendanceListItemDto>>> Get(
+        [FromQuery(Name = PlatformQueryParams.AttendanceId)] Guid attendanceId,
+        CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.GetByIdAsync(id, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.GetByIdAsync(attendanceId, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpPost]
+    [HttpPost("add")]
     public async Task<ActionResult<Respons<AttendanceListItemDto>>> Create(
-        [FromBody] CreateAttendanceDto body, CancellationToken ct)
+        [FromBody] CreateAttendanceDto body,
+        CancellationToken ct)
     {
         var ctx = _tenant.Current;
         var result = await _service.CreateAsync(body, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpPatch("{id:guid}")]
+    [HttpPut("update")]
     public async Task<ActionResult<Respons<AttendanceListItemDto>>> Update(
-        Guid id, [FromBody] UpdateAttendanceDto body, CancellationToken ct)
+        [FromQuery(Name = PlatformQueryParams.AttendanceId)] Guid attendanceId,
+        [FromBody] UpdateAttendanceDto body,
+        CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.UpdateAsync(id, body, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.UpdateAsync(attendanceId, body, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpDelete("{id:guid}")]
-    public async Task<ActionResult<Respons<object>>> Delete(Guid id, CancellationToken ct)
+    [HttpDelete("delete")]
+    public async Task<ActionResult<Respons<object>>> Delete(
+        [FromQuery(Name = PlatformQueryParams.AttendanceId)] Guid attendanceId,
+        CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.DeleteAsync(id, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.DeleteAsync(attendanceId, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 }

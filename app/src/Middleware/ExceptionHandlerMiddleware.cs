@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Shared;
 
 namespace ZelosHR.Api.Middleware;
@@ -25,7 +26,7 @@ public class ExceptionHandlerMiddleware
             _logger.LogInformation("ResponseException: {Message}", ex.Message);
             context.Response.StatusCode = ex.Response.StatusCode;
             context.Response.ContentType = "application/json";
-            await context.Response.WriteAsync(JsonSerializer.Serialize(ex.Response));
+            await context.Response.WriteAsync(JsonSerializer.Serialize(ex.Response, PlatformJson.SerializerOptions));
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -56,6 +57,6 @@ public class ExceptionHandlerMiddleware
     {
         context.Response.StatusCode = body.StatusCode;
         context.Response.ContentType = "application/json";
-        await context.Response.WriteAsync(JsonSerializer.Serialize(body));
+        await context.Response.WriteAsync(JsonSerializer.Serialize(body, PlatformJson.SerializerOptions));
     }
 }

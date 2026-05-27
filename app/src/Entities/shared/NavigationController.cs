@@ -6,7 +6,7 @@ namespace ZelosHR.Api.Entities.Shared;
 
 /// <summary>Machine-readable route map for frontends (from OpenAPI / API explorer).</summary>
 [ApiController]
-[ApiExplorerSettings(GroupName = SwaggerGroups.Discovery)]
+[ApiExplorerSettings(GroupName = SwaggerGroups.Discovery, IgnoreApi = true)]
 [Route("api/v1/navigation")]
 public class NavigationController : ControllerBase
 {

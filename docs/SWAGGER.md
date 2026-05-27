@@ -5,6 +5,8 @@
 
 Configuration lives in `app/src/Configs/SwaggerConfiguration.cs`.
 
+**Platform JSON:** responses use **snake_case** (`status_code`, `has_next`, `field_errors`) to match Mystoreguard — see [MYSTOREGUARD_API_CONFORMANCE.md](MYSTOREGUARD_API_CONFORMANCE.md).
+
 **Package:** `Swashbuckle.AspNetCore` **10.x** (required for .NET 10 — older 6.x produces an empty `paths` object).
 
 ## Required headers (Trove standard)
@@ -27,9 +29,11 @@ Tenant scope is taken from the JWT claim `tenant_id` (read without DB validation
 
 ## What Swagger includes
 
+**Current sprint scope:** only **Employees** and **Custom Fields** appear in Swagger. Other controllers stay in the codebase with `[ApiExplorerSettings(IgnoreApi = true)]` and are excluded via `SwaggerGroups.VisibleInSwagger` — remove `IgnoreApi` and add the group to that set when a module ships.
+
 | Feature | Description |
 |---------|-------------|
-| **Tags** | One group per HR module |
+| **Tags** | Employees · Custom Fields (active); other modules hidden |
 | **Bearer JWT** | Authorize — sets `authorization: Bearer …` |
 | **Trove headers** | `app-id`, `bus-id`, `loc-id`, `org-id` on each operation (pre-filled for local demo) |
 | **Standard errors** | 400, 401, 404, 409, 500 |

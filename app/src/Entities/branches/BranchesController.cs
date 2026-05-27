@@ -7,7 +7,7 @@ namespace ZelosHR.Api.Entities.Branches;
 
 /// <summary>Legacy branches list — prefer <c>/api/v1/org-structure/branches</c> for writes.</summary>
 [ApiController]
-[ApiExplorerSettings(GroupName = SwaggerGroups.OrganisationLegacy)]
+[ApiExplorerSettings(GroupName = SwaggerGroups.OrganisationLegacy, IgnoreApi = true)]
 [Route("api/v1/branches")]
 [Produces("application/json")]
 public class BranchesController : ControllerBase
@@ -21,14 +21,18 @@ public class BranchesController : ControllerBase
         _tenant = tenant;
     }
 
-    [HttpGet]
+    [HttpGet("list")]
     [ProducesResponseType(typeof(Respons<BranchListDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<BranchListDto>>> List(
+        [FromQuery] string? search,
         [FromQuery] bool includeArchived = false,
+        [FromQuery] int page = 1,
+        [FromQuery] int size = 20,
         CancellationToken ct = default)
     {
         var ctx = _tenant.Current;
-        var result = await _service.ListBranchesAsync(ctx.TenantId, ctx.OrgId, includeArchived, ct);
+        var result = await _service.ListBranchesAsync(
+            ctx.TenantId, ctx.OrgId, search, includeArchived, page, size, ct);
         return StatusCode(result.StatusCode, result);
     }
 }

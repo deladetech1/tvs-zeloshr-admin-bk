@@ -417,6 +417,7 @@ public sealed class EmployeeRegistrationService
     {
         e.JobTitle = dto.JobTitle ?? e.JobTitle;
         e.DepartmentId = dto.DepartmentId ?? e.DepartmentId;
+        e.BranchId = dto.BranchId ?? e.BranchId;
         e.EmploymentType = dto.EmploymentType ?? e.EmploymentType;
         e.WorkArrangement = dto.WorkArrangement ?? e.WorkArrangement;
         e.WorkLocation = dto.WorkLocation ?? e.WorkLocation;

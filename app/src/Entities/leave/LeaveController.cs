@@ -1,13 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Shared;
+using ZelosHR.Api.Shared.Constants;
 using ZelosHR.Api.Shared.Tenant;
 
 namespace ZelosHR.Api.Entities.Leave;
 
-/// <summary>Leave requests and balances — CRUD under <c>/requests</c>.</summary>
 [ApiController]
-[ApiExplorerSettings(GroupName = SwaggerGroups.Leave)]
+[ApiExplorerSettings(GroupName = SwaggerGroups.Leave, IgnoreApi = true)]
 [Route("api/v1/leave")]
 [Produces("application/json")]
 public class LeaveController : ControllerBase
@@ -21,15 +21,15 @@ public class LeaveController : ControllerBase
         _tenant = tenant;
     }
 
-    [HttpGet("summary")]
-    public async Task<ActionResult<Respons<LeaveSummaryDto>>> Summary(CancellationToken ct)
+    [HttpGet("statistics")]
+    public async Task<ActionResult<Respons<LeaveSummaryDto>>> Statistics(CancellationToken ct)
     {
         var ctx = _tenant.Current;
         var result = await _service.GetSummaryAsync(ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpGet]
+    [HttpGet("requests/list")]
     public async Task<ActionResult<Respons<LeaveListDto>>> List(
         [FromQuery] string? search,
         [FromQuery] string? status,
@@ -44,37 +44,44 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpGet("requests/{id:guid}")]
-    public async Task<ActionResult<Respons<LeaveRequestListItemDto>>> GetRequest(Guid id, CancellationToken ct)
+    [HttpGet("requests/get")]
+    public async Task<ActionResult<Respons<LeaveRequestListItemDto>>> GetRequest(
+        [FromQuery(Name = PlatformQueryParams.LeaveRequestId)] Guid leaveRequestId,
+        CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.GetRequestByIdAsync(id, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.GetRequestByIdAsync(leaveRequestId, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpPost("requests")]
+    [HttpPost("requests/add")]
     public async Task<ActionResult<Respons<LeaveRequestListItemDto>>> CreateRequest(
-        [FromBody] CreateLeaveRequestDto body, CancellationToken ct)
+        [FromBody] CreateLeaveRequestDto body,
+        CancellationToken ct)
     {
         var ctx = _tenant.Current;
         var result = await _service.CreateRequestAsync(body, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpPatch("requests/{id:guid}")]
+    [HttpPut("requests/update")]
     public async Task<ActionResult<Respons<LeaveRequestListItemDto>>> UpdateRequest(
-        Guid id, [FromBody] UpdateLeaveRequestDto body, CancellationToken ct)
+        [FromQuery(Name = PlatformQueryParams.LeaveRequestId)] Guid leaveRequestId,
+        [FromBody] UpdateLeaveRequestDto body,
+        CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.UpdateRequestAsync(id, body, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.UpdateRequestAsync(leaveRequestId, body, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpDelete("requests/{id:guid}")]
-    public async Task<ActionResult<Respons<object>>> DeleteRequest(Guid id, CancellationToken ct)
+    [HttpDelete("requests/delete")]
+    public async Task<ActionResult<Respons<object>>> DeleteRequest(
+        [FromQuery(Name = PlatformQueryParams.LeaveRequestId)] Guid leaveRequestId,
+        CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.DeleteRequestAsync(id, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.DeleteRequestAsync(leaveRequestId, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 }

@@ -3,6 +3,16 @@ namespace ZelosHR.Api.Configs;
 /// <summary>Swagger UI tag names — keep in sync with <see cref="SwaggerConfiguration"/>.</summary>
 public static class SwaggerGroups
 {
+    /// <summary>Modules documented in Swagger UI (sprint scope). All others use <c>IgnoreApi</c>.</summary>
+    public static readonly HashSet<string> VisibleInSwagger = new(StringComparer.Ordinal)
+    {
+        Employees,
+        CustomFields,
+    };
+
+    public static bool IsVisibleInSwagger(string? groupName) =>
+        groupName is { Length: > 0 } && VisibleInSwagger.Contains(groupName);
+
     public const string Discovery = "Discovery";
     public const string Health = "Health";
     public const string Dashboard = "Dashboard";

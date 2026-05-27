@@ -7,7 +7,7 @@ namespace ZelosHR.Api.Entities.Departments;
 
 /// <summary>Legacy departments list — prefer <c>/api/v1/org-structure</c> for writes.</summary>
 [ApiController]
-[ApiExplorerSettings(GroupName = SwaggerGroups.OrganisationLegacy)]
+[ApiExplorerSettings(GroupName = SwaggerGroups.OrganisationLegacy, IgnoreApi = true)]
 [Route("api/v1/departments")]
 [Produces("application/json")]
 public class DepartmentsController : ControllerBase
@@ -21,16 +21,21 @@ public class DepartmentsController : ControllerBase
         _tenant = tenant;
     }
 
-    [HttpGet("summary")]
+    [HttpGet("statistics")]
     [ProducesResponseType(typeof(Respons<OrganisationSummaryDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<Respons<OrganisationSummaryDto>>> Summary(CancellationToken ct)
+    public async Task<ActionResult<Respons<OrganisationSummaryDto>>> Statistics(CancellationToken ct)
     {
         var ctx = _tenant.Current;
         var result = await _service.GetSummaryAsync(ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpGet]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    [HttpGet("summary")]
+    public Task<ActionResult<Respons<OrganisationSummaryDto>>> Summary(CancellationToken ct) =>
+        Statistics(ct);
+
+    [HttpGet("list")]
     [ProducesResponseType(typeof(Respons<DepartmentListDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<DepartmentListDto>>> List(
         [FromQuery] string? search,

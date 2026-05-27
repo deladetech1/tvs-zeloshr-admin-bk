@@ -156,8 +156,8 @@ Registration endpoints use `[RequiresZelosHrPermission]` with `permission-zelosh
 | Step | API | Platform |
 |------|-----|----------|
 | 1 | `POST .../draft` | Optional link to existing `cp_users` (`existingUserId`); else HR shell only |
-| 2 | `PATCH .../personal-contact` | When `workEmail` is set: create/update `cp_users` + link `user_id`; identity columns cleared on employee row |
-| 3 | `PATCH .../employment-details`, compensation | HR fields on `zhr_employees` only |
+| 2 | `PUT .../personal-contact/update?employee_id=` | When `workEmail` is set: create/update `cp_users` + link `user_id`; identity columns cleared on employee row |
+| 3 | `PUT .../employment-details/update`, compensation | HR fields on `zhr_employees` only |
 | 4 | `POST .../finalise` | Ensures `hr_employees` + pre-hire; provisions if step 2 was skipped but `workEmail` is present |
 
 Profile photo upload writes `cp_users.profile_pic` (requires `user_id` from step 2).

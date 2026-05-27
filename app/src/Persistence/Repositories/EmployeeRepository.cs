@@ -112,6 +112,45 @@ public sealed class EmployeeRepository(ZelosHrDbContext db) : IEmployeeRepositor
         return (items, total);
     }
 
+    public async Task<(IReadOnlyList<EmployeeEntity> Items, int TotalCount)> ListScopedAsync(
+        EmployeeListQuery listQuery,
+        string tenantId,
+        string orgId,
+        int page,
+        int pageSize,
+        CancellationToken ct = default)
+    {
+        var directoryQuery = new EmployeeDirectoryQuery
+        {
+            Search = listQuery.Search,
+            DepartmentId = listQuery.DepartmentId,
+            BranchId = listQuery.BranchId,
+            EmploymentType = listQuery.EmploymentType,
+            LifecycleState = listQuery.LifecycleState,
+            WorkLocation = listQuery.WorkLocation,
+            Status = listQuery.EmploymentStatus,
+            IncludeInactive = listQuery.IncludeInactive,
+            SortBy = listQuery.SortBy,
+            SortOrder = listQuery.SortOrder,
+        };
+
+        var query = db.Employees.AsNoTracking()
+            .Include(e => e.Department)
+            .Include(e => e.Branch)
+            .Where(e => e.TenantId == tenantId && e.OrgId == orgId && !e.IsDeleted);
+
+        query = EmployeeDirectoryQueryBuilder.ApplyFilters(query, directoryQuery);
+
+        var total = await query.CountAsync(ct);
+        var ordered = EmployeeDirectoryQueryBuilder.ApplySort(query, listQuery.SortBy, listQuery.SortOrder);
+        var items = await ordered
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        return (items, total);
+    }
+
     public async Task<EmployeeEntity> AddAsync(EmployeeEntity entity, CancellationToken ct = default)
     {
         entity.CreatedAt = DateTimeOffset.UtcNow;

@@ -1,13 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Shared;
+using ZelosHR.Api.Shared.Constants;
 using ZelosHR.Api.Shared.Tenant;
 
 namespace ZelosHR.Api.Entities.AuditLogs;
 
-/// <summary>Audit trail — read-only (GET list and GET by id).</summary>
 [ApiController]
-[ApiExplorerSettings(GroupName = SwaggerGroups.AuditLogs)]
+[ApiExplorerSettings(GroupName = SwaggerGroups.AuditLogs, IgnoreApi = true)]
 [Route("api/v1/audit-logs")]
 [Produces("application/json")]
 public class AuditLogsController : ControllerBase
@@ -21,15 +21,15 @@ public class AuditLogsController : ControllerBase
         _tenant = tenant;
     }
 
-    [HttpGet("summary")]
-    public async Task<ActionResult<Respons<AuditLogSummaryDto>>> Summary(CancellationToken ct)
+    [HttpGet("statistics")]
+    public async Task<ActionResult<Respons<AuditLogSummaryDto>>> Statistics(CancellationToken ct)
     {
         var ctx = _tenant.Current;
         var result = await _service.GetSummaryAsync(ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpGet]
+    [HttpGet("list")]
     public async Task<ActionResult<Respons<AuditLogListDto>>> List(
         [FromQuery] string? search,
         [FromQuery] string? action,
@@ -45,11 +45,13 @@ public class AuditLogsController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpGet("{id:guid}")]
-    public async Task<ActionResult<Respons<AuditLogListItemDto>>> Get(Guid id, CancellationToken ct)
+    [HttpGet("get")]
+    public async Task<ActionResult<Respons<AuditLogListItemDto>>> Get(
+        [FromQuery(Name = PlatformQueryParams.AuditLogId)] Guid auditLogId,
+        CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.GetByIdAsync(id, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.GetByIdAsync(auditLogId, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 }

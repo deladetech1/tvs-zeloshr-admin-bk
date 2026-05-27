@@ -40,9 +40,13 @@ public static class SwaggerConfiguration
 
                     Tenant scope comes from the JWT claim `tenant_id` (or legacy `X-Tenant-Id` when header enforcement is off).
 
-                    **Envelope:** `{ success, statusCode, detail, data, pagination?, fieldErrors? }`
+                    **Envelope (snake_case JSON, Mystoreguard-aligned):** `{ success, status_code, detail, data, pagination?, field_errors? }`
 
-                    Route map: `GET /api/v1/navigation` · Contracts: `docs/ENTERPRISE_API.md`
+                    Platform-style employee routes: `POST …/employees/add`, `GET …/employees/list`, `GET …/employees/get?employee_id=`
+
+                    **Documented modules (Swagger):** Employees, Custom Fields only. Other modules remain in code but are hidden until their sprint ships.
+
+                    Route map: `GET /api/v1/navigation` · Conformance: `docs/MYSTOREGUARD_API_CONFORMANCE.md`
                     """,
                 Contact = new OpenApiContact { Name = "Deladetech — ZelosHR" },
             });
@@ -63,7 +67,8 @@ public static class SwaggerConfiguration
                 [new OpenApiSecuritySchemeReference(BearerScheme, document)] = [],
             });
 
-            options.DocInclusionPredicate((docName, _) => docName == "v1");
+            options.DocInclusionPredicate((docName, apiDesc) =>
+                docName == "v1" && SwaggerGroups.IsVisibleInSwagger(apiDesc.GroupName));
 
             options.OperationFilter<TroveStandardHeadersOperationFilter>();
             options.OperationFilter<StandardResponsesOperationFilter>();
@@ -79,6 +84,7 @@ public static class SwaggerConfiguration
             });
             options.OrderActionsBy(api => api.RelativePath ?? string.Empty);
             options.CustomSchemaIds(type => type.FullName?.Replace('+', '.') ?? type.Name);
+            options.UseSystemTextJson(PlatformJson.SerializerOptions);
 
             var xml = Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml");
             if (File.Exists(xml))
@@ -186,6 +192,7 @@ public static class SwaggerConfiguration
     private static string MapControllerTag(string controller) => controller switch
     {
         "Employees" => SwaggerGroups.Employees,
+        "EmployeesPlatform" => SwaggerGroups.Employees,
         "OrgStructure" => SwaggerGroups.Organisation,
         "Departments" => SwaggerGroups.OrganisationLegacy,
         "Branches" => SwaggerGroups.OrganisationLegacy,

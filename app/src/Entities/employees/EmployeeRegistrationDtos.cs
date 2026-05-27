@@ -17,6 +17,7 @@ public sealed record CreateEmployeeRequest
     public string? ResidentialAddress { get; init; }
     public string? JobTitle { get; init; }
     public Guid? DepartmentId { get; init; }
+    public Guid? BranchId { get; init; }
     public string? EmploymentType { get; init; }
     public string? WorkArrangement { get; init; }
     public string? WorkLocation { get; init; }

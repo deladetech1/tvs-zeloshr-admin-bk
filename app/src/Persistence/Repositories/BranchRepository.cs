@@ -31,6 +31,44 @@ public sealed class BranchRepository(ZelosHrDbContext db) : IBranchRepository
             .ToListAsync(ct);
     }
 
+    public async Task<(IReadOnlyList<BranchListRow> Items, int Total)> ListPagedScopedAsync(
+        string tenantId,
+        string orgId,
+        string? search,
+        bool includeArchived,
+        int page,
+        int pageSize,
+        CancellationToken ct = default)
+    {
+        var query = Scoped(tenantId, orgId);
+        if (!includeArchived)
+            query = query.Where(b => !b.IsArchived);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var pattern = $"%{search.Trim()}%";
+            query = query.Where(b => EF.Functions.ILike(b.Name, pattern));
+        }
+
+        var total = await query.CountAsync(ct);
+        var items = await query
+            .OrderBy(b => b.Name)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(b => new BranchListRow(
+                b.Id,
+                b.Name,
+                db.Employees.Count(e =>
+                    e.BranchId == b.Id
+                    && e.TenantId == tenantId
+                    && e.OrgId == orgId
+                    && !e.IsDeleted),
+                b.IsArchived))
+            .ToListAsync(ct);
+
+        return (items, total);
+    }
+
     public async Task<Guid> CreateScopedAsync(
         string tenantId, string orgId, string name, CancellationToken ct = default)
     {

@@ -9,7 +9,7 @@ namespace ZelosHR.Api.Entities.Platform;
 
 /// <summary>Trovesuite auth, email, and storage integration endpoints.</summary>
 [ApiController]
-[ApiExplorerSettings(GroupName = SwaggerGroups.TrovesuitePlatform)]
+[ApiExplorerSettings(GroupName = SwaggerGroups.TrovesuitePlatform, IgnoreApi = true)]
 [Route("api/v1/platform")]
 [Produces("application/json")]
 public class TrovesuitePlatformController : ControllerBase

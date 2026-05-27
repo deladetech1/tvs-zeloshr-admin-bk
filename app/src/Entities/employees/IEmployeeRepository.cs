@@ -20,6 +20,14 @@ public interface IEmployeeRepository : IRepository<EmployeeEntity, Guid>
     Task<(IReadOnlyList<EmployeeEntity> Items, int TotalCount)> GetPagedScopedAsync(
         string tenantId, string orgId, int page, int pageSize, CancellationToken ct = default);
 
+    Task<(IReadOnlyList<EmployeeEntity> Items, int TotalCount)> ListScopedAsync(
+        EmployeeListQuery query,
+        string tenantId,
+        string orgId,
+        int page,
+        int pageSize,
+        CancellationToken ct = default);
+
     Task<(IReadOnlyList<EmployeeEntity> Items, int TotalCount)> SearchScopedAsync(
         string? nameQuery,
         Guid? departmentId,
