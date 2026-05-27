@@ -40,7 +40,7 @@ public static class SwaggerConfiguration
 
                     Tenant scope comes from the JWT claim `tenant_id` (or legacy `X-Tenant-Id` when header enforcement is off).
 
-                    **Envelope (snake_case JSON, Mystoreguard-aligned):** `{{ success, status_code, detail, data, pagination?, field_errors? }}`
+                    **Envelope (snake_case JSON, Mystoreguard-aligned):** success, status_code, detail, data, pagination, field_errors
 
                     Platform-style employee routes: `POST …/employees/add`, `GET …/employees/list`, `GET …/employees/get?employee_id=`
 
