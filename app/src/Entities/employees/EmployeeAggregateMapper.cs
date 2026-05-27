@@ -47,6 +47,54 @@ internal static class EmployeeAggregateMapper
             Finalise = string.Equals(aggregate.Status, "finalised", StringComparison.OrdinalIgnoreCase),
         };
 
+    public static CreateEmployeeRequest ToWizardRequest(UpdateEmployeeAggregateRequest update) =>
+        new()
+        {
+            FullName = update.Identity?.FullName ?? string.Empty,
+            DateOfBirth = update.Identity?.DateOfBirth,
+            Gender = update.Identity?.Gender,
+            Nationality = update.Identity?.Nationality,
+            NationalityIdType = update.Identity?.NationalityIdType,
+            IdNumber = update.Identity?.IdNumber,
+            PersonalEmail = update.Identity?.PersonalEmail,
+            WorkEmail = update.Identity?.WorkEmail,
+            Phone = update.Identity?.Phone,
+            LinkedInUrl = update.Identity?.LinkedInUrl,
+            ResidentialAddress = update.Identity?.ResidentialAddress,
+            GpsAddress = update.Identity?.GpsAddress,
+            State = update.Identity?.State,
+            JobTitle = update.Employment?.JobTitle,
+            DepartmentId = update.Employment?.DepartmentId,
+            BranchId = update.Employment?.BranchId,
+            EmploymentType = update.Employment?.EmploymentType,
+            WorkArrangement = update.Employment?.WorkArrangement,
+            WorkLocation = update.Employment?.WorkLocation,
+            PayGrade = update.Employment?.PayGrade,
+            StartDate = update.Employment?.StartDate,
+            ProbationEndDate = update.Employment?.ProbationEndDate,
+            WorkingHours = update.Employment?.WorkingHours,
+            NoticePeriod = update.Employment?.NoticePeriod,
+            ReportsToId = update.Employment?.ReportsToId,
+            DottedLineManagerId = update.Employment?.DottedLineManagerId,
+            GrossSalary = update.Compensation?.GrossSalary,
+            PayFrequency = update.Compensation?.PayFrequency,
+            SalaryEffectiveFrom = update.Compensation?.SalaryEffectiveFrom,
+            Currency = update.Compensation?.Currency,
+            SsnitNumber = update.Compensation?.SsnitNumber,
+            TinNumber = update.Compensation?.TinNumber,
+            Tier2PensionProvider = update.Compensation?.Tier2PensionProvider,
+            Tier3PensionProvider = update.Compensation?.Tier3PensionProvider,
+            PaymentMethod = update.Compensation?.PaymentMethod,
+            BankAccountNumber = update.Compensation?.BankAccountNumber,
+            MobileMoneyNumber = update.Compensation?.MobileMoneyNumber,
+        };
+
+    public static EmployeeEducationWriteDto ToEducationWrite(EmployeeEducationUpsertDto dto) =>
+        new(dto.Institution, dto.Degree, dto.FieldOfStudy, dto.StartYear, dto.EndYear, dto.IsCurrent);
+
+    public static EmployeeCertificationWriteDto ToCertificationWrite(EmployeeCertificationUpsertDto dto) =>
+        new(dto.Name, dto.IssuingBody, dto.IssueDate, dto.ExpiryDate, dto.CredentialId);
+
     public static string SerializeCustomFields(Dictionary<string, string?>? fields) =>
         fields is null || fields.Count == 0
             ? "{}"

@@ -21,6 +21,7 @@ public sealed class EmployeeAggregateService
     private readonly ICpUserRepository _cpUsers;
     private readonly IDepartmentRepository _departments;
     private readonly IBranchRepository _branches;
+    private readonly EmployeesService _employeesService;
     private readonly ITenantContext _tenant;
 
     public EmployeeAggregateService(
@@ -31,6 +32,7 @@ public sealed class EmployeeAggregateService
         ICpUserRepository cpUsers,
         IDepartmentRepository departments,
         IBranchRepository branches,
+        EmployeesService employeesService,
         ITenantContext tenant)
     {
         _db = db;
@@ -40,6 +42,7 @@ public sealed class EmployeeAggregateService
         _cpUsers = cpUsers;
         _departments = departments;
         _branches = branches;
+        _employeesService = employeesService;
         _tenant = tenant;
     }
 
@@ -174,6 +177,193 @@ public sealed class EmployeeAggregateService
         }
     }
 
+    public async Task<Respons<EmployeeAggregateReadDto>> UpdateAsync(
+        Guid employeeId, UpdateEmployeeAggregateRequest request, CancellationToken ct = default)
+    {
+        if (!HasAnyUpdate(request))
+        {
+            return Respons<EmployeeAggregateReadDto>.ValidationError(new Dictionary<string, string>
+            {
+                ["body"] = "Include at least one section to update (identity, employment, compensation, lifecycle_state, education, certifications, custom_fields).",
+            });
+        }
+
+        var validation = ValidateUpdate(request);
+        if (validation is not null)
+            return Respons<EmployeeAggregateReadDto>.ValidationError(validation);
+
+        if (await _employees.GetByIdScopedAsync(employeeId, _tenant.TenantId, _tenant.OrgId, ct) is null)
+            return Respons<EmployeeAggregateReadDto>.Fail("Employee not found.", statusCode: 404);
+
+        await using var transaction = await _db.Database.BeginTransactionAsync(ct);
+        try
+        {
+            var wizard = EmployeeAggregateMapper.ToWizardRequest(request);
+
+            if (request.Identity is not null)
+            {
+                var personal = await _registration.UpdatePersonalContactAsync(employeeId, wizard, ct);
+                if (!personal.Success)
+                {
+                    await transaction.RollbackAsync(ct);
+                    return MapError<EmployeeAggregateReadDto>(personal);
+                }
+            }
+
+            if (request.Employment is not null)
+            {
+                if (request.Employment.DepartmentId is { } deptId
+                    && !await _departments.ExistsActiveScopedAsync(deptId, _tenant.TenantId, _tenant.OrgId, ct))
+                {
+                    await transaction.RollbackAsync(ct);
+                    return Respons<EmployeeAggregateReadDto>.ValidationError(
+                        new Dictionary<string, string> { ["employment.department_id"] = "Department not found." });
+                }
+
+                if (request.Employment.BranchId is { } branchId
+                    && !await _branches.ExistsActiveScopedAsync(branchId, _tenant.TenantId, _tenant.OrgId, ct))
+                {
+                    await transaction.RollbackAsync(ct);
+                    return Respons<EmployeeAggregateReadDto>.ValidationError(
+                        new Dictionary<string, string> { ["employment.branch_id"] = "Branch not found." });
+                }
+
+                var employment = await _registration.UpdateEmploymentDetailsAsync(employeeId, wizard, ct);
+                if (!employment.Success)
+                {
+                    await transaction.RollbackAsync(ct);
+                    return MapError<EmployeeAggregateReadDto>(employment);
+                }
+
+                if (request.Employment.EmploymentStatus is not null || request.Employment.ContractType is not null)
+                {
+                    var entity = await _employees.GetByIdScopedForUpdateAsync(
+                        employeeId, _tenant.TenantId, _tenant.OrgId, ct);
+                    if (entity is null)
+                    {
+                        await transaction.RollbackAsync(ct);
+                        return Respons<EmployeeAggregateReadDto>.Fail("Employee not found.", statusCode: 404);
+                    }
+
+                    EmployeeRegistrationService.ApplyEmploymentExtras(entity, request.Employment);
+                    entity.UpdatedAt = DateTimeOffset.UtcNow;
+                    await _employees.UpdateAsync(entity, ct);
+                }
+            }
+
+            if (request.Compensation is not null)
+            {
+                var compensation = await _registration.UpdateCompensationAsync(employeeId, wizard, ct);
+                if (!compensation.Success)
+                {
+                    await transaction.RollbackAsync(ct);
+                    return MapError<EmployeeAggregateReadDto>(compensation);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.LifecycleState))
+            {
+                var lifecycle = await _employeesService.UpdateLifecycleStateAsync(
+                    employeeId, request.LifecycleState, _tenant.TenantId, _tenant.OrgId, ct);
+                if (!lifecycle.Success)
+                {
+                    await transaction.RollbackAsync(ct);
+                    return Respons<EmployeeAggregateReadDto>.Fail(
+                        lifecycle.Error ?? lifecycle.Detail ?? "Lifecycle update failed.",
+                        statusCode: lifecycle.StatusCode);
+                }
+            }
+
+            if (request.CustomFields is { Count: > 0 })
+            {
+                var entity = await _employees.GetByIdScopedForUpdateAsync(
+                    employeeId, _tenant.TenantId, _tenant.OrgId, ct);
+                if (entity is null)
+                {
+                    await transaction.RollbackAsync(ct);
+                    return Respons<EmployeeAggregateReadDto>.Fail("Employee not found.", statusCode: 404);
+                }
+
+                var merged = EmployeeAggregateMapper.DeserializeCustomFields(entity.CustomFieldsData);
+                foreach (var (key, value) in request.CustomFields)
+                    merged[key] = value;
+                entity.CustomFieldsData = EmployeeAggregateMapper.SerializeCustomFields(merged);
+                entity.UpdatedAt = DateTimeOffset.UtcNow;
+                await _employees.UpdateAsync(entity, ct);
+            }
+
+            if (request.DeleteEducationIds is { Count: > 0 })
+            {
+                foreach (var educationId in request.DeleteEducationIds)
+                {
+                    var deleted = await _subResources.DeleteEducationAsync(employeeId, educationId, ct);
+                    if (!deleted.Success)
+                    {
+                        await transaction.RollbackAsync(ct);
+                        return Respons<EmployeeAggregateReadDto>.Fail(
+                            deleted.Error ?? deleted.Detail ?? "Could not delete education record.",
+                            statusCode: deleted.StatusCode);
+                    }
+                }
+            }
+
+            if (request.Education is { Count: > 0 })
+            {
+                foreach (var edu in request.Education)
+                {
+                    var write = EmployeeAggregateMapper.ToEducationWrite(edu);
+                    var result = edu.Id is { } id
+                        ? await _subResources.UpdateEducationAsync(employeeId, id, write, ct)
+                        : await _subResources.AddEducationAsync(employeeId, write, ct);
+                    if (!result.Success)
+                    {
+                        await transaction.RollbackAsync(ct);
+                        return MapError<EmployeeAggregateReadDto>(result);
+                    }
+                }
+            }
+
+            if (request.DeleteCertificationIds is { Count: > 0 })
+            {
+                foreach (var certificationId in request.DeleteCertificationIds)
+                {
+                    var deleted = await _subResources.DeleteCertificationAsync(employeeId, certificationId, ct);
+                    if (!deleted.Success)
+                    {
+                        await transaction.RollbackAsync(ct);
+                        return Respons<EmployeeAggregateReadDto>.Fail(
+                            deleted.Error ?? deleted.Detail ?? "Could not delete certification.",
+                            statusCode: deleted.StatusCode);
+                    }
+                }
+            }
+
+            if (request.Certifications is { Count: > 0 })
+            {
+                foreach (var cert in request.Certifications)
+                {
+                    var write = EmployeeAggregateMapper.ToCertificationWrite(cert);
+                    var result = cert.Id is { } id
+                        ? await _subResources.UpdateCertificationAsync(employeeId, id, write, ct)
+                        : await _subResources.AddCertificationAsync(employeeId, write, ct);
+                    if (!result.Success)
+                    {
+                        await transaction.RollbackAsync(ct);
+                        return MapError<EmployeeAggregateReadDto>(result);
+                    }
+                }
+            }
+
+            await transaction.CommitAsync(ct);
+            return await GetAsync(employeeId, ct);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(ct);
+            throw;
+        }
+    }
+
     public async Task<Respons<EmployeeAggregateReadDto>> GetAsync(Guid id, CancellationToken ct = default)
     {
         var entity = await _employees.GetByIdScopedAsync(id, _tenant.TenantId, _tenant.OrgId, ct);
@@ -223,6 +413,8 @@ public sealed class EmployeeAggregateService
                 DepartmentName = entity.Department?.Name,
                 BranchName = entity.Branch?.Name,
                 EmploymentType = entity.EmploymentType,
+                EmploymentStatus = entity.EmploymentStatus,
+                ContractType = entity.ContractType,
                 WorkArrangement = entity.WorkArrangement,
                 WorkLocation = entity.WorkLocation,
                 PayGrade = entity.PayGrade,
@@ -310,6 +502,30 @@ public sealed class EmployeeAggregateService
 
         if (request.Certifications.Count > MaxCertifications)
             errors["certifications"] = $"At most {MaxCertifications} certification records allowed.";
+
+        return errors.Count == 0 ? null : errors;
+    }
+
+    private static bool HasAnyUpdate(UpdateEmployeeAggregateRequest request) =>
+        request.Identity is not null
+        || request.Employment is not null
+        || request.Compensation is not null
+        || !string.IsNullOrWhiteSpace(request.LifecycleState)
+        || request.Education is { Count: > 0 }
+        || request.Certifications is { Count: > 0 }
+        || request.CustomFields is { Count: > 0 }
+        || request.DeleteEducationIds is { Count: > 0 }
+        || request.DeleteCertificationIds is { Count: > 0 };
+
+    private static Dictionary<string, string>? ValidateUpdate(UpdateEmployeeAggregateRequest request)
+    {
+        var errors = new Dictionary<string, string>();
+
+        if (request.Education is { Count: > MaxEducation })
+            errors["education"] = $"At most {MaxEducation} education records allowed per request.";
+
+        if (request.Certifications is { Count: > MaxCertifications })
+            errors["certifications"] = $"At most {MaxCertifications} certification records allowed per request.";
 
         return errors.Count == 0 ? null : errors;
     }

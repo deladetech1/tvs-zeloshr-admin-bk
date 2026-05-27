@@ -53,6 +53,26 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>
+    /// Update employee (partial body). Send only the sections/fields to change:
+    /// <c>identity</c>, <c>employment</c>, <c>compensation</c>, <c>lifecycle_state</c>,
+    /// <c>education</c> (include <c>id</c> to update, omit to add), <c>certifications</c>,
+    /// <c>custom_fields</c>, <c>delete_education_ids</c>, <c>delete_certification_ids</c>.
+    /// </summary>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
+    [HttpPut("update")]
+    [ProducesResponseType(typeof(Respons<EmployeeAggregateReadDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<EmployeeAggregateReadDto>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(Respons<EmployeeAggregateReadDto>), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<Respons<EmployeeAggregateReadDto>>> UpdateEmployee(
+        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId,
+        [FromBody] UpdateEmployeeAggregateRequest body,
+        CancellationToken ct)
+    {
+        var result = await _aggregate.UpdateAsync(employeeId, body, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
     /// <summary>Check if email exists in core_platform.cp_users before creating an employee.</summary>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("check-user")]
@@ -104,48 +124,6 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>
-    /// Update personal/contact (wizard). Identity is written to <c>cp_users</c> when <c>workEmail</c> is set;
-    /// HR-only fields (nationality, ID, personal email) stay on <c>zhr_employees</c>.
-    /// </summary>
-    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
-    [HttpPut("personal-contact/update")]
-    [ProducesResponseType(typeof(Respons<EmployeeRegistrationReadDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<Respons<EmployeeRegistrationReadDto>>> UpdatePersonalContact(
-        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId,
-        [FromBody] CreateEmployeeRequest body,
-        CancellationToken ct)
-    {
-        var result = await _registration.UpdatePersonalContactAsync(employeeId, body, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
-    /// <summary>Update employment details (wizard step 2).</summary>
-    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
-    [HttpPut("employment-details/update")]
-    [ProducesResponseType(typeof(Respons<EmployeeRegistrationReadDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<Respons<EmployeeRegistrationReadDto>>> UpdateEmploymentDetails(
-        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId,
-        [FromBody] CreateEmployeeRequest body,
-        CancellationToken ct)
-    {
-        var result = await _registration.UpdateEmploymentDetailsAsync(employeeId, body, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
-    /// <summary>Update compensation and statutory fields (wizard step 4).</summary>
-    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
-    [HttpPut("compensation/update")]
-    [ProducesResponseType(typeof(Respons<EmployeeRegistrationReadDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<Respons<EmployeeRegistrationReadDto>>> UpdateCompensation(
-        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId,
-        [FromBody] CreateEmployeeRequest body,
-        CancellationToken ct)
-    {
-        var result = await _registration.UpdateCompensationAsync(employeeId, body, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
     /// <summary>Finalise draft employee (wizard step 6).</summary>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpPost("finalise")]
@@ -177,91 +155,7 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
-    [HttpGet("education/list")]
-    public async Task<ActionResult<Respons<IReadOnlyList<EmployeeEducationDto>>>> ListEducation(
-        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId, CancellationToken ct)
-    {
-        var result = await _subResources.ListEducationAsync(employeeId, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
-    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
-    [HttpPost("education/add")]
-    public async Task<ActionResult<Respons<EmployeeEducationDto>>> AddEducation(
-        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId, [FromBody] EmployeeEducationWriteDto body, CancellationToken ct)
-    {
-        var result = await _subResources.AddEducationAsync(employeeId, body, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
-    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
-    [HttpPut("education/update")]
-    public async Task<ActionResult<Respons<EmployeeEducationDto>>> UpdateEducation(
-        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId,
-        [FromQuery(Name = PlatformQueryParams.EducationId)] Guid educationId, [FromBody] EmployeeEducationWriteDto body, CancellationToken ct)
-    {
-        var result = await _subResources.UpdateEducationAsync(employeeId, educationId, body, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
-    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
-    [HttpDelete("education/delete")]
-    public async Task<ActionResult<Respons<object>>> DeleteEducation(
-        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId,
-        [FromQuery(Name = PlatformQueryParams.EducationId)] Guid educationId, CancellationToken ct)
-    {
-        var result = await _subResources.DeleteEducationAsync(employeeId, educationId, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
-    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
-    [HttpGet("certifications/list")]
-    public async Task<ActionResult<Respons<IReadOnlyList<EmployeeCertificationDto>>>> ListCertifications(
-        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId, CancellationToken ct)
-    {
-        var result = await _subResources.ListCertificationsAsync(employeeId, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
-    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
-    [HttpPost("certifications/add")]
-    public async Task<ActionResult<Respons<EmployeeCertificationDto>>> AddCertification(
-        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId, [FromBody] EmployeeCertificationWriteDto body, CancellationToken ct)
-    {
-        var result = await _subResources.AddCertificationAsync(employeeId, body, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
-    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
-    [HttpPut("certifications/update")]
-    public async Task<ActionResult<Respons<EmployeeCertificationDto>>> UpdateCertification(
-        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId,
-        [FromQuery(Name = PlatformQueryParams.CertificationId)] Guid certificationId, [FromBody] EmployeeCertificationWriteDto body, CancellationToken ct)
-    {
-        var result = await _subResources.UpdateCertificationAsync(employeeId, certificationId, body, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
-    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
-    [HttpDelete("certifications/delete")]
-    public async Task<ActionResult<Respons<object>>> DeleteCertification(
-        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId,
-        [FromQuery(Name = PlatformQueryParams.CertificationId)] Guid certificationId, CancellationToken ct)
-    {
-        var result = await _subResources.DeleteCertificationAsync(employeeId, certificationId, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
-    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
-    [HttpGet("documents/list")]
-    public async Task<ActionResult<Respons<IReadOnlyList<EmployeeWizardDocumentDto>>>> ListDocuments(
-        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId, [FromQuery] string? category, CancellationToken ct)
-    {
-        var result = await _subResources.ListDocumentsAsync(employeeId, category, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
+    /// <summary>Upload wizard document (max 10MB, PDF/jpeg/png).</summary>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpPost("documents/upload")]
     [RequestSizeLimit(10 * 1024 * 1024)]
@@ -281,11 +175,13 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Remove uploaded wizard document.</summary>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpDelete("documents/delete")]
     public async Task<ActionResult<Respons<object>>> DeleteDocument(
         [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId,
-        [FromQuery(Name = PlatformQueryParams.DocumentId)] Guid documentId, CancellationToken ct)
+        [FromQuery(Name = PlatformQueryParams.DocumentId)] Guid documentId,
+        CancellationToken ct)
     {
         var result = await _subResources.DeleteDocumentAsync(employeeId, documentId, ct);
         return StatusCode(result.StatusCode, result);
@@ -365,7 +261,7 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Employee aggregate (same shape as <c>POST /api/v1/employees</c>).</summary>
+    /// <summary>Employee aggregate (same shape as create/update).</summary>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("get")]
     [ProducesResponseType(typeof(Respons<EmployeeAggregateReadDto>), StatusCodes.Status200OK)]
@@ -392,16 +288,14 @@ public class EmployeesController : ControllerBase
 
     /// <summary>
     /// Legacy one-shot create (split first/last + Ghana Card). Hidden from Swagger — use
-    /// <c>POST /api/v1/employees</c> (aggregate) or the wizard instead.
+    /// <c>POST /api/v1/employees/add</c> or the registration wizard instead.
     /// </summary>
     [ApiExplorerSettings(IgnoreApi = true)]
-    [Obsolete("Use POST /api/v1/employees (aggregate) or the registration wizard.")]
+    [Obsolete("Use POST /api/v1/employees/add or the registration wizard.")]
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeCreate)]
     [HttpPost("legacy")]
     [ProducesResponseType(typeof(Respons<CreateEmployeeControllerReadDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(Respons<CreateEmployeeControllerReadDto>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(Respons<CreateEmployeeControllerReadDto>), StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<Respons<CreateEmployeeControllerReadDto>>> CreateEmployee(
+    public async Task<ActionResult<Respons<CreateEmployeeControllerReadDto>>> CreateEmployeeLegacy(
         [FromBody] CreateEmployeeControllerWriteDto data,
         CancellationToken ct)
     {
@@ -447,61 +341,6 @@ public class EmployeesController : ControllerBase
         };
 
         return Ok(Respons<CreateEmployeeControllerReadDto>.Ok(read, "Employee created successfully"));
-    }
-
-    /// <summary>Update personal / identity fields (partial body).</summary>
-    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
-    [HttpPut("update")]
-    [ProducesResponseType(typeof(Respons<EmployeeDetailDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<Respons<EmployeeDetailDto>>> UpdateEmployee(
-        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId,
-        [FromBody] UpdateEmployeeProfileDto data,
-        CancellationToken ct)
-    {
-        if (!ModelState.IsValid)
-        {
-            var modelErrors = ModelState
-                .Where(e => e.Value?.Errors.Count > 0)
-                .ToDictionary(e => e.Key, e => e.Value!.Errors[0].ErrorMessage);
-            return BadRequest(Respons<EmployeeDetailDto>.ValidationError(modelErrors));
-        }
-
-        var ctx = _tenant.Current;
-        var result = await _service.UpdateProfileAsync(employeeId, data, ctx.TenantId, ctx.OrgId, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
-    /// <summary>Assign department, branch, manager, contract, and employment status.</summary>
-    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
-    [HttpPut("employment/update")]
-    [ProducesResponseType(typeof(Respons<EmployeeDetailDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<Respons<EmployeeDetailDto>>> UpdateEmployment(
-        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId,
-        [FromBody] UpdateEmployeeEmploymentDto data,
-        CancellationToken ct)
-    {
-        var ctx = _tenant.Current;
-        var result = await _service.UpdateEmploymentAsync(employeeId, data, ctx.TenantId, ctx.OrgId, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
-    /// <summary>Transition lifecycle state (Pre-hire → Active → Terminated, etc.).</summary>
-    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
-    [HttpPut("lifecycle-state/update")]
-    [ProducesResponseType(typeof(Respons<EmployeeDetailDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<Respons<EmployeeDetailDto>>> UpdateLifecycleState(
-        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId,
-        [FromBody] UpdateEmployeeLifecycleStateDto body,
-        CancellationToken ct)
-    {
-        if (string.IsNullOrWhiteSpace(body.LifecycleState))
-            return BadRequest(Respons<EmployeeDetailDto>.ValidationError(
-                new Dictionary<string, string> { ["lifecycleState"] = "Lifecycle state is required." }));
-
-        var ctx = _tenant.Current;
-        var result = await _service.UpdateLifecycleStateAsync(
-            employeeId, body.LifecycleState!, ctx.TenantId, ctx.OrgId, ct);
-        return StatusCode(result.StatusCode, result);
     }
 
     /// <summary>Soft-delete employee (sets is_deleted, employment inactive).</summary>

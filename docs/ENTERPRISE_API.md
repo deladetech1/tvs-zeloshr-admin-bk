@@ -22,7 +22,7 @@ ZelosHR is a **multi-tenant HR platform**, not a demo read API. Every business m
 
 | Module | Statistics | List | Get | Create | Update | Delete |
 |--------|------------|------|-----|--------|--------|--------|
-| **Employees** | `GET /employees/statistics` | `GET /employees/list`, `GET /employees/directory` | `GET /employees/get?employee_id=` | `POST /employees/add` | `PUT /employees/update?employee_id=`; wizard: `PUT .../personal-contact/update`, etc. | `DELETE /employees/delete?employee_id=` |
+| **Employees** | `GET /employees/statistics` | `GET /employees/list`, `GET /employees/directory` | `GET /employees/get?employee_id=` | `POST /employees/add` | `PUT /employees/update?employee_id=` (partial aggregate body) | `DELETE /employees/delete?employee_id=` |
 | **Org structure** | `GET /org-structure/statistics` | `GET /org-structure/departments`, `.../branches` | — | `POST .../departments/add`, `.../branches/add` | `PUT .../departments/update?department_id=`, `.../branches/update?branch_id=` | `DELETE .../departments/delete?department_id=`, `.../branches/delete?branch_id=` |
 | **Lifecycle events** | `GET /lifecycle-events/statistics` | `GET /lifecycle-events/list` | `GET /lifecycle-events/get?lifecycle_event_id=` | `POST /lifecycle-events/add` | `PUT /lifecycle-events/update?lifecycle_event_id=` | `DELETE /lifecycle-events/delete?lifecycle_event_id=` |
 | **Audit logs** | `GET /audit-logs/statistics` | `GET /audit-logs/list` | `GET /audit-logs/get?audit_log_id=` | — (system) | — | — |

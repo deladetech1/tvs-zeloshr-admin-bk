@@ -26,14 +26,10 @@ See [ENTERPRISE_API.md](ENTERPRISE_API.md) for the full CRUD matrix and [GET /ap
 | GET | `/get?employee_id=` | Aggregate read |
 | GET | `/detail?employee_id=` | Flat profile DTO |
 | POST | `/add` | Create (aggregate body) |
-| PUT | `/update?employee_id=` | Update personal fields |
-| PUT | `/employment/update?employee_id=` | Job title, dept, branch, manager, status |
-| PUT | `/lifecycle-state/update?employee_id=` | State transition |
+| PUT | `/update?employee_id=` | Partial update — send only changed sections (`identity`, `employment`, `compensation`, `lifecycle_state`, `education`, `certifications`, `custom_fields`) |
 | DELETE | `/delete?employee_id=` | Soft delete |
 
-Wizard (draft flow): `POST /draft`, `PUT /personal-contact/update?employee_id=`, `PUT /employment-details/update?employee_id=`, `PUT /compensation/update?employee_id=`, `POST /finalise?employee_id=`, etc.
-
-Sub-resources use the same `employee_id` query param: `GET /education/list`, `PUT /education/update?employee_id=&education_id=`, …
+Wizard: `POST /draft`, `PUT /update?employee_id=` (partial sections), `POST /finalise?employee_id=`. File uploads: `POST /photo/upload`, `POST /documents/upload`.
 
 ---
 

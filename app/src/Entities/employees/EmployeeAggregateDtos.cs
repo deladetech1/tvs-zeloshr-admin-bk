@@ -16,6 +16,20 @@ public sealed class CreateEmployeeAggregateRequest
     public Dictionary<string, string?>? CustomFields { get; init; }
 }
 
+/// <summary>Partial employee update — only include sections/fields to change.</summary>
+public sealed class UpdateEmployeeAggregateRequest
+{
+    public EmployeeAggregateIdentityDto? Identity { get; init; }
+    public EmployeeAggregateEmploymentDto? Employment { get; init; }
+    public EmployeeAggregateCompensationDto? Compensation { get; init; }
+    public string? LifecycleState { get; init; }
+    public IReadOnlyList<EmployeeEducationUpsertDto>? Education { get; init; }
+    public IReadOnlyList<EmployeeCertificationUpsertDto>? Certifications { get; init; }
+    public Dictionary<string, string?>? CustomFields { get; init; }
+    public IReadOnlyList<Guid>? DeleteEducationIds { get; init; }
+    public IReadOnlyList<Guid>? DeleteCertificationIds { get; init; }
+}
+
 public sealed class EmployeeAggregateImportDto
 {
     public string? ExistingUserId { get; init; }
@@ -44,6 +58,8 @@ public class EmployeeAggregateEmploymentDto
     public Guid? DepartmentId { get; init; }
     public Guid? BranchId { get; init; }
     public string? EmploymentType { get; init; }
+    public string? EmploymentStatus { get; init; }
+    public string? ContractType { get; init; }
     public string? WorkArrangement { get; init; }
     public string? WorkLocation { get; init; }
     public string? PayGrade { get; init; }

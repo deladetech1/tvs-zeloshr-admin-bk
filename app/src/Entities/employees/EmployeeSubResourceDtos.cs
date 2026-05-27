@@ -18,6 +18,16 @@ public sealed record EmployeeEducationWriteDto(
     int? EndYear,
     bool IsCurrent);
 
+/// <summary>Include <c>id</c> to update an existing row; omit to create.</summary>
+public sealed record EmployeeEducationUpsertDto(
+    Guid? Id,
+    string Institution,
+    string? Degree,
+    string? FieldOfStudy,
+    int? StartYear,
+    int? EndYear,
+    bool IsCurrent);
+
 public sealed record EmployeeCertificationDto(
     Guid Id,
     Guid EmployeeId,
@@ -28,6 +38,15 @@ public sealed record EmployeeCertificationDto(
     string? CredentialId);
 
 public sealed record EmployeeCertificationWriteDto(
+    string Name,
+    string? IssuingBody,
+    DateOnly? IssueDate,
+    DateOnly? ExpiryDate,
+    string? CredentialId);
+
+/// <summary>Include <c>id</c> to update an existing row; omit to create.</summary>
+public sealed record EmployeeCertificationUpsertDto(
+    Guid? Id,
     string Name,
     string? IssuingBody,
     DateOnly? IssueDate,

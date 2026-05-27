@@ -432,6 +432,20 @@ public sealed class EmployeeRegistrationService
         e.DottedLineManagerId = dto.DottedLineManagerId ?? e.DottedLineManagerId;
     }
 
+    internal static void ApplyEmploymentExtras(
+        EmployeeEntity e, EmployeeAggregateEmploymentDto? employment)
+    {
+        if (employment is null)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(employment.EmploymentStatus))
+            e.EmploymentStatus = employment.EmploymentStatus.Trim();
+        if (employment.ContractType is not null)
+            e.ContractType = string.IsNullOrWhiteSpace(employment.ContractType)
+                ? null
+                : employment.ContractType.Trim();
+    }
+
     private static void ApplyCompensation(EmployeeEntity e, CreateEmployeeRequest dto)
     {
         e.GrossSalary = dto.GrossSalary ?? e.GrossSalary;
