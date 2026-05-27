@@ -84,7 +84,6 @@ public static class SwaggerConfiguration
             });
             options.OrderActionsBy(api => api.RelativePath ?? string.Empty);
             options.CustomSchemaIds(type => type.FullName?.Replace('+', '.') ?? type.Name);
-            options.UseSystemTextJson(PlatformJson.SerializerOptions);
 
             var xml = Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml");
             if (File.Exists(xml))

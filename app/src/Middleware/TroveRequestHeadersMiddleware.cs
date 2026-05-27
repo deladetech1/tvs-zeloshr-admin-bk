@@ -1,5 +1,4 @@
 using System.Text.Json;
-using ZelosHR.Api.Configs;
 using Microsoft.Extensions.Options;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Persistence.Repositories;

@@ -38,7 +38,7 @@ public sealed class EmployeeAggregateIdentityDto
     public string? State { get; init; }
 }
 
-public sealed class EmployeeAggregateEmploymentDto
+public class EmployeeAggregateEmploymentDto
 {
     public string? JobTitle { get; init; }
     public Guid? DepartmentId { get; init; }
@@ -55,7 +55,7 @@ public sealed class EmployeeAggregateEmploymentDto
     public Guid? DottedLineManagerId { get; init; }
 }
 
-public sealed class EmployeeAggregateCompensationDto
+public class EmployeeAggregateCompensationDto
 {
     public decimal? GrossSalary { get; init; }
     public string? PayFrequency { get; init; }

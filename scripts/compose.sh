@@ -26,6 +26,7 @@ usage() {
 ZelosHR Compose workflow (see docs/LOCAL_DEV.md)
 
   ./scripts/compose.sh test       Unit tests (dotnet in SDK container; no DB)
+  ./scripts/compose.sh build      Docker image build only (same as CI publish step)
   ./scripts/compose.sh migrate    Deploy schema + seeds via tvs-sqlscript
   ./scripts/compose.sh db         Start Postgres + Redis only
   ./scripts/compose.sh dev        db → migrate → build & start API
@@ -42,10 +43,21 @@ Env:
 EOF
 }
 
+docker_build() {
+  docker build \
+    --build-arg PACKAGES_TOKEN="${PACKAGES_TOKEN:-}" \
+    -f app/Dockerfile \
+    -t zeloshr-api:local \
+    .
+}
+
 cmd="${1:-}"
 shift || true
 
 case "${cmd}" in
+  build)
+    docker_build
+    ;;
   test)
     compose --profile tools run --rm test
     ;;
@@ -80,10 +92,7 @@ case "${cmd}" in
     ;;
   ci)
     compose --profile tools run --rm test
-    docker build \
-      --build-arg PACKAGES_TOKEN="${PACKAGES_TOKEN:-}" \
-      -f app/Dockerfile \
-      .
+    docker_build
     ;;
   smoke)
     BASE="http://localhost:${API_PORT:-8000}"
