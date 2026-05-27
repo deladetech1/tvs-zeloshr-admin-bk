@@ -18,5 +18,6 @@ public static class SwaggerGroups
     public const string Performance = "Performance";
     public const string Disciplinary = "Disciplinary";
     public const string Documents = "Documents";
+    public const string CustomFields = "Custom Fields";
     public const string TrovesuitePlatform = "Trovesuite Platform";
 }

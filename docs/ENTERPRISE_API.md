@@ -32,6 +32,9 @@ ZelosHR is a **multi-tenant HR platform**, not a demo read API. Every business m
 | **Performance** | `GET /performance` | `GET /performance/{id}` | `POST /performance` | `PATCH /performance/{id}` | `DELETE /performance/{id}` |
 | **Disciplinary** | `GET /disciplinary` | `GET /disciplinary/{id}` | `POST /disciplinary` | `PATCH /disciplinary/{id}` | `DELETE /disciplinary/{id}` |
 | **Documents** | `GET /documents` | `GET /documents/{id}` | `POST /documents` | `PATCH /documents/{id}` | `DELETE /documents/{id}` |
+| **Custom fields** | `GET /custom-fields` (filters + pagination) | `GET /custom-fields/{id}` | `POST /custom-fields` | `PATCH /custom-fields/{id}`, `PATCH /custom-fields/reorder` | `DELETE /custom-fields/{id}` (soft) |
+
+`GET /custom-fields` supports `search`, `entityType`, `fieldKey`, `label`, `fieldType`, `isRequired`, `isSensitive`, `isFilterable`, `isSearchable`, `isActive`, `sectionName`, `includeDeleted`, `sortBy`, `sortOrder`, `page`, `size`. Also: `GET /custom-fields/schema?entityType=`, `GET /custom-fields/audit-logs`.
 
 ## Implementation status
 

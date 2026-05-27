@@ -198,6 +198,7 @@ public static class SwaggerConfiguration
         "Performance" => SwaggerGroups.Performance,
         "Disciplinary" => SwaggerGroups.Disciplinary,
         "Documents" => SwaggerGroups.Documents,
+        "CustomFields" => SwaggerGroups.CustomFields,
         "Dashboard" => SwaggerGroups.Dashboard,
         "Navigation" => SwaggerGroups.Discovery,
         "TrovesuitePlatform" => SwaggerGroups.TrovesuitePlatform,

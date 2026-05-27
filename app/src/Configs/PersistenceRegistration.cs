@@ -7,6 +7,7 @@ using ZelosHR.Api.Entities.Branches;
 using ZelosHR.Api.Entities.Dashboard;
 using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Disciplinary;
+using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Documents;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Leave;
@@ -49,6 +50,7 @@ public static class PersistenceRegistration
         services.AddScoped<IPerformanceRepository, PerformanceRepository>();
         services.AddScoped<IDisciplinaryRepository, DisciplinaryRepository>();
         services.AddScoped<IDocumentsRepository, DocumentsRepository>();
+        services.AddScoped<ICustomFieldDefinitionsRepository, CustomFieldDefinitionsRepository>();
         services.AddScoped<IDashboardRepository, DashboardRepository>();
         return services;
     }

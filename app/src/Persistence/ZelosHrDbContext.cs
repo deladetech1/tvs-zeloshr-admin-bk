@@ -25,6 +25,8 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
     public DbSet<EmployeeDocumentEntity> EmployeeDocuments => Set<EmployeeDocumentEntity>();
     public DbSet<EmployeeEducationEntity> EmployeeEducations => Set<EmployeeEducationEntity>();
     public DbSet<EmployeeCertificationEntity> EmployeeCertifications => Set<EmployeeCertificationEntity>();
+    public DbSet<CustomFieldDefinitionEntity> CustomFieldDefinitions => Set<CustomFieldDefinitionEntity>();
+    public DbSet<CustomFieldAuditLogEntity> CustomFieldAuditLogs => Set<CustomFieldAuditLogEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -143,6 +145,23 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
             b.ToTable("zhr_employee_certifications");
             b.HasKey(x => x.Id);
             b.HasOne<EmployeeEntity>().WithMany().HasForeignKey(x => x.EmployeeId);
+        });
+
+        modelBuilder.Entity<CustomFieldDefinitionEntity>(b =>
+        {
+            b.ToTable("zhr_custom_field_definitions");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Options).HasColumnType("jsonb");
+            b.Property(x => x.ValidationRules).HasColumnType("jsonb");
+            b.HasIndex(x => new { x.TenantId, x.OrgId, x.EntityType, x.FieldKey })
+                .IsUnique()
+                .HasFilter("is_deleted = false");
+        });
+
+        modelBuilder.Entity<CustomFieldAuditLogEntity>(b =>
+        {
+            b.ToTable("zhr_custom_field_audit_log");
+            b.HasKey(x => x.Id);
         });
     }
 }
