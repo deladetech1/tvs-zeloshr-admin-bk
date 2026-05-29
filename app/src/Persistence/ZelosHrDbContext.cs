@@ -139,6 +139,8 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
             b.ToTable("zhr_employee_education");
             b.HasKey(x => x.Id);
             b.HasOne<EmployeeEntity>().WithMany().HasForeignKey(x => x.EmployeeId);
+            b.Property(x => x.StartDate).HasColumnName("start_date");
+            b.Property(x => x.EndDate).HasColumnName("end_date");
         });
 
         modelBuilder.Entity<EmployeeCertificationEntity>(b =>

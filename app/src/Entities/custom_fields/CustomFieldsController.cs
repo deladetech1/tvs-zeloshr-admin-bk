@@ -42,7 +42,9 @@ public class CustomFieldsController : ControllerBase
     [HttpGet("schema")]
     [RequiresZelosHrPermission(ZelosHrPermissions.CustomFieldsGet)]
     public async Task<ActionResult<Respons<CustomFieldSchemaDto>>> Schema(
-        [FromQuery] string entityType,
+        [FromQuery]
+        [SwaggerAllowedValues(typeof(CustomFieldEntityTypes), nameof(CustomFieldEntityTypes.All))]
+        string entityType,
         CancellationToken ct)
     {
         var ctx = _tenant.Current;
@@ -53,44 +55,10 @@ public class CustomFieldsController : ControllerBase
     [HttpGet("list")]
     [RequiresZelosHrPermission(ZelosHrPermissions.CustomFieldsGet)]
     public async Task<ActionResult<Respons<CustomFieldDefinitionListDto>>> List(
-        [FromQuery] string? search,
-        [FromQuery] string? entityType,
-        [FromQuery] string? fieldKey,
-        [FromQuery] string? label,
-        [FromQuery] string? fieldType,
-        [FromQuery] bool? isRequired,
-        [FromQuery] bool? isSensitive,
-        [FromQuery] bool? isFilterable,
-        [FromQuery] bool? isSearchable,
-        [FromQuery] bool? isActive,
-        [FromQuery] string? sectionName,
-        [FromQuery] bool includeDeleted = false,
-        [FromQuery] string? sortBy = "label",
-        [FromQuery] string? sortOrder = "asc",
-        [FromQuery] int page = 1,
-        [FromQuery] int size = 20,
+        [FromQuery] CustomFieldListQuery query,
         CancellationToken ct = default)
     {
         var ctx = _tenant.Current;
-        var query = new CustomFieldListQuery
-        {
-            Search = search,
-            EntityType = entityType,
-            FieldKey = fieldKey,
-            Label = label,
-            FieldType = fieldType,
-            IsRequired = isRequired,
-            IsSensitive = isSensitive,
-            IsFilterable = isFilterable,
-            IsSearchable = isSearchable,
-            IsActive = isActive,
-            SectionName = sectionName,
-            IncludeDeleted = includeDeleted,
-            SortBy = sortBy,
-            SortOrder = sortOrder,
-            Page = page,
-            Size = size,
-        };
         var result = await _service.ListAsync(query, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
@@ -98,21 +66,13 @@ public class CustomFieldsController : ControllerBase
     [HttpGet("audit-logs")]
     [RequiresZelosHrPermission(ZelosHrPermissions.CustomFieldValuesGet)]
     public async Task<ActionResult<Respons<CustomFieldAuditLogListDto>>> AuditLogs(
-        [FromQuery] string? entityType,
-        [FromQuery] Guid? entityId,
-        [FromQuery] string? fieldKey,
-        [FromQuery] string? changeType,
-        [FromQuery] string? changedBy,
-        [FromQuery] DateTimeOffset? changedFrom,
-        [FromQuery] DateTimeOffset? changedTo,
-        [FromQuery] int page = 1,
-        [FromQuery] int size = 20,
+        [FromQuery] CustomFieldAuditLogQuery query,
         CancellationToken ct = default)
     {
         var ctx = _tenant.Current;
         var result = await _service.ListAuditLogsAsync(
-            entityType, entityId, fieldKey, changeType, changedBy, changedFrom, changedTo,
-            page, size, ctx.TenantId, ctx.OrgId, ct);
+            query.EntityType, query.EntityId, query.FieldKey, query.ChangeType, query.ChangedBy,
+            query.ChangedFrom, query.ChangedTo, query.Page, query.Size, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 

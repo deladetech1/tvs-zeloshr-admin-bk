@@ -42,7 +42,7 @@ public static class SwaggerConfiguration
 
                     **Envelope (snake_case JSON, Mystoreguard-aligned):** success, status_code, detail, data, pagination, field_errors
 
-                    Platform-style employee routes: `POST …/employees/add`, `GET …/employees/list`, `GET …/employees/get?employee_id=`
+                    Platform-style employee routes: `POST …/employees/add`, `PUT …/employees/update`, `GET …/employees/detail?employee_id=`, `GET …/employees/list`
 
                     **Documented modules (Swagger):** Employees, Custom Fields only. Other modules remain in code but are hidden until their sprint ships.
 
@@ -70,6 +70,8 @@ public static class SwaggerConfiguration
             options.DocInclusionPredicate((docName, apiDesc) =>
                 docName == "v1" && SwaggerGroups.IsVisibleInSwagger(apiDesc.GroupName));
 
+            options.SchemaFilter<SwaggerAllowedValuesSchemaFilter>();
+            options.ParameterFilter<SwaggerAllowedValuesParameterFilter>();
             options.OperationFilter<TroveStandardHeadersOperationFilter>();
             options.OperationFilter<StandardResponsesOperationFilter>();
             options.TagActionsBy(api =>

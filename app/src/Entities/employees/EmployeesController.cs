@@ -7,7 +7,7 @@ using ZelosHR.Api.Shared.Tenant;
 
 namespace ZelosHR.Api.Entities.Employees;
 
-/// <summary>Employee directory, profiles, employment assignment, lifecycle, and soft delete.</summary>
+/// <summary>Employee profiles, employment assignment, lifecycle, and soft delete.</summary>
 [ApiController]
 [ApiExplorerSettings(GroupName = SwaggerGroups.Employees)]
 [Route("api/v1/employees")]
@@ -39,7 +39,7 @@ public class EmployeesController : ControllerBase
 
     /// <summary>
     /// Create employee in one request (identity, employment, compensation, education[], certifications[], custom fields).
-    /// Use <c>status</c> <c>draft</c> or <c>finalised</c>. Documents and profile photo use separate upload endpoints.
+    /// Use <c>status</c> <c>draft</c> or <c>finalised</c>. Upload files via <c>POST /documents/upload</c>, then reference IDs in <c>documents</c>.
     /// </summary>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeCreate)]
     [HttpPost("add")]
@@ -54,10 +54,9 @@ public class EmployeesController : ControllerBase
     }
 
     /// <summary>
-    /// Update employee (partial body). Send only the sections/fields to change:
-    /// <c>identity</c>, <c>employment</c>, <c>compensation</c>, <c>lifecycle_state</c>,
-    /// <c>education</c> (include <c>id</c> to update, omit to add), <c>certifications</c>,
-    /// <c>custom_fields</c>, <c>delete_education_ids</c>, <c>delete_certification_ids</c>.
+    /// Update employee (partial body). Body must include <c>id</c> (employee UUID).
+    /// Send only sections/fields to change. Set <c>status</c> to <c>finalised</c> to complete a draft.
+    /// Nested <c>education</c>/<c>certifications</c> items: include <c>id</c> to update, omit <c>id</c> to add.
     /// </summary>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpPut("update")]
@@ -65,23 +64,16 @@ public class EmployeesController : ControllerBase
     [ProducesResponseType(typeof(Respons<EmployeeAggregateReadDto>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(Respons<EmployeeAggregateReadDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<EmployeeAggregateReadDto>>> UpdateEmployee(
-        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId,
         [FromBody] UpdateEmployeeAggregateRequest body,
         CancellationToken ct)
     {
-        var result = await _aggregate.UpdateAsync(employeeId, body, ct);
-        return StatusCode(result.StatusCode, result);
-    }
+        if (body.Id == Guid.Empty)
+        {
+            return BadRequest(Respons<EmployeeAggregateReadDto>.ValidationError(
+                new Dictionary<string, string> { ["id"] = "Employee id is required in the request body." }));
+        }
 
-    /// <summary>Check if email exists in core_platform.cp_users before creating an employee.</summary>
-    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
-    [HttpGet("check-user")]
-    [ProducesResponseType(typeof(Respons<CpUserCheckResult>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<Respons<CpUserCheckResult>>> CheckUser(
-        [FromQuery] string email,
-        CancellationToken ct)
-    {
-        var result = await _registration.CheckCpUserAsync(email, ct);
+        var result = await _aggregate.UpdateAsync(body.Id, body, ct);
         return StatusCode(result.StatusCode, result);
     }
 
@@ -111,7 +103,7 @@ public class EmployeesController : ControllerBase
 
     /// <summary>
     /// Create employee (registration wizard, step 1). Use <c>fullName</c> here; platform identity
-    /// (<c>cp_users.fullname</c>, <c>email</c>, <c>contact</c>) is created on <c>POST …/finalise</c>, not split first/last name.
+    /// (<c>cp_users.fullname</c>, <c>email</c>, <c>contact</c>) is created when you <c>PUT …/update</c> with <c>status: finalised</c>.
     /// </summary>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeCreate)]
     [HttpPost("draft")]
@@ -121,17 +113,6 @@ public class EmployeesController : ControllerBase
         CancellationToken ct)
     {
         var result = await _registration.CreateDraftAsync(body.FullName, body.ExistingUserId, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
-    /// <summary>Finalise draft employee (wizard step 6).</summary>
-    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
-    [HttpPost("finalise")]
-    [ProducesResponseType(typeof(Respons<EmployeeRegistrationReadDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<Respons<EmployeeRegistrationReadDto>>> Finalise(
-        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId, CancellationToken ct)
-    {
-        var result = await _registration.FinaliseAsync(employeeId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
@@ -210,79 +191,15 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Employee directory table with search, filters, sort, and pagination.</summary>
+    /// <summary>Employee record (same aggregate shape as create/update).</summary>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
-    [HttpGet("directory")]
-    [ProducesResponseType(typeof(Respons<EmployeeDirectoryListDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<Respons<EmployeeDirectoryListDto>>> Directory(
-        [FromQuery] string? search,
-        [FromQuery] Guid? departmentId,
-        [FromQuery] Guid? branchId,
-        [FromQuery] string? employmentType,
-        [FromQuery] string? lifecycleState,
-        [FromQuery] string? workLocation,
-        [FromQuery] string? status,
-        [FromQuery] string sortBy = "name",
-        [FromQuery] string sortOrder = "asc",
-        [FromQuery] int page = 1,
-        [FromQuery] int size = 10,
-        [FromQuery] bool includeInactive = false,
-        CancellationToken ct = default)
-    {
-        var ctx = _tenant.Current;
-        var query = new EmployeeDirectoryQuery
-        {
-            Search = search,
-            DepartmentId = departmentId,
-            BranchId = branchId,
-            EmploymentType = employmentType,
-            LifecycleState = lifecycleState,
-            WorkLocation = workLocation,
-            Status = status,
-            SortBy = sortBy,
-            SortOrder = sortOrder,
-            Page = page,
-            Size = size,
-            IncludeInactive = includeInactive,
-        };
-
-        var result = await _directory.GetDirectoryAsync(query, ctx.TenantId, ctx.OrgId, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
-    /// <summary>Filter dropdown options for the directory toolbar.</summary>
-    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
-    [HttpGet("directory/filter-options")]
-    [ProducesResponseType(typeof(Respons<EmployeeFilterOptionsDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<Respons<EmployeeFilterOptionsDto>>> FilterOptions(CancellationToken ct)
-    {
-        var ctx = _tenant.Current;
-        var result = await _directory.GetFilterOptionsAsync(ctx.TenantId, ctx.OrgId, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
-    /// <summary>Employee aggregate (same shape as create/update).</summary>
-    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
-    [HttpGet("get")]
+    [HttpGet("detail")]
     [ProducesResponseType(typeof(Respons<EmployeeAggregateReadDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Respons<EmployeeAggregateReadDto>), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<Respons<EmployeeAggregateReadDto>>> GetEmployeeAggregate(
+    public async Task<ActionResult<Respons<EmployeeAggregateReadDto>>> GetEmployeeDetail(
         [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId, CancellationToken ct)
     {
         var result = await _aggregate.GetAsync(employeeId, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
-    /// <summary>Full employee record for profile and HR admin screens (flat detail DTO).</summary>
-    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
-    [HttpGet("detail")]
-    [ProducesResponseType(typeof(Respons<EmployeeDetailDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(Respons<EmployeeDetailDto>), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<Respons<EmployeeDetailDto>>> GetEmployeeDetail(
-        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId, CancellationToken ct)
-    {
-        var ctx = _tenant.Current;
-        var result = await _service.GetByIdAsync(employeeId, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
@@ -361,36 +278,9 @@ public class EmployeesController : ControllerBase
     [HttpGet("list")]
     [ProducesResponseType(typeof(Respons<EmployeeListDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<EmployeeListDto>>> ListEmployees(
-        [FromQuery] string? search,
-        [FromQuery] string? lifecycleState,
-        [FromQuery] string? employmentStatus,
-        [FromQuery] Guid? departmentId,
-        [FromQuery] Guid? branchId,
-        [FromQuery] string? employmentType,
-        [FromQuery] string? workLocation,
-        [FromQuery] string sortBy = "name",
-        [FromQuery] string sortOrder = "asc",
-        [FromQuery] int page = 1,
-        [FromQuery] int size = 20,
-        [FromQuery] bool includeInactive = false,
+        [FromQuery] EmployeeListQuery query,
         CancellationToken ct = default)
     {
-        var query = new EmployeeListQuery
-        {
-            Search = search,
-            LifecycleState = lifecycleState,
-            EmploymentStatus = employmentStatus,
-            DepartmentId = departmentId,
-            BranchId = branchId,
-            EmploymentType = employmentType,
-            WorkLocation = workLocation,
-            SortBy = sortBy,
-            SortOrder = sortOrder,
-            Page = page,
-            Size = size,
-            IncludeInactive = includeInactive,
-        };
-
         var result = await _aggregate.ListAsync(query, ct);
         return StatusCode(result.StatusCode, result);
     }

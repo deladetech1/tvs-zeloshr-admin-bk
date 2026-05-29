@@ -26,10 +26,69 @@ See [ENTERPRISE_API.md](ENTERPRISE_API.md) for the full CRUD matrix and [GET /ap
 | GET | `/get?employee_id=` | Aggregate read |
 | GET | `/detail?employee_id=` | Flat profile DTO |
 | POST | `/add` | Create (aggregate body) |
-| PUT | `/update?employee_id=` | Partial update — send only changed sections (`identity`, `employment`, `compensation`, `lifecycle_state`, `education`, `certifications`, `custom_fields`) |
+| PUT | `/update` | Partial update — body includes `id` (employee UUID); send only changed sections |
 | DELETE | `/delete?employee_id=` | Soft delete |
 
-Wizard: `POST /draft`, `PUT /update?employee_id=` (partial sections), `POST /finalise?employee_id=`. File uploads: `POST /photo/upload`, `POST /documents/upload`.
+Link existing platform user: `POST /import` (separate from `POST /add`). Wizard: `POST /draft`, `PUT /update`, `POST /finalise?employee_id=`.
+
+### `POST /add` and `PUT /update` body (snake_case)
+
+| Field | Create | Update | Notes |
+|-------|--------|--------|-------|
+| `status` | yes | no | Create only: `draft` \| `finalised` |
+| `id` | no | **required** | Employee UUID from `GET /get` |
+| `identity` | object | optional | See identity table below |
+| `employment` | optional | optional | Job, dept, branch, manager, etc. |
+| `compensation` | optional | optional | Salary, SSNIT, TIN, bank |
+| `lifecycle_state` | no | optional | e.g. `pre_hire`, `active`, `terminated` |
+| `education` | array | optional | Items: include `id` to update, omit to add |
+| `certifications` | array | optional | Same as education |
+| `custom_fields` | object | optional | `{ "field_key": "value" }` |
+| `delete_education_ids` | no | optional | UUID[] |
+| `delete_certification_ids` | no | optional | UUID[] |
+
+**Do not** send `import` / `existing_user_id` on `POST /add` — use `POST /import` instead.
+
+### `identity` object
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `full_name` | string | Display name (required on create) |
+| `date_of_birth` | date | `YYYY-MM-DD` |
+| `gender` | string | e.g. `male`, `female` |
+| `country` | string | Country of citizenship, e.g. `Ghana` |
+| `id_type` | string | **What kind of ID** — suggested: `ghana_card`, `passport`, `voter_id`, `drivers_license`, `ssnit`, `other` |
+| `id_issue_date` | date | When the ID was issued (`YYYY-MM-DD`) |
+| `id_expiry_date` | date | When the ID expires (`YYYY-MM-DD`) |
+| `id_number` | string | **The ID number** matching `id_type` |
+| `personal_email` | string | Non-work email (HR record) |
+| `work_email` | string | Work email; links/creates platform user |
+| `phone` | string | Contact number |
+| `linkedin_url` | string | |
+| `residential_address` | string | |
+
+**Government ID (frontend):** `id_type` + `id_number` + optional `id_issue_date` / `id_expiry_date`. Example:
+
+```json
+"id_type": "ghana_card",
+"id_number": "GHA-123456789-0",
+"id_issue_date": "2020-05-15",
+"id_expiry_date": "2030-05-14"
+```
+
+### `education[]` items
+
+| Field | Type | Notes |
+|-------|------|--------|
+| `id` | uuid | Update only — omit on create |
+| `institution` | string | Required |
+| `degree` | string | |
+| `field_of_study` | string | |
+| `start_date` | date | `YYYY-MM-DD` (not year integer) |
+| `end_date` | date | `YYYY-MM-DD` |
+| `is_current` | boolean | |
+
+File uploads: `POST /photo/upload`, `POST /documents/upload`.
 
 ---
 

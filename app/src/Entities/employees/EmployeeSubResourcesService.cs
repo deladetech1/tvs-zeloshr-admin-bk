@@ -1,7 +1,9 @@
+using Microsoft.Extensions.Options;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Persistence.Entities;
 using ZelosHR.Api.Shared.Abstractions;
 using ZelosHR.Api.Shared.Formatting;
+using ZelosHR.Api.Shared.Infrastructure;
 
 namespace ZelosHR.Api.Entities.Employees;
 
@@ -18,6 +20,7 @@ public sealed class EmployeeSubResourcesService
     private readonly IEmployeeWizardDocumentRepository _documents;
     private readonly IEmployeeRepository _employees;
     private readonly IFileStorageService _files;
+    private readonly AzureStorageOptions _storage;
     private readonly ITenantContext _tenant;
     private readonly ICurrentUserService _currentUser;
 
@@ -27,6 +30,7 @@ public sealed class EmployeeSubResourcesService
         IEmployeeWizardDocumentRepository documents,
         IEmployeeRepository employees,
         IFileStorageService files,
+        IOptions<AzureStorageOptions> storage,
         ITenantContext tenant,
         ICurrentUserService currentUser)
     {
@@ -35,6 +39,7 @@ public sealed class EmployeeSubResourcesService
         _documents = documents;
         _employees = employees;
         _files = files;
+        _storage = storage.Value;
         _tenant = tenant;
         _currentUser = currentUser;
     }
@@ -65,8 +70,8 @@ public sealed class EmployeeSubResourcesService
             Institution = dto.Institution.Trim(),
             Degree = dto.Degree,
             FieldOfStudy = dto.FieldOfStudy,
-            StartYear = dto.StartYear,
-            EndYear = dto.EndYear,
+            StartDate = dto.StartDate,
+            EndDate = dto.EndDate,
             IsCurrent = dto.IsCurrent,
         }, ct);
 
@@ -83,8 +88,8 @@ public sealed class EmployeeSubResourcesService
         existing.Institution = dto.Institution.Trim();
         existing.Degree = dto.Degree;
         existing.FieldOfStudy = dto.FieldOfStudy;
-        existing.StartYear = dto.StartYear;
-        existing.EndYear = dto.EndYear;
+        existing.StartDate = dto.StartDate;
+        existing.EndDate = dto.EndDate;
         existing.IsCurrent = dto.IsCurrent;
         await _education.UpdateAsync(existing, ct);
         return Respons<EmployeeEducationDto>.Ok(ToEducationDto(existing));
@@ -192,7 +197,7 @@ public sealed class EmployeeSubResourcesService
             fileStream,
             fileName,
             contentType,
-            "employee-documents",
+            _storage.DocumentsContainer,
             _tenant.TenantId,
             employeeId,
             ct);
@@ -225,7 +230,7 @@ public sealed class EmployeeSubResourcesService
     }
 
     private static EmployeeEducationDto ToEducationDto(EmployeeEducationEntity e) => new(
-        e.Id, e.EmployeeId, e.Institution, e.Degree, e.FieldOfStudy, e.StartYear, e.EndYear, e.IsCurrent);
+        e.Id, e.EmployeeId, e.Institution, e.Degree, e.FieldOfStudy, e.StartDate, e.EndDate, e.IsCurrent);
 
     private static EmployeeCertificationDto ToCertificationDto(EmployeeCertificationEntity c) => new(
         c.Id, c.EmployeeId, c.Name, c.IssuingBody, c.IssueDate, c.ExpiryDate, c.CredentialId);

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using ZelosHR.Api.Configs;
 using ZelosHR.Api.Persistence.Entities;
 
 namespace ZelosHR.Api.Entities.Employees;
@@ -9,11 +10,23 @@ public sealed class EmployeeDirectoryQuery
     public string? Search { get; init; }
     public Guid? DepartmentId { get; init; }
     public Guid? BranchId { get; init; }
+
+    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.EmploymentTypes))]
     public string? EmploymentType { get; init; }
+
+    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.LifecycleStatesAll))]
     public string? LifecycleState { get; init; }
+
     public string? WorkLocation { get; init; }
+
+    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.DirectoryEmploymentStatuses),
+        Description = "Maps to employment_status on the employee record.")]
     public string? Status { get; init; }
+
+    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.DirectorySortBy))]
     public string SortBy { get; init; } = "name";
+
+    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.SortOrder))]
     public string SortOrder { get; init; } = "asc";
     public int Page { get; init; } = 1;
     public int Size { get; init; } = 10;

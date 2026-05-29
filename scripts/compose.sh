@@ -110,7 +110,7 @@ case "${cmd}" in
     )
     code=$(curl -s -o /dev/null -w "%{http_code}" "${curl_headers[@]}" "${BASE}/api/v1/health" || echo "000")
     echo "/api/v1/health → HTTP ${code}"
-    for path in /api/v1/navigation /api/v1/employees/directory/summary; do
+    for path in /api/v1/navigation /api/v1/employees/statistics; do
       code=$(curl -s -o /dev/null -w "%{http_code}" "${curl_headers[@]}" "${BASE}${path}" || echo "000")
       echo "${path} → HTTP ${code}"
     done

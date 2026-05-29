@@ -14,7 +14,7 @@ public sealed class EmployeeEducationRepository(ZelosHrDbContext db) : IEmployee
         Guid employeeId, string tenantId, string orgId, CancellationToken ct = default) =>
         await db.EmployeeEducations.AsNoTracking()
             .Where(x => x.EmployeeId == employeeId)
-            .OrderByDescending(x => x.StartYear)
+            .OrderByDescending(x => x.StartDate)
             .ToListAsync(ct);
 
     public Task<EmployeeEducationEntity?> GetByIdAsync(

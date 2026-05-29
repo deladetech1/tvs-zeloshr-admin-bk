@@ -217,8 +217,9 @@ public partial class CustomFieldsService
         if (string.IsNullOrWhiteSpace(body.Label))
             errors["label"] = "Label is required.";
 
-        if (string.IsNullOrWhiteSpace(body.FieldType))
-            errors["fieldType"] = "Field type is required.";
+        if (string.IsNullOrWhiteSpace(body.FieldType)
+            || !CustomFieldFieldTypes.All.Contains(body.FieldType.Trim(), StringComparer.OrdinalIgnoreCase))
+            errors["fieldType"] = $"Required. Allowed: {string.Join(", ", CustomFieldFieldTypes.All)}.";
 
         return errors.Count == 0 ? null : errors;
     }

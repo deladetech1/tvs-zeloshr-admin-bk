@@ -19,6 +19,8 @@ public sealed class EmployeeEntity
     public string? Gender { get; set; }
     public string? Nationality { get; set; }
     public string? NationalityIdType { get; set; }
+    public DateOnly? IdIssueDate { get; set; }
+    public DateOnly? IdExpiryDate { get; set; }
     public string? IdNumber { get; set; }
     public string? GhanaCardNumber { get; set; }
     public string? PersonalEmail { get; set; }

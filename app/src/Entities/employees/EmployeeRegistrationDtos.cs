@@ -5,15 +5,15 @@ public sealed record CreateEmployeeRequest
     public string FullName { get; init; } = string.Empty;
     public DateOnly? DateOfBirth { get; init; }
     public string? Gender { get; init; }
-    public string? Nationality { get; init; }
-    public string? NationalityIdType { get; init; }
+    public string? Country { get; init; }
+    public string? IdType { get; init; }
+    public DateOnly? IdIssueDate { get; init; }
+    public DateOnly? IdExpiryDate { get; init; }
     public string? IdNumber { get; init; }
     public string? PersonalEmail { get; init; }
     public string? WorkEmail { get; init; }
     public string? Phone { get; init; }
     public string? LinkedInUrl { get; init; }
-    public string? GpsAddress { get; init; }
-    public string? State { get; init; }
     public string? ResidentialAddress { get; init; }
     public string? JobTitle { get; init; }
     public Guid? DepartmentId { get; init; }

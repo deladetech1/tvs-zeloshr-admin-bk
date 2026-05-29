@@ -1,7 +1,9 @@
+using Microsoft.Extensions.Options;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Persistence.Entities;
 using ZelosHR.Api.Shared.Abstractions;
 using ZelosHR.Api.Shared.Formatting;
+using ZelosHR.Api.Shared.Infrastructure;
 
 namespace ZelosHR.Api.Entities.Employees;
 
@@ -10,6 +12,7 @@ public sealed class EmployeeRegistrationService
     private readonly IEmployeeRepository _employees;
     private readonly ICpUserRepository _cpUsers;
     private readonly IFileStorageService _files;
+    private readonly AzureStorageOptions _storage;
     private readonly ITenantContext _tenant;
     private readonly ICurrentUserService _currentUser;
 
@@ -17,12 +20,14 @@ public sealed class EmployeeRegistrationService
         IEmployeeRepository employees,
         ICpUserRepository cpUsers,
         IFileStorageService files,
+        IOptions<AzureStorageOptions> storage,
         ITenantContext tenant,
         ICurrentUserService currentUser)
     {
         _employees = employees;
         _cpUsers = cpUsers;
         _files = files;
+        _storage = storage.Value;
         _tenant = tenant;
         _currentUser = currentUser;
     }
@@ -348,14 +353,14 @@ public sealed class EmployeeRegistrationService
         e.Phone = dto.Phone ?? e.Phone;
         e.WorkEmail = dto.WorkEmail ?? e.WorkEmail;
         e.ResidentialAddress = dto.ResidentialAddress ?? e.ResidentialAddress;
-        e.GhanaPostGps = dto.GpsAddress ?? e.GhanaPostGps;
-        e.State = dto.State ?? e.State;
     }
 
     private static void ApplyHrPersonalFields(EmployeeEntity e, CreateEmployeeRequest dto)
     {
-        e.Nationality = dto.Nationality ?? e.Nationality;
-        e.NationalityIdType = dto.NationalityIdType ?? e.NationalityIdType;
+        e.Nationality = dto.Country ?? e.Nationality;
+        e.NationalityIdType = dto.IdType ?? e.NationalityIdType;
+        e.IdIssueDate = dto.IdIssueDate ?? e.IdIssueDate;
+        e.IdExpiryDate = dto.IdExpiryDate ?? e.IdExpiryDate;
         e.IdNumber = dto.IdNumber ?? e.IdNumber;
         e.PersonalEmail = dto.PersonalEmail ?? e.PersonalEmail;
         e.LinkedInUrl = dto.LinkedInUrl ?? e.LinkedInUrl;
@@ -397,7 +402,7 @@ public sealed class EmployeeRegistrationService
         }
 
         var url = await _files.UploadAsync(
-            photoStream, fileName, contentType, "profile-photos", _tenant.TenantId, id, ct);
+            photoStream, fileName, contentType, _storage.ProfilePhotosContainer, _tenant.TenantId, id, ct);
         await _cpUsers.UpdateProfilePicAsync(entity.UserId, _tenant.TenantId, url, ct);
         entity.UpdatedAt = DateTimeOffset.UtcNow;
         await _employees.UpdateAsync(entity, ct);

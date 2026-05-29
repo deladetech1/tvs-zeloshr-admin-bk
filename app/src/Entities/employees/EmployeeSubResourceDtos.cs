@@ -6,17 +6,19 @@ public sealed record EmployeeEducationDto(
     string Institution,
     string? Degree,
     string? FieldOfStudy,
-    int? StartYear,
-    int? EndYear,
-    bool IsCurrent);
+    DateOnly? StartDate,
+    DateOnly? EndDate,
+    bool IsCurrent,
+    Dictionary<string, string?>? CustomFields = null);
 
 public sealed record EmployeeEducationWriteDto(
     string Institution,
     string? Degree,
     string? FieldOfStudy,
-    int? StartYear,
-    int? EndYear,
-    bool IsCurrent);
+    DateOnly? StartDate,
+    DateOnly? EndDate,
+    bool IsCurrent,
+    Dictionary<string, string?>? CustomFields = null);
 
 /// <summary>Include <c>id</c> to update an existing row; omit to create.</summary>
 public sealed record EmployeeEducationUpsertDto(
@@ -24,9 +26,10 @@ public sealed record EmployeeEducationUpsertDto(
     string Institution,
     string? Degree,
     string? FieldOfStudy,
-    int? StartYear,
-    int? EndYear,
-    bool IsCurrent);
+    DateOnly? StartDate,
+    DateOnly? EndDate,
+    bool IsCurrent,
+    Dictionary<string, string?>? CustomFields = null);
 
 public sealed record EmployeeCertificationDto(
     Guid Id,
@@ -35,14 +38,16 @@ public sealed record EmployeeCertificationDto(
     string? IssuingBody,
     DateOnly? IssueDate,
     DateOnly? ExpiryDate,
-    string? CredentialId);
+    string? CredentialId,
+    Dictionary<string, string?>? CustomFields = null);
 
 public sealed record EmployeeCertificationWriteDto(
     string Name,
     string? IssuingBody,
     DateOnly? IssueDate,
     DateOnly? ExpiryDate,
-    string? CredentialId);
+    string? CredentialId,
+    Dictionary<string, string?>? CustomFields = null);
 
 /// <summary>Include <c>id</c> to update an existing row; omit to create.</summary>
 public sealed record EmployeeCertificationUpsertDto(
@@ -51,7 +56,8 @@ public sealed record EmployeeCertificationUpsertDto(
     string? IssuingBody,
     DateOnly? IssueDate,
     DateOnly? ExpiryDate,
-    string? CredentialId);
+    string? CredentialId,
+    Dictionary<string, string?>? CustomFields = null);
 
 public sealed record EmployeeWizardDocumentDto(
     Guid Id,

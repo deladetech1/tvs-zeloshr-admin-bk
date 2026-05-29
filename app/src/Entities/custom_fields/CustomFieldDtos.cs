@@ -1,3 +1,5 @@
+using ZelosHR.Api.Configs;
+
 namespace ZelosHR.Api.Entities.CustomFields;
 
 public sealed class CustomFieldsSummaryDto
@@ -10,11 +12,17 @@ public sealed class CustomFieldsSummaryDto
 public sealed class CustomFieldDefinitionDto
 {
     public required string Id { get; init; }
+
+    [SwaggerAllowedValues(typeof(CustomFieldEntityTypes), nameof(CustomFieldEntityTypes.All))]
     public required string EntityType { get; init; }
+
     public required string FieldKey { get; init; }
     public required string Label { get; init; }
     public string? Description { get; init; }
+
+    [SwaggerAllowedValues(typeof(CustomFieldFieldTypes), nameof(CustomFieldFieldTypes.All))]
     public required string FieldType { get; init; }
+
     public bool IsRequired { get; init; }
     public bool IsSensitive { get; init; }
     public bool IsFilterable { get; init; }
@@ -42,17 +50,24 @@ public sealed class CustomFieldDefinitionListDto
 
 public sealed class CustomFieldSchemaDto
 {
+    [SwaggerAllowedValues(typeof(CustomFieldEntityTypes), nameof(CustomFieldEntityTypes.All))]
     public required string EntityType { get; init; }
+
     public IReadOnlyList<CustomFieldDefinitionDto> Fields { get; init; } = [];
 }
 
 public sealed class CreateCustomFieldDefinitionDto
 {
+    [SwaggerAllowedValues(typeof(CustomFieldEntityTypes), nameof(CustomFieldEntityTypes.All))]
     public required string EntityType { get; set; }
+
     public required string FieldKey { get; set; }
     public required string Label { get; set; }
     public string? Description { get; set; }
+
+    [SwaggerAllowedValues(typeof(CustomFieldFieldTypes), nameof(CustomFieldFieldTypes.All))]
     public required string FieldType { get; set; }
+
     public bool IsRequired { get; set; }
     public bool IsSensitive { get; set; }
     public bool IsFilterable { get; set; } = true;
@@ -71,7 +86,10 @@ public sealed class UpdateCustomFieldDefinitionDto
 {
     public string? Label { get; set; }
     public string? Description { get; set; }
+
+    [SwaggerAllowedValues(typeof(CustomFieldFieldTypes), nameof(CustomFieldFieldTypes.All))]
     public string? FieldType { get; set; }
+
     public bool? IsRequired { get; set; }
     public bool? IsSensitive { get; set; }
     public bool? IsFilterable { get; set; }
@@ -101,13 +119,18 @@ public sealed class ReorderCustomFieldItemDto
 public sealed class CustomFieldAuditLogDto
 {
     public required string Id { get; init; }
+
+    [SwaggerAllowedValues(typeof(CustomFieldEntityTypes), nameof(CustomFieldEntityTypes.All))]
     public required string EntityType { get; init; }
+
     public required string EntityId { get; init; }
     public required string FieldKey { get; init; }
     public string? OldValue { get; init; }
     public string? NewValue { get; init; }
     public required string ChangedBy { get; init; }
     public DateTimeOffset ChangedAt { get; init; }
+
+    [SwaggerAllowedValues(typeof(CustomFieldChangeTypes), nameof(CustomFieldChangeTypes.All))]
     public required string ChangeType { get; init; }
 }
 

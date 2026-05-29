@@ -1,8 +1,10 @@
 using FluentAssertions;
+using Microsoft.Extensions.Options;
 using NSubstitute;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Persistence.Entities;
 using ZelosHR.Api.Shared.Abstractions;
+using ZelosHR.Api.Shared.Infrastructure;
 
 namespace ZelosHR.Api.Tests.Employees;
 
@@ -22,7 +24,14 @@ public class EmployeeSubResourcesTests
         _tenant.TenantId.Returns(TestDefaults.TenantId);
         _tenant.OrgId.Returns(TestDefaults.OrgId);
         _sut = new EmployeeSubResourcesService(
-            _education, _certifications, _documents, _employees, _files, _tenant, _currentUser);
+            _education,
+            _certifications,
+            _documents,
+            _employees,
+            _files,
+            Options.Create(new AzureStorageOptions()),
+            _tenant,
+            _currentUser);
     }
 
     [Fact]

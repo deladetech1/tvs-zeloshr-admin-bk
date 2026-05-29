@@ -91,8 +91,8 @@ public class EmployeesDirectoryService
                 .Where(b => !b.IsArchived)
                 .Select(b => new FilterOptionDto { Id = b.Id.ToString(), Name = b.Name })
                 .ToList(),
-            EmploymentTypes = ["Full-time", "Part-time", "Contractor", "Casual"],
-            Statuses = ["Active", "Probation", "On Leave", "Suspended", "Resigned", "Terminated"],
+            EmploymentTypes = EmployeeFieldOptions.EmploymentTypes.ToList(),
+            Statuses = EmployeeFieldOptions.DirectoryEmploymentStatuses.ToList(),
         });
     }
 

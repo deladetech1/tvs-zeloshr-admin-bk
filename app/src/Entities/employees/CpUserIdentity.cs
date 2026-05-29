@@ -40,8 +40,6 @@ public static class CpUserIdentityMapper
         var parts = new[]
         {
             dto?.ResidentialAddress ?? employee.ResidentialAddress,
-            dto?.GpsAddress ?? employee.GhanaPostGps,
-            dto?.State ?? employee.State,
         }.Where(p => !string.IsNullOrWhiteSpace(p)).Select(p => p!.Trim()).ToArray();
 
         return parts.Length == 0 ? null : string.Join(", ", parts);

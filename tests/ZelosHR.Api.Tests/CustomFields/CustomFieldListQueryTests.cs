@@ -11,4 +11,12 @@ public class CustomFieldListQueryTests
         Assert.Contains("lifecycle_event", CustomFieldEntityTypes.All);
         Assert.Equal(5, CustomFieldEntityTypes.All.Count);
     }
+
+    [Fact]
+    public void FieldTypes_includes_common_input_kinds()
+    {
+        Assert.Contains("text", CustomFieldFieldTypes.All);
+        Assert.Contains("select", CustomFieldFieldTypes.All);
+        Assert.True(CustomFieldFieldTypes.All.Count >= 8);
+    }
 }

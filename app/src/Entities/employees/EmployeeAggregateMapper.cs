@@ -10,16 +10,16 @@ internal static class EmployeeAggregateMapper
             FullName = aggregate.Identity.FullName,
             DateOfBirth = aggregate.Identity.DateOfBirth,
             Gender = aggregate.Identity.Gender,
-            Nationality = aggregate.Identity.Nationality,
-            NationalityIdType = aggregate.Identity.NationalityIdType,
+            Country = aggregate.Identity.Country,
+            IdType = aggregate.Identity.IdType,
+            IdIssueDate = aggregate.Identity.IdIssueDate,
+            IdExpiryDate = aggregate.Identity.IdExpiryDate,
             IdNumber = aggregate.Identity.IdNumber,
             PersonalEmail = aggregate.Identity.PersonalEmail,
             WorkEmail = aggregate.Identity.WorkEmail,
             Phone = aggregate.Identity.Phone,
             LinkedInUrl = aggregate.Identity.LinkedInUrl,
             ResidentialAddress = aggregate.Identity.ResidentialAddress,
-            GpsAddress = aggregate.Identity.GpsAddress,
-            State = aggregate.Identity.State,
             JobTitle = aggregate.Employment?.JobTitle,
             DepartmentId = aggregate.Employment?.DepartmentId,
             BranchId = aggregate.Employment?.BranchId,
@@ -35,15 +35,7 @@ internal static class EmployeeAggregateMapper
             DottedLineManagerId = aggregate.Employment?.DottedLineManagerId,
             GrossSalary = aggregate.Compensation?.GrossSalary,
             PayFrequency = aggregate.Compensation?.PayFrequency,
-            SalaryEffectiveFrom = aggregate.Compensation?.SalaryEffectiveFrom,
             Currency = aggregate.Compensation?.Currency,
-            SsnitNumber = aggregate.Compensation?.SsnitNumber,
-            TinNumber = aggregate.Compensation?.TinNumber,
-            Tier2PensionProvider = aggregate.Compensation?.Tier2PensionProvider,
-            Tier3PensionProvider = aggregate.Compensation?.Tier3PensionProvider,
-            PaymentMethod = aggregate.Compensation?.PaymentMethod,
-            BankAccountNumber = aggregate.Compensation?.BankAccountNumber,
-            MobileMoneyNumber = aggregate.Compensation?.MobileMoneyNumber,
             Finalise = string.Equals(aggregate.Status, "finalised", StringComparison.OrdinalIgnoreCase),
         };
 
@@ -53,16 +45,16 @@ internal static class EmployeeAggregateMapper
             FullName = update.Identity?.FullName ?? string.Empty,
             DateOfBirth = update.Identity?.DateOfBirth,
             Gender = update.Identity?.Gender,
-            Nationality = update.Identity?.Nationality,
-            NationalityIdType = update.Identity?.NationalityIdType,
+            Country = update.Identity?.Country,
+            IdType = update.Identity?.IdType,
+            IdIssueDate = update.Identity?.IdIssueDate,
+            IdExpiryDate = update.Identity?.IdExpiryDate,
             IdNumber = update.Identity?.IdNumber,
             PersonalEmail = update.Identity?.PersonalEmail,
             WorkEmail = update.Identity?.WorkEmail,
             Phone = update.Identity?.Phone,
             LinkedInUrl = update.Identity?.LinkedInUrl,
             ResidentialAddress = update.Identity?.ResidentialAddress,
-            GpsAddress = update.Identity?.GpsAddress,
-            State = update.Identity?.State,
             JobTitle = update.Employment?.JobTitle,
             DepartmentId = update.Employment?.DepartmentId,
             BranchId = update.Employment?.BranchId,
@@ -78,22 +70,14 @@ internal static class EmployeeAggregateMapper
             DottedLineManagerId = update.Employment?.DottedLineManagerId,
             GrossSalary = update.Compensation?.GrossSalary,
             PayFrequency = update.Compensation?.PayFrequency,
-            SalaryEffectiveFrom = update.Compensation?.SalaryEffectiveFrom,
             Currency = update.Compensation?.Currency,
-            SsnitNumber = update.Compensation?.SsnitNumber,
-            TinNumber = update.Compensation?.TinNumber,
-            Tier2PensionProvider = update.Compensation?.Tier2PensionProvider,
-            Tier3PensionProvider = update.Compensation?.Tier3PensionProvider,
-            PaymentMethod = update.Compensation?.PaymentMethod,
-            BankAccountNumber = update.Compensation?.BankAccountNumber,
-            MobileMoneyNumber = update.Compensation?.MobileMoneyNumber,
         };
 
     public static EmployeeEducationWriteDto ToEducationWrite(EmployeeEducationUpsertDto dto) =>
-        new(dto.Institution, dto.Degree, dto.FieldOfStudy, dto.StartYear, dto.EndYear, dto.IsCurrent);
+        new(dto.Institution, dto.Degree, dto.FieldOfStudy, dto.StartDate, dto.EndDate, dto.IsCurrent, dto.CustomFields);
 
     public static EmployeeCertificationWriteDto ToCertificationWrite(EmployeeCertificationUpsertDto dto) =>
-        new(dto.Name, dto.IssuingBody, dto.IssueDate, dto.ExpiryDate, dto.CredentialId);
+        new(dto.Name, dto.IssuingBody, dto.IssueDate, dto.ExpiryDate, dto.CredentialId, dto.CustomFields);
 
     public static string SerializeCustomFields(Dictionary<string, string?>? fields) =>
         fields is null || fields.Count == 0
@@ -114,4 +98,10 @@ internal static class EmployeeAggregateMapper
             return new Dictionary<string, string?>();
         }
     }
+
+    public static IReadOnlyList<Guid> ToDocumentIds(IEnumerable<EmployeeWizardDocumentDto> documents) =>
+        documents
+            .OrderByDescending(d => d.UploadedAt)
+            .Select(d => d.Id)
+            .ToList();
 }

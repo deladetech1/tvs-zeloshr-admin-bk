@@ -1,8 +1,10 @@
 using ZelosHR.Api.Entities.Branches;
+using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Persistence;
 using ZelosHR.Api.Persistence.Entities;
+using ZelosHR.Api.Persistence.Repositories;
 using ZelosHR.Api.Shared.Abstractions;
 using ZelosHR.Api.Shared.Formatting;
 using ZelosHR.Api.Shared.Pagination;
@@ -22,6 +24,8 @@ public sealed class EmployeeAggregateService
     private readonly IDepartmentRepository _departments;
     private readonly IBranchRepository _branches;
     private readonly EmployeesService _employeesService;
+    private readonly ICustomFieldDefinitionsRepository _customFieldDefinitions;
+    private readonly IEmployeeWizardDocumentRepository _documents;
     private readonly ITenantContext _tenant;
 
     public EmployeeAggregateService(
@@ -33,6 +37,8 @@ public sealed class EmployeeAggregateService
         IDepartmentRepository departments,
         IBranchRepository branches,
         EmployeesService employeesService,
+        ICustomFieldDefinitionsRepository customFieldDefinitions,
+        IEmployeeWizardDocumentRepository documents,
         ITenantContext tenant)
     {
         _db = db;
@@ -43,6 +49,8 @@ public sealed class EmployeeAggregateService
         _departments = departments;
         _branches = branches;
         _employeesService = employeesService;
+        _customFieldDefinitions = customFieldDefinitions;
+        _documents = documents;
         _tenant = tenant;
     }
 
@@ -67,7 +75,7 @@ public sealed class EmployeeAggregateService
         {
             var draft = await _registration.CreateDraftAsync(
                 request.Identity.FullName,
-                request.Import?.ExistingUserId,
+                existingUserId: null,
                 ct);
             if (!draft.Success || draft.Data is null)
             {
@@ -123,7 +131,7 @@ public sealed class EmployeeAggregateService
                 }
             }
 
-            if (request.CustomFields is { Count: > 0 })
+            if (HasSectionCustomFields(request))
             {
                 var entity = await _employees.GetByIdScopedForUpdateAsync(
                     employeeId, _tenant.TenantId, _tenant.OrgId, ct);
@@ -133,8 +141,15 @@ public sealed class EmployeeAggregateService
                     return Respons<EmployeeAggregateReadDto>.Fail("Employee not found.", statusCode: 404);
                 }
 
-                entity.CustomFieldsData = EmployeeAggregateMapper.SerializeCustomFields(request.CustomFields);
-                await _employees.UpdateAsync(entity, ct);
+                await ApplySectionCustomFieldsAsync(
+                    entity,
+                    new Dictionary<string, string?>(),
+                    request.Identity.CustomFields,
+                    request.Employment?.CustomFields,
+                    request.Compensation?.CustomFields,
+                    request.Education.Select(e => e.CustomFields),
+                    request.Certifications.Select(c => c.CustomFields),
+                    ct);
             }
 
             foreach (var edu in request.Education)
@@ -154,6 +169,16 @@ public sealed class EmployeeAggregateService
                 {
                     await transaction.RollbackAsync(ct);
                     return MapError<EmployeeAggregateReadDto>(added);
+                }
+            }
+
+            if (request.Documents is { Count: > 0 })
+            {
+                var docErrors = await ValidateDocumentReferencesAsync(employeeId, request.Documents, ct);
+                if (docErrors is not null)
+                {
+                    await transaction.RollbackAsync(ct);
+                    return Respons<EmployeeAggregateReadDto>.ValidationError(docErrors);
                 }
             }
 
@@ -184,13 +209,15 @@ public sealed class EmployeeAggregateService
         {
             return Respons<EmployeeAggregateReadDto>.ValidationError(new Dictionary<string, string>
             {
-                ["body"] = "Include at least one section to update (identity, employment, compensation, lifecycle_state, education, certifications, custom_fields).",
+                ["body"] = "Include at least one field to update (status, identity, employment, compensation, lifecycle_state, education, certifications, documents).",
             });
         }
 
         var validation = ValidateUpdate(request);
         if (validation is not null)
             return Respons<EmployeeAggregateReadDto>.ValidationError(validation);
+
+        var shouldFinalise = string.Equals(request.Status, "finalised", StringComparison.OrdinalIgnoreCase);
 
         if (await _employees.GetByIdScopedAsync(employeeId, _tenant.TenantId, _tenant.OrgId, ct) is null)
             return Respons<EmployeeAggregateReadDto>.Fail("Employee not found.", statusCode: 404);
@@ -274,7 +301,7 @@ public sealed class EmployeeAggregateService
                 }
             }
 
-            if (request.CustomFields is { Count: > 0 })
+            if (HasSectionCustomFields(request))
             {
                 var entity = await _employees.GetByIdScopedForUpdateAsync(
                     employeeId, _tenant.TenantId, _tenant.OrgId, ct);
@@ -284,12 +311,15 @@ public sealed class EmployeeAggregateService
                     return Respons<EmployeeAggregateReadDto>.Fail("Employee not found.", statusCode: 404);
                 }
 
-                var merged = EmployeeAggregateMapper.DeserializeCustomFields(entity.CustomFieldsData);
-                foreach (var (key, value) in request.CustomFields)
-                    merged[key] = value;
-                entity.CustomFieldsData = EmployeeAggregateMapper.SerializeCustomFields(merged);
-                entity.UpdatedAt = DateTimeOffset.UtcNow;
-                await _employees.UpdateAsync(entity, ct);
+                await ApplySectionCustomFieldsAsync(
+                    entity,
+                    EmployeeAggregateMapper.DeserializeCustomFields(entity.CustomFieldsData),
+                    request.Identity?.CustomFields,
+                    request.Employment?.CustomFields,
+                    request.Compensation?.CustomFields,
+                    request.Education?.Select(e => e.CustomFields) ?? [],
+                    request.Certifications?.Select(c => c.CustomFields) ?? [],
+                    ct);
             }
 
             if (request.DeleteEducationIds is { Count: > 0 })
@@ -354,6 +384,41 @@ public sealed class EmployeeAggregateService
                 }
             }
 
+            if (request.DeleteDocumentIds is { Count: > 0 })
+            {
+                foreach (var documentId in request.DeleteDocumentIds)
+                {
+                    var deleted = await _subResources.DeleteDocumentAsync(employeeId, documentId, ct);
+                    if (!deleted.Success)
+                    {
+                        await transaction.RollbackAsync(ct);
+                        return Respons<EmployeeAggregateReadDto>.Fail(
+                            deleted.Error ?? deleted.Detail ?? "Could not delete document.",
+                            statusCode: deleted.StatusCode);
+                    }
+                }
+            }
+
+            if (request.Documents is { Count: > 0 })
+            {
+                var docErrors = await ValidateDocumentReferencesAsync(employeeId, request.Documents, ct);
+                if (docErrors is not null)
+                {
+                    await transaction.RollbackAsync(ct);
+                    return Respons<EmployeeAggregateReadDto>.ValidationError(docErrors);
+                }
+            }
+
+            if (shouldFinalise)
+            {
+                var finalised = await _registration.FinaliseAsync(employeeId, ct);
+                if (!finalised.Success)
+                {
+                    await transaction.RollbackAsync(ct);
+                    return MapError<EmployeeAggregateReadDto>(finalised);
+                }
+            }
+
             await transaction.CommitAsync(ct);
             return await GetAsync(employeeId, ct);
         }
@@ -376,10 +441,23 @@ public sealed class EmployeeAggregateService
 
         var education = await _subResources.ListEducationAsync(id, ct);
         var certifications = await _subResources.ListCertificationsAsync(id, ct);
+        var uploadedDocuments = await _subResources.ListDocumentsAsync(id, category: null, ct);
 
         var fullName = EmployeeIdentityResolver.ResolveFullName(entity, cp);
         var workEmail = EmployeeIdentityResolver.ResolveWorkEmail(entity, cp);
         var profilePhoto = EmployeeIdentityResolver.ResolveProfilePhoto(entity, cp);
+
+        var educationItems = education.Success && education.Data is not null ? education.Data : [];
+        var certificationItems = certifications.Success && certifications.Data is not null ? certifications.Data : [];
+        var documentIds = uploadedDocuments.Success && uploadedDocuments.Data is not null
+            ? EmployeeAggregateMapper.ToDocumentIds(uploadedDocuments.Data)
+            : Array.Empty<Guid>();
+
+        var definitions = await _customFieldDefinitions.ListSchemaScopedAsync(
+            _tenant.TenantId, _tenant.OrgId, CustomFieldEntityTypes.Employee, ct);
+        var sections = EmployeeCustomFieldMapper.SplitFromFlat(
+            EmployeeAggregateMapper.DeserializeCustomFields(entity.CustomFieldsData),
+            definitions);
 
         var read = new EmployeeAggregateReadDto
         {
@@ -394,16 +472,17 @@ public sealed class EmployeeAggregateService
                 FullName = fullName,
                 DateOfBirth = entity.DateOfBirth ?? ParseCpDob(cp?.Dob),
                 Gender = entity.Gender ?? cp?.Gender,
-                Nationality = entity.Nationality,
-                NationalityIdType = entity.NationalityIdType,
+                Country = entity.Nationality,
+                IdType = entity.NationalityIdType,
+                IdIssueDate = entity.IdIssueDate,
+                IdExpiryDate = entity.IdExpiryDate,
                 IdNumber = entity.IdNumber,
                 PersonalEmail = entity.PersonalEmail,
                 WorkEmail = workEmail,
                 Phone = entity.Phone ?? entity.PersonalPhone ?? cp?.Phone,
                 LinkedInUrl = entity.LinkedInUrl,
                 ResidentialAddress = entity.ResidentialAddress ?? cp?.Address,
-                GpsAddress = entity.GhanaPostGps,
-                State = entity.State,
+                CustomFields = sections.Identity,
             },
             Employment = new EmployeeAggregateEmploymentReadDto
             {
@@ -424,27 +503,23 @@ public sealed class EmployeeAggregateService
                 NoticePeriod = entity.NoticePeriod,
                 ReportsToId = entity.ReportsToId,
                 DottedLineManagerId = entity.DottedLineManagerId,
+                CustomFields = sections.Employment,
             },
             Compensation = new EmployeeAggregateCompensationReadDto
             {
                 GrossSalary = entity.GrossSalary,
                 PayFrequency = entity.PayFrequency,
-                SalaryEffectiveFrom = entity.SalaryEffectiveFrom,
                 Currency = entity.Currency,
-                SsnitNumber = entity.SsnitNumber,
-                TinNumber = entity.TinNumber,
-                Tier2PensionProvider = entity.Tier2PensionProvider,
-                Tier3PensionProvider = entity.Tier3PensionProvider,
-                PaymentMethod = entity.PaymentMethod,
-                BankAccountNumber = entity.BankAccountNumber,
-                MobileMoneyNumber = entity.MobileMoneyNumber,
                 AnnualizedCost = entity.AnnualizedCost,
-                MaskedSsnitNumber = EmployeeRegistrationService.MaskSensitive(entity.SsnitNumber),
-                MaskedTinNumber = EmployeeRegistrationService.MaskSensitive(entity.TinNumber),
+                CustomFields = sections.Compensation,
             },
-            Education = education.Success && education.Data is not null ? education.Data : [],
-            Certifications = certifications.Success && certifications.Data is not null ? certifications.Data : [],
-            CustomFields = EmployeeAggregateMapper.DeserializeCustomFields(entity.CustomFieldsData),
+            Education = educationItems
+                .Select(e => e with { CustomFields = sections.Education })
+                .ToList(),
+            Certifications = certificationItems
+                .Select(c => c with { CustomFields = sections.Certification })
+                .ToList(),
+            Documents = documentIds,
         };
 
         return Respons<EmployeeAggregateReadDto>.Ok(read);
@@ -493,9 +568,8 @@ public sealed class EmployeeAggregateService
     {
         var errors = new Dictionary<string, string>();
 
-        if (string.IsNullOrWhiteSpace(request.Identity.FullName)
-            && string.IsNullOrWhiteSpace(request.Import?.ExistingUserId))
-            errors["identity.fullName"] = "Full name is required unless importing an existing user.";
+        if (string.IsNullOrWhiteSpace(request.Identity.FullName))
+            errors["identity.full_name"] = "Full name is required.";
 
         if (request.Education.Count > MaxEducation)
             errors["education"] = $"At most {MaxEducation} education records allowed.";
@@ -507,19 +581,96 @@ public sealed class EmployeeAggregateService
     }
 
     private static bool HasAnyUpdate(UpdateEmployeeAggregateRequest request) =>
-        request.Identity is not null
+        !string.IsNullOrWhiteSpace(request.Status)
+        || request.Identity is not null
         || request.Employment is not null
         || request.Compensation is not null
         || !string.IsNullOrWhiteSpace(request.LifecycleState)
         || request.Education is { Count: > 0 }
         || request.Certifications is { Count: > 0 }
-        || request.CustomFields is { Count: > 0 }
         || request.DeleteEducationIds is { Count: > 0 }
-        || request.DeleteCertificationIds is { Count: > 0 };
+        || request.DeleteCertificationIds is { Count: > 0 }
+        || request.DeleteDocumentIds is { Count: > 0 }
+        || request.Documents is { Count: > 0 }
+        || HasSectionCustomFields(request);
+
+    private static bool HasSectionCustomFields(CreateEmployeeAggregateRequest request) =>
+        HasCustomFields(request.Identity.CustomFields)
+        || HasCustomFields(request.Employment?.CustomFields)
+        || HasCustomFields(request.Compensation?.CustomFields)
+        || request.Education.Any(e => HasCustomFields(e.CustomFields))
+        || request.Certifications.Any(c => HasCustomFields(c.CustomFields));
+
+    private static bool HasSectionCustomFields(UpdateEmployeeAggregateRequest request) =>
+        HasCustomFields(request.Identity?.CustomFields)
+        || HasCustomFields(request.Employment?.CustomFields)
+        || HasCustomFields(request.Compensation?.CustomFields)
+        || request.Education?.Any(e => HasCustomFields(e.CustomFields)) == true
+        || request.Certifications?.Any(c => HasCustomFields(c.CustomFields)) == true;
+
+    private static bool HasCustomFields(Dictionary<string, string?>? fields) => fields is { Count: > 0 };
+
+    private async Task ApplySectionCustomFieldsAsync(
+        EmployeeEntity entity,
+        Dictionary<string, string?> currentFlat,
+        Dictionary<string, string?>? identityFields,
+        Dictionary<string, string?>? employmentFields,
+        Dictionary<string, string?>? compensationFields,
+        IEnumerable<Dictionary<string, string?>?> educationFieldSets,
+        IEnumerable<Dictionary<string, string?>?> certificationFieldSets,
+        CancellationToken ct)
+    {
+        var definitions = await _customFieldDefinitions.ListSchemaScopedAsync(
+            _tenant.TenantId, _tenant.OrgId, CustomFieldEntityTypes.Employee, ct);
+        var merged = EmployeeCustomFieldMapper.MergeIntoFlat(
+            currentFlat,
+            definitions,
+            identityFields,
+            employmentFields,
+            compensationFields,
+            educationFieldSets,
+            certificationFieldSets);
+
+        entity.CustomFieldsData = EmployeeAggregateMapper.SerializeCustomFields(merged);
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+        await _employees.UpdateAsync(entity, ct);
+    }
+
+    private async Task<Dictionary<string, string>?> ValidateDocumentReferencesAsync(
+        Guid employeeId,
+        IReadOnlyList<Guid> documentIds,
+        CancellationToken ct)
+    {
+        var errors = new Dictionary<string, string>();
+
+        for (var i = 0; i < documentIds.Count; i++)
+        {
+            var documentId = documentIds[i];
+            if (documentId == Guid.Empty)
+            {
+                errors[$"documents[{i}]"] = "Document id is required.";
+                continue;
+            }
+
+            var doc = await _documents.GetByIdAsync(
+                documentId, employeeId, _tenant.TenantId, _tenant.OrgId, ct);
+            if (doc is null)
+                errors[$"documents[{i}]"] = "Document not found for this employee.";
+        }
+
+        return errors.Count == 0 ? null : errors;
+    }
 
     private static Dictionary<string, string>? ValidateUpdate(UpdateEmployeeAggregateRequest request)
     {
         var errors = new Dictionary<string, string>();
+
+        if (!string.IsNullOrWhiteSpace(request.Status)
+            && !string.Equals(request.Status, "finalised", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(request.Status, "draft", StringComparison.OrdinalIgnoreCase))
+        {
+            errors["status"] = "Status must be 'draft' or 'finalised'.";
+        }
 
         if (request.Education is { Count: > MaxEducation })
             errors["education"] = $"At most {MaxEducation} education records allowed per request.";
