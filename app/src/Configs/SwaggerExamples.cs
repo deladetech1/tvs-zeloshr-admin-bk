@@ -187,7 +187,7 @@ internal static class SwaggerExamples
         1. Admin creates definitions: `POST /api/v1/custom-fields/add` with `section_name: "{section}"`.
         2. Frontend loads schema: `GET /api/v1/custom-fields/schema?entityType=employee`.
         3. Keys here must match `field_key` from definitions with `section_name = "{section}"`.
-        Unknown keys are ignored. Use `{{}}` when no values.
+        Unknown keys are ignored. Use an empty object (no keys) when there are no values.
         """;
 
     private static OpenApiObject IdentitySection(bool withCustomField = false) => new()

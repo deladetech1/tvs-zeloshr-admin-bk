@@ -54,7 +54,7 @@ public static class SwaggerConfiguration
 
                     | Step | Route | What you send | What you get |
                     |------|-------|---------------|--------------|
-                    | 1 Upload | `POST /file/post/multiple` | `blob_paths` + multipart `files` | `{ id }` per file |
+                    | 1 Upload | `POST /file/post/multiple` | `blob_paths` + multipart `files` | `{{ id }}` per file |
                     | 2 Attach | `POST /employees/add` | `document_ids: ["id", …]` | Employee record |
                     | 3 Download | `GET /file/list` | `document_ids=id1,id2` | `presigned_url` (24h) |
                     | 4 Replace | `PUT /file/put` | `document_id` + multipart `file` | Updated metadata + URL |
