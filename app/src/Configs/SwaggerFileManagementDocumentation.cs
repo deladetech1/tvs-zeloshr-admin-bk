@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using ZelosHR.Api.Configs;
@@ -150,7 +151,7 @@ public sealed class SwaggerFileManagementOperationFilter : IOperationFilter
         }
     }
 
-    private static void SetJsonResponseExample(OpenApiOperation operation, OpenApiObject example, string exampleKey)
+    private static void SetJsonResponseExample(OpenApiOperation operation, JsonObject example, string exampleKey)
     {
         if (!operation.Responses.TryGetValue("200", out var response) || response.Content is null)
             return;

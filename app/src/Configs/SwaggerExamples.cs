@@ -1,5 +1,4 @@
 using System.Text.Json.Nodes;
-using Microsoft.OpenApi;
 
 namespace ZelosHR.Api.Configs;
 
@@ -21,19 +20,19 @@ internal static class SwaggerExamples
     internal const string SamplePresignedUrl =
         "https://devstorage.blob.core.windows.net/employee-documents/tenant_demo/org_demo/bus_demo/employees/contract.pdf?sv=2024&se=2026-05-20T12%3A00%3A00Z&sig=example";
 
-    internal static OpenApiObject FileUploadMultipleResponse() => EnvelopeOk(new JsonArray(
-        new OpenApiObject { ["id"] = SampleDocumentId1 },
-        new OpenApiObject { ["id"] = SampleDocumentId2 }));
+    internal static JsonObject FileUploadMultipleResponse() => EnvelopeOk(new JsonArray(
+        new JsonObject { ["id"] = SampleDocumentId1 },
+        new JsonObject { ["id"] = SampleDocumentId2 }));
 
-    internal static OpenApiObject FileListResponse() => EnvelopeOk(new JsonArray(
-        new OpenApiObject
+    internal static JsonObject FileListResponse() => EnvelopeOk(new JsonArray(
+        new JsonObject
         {
             ["id"] = SampleDocumentId1,
             ["presigned_url"] = SamplePresignedUrl,
             ["description"] = "Employment contract",
             ["file_name"] = "contract.pdf",
         },
-        new OpenApiObject
+        new JsonObject
         {
             ["id"] = SampleDocumentId2,
             ["presigned_url"] = SamplePresignedUrl,
@@ -41,7 +40,7 @@ internal static class SwaggerExamples
             ["file_name"] = "national_id.jpg",
         }));
 
-    internal static OpenApiObject FileUpdateResponse() => EnvelopeOk(new OpenApiObject
+    internal static JsonObject FileUpdateResponse() => EnvelopeOk(new JsonObject
     {
         ["id"] = SampleDocumentId1,
         ["presigned_url"] = SamplePresignedUrl,
@@ -49,14 +48,14 @@ internal static class SwaggerExamples
         ["file_name"] = "contract_v2.pdf",
     });
 
-    internal static OpenApiObject FileDeleteResponse() => EnvelopeOk(new OpenApiObject
+    internal static JsonObject FileDeleteResponse() => EnvelopeOk(new JsonObject
     {
         ["blob_path"] = SampleBlobPathSingle,
         ["container_name"] = SampleDocumentsContainer,
         ["message"] = "File deleted successfully.",
     });
 
-    private static OpenApiObject EnvelopeOk(JsonNode data) => new()
+    private static JsonObject EnvelopeOk(JsonNode data) => new()
     {
         ["success"] = true,
         ["status_code"] = 200,
@@ -64,7 +63,7 @@ internal static class SwaggerExamples
         ["data"] = data,
     };
 
-    internal static OpenApiObject CreateEmployeeFinalised() => new()
+    internal static JsonObject CreateEmployeeFinalised() => new()
     {
         ["status"] = "finalised",
         ["identity"] = IdentitySection(withCustomField: true),
@@ -75,21 +74,21 @@ internal static class SwaggerExamples
         ["document_ids"] = new JsonArray(SampleDocumentId1, SampleDocumentId2),
     };
 
-    internal static OpenApiObject CreateEmployeeDraft() => new()
+    internal static JsonObject CreateEmployeeDraft() => new()
     {
         ["status"] = "draft",
-        ["identity"] = new OpenApiObject
+        ["identity"] = new JsonObject
         {
             ["full_name"] = "Kwame Mensah",
             ["work_email"] = "kwame.mensah@company.com",
             ["custom_fields"] = EmptyCustomFields("identity"),
         },
-        ["employment"] = new OpenApiObject
+        ["employment"] = new JsonObject
         {
             ["job_title"] = "HR Coordinator",
             ["custom_fields"] = EmptyCustomFields("employment"),
         },
-        ["compensation"] = new OpenApiObject
+        ["compensation"] = new JsonObject
         {
             ["gross_salary"] = 4500.00m,
             ["pay_frequency"] = "Monthly",
@@ -101,22 +100,22 @@ internal static class SwaggerExamples
         ["document_ids"] = new JsonArray(),
     };
 
-    internal static OpenApiObject UpdateEmployeePartial() => new()
+    internal static JsonObject UpdateEmployeePartial() => new()
     {
         ["id"] = SampleEmployeeId.ToString(),
         ["status"] = "finalised",
-        ["compensation"] = new OpenApiObject
+        ["compensation"] = new JsonObject
         {
             ["gross_salary"] = 9200.00m,
             ["pay_frequency"] = "Monthly",
             ["currency_id"] = SampleCurrencyId,
-            ["custom_fields"] = new OpenApiObject { ["bonus_eligible"] = "yes" },
+            ["custom_fields"] = new JsonObject { ["bonus_eligible"] = "yes" },
         },
         ["document_ids"] = new JsonArray(SampleDocumentId1),
         ["delete_document_ids"] = new JsonArray(SampleDocumentId2),
     };
 
-    internal static OpenApiObject CreateCustomFieldCompensation() => new()
+    internal static JsonObject CreateCustomFieldCompensation() => new()
     {
         ["entity_type"] = "employee",
         ["field_key"] = "bonus_eligible",
@@ -134,7 +133,7 @@ internal static class SwaggerExamples
         ["is_active"] = true,
     };
 
-    internal static OpenApiObject CreateCustomFieldIdentity() => new()
+    internal static JsonObject CreateCustomFieldIdentity() => new()
     {
         ["entity_type"] = "employee",
         ["field_key"] = "emergency_contact_name",
@@ -146,15 +145,15 @@ internal static class SwaggerExamples
         ["is_active"] = true,
     };
 
-    internal static OpenApiObject EmployeeAggregateReadData() =>
-        (OpenApiObject)EmployeeAggregateReadResponse()["data"]!;
+    internal static JsonObject EmployeeAggregateReadData() =>
+        (JsonObject)EmployeeAggregateReadResponse()["data"]!;
 
-    internal static OpenApiObject EmployeeAggregateReadResponse() => new()
+    internal static JsonObject EmployeeAggregateReadResponse() => new()
     {
         ["success"] = true,
         ["status_code"] = 200,
         ["detail"] = "OK",
-        ["data"] = new OpenApiObject
+        ["data"] = new JsonObject
         {
             ["id"] = SampleEmployeeId.ToString(),
             ["employee_code"] = "EMP-000042",
@@ -171,15 +170,15 @@ internal static class SwaggerExamples
         },
     };
 
-    internal static OpenApiObject CustomFieldsForSection(string section) => section switch
+    internal static JsonObject CustomFieldsForSection(string section) => section switch
     {
-        "compensation" => new OpenApiObject { ["bonus_eligible"] = "yes" },
-        "identity" => new OpenApiObject { ["emergency_contact_name"] = "Charles Babbage" },
-        "employment" => new OpenApiObject { ["desk_number"] = "B-204" },
-        _ => new OpenApiObject(),
+        "compensation" => new JsonObject { ["bonus_eligible"] = "yes" },
+        "identity" => new JsonObject { ["emergency_contact_name"] = "Charles Babbage" },
+        "employment" => new JsonObject { ["desk_number"] = "B-204" },
+        _ => new JsonObject(),
     };
 
-    internal static OpenApiObject EmptyCustomFields(string section) => CustomFieldsForSection(section);
+    internal static JsonObject EmptyCustomFields(string section) => CustomFieldsForSection(section);
 
     internal static string CustomFieldsHelpText(string section) =>
         $"""
@@ -190,7 +189,7 @@ internal static class SwaggerExamples
         Unknown keys are ignored. Use an empty object (no keys) when there are no values.
         """;
 
-    private static OpenApiObject IdentitySection(bool withCustomField = false) => new()
+    private static JsonObject IdentitySection(bool withCustomField = false) => new()
     {
         ["full_name"] = "Ada Lovelace",
         ["date_of_birth"] = "1990-05-15",
@@ -210,9 +209,9 @@ internal static class SwaggerExamples
             : EmptyCustomFields("identity"),
     };
 
-    private static OpenApiObject EmploymentSection(bool withNames = false)
+    private static JsonObject EmploymentSection(bool withNames = false)
     {
-        var obj = new OpenApiObject
+        var obj = new JsonObject
         {
             ["job_title"] = "Software Engineer",
             ["department_id"] = SampleDepartmentId.ToString(),
@@ -240,7 +239,7 @@ internal static class SwaggerExamples
         return obj;
     }
 
-    private static OpenApiObject CompensationSection(bool withCustomField = false) => new()
+    private static JsonObject CompensationSection(bool withCustomField = false) => new()
     {
         ["gross_salary"] = 8500.00m,
         ["pay_frequency"] = "Monthly",
@@ -250,7 +249,7 @@ internal static class SwaggerExamples
             : EmptyCustomFields("compensation"),
     };
 
-    private static OpenApiObject CompensationReadSection() => new()
+    private static JsonObject CompensationReadSection() => new()
     {
         ["gross_salary"] = 8500.00m,
         ["pay_frequency"] = "Monthly",
@@ -262,9 +261,9 @@ internal static class SwaggerExamples
         ["custom_fields"] = CustomFieldsForSection("compensation"),
     };
 
-    private static OpenApiObject EducationEntry(bool withId = false)
+    private static JsonObject EducationEntry(bool withId = false)
     {
-        var obj = new OpenApiObject
+        var obj = new JsonObject
         {
             ["institution"] = "University of Ghana",
             ["degree"] = "BSc",
@@ -281,9 +280,9 @@ internal static class SwaggerExamples
         return obj;
     }
 
-    private static OpenApiObject CertificationEntry(bool withId = false)
+    private static JsonObject CertificationEntry(bool withId = false)
     {
-        var obj = new OpenApiObject
+        var obj = new JsonObject
         {
             ["name"] = "AWS Solutions Architect",
             ["issuing_body"] = "Amazon Web Services",

@@ -77,7 +77,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             Example = JsonValue.Create("value"),
         };
         schema.Example = section is null
-            ? new OpenApiObject()
+            ? new JsonObject()
             : SwaggerExamples.CustomFieldsForSection(section);
         schema.Description = section is null
             ? AppendDescription(schema.Description,

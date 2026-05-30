@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
@@ -73,7 +74,7 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
         return [];
     }
 
-    private static OpenApiExample Example(OpenApiObject value, string summary, string description) =>
+    private static OpenApiExample Example(JsonObject value, string summary, string description) =>
         new()
         {
             Summary = summary,
