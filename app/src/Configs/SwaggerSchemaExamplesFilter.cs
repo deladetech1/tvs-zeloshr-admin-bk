@@ -89,6 +89,14 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
         var name = property.Name;
         var type = property.PropertyType;
 
+        if (name.Equals("Id", StringComparison.OrdinalIgnoreCase)
+            && property.DeclaringType is { } declaring
+            && (declaring == typeof(FileUploadMultipleReadDto) || declaring == typeof(FileResponseReadDto)))
+        {
+            schema.Example = JsonValue.Create(SwaggerExamples.SampleDocumentId1);
+            return;
+        }
+
         switch (name)
         {
             case nameof(EmployeeAggregateIdentityDto.FullName):
@@ -132,10 +140,6 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 return;
             case nameof(EmployeeAggregateCompensationDto.GrossSalary):
                 schema.Example = JsonValue.Create(8500.00m);
-                return;
-            case nameof(FileUploadMultipleReadDto.Id):
-            case nameof(FileResponseReadDto.Id):
-                schema.Example = JsonValue.Create(SwaggerExamples.SampleDocumentId1);
                 return;
             case nameof(FileResponseReadDto.PresignedUrl):
                 schema.Example = JsonValue.Create(SwaggerExamples.SamplePresignedUrl);
