@@ -10,7 +10,6 @@ public sealed class SwaggerFileManagementTagDocumentFilter : IDocumentFilter
 {
     public void Apply(OpenApiDocument swaggerDoc, DocumentFilterContext context)
     {
-        swaggerDoc.Tags ??= [];
         var tag = swaggerDoc.Tags.FirstOrDefault(t =>
             string.Equals(t.Name, SwaggerGroups.FileManagement, StringComparison.Ordinal));
         if (tag is null)
@@ -160,7 +159,7 @@ public sealed class SwaggerFileManagementOperationFilter : IOperationFilter
             return;
 
         media.Example = example;
-        media.Examples = new Dictionary<string, OpenApiExample>
+        media.Examples = new Dictionary<string, IOpenApiExample>
         {
             [exampleKey] = new OpenApiExample
             {

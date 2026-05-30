@@ -22,7 +22,7 @@ public sealed class SwaggerResponseExamplesOperationFilter : IOperationFilter
             return;
 
         media.Example = SwaggerExamples.EmployeeAggregateReadResponse();
-        media.Examples = new Dictionary<string, OpenApiExample>
+        media.Examples = new Dictionary<string, IOpenApiExample>
         {
             ["aggregate_read"] = new OpenApiExample
             {

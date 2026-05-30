@@ -72,8 +72,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
         schema.AdditionalPropertiesAllowed = true;
         schema.AdditionalProperties = new OpenApiSchema
         {
-            Type = JsonSchemaType.String,
-            Nullable = true,
+            Type = JsonSchemaType.String | JsonSchemaType.Null,
             Example = JsonValue.Create("value"),
         };
         schema.Example = section is null
@@ -135,8 +134,6 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 schema.Example = JsonValue.Create(8500.00m);
                 return;
             case nameof(FileUploadMultipleReadDto.Id):
-                schema.Example = JsonValue.Create(SwaggerExamples.SampleDocumentId1);
-                return;
             case nameof(FileResponseReadDto.Id):
                 schema.Example = JsonValue.Create(SwaggerExamples.SampleDocumentId1);
                 return;

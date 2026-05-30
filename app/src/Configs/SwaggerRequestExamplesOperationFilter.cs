@@ -25,12 +25,12 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
             media.Example = examples.Values.First().Value;
     }
 
-    private static Dictionary<string, OpenApiExample> ResolveExamples(string method, string path)
+    private static Dictionary<string, IOpenApiExample> ResolveExamples(string method, string path)
     {
         if (method.Equals("POST", StringComparison.OrdinalIgnoreCase)
             && path.Equals("api/v1/employees/add", StringComparison.OrdinalIgnoreCase))
         {
-            return new Dictionary<string, OpenApiExample>
+            return new Dictionary<string, IOpenApiExample>
             {
                 ["finalised_full_profile"] = Example(
                     SwaggerExamples.CreateEmployeeFinalised(),
@@ -46,7 +46,7 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
         if (method.Equals("PUT", StringComparison.OrdinalIgnoreCase)
             && path.Equals("api/v1/employees/update", StringComparison.OrdinalIgnoreCase))
         {
-            return new Dictionary<string, OpenApiExample>
+            return new Dictionary<string, IOpenApiExample>
             {
                 ["partial_update"] = Example(
                     SwaggerExamples.UpdateEmployeePartial(),
@@ -58,7 +58,7 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
         if (method.Equals("POST", StringComparison.OrdinalIgnoreCase)
             && path.Equals("api/v1/custom-fields/add", StringComparison.OrdinalIgnoreCase))
         {
-            return new Dictionary<string, OpenApiExample>
+            return new Dictionary<string, IOpenApiExample>
             {
                 ["compensation_select"] = Example(
                     SwaggerExamples.CreateCustomFieldCompensation(),
