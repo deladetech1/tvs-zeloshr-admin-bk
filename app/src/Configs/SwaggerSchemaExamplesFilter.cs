@@ -4,7 +4,7 @@ using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Employees;
-using ZelosHR.Api.Entities.Files;
+using ZelosHR.Api.Entities.Shared;
 
 namespace ZelosHR.Api.Configs;
 
@@ -22,16 +22,16 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
 
         if (IsStringDictionary(context.Type))
         {
-            var property = context.MemberInfo as PropertyInfo;
-            if (property?.Name.Equals(nameof(Respons<object>.FieldErrors), StringComparison.OrdinalIgnoreCase) == true)
+            var dictProperty = context.MemberInfo as PropertyInfo;
+            if (dictProperty?.Name.Equals(nameof(Respons<object>.FieldErrors), StringComparison.OrdinalIgnoreCase) == true)
             {
                 ApplyFieldErrorsDictionary(mutable);
                 return;
             }
 
-            if (IsCustomFieldsProperty(property))
+            if (IsCustomFieldsProperty(dictProperty))
             {
-                ApplyCustomFieldsDictionary(mutable, property);
+                ApplyCustomFieldsDictionary(mutable, dictProperty);
                 return;
             }
 
