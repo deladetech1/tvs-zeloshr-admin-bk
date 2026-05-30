@@ -68,6 +68,13 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
             b.Property(x => x.LocId).HasColumnName("loc_id");
         });
 
+        modelBuilder.Entity<CpCurrencyEntity>(b =>
+        {
+            b.ToTable("cp_currencies", "core_platform", t => t.ExcludeFromMigrations());
+            b.HasKey(x => new { x.Id, x.TenantId });
+            b.Property(x => x.IsDefault).HasColumnName("is_default");
+        });
+
         modelBuilder.Entity<HrEmployeeEntity>(b =>
         {
             b.ToTable("hr_employees", "human_resource", t => t.ExcludeFromMigrations());
@@ -88,6 +95,11 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
                 .HasFilter("user_id IS NOT NULL");
             b.Property(x => x.GrossSalary).HasPrecision(18, 4);
             b.Property(x => x.AnnualizedCost).HasPrecision(18, 4);
+            b.Property(x => x.CurrencyId).HasColumnName("currency_id");
+            b.Property(x => x.DocumentIds)
+                .HasColumnName("document_ids")
+                .HasColumnType("jsonb")
+                .HasDefaultValueSql("'[]'::jsonb");
             // Match tvs-sqlscript migration column names (snake_case convention would produce tier2_pension_provider).
             b.Property(x => x.Tier2PensionProvider).HasColumnName("tier2pension_provider");
             b.Property(x => x.Tier3PensionProvider).HasColumnName("tier3pension_provider");

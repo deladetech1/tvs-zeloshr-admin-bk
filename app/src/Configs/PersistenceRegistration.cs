@@ -35,6 +35,7 @@ public static class PersistenceRegistration
 
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
         services.AddScoped<ICpUserRepository, CpUserRepository>();
+        services.AddScoped<ICpCurrencyRepository, CpCurrencyRepository>();
         services.AddScoped<IPlatformContextRepository, PlatformContextRepository>();
         services.AddScoped<IEmployeeEducationRepository, EmployeeEducationRepository>();
         services.AddScoped<IEmployeeCertificationRepository, EmployeeCertificationRepository>();

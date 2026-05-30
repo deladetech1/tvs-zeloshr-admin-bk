@@ -41,9 +41,20 @@ public class EmployeesController : ControllerBase
     }
 
     /// <summary>
-    /// Create employee in one request (identity, employment, compensation, education[], certifications[], custom fields).
-    /// Use <c>status</c> <c>draft</c> or <c>finalised</c>. Upload files via <c>POST /file/post/multiple</c>, then reference IDs in <c>documents</c>.
+    /// Create employee in one request (identity, employment, compensation, education[], certifications[], custom fields, document_ids).
     /// </summary>
+    /// <remarks>
+    /// **Try the Examples dropdown** for full finalised and minimal draft payloads.
+    ///
+    /// | Step | Action |
+    /// |------|--------|
+    /// | 1 | (Optional) Define custom fields: `POST /custom-fields/add` |
+    /// | 2 | (Optional) Load form schema: `GET /custom-fields/schema?entityType=employee` |
+    /// | 3 | (Optional) Upload files: `POST /file/post/multiple` → use IDs in `document_ids` |
+    /// | 4 | POST this endpoint with `status: draft` or `finalised` |
+    ///
+    /// `compensation.currency_id` must reference `core_platform.cp_currencies` (not `"GHS"` string).
+    /// </remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeCreate)]
     [HttpPost("add")]
     [ProducesResponseType(typeof(Respons<EmployeeAggregateReadDto>), StatusCodes.Status200OK)]
@@ -217,7 +228,12 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Employee record (same aggregate shape as create/update).</summary>
+    /// <summary>Employee record — same aggregate shape as create/update.</summary>
+    /// <remarks>
+    /// Returns nested sections with `custom_fields` split by section, joined currency metadata
+    /// (`currency_code`, `currency_name`, `currency_symbol`, `annualized_cost`), and `document_ids`.
+    /// Use `GET /file/list?document_ids=…` to resolve presigned download URLs.
+    /// </remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("id")]
     [ProducesResponseType(typeof(Respons<EmployeeAggregateReadDto>), StatusCodes.Status200OK)]

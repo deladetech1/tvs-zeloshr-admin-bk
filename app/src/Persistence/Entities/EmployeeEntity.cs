@@ -64,7 +64,9 @@ public sealed class EmployeeEntity
     public string? PayFrequency { get; set; }
     public decimal? AnnualizedCost { get; set; }
     public DateOnly? SalaryEffectiveFrom { get; set; }
-    public string Currency { get; set; } = "GHS";
+    /// <summary>FK to core_platform.cp_currencies.</summary>
+    public string? CurrencyId { get; set; }
+    public List<string> DocumentIds { get; set; } = [];
     public string? SsnitNumber { get; set; }
     public string? TinNumber { get; set; }
     public string? Tier2PensionProvider { get; set; }

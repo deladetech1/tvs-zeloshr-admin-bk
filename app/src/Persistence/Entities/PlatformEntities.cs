@@ -74,3 +74,16 @@ public sealed class HrEmployeeEntity
     public string? CreatedBy { get; set; }
     public DateTimeOffset? Cdatetime { get; set; }
 }
+
+/// <summary>core_platform.cp_currencies — tenant-scoped currency catalog (seeded).</summary>
+public sealed class CpCurrencyEntity
+{
+    public string Id { get; set; } = default!;
+    public string TenantId { get; set; } = default!;
+    public string Name { get; set; } = default!;
+    public string Code { get; set; } = default!;
+    public string Symbol { get; set; } = default!;
+    public bool IsDefault { get; set; }
+    public string DeleteStatus { get; set; } = CorePlatformConstants.DeleteStatus.NotDeleted;
+    public bool IsActive { get; set; } = true;
+}

@@ -66,8 +66,6 @@ public static class EmployeeFieldOptions
     /// <summary>Values used by annualized-cost calculation (case-insensitive).</summary>
     public static readonly IReadOnlyList<string> PayFrequencies = ["Monthly", "Bi-weekly", "Weekly", "Annual"];
 
-    public static readonly IReadOnlyList<string> Currencies = ["GHS", "USD", "EUR", "GBP"];
-
     public static readonly IReadOnlyList<string> DirectorySortBy =
         ["name", "employeecode", "employeeid", "id", "department", "status", "employmenttype", "type", "jobtitle"];
 

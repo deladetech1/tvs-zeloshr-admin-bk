@@ -25,7 +25,8 @@ public sealed class EmployeeAggregateService
     private readonly IBranchRepository _branches;
     private readonly EmployeesService _employeesService;
     private readonly ICustomFieldDefinitionsRepository _customFieldDefinitions;
-    private readonly IEmployeeWizardDocumentRepository _documents;
+    private readonly IHrDocumentPathRepository _hrDocuments;
+    private readonly ICpCurrencyRepository _currencies;
     private readonly ITenantContext _tenant;
 
     public EmployeeAggregateService(
@@ -38,7 +39,8 @@ public sealed class EmployeeAggregateService
         IBranchRepository branches,
         EmployeesService employeesService,
         ICustomFieldDefinitionsRepository customFieldDefinitions,
-        IEmployeeWizardDocumentRepository documents,
+        IHrDocumentPathRepository hrDocuments,
+        ICpCurrencyRepository currencies,
         ITenantContext tenant)
     {
         _db = db;
@@ -50,7 +52,8 @@ public sealed class EmployeeAggregateService
         _branches = branches;
         _employeesService = employeesService;
         _customFieldDefinitions = customFieldDefinitions;
-        _documents = documents;
+        _hrDocuments = hrDocuments;
+        _currencies = currencies;
         _tenant = tenant;
     }
 
@@ -172,9 +175,17 @@ public sealed class EmployeeAggregateService
                 }
             }
 
-            if (request.Documents is { Count: > 0 })
+            if (request.DocumentIds is { Count: > 0 })
             {
-                var docErrors = await ValidateDocumentReferencesAsync(employeeId, request.Documents, ct);
+                var entity = await _employees.GetByIdScopedForUpdateAsync(
+                    employeeId, _tenant.TenantId, _tenant.OrgId, ct);
+                if (entity is null)
+                {
+                    await transaction.RollbackAsync(ct);
+                    return Respons<EmployeeAggregateReadDto>.Fail("Employee not found.", statusCode: 404);
+                }
+
+                var docErrors = await ValidateAndApplyDocumentIdsAsync(entity, request.DocumentIds, ct);
                 if (docErrors is not null)
                 {
                     await transaction.RollbackAsync(ct);
@@ -386,22 +397,30 @@ public sealed class EmployeeAggregateService
 
             if (request.DeleteDocumentIds is { Count: > 0 })
             {
-                foreach (var documentId in request.DeleteDocumentIds)
+                var entity = await _employees.GetByIdScopedForUpdateAsync(
+                    employeeId, _tenant.TenantId, _tenant.OrgId, ct);
+                if (entity is null)
                 {
-                    var deleted = await _subResources.DeleteDocumentAsync(employeeId, documentId, ct);
-                    if (!deleted.Success)
-                    {
-                        await transaction.RollbackAsync(ct);
-                        return Respons<EmployeeAggregateReadDto>.Fail(
-                            deleted.Error ?? deleted.Detail ?? "Could not delete document.",
-                            statusCode: deleted.StatusCode);
-                    }
+                    await transaction.RollbackAsync(ct);
+                    return Respons<EmployeeAggregateReadDto>.Fail("Employee not found.", statusCode: 404);
                 }
+
+                RemoveDocumentIds(entity, request.DeleteDocumentIds);
+                entity.UpdatedAt = DateTimeOffset.UtcNow;
+                await _employees.UpdateAsync(entity, ct);
             }
 
-            if (request.Documents is { Count: > 0 })
+            if (request.DocumentIds is { Count: > 0 })
             {
-                var docErrors = await ValidateDocumentReferencesAsync(employeeId, request.Documents, ct);
+                var entity = await _employees.GetByIdScopedForUpdateAsync(
+                    employeeId, _tenant.TenantId, _tenant.OrgId, ct);
+                if (entity is null)
+                {
+                    await transaction.RollbackAsync(ct);
+                    return Respons<EmployeeAggregateReadDto>.Fail("Employee not found.", statusCode: 404);
+                }
+
+                var docErrors = await ValidateAndApplyDocumentIdsAsync(entity, request.DocumentIds, ct);
                 if (docErrors is not null)
                 {
                     await transaction.RollbackAsync(ct);
@@ -441,7 +460,6 @@ public sealed class EmployeeAggregateService
 
         var education = await _subResources.ListEducationAsync(id, ct);
         var certifications = await _subResources.ListCertificationsAsync(id, ct);
-        var uploadedDocuments = await _subResources.ListDocumentsAsync(id, category: null, ct);
 
         var fullName = EmployeeIdentityResolver.ResolveFullName(entity, cp);
         var workEmail = EmployeeIdentityResolver.ResolveWorkEmail(entity, cp);
@@ -449,9 +467,11 @@ public sealed class EmployeeAggregateService
 
         var educationItems = education.Success && education.Data is not null ? education.Data : [];
         var certificationItems = certifications.Success && certifications.Data is not null ? certifications.Data : [];
-        var documentIds = uploadedDocuments.Success && uploadedDocuments.Data is not null
-            ? EmployeeAggregateMapper.ToDocumentIds(uploadedDocuments.Data)
-            : Array.Empty<Guid>();
+        var documentIds = entity.DocumentIds.Count > 0 ? entity.DocumentIds : [];
+
+        CpCurrencyDto? currency = null;
+        if (!string.IsNullOrWhiteSpace(entity.CurrencyId))
+            currency = await _currencies.GetByIdAsync(entity.CurrencyId, _tenant.TenantId, ct);
 
         var definitions = await _customFieldDefinitions.ListSchemaScopedAsync(
             _tenant.TenantId, _tenant.OrgId, CustomFieldEntityTypes.Employee, ct);
@@ -509,7 +529,10 @@ public sealed class EmployeeAggregateService
             {
                 GrossSalary = entity.GrossSalary,
                 PayFrequency = entity.PayFrequency,
-                Currency = entity.Currency,
+                CurrencyId = entity.CurrencyId,
+                CurrencyCode = currency?.Code,
+                CurrencyName = currency?.Name,
+                CurrencySymbol = currency?.Symbol,
                 AnnualizedCost = entity.AnnualizedCost,
                 CustomFields = sections.Compensation,
             },
@@ -519,7 +542,7 @@ public sealed class EmployeeAggregateService
             Certifications = certificationItems
                 .Select(c => c with { CustomFields = sections.Certification })
                 .ToList(),
-            Documents = documentIds,
+            DocumentIds = documentIds,
         };
 
         return Respons<EmployeeAggregateReadDto>.Ok(read);
@@ -593,7 +616,7 @@ public sealed class EmployeeAggregateService
         || request.DeleteEducationIds is { Count: > 0 }
         || request.DeleteCertificationIds is { Count: > 0 }
         || request.DeleteDocumentIds is { Count: > 0 }
-        || request.Documents is { Count: > 0 }
+        || request.DocumentIds is { Count: > 0 }
         || HasSectionCustomFields(request);
 
     private static bool HasSectionCustomFields(CreateEmployeeAggregateRequest request) =>
@@ -638,29 +661,53 @@ public sealed class EmployeeAggregateService
         await _employees.UpdateAsync(entity, ct);
     }
 
-    private async Task<Dictionary<string, string>?> ValidateDocumentReferencesAsync(
-        Guid employeeId,
-        IReadOnlyList<Guid> documentIds,
+    private async Task<Dictionary<string, string>?> ValidateAndApplyDocumentIdsAsync(
+        EmployeeEntity entity,
+        IReadOnlyList<string> documentIds,
         CancellationToken ct)
     {
         var errors = new Dictionary<string, string>();
 
         for (var i = 0; i < documentIds.Count; i++)
         {
-            var documentId = documentIds[i];
-            if (documentId == Guid.Empty)
+            var documentId = documentIds[i]?.Trim();
+            if (string.IsNullOrWhiteSpace(documentId))
             {
-                errors[$"documents[{i}]"] = "Document id is required.";
+                errors[$"document_ids[{i}]"] = "Document id is required.";
                 continue;
             }
 
-            var doc = await _documents.GetByIdAsync(
-                documentId, employeeId, _tenant.TenantId, _tenant.OrgId, ct);
+            var doc = await _hrDocuments.GetByIdAsync(documentId, _tenant.TenantId, ct);
             if (doc is null)
-                errors[$"documents[{i}]"] = "Document not found for this employee.";
+                errors[$"document_ids[{i}]"] = "Document not found in file registry.";
         }
 
-        return errors.Count == 0 ? null : errors;
+        if (errors.Count > 0)
+            return errors;
+
+        var merged = entity.DocumentIds.ToList();
+        foreach (var id in documentIds)
+        {
+            var trimmed = id.Trim();
+            if (!merged.Contains(trimmed, StringComparer.Ordinal))
+                merged.Add(trimmed);
+        }
+
+        entity.DocumentIds = merged;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+        await _employees.UpdateAsync(entity, ct);
+        return null;
+    }
+
+    private static void RemoveDocumentIds(EmployeeEntity entity, IReadOnlyList<string> deleteDocumentIds)
+    {
+        if (entity.DocumentIds.Count == 0)
+            return;
+
+        var remove = new HashSet<string>(
+            deleteDocumentIds.Where(id => !string.IsNullOrWhiteSpace(id)).Select(id => id.Trim()),
+            StringComparer.Ordinal);
+        entity.DocumentIds = entity.DocumentIds.Where(id => !remove.Contains(id)).ToList();
     }
 
     private static Dictionary<string, string>? ValidateUpdate(UpdateEmployeeAggregateRequest request)

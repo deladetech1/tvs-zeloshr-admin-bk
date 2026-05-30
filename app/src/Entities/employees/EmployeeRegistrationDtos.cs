@@ -31,7 +31,7 @@ public sealed record CreateEmployeeRequest
     public decimal? GrossSalary { get; init; }
     public string? PayFrequency { get; init; }
     public DateOnly? SalaryEffectiveFrom { get; init; }
-    public string? Currency { get; init; }
+    public string? CurrencyId { get; init; }
     public string? SsnitNumber { get; init; }
     public string? TinNumber { get; init; }
     public string? Tier2PensionProvider { get; init; }
@@ -55,7 +55,7 @@ public sealed record EmployeeRegistrationReadDto
     public string? WorkEmail { get; init; }
     public string? ProfileUrl { get; init; }
     public decimal? AnnualizedCost { get; init; }
-    public string? Currency { get; init; }
+    public string? CurrencyId { get; init; }
     public string? MaskedSsnitNumber { get; init; }
     public string? MaskedTinNumber { get; init; }
 }

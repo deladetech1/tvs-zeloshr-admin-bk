@@ -58,11 +58,16 @@ public sealed class CustomFieldSchemaDto
 
 public sealed class CreateCustomFieldDefinitionDto
 {
+    /// <summary>Target entity. Use <c>employee</c> for employee profile fields.</summary>
     [SwaggerAllowedValues(typeof(CustomFieldEntityTypes), nameof(CustomFieldEntityTypes.All))]
     public required string EntityType { get; set; }
 
+    /// <summary>Stable key used in employee <c>custom_fields</c> objects (snake_case recommended).</summary>
     public required string FieldKey { get; set; }
+
+    /// <summary>Human-readable label shown in UI.</summary>
     public required string Label { get; set; }
+
     public string? Description { get; set; }
 
     [SwaggerAllowedValues(typeof(CustomFieldFieldTypes), nameof(CustomFieldFieldTypes.All))]
@@ -73,8 +78,16 @@ public sealed class CreateCustomFieldDefinitionDto
     public bool IsFilterable { get; set; } = true;
     public bool IsSearchable { get; set; } = true;
     public int DisplayOrder { get; set; }
+
+    /// <summary>
+    /// Employee sections: <c>identity</c> | <c>employment</c> | <c>compensation</c> | <c>education</c> | <c>certification</c>.
+    /// Determines which nested <c>custom_fields</c> object on employee create/update accepts this field.
+    /// </summary>
     public string? SectionName { get; set; }
+
     public int SectionOrder { get; set; }
+
+    /// <summary>JSON array string for <c>select</c>/<c>multiselect</c>, e.g. <c>["yes","no"]</c>.</summary>
     public string? Options { get; set; }
     public string? ValidationRules { get; set; }
     public string? DefaultValue { get; set; }

@@ -24,11 +24,13 @@ public static class SwaggerConfiguration
                 Title = "ZelosHR API",
                 Version = $"v1 · build {buildVersion}",
                 Description = $"""
-                    Enterprise multi-tenant HR platform API.
+                    Enterprise multi-tenant HR platform API (Mystoreguard-aligned).
 
-                    **Deployed build:** `{buildVersion}` (compare with latest CI image on Container App).
+                    **Deployed build:** `{buildVersion}`
 
-                    **Required headers** on every `/api/v1/*` request (exact names, lowercase):
+                    ---
+
+                    ### Required headers (every `/api/v1/*` request)
 
                     | Header | Example |
                     |--------|---------|
@@ -38,16 +40,50 @@ public static class SwaggerConfiguration
                     | `loc-id` | `loc_…` |
                     | `org-id` | `org_…` |
 
-                    Tenant scope comes from the JWT claim `tenant_id` (or legacy `X-Tenant-Id` when header enforcement is off).
+                    Tenant scope: JWT claim `tenant_id`.
 
-                    **Envelope (snake_case JSON, Mystoreguard-aligned):** success, status_code, detail, data, pagination, field_errors
+                    ---
 
-                    Platform-style employee routes: `POST …/employees/add`, `PUT …/employees/update`, `GET …/employees/id?employee_id=`, `GET …/employees/list`
-                    File routes (Mystoreguard): `POST …/file/post/multiple`, `PUT …/file/put`, `DELETE …/file/delete`, `GET …/file/list`
+                    ### Response envelope (snake_case JSON)
 
-                    **Documented modules (Swagger):** Employees, Custom Fields only. Other modules remain in code but are hidden until their sprint ships.
+                    `success`, `status_code`, `detail`, `data`, `pagination`, `field_errors`
 
-                    Route map: `GET /api/v1/navigation` · Conformance: `docs/MYSTOREGUARD_API_CONFORMANCE.md`
+                    ---
+
+                    ### File Management workflow (Azure Blob — Mystoreguard)
+
+                    | Step | Route | What you send | What you get |
+                    |------|-------|---------------|--------------|
+                    | 1 Upload | `POST /file/post/multiple` | `blob_paths` + multipart `files` | `{ id }` per file |
+                    | 2 Attach | `POST /employees/add` | `document_ids: ["id", …]` | Employee record |
+                    | 3 Download | `GET /file/list` | `document_ids=id1,id2` | `presigned_url` (24h) |
+                    | 4 Replace | `PUT /file/put` | `document_id` + multipart `file` | Updated metadata + URL |
+                    | 5 Delete | `DELETE /file/delete` | `document_id` | `blob_path`, `container_name` |
+
+                    **Client sends:** `blob_paths` (logical path inside container), `document_id(s)` (registry strings).  
+                    **Server config (ops only):** `Trovesuite:AzureStorage:AccountName`, `AzureStorage:DocumentsContainer` — see **File Management** tag.
+
+                    ---
+
+                    ### Employee create workflow
+
+                    1. **(Optional) Custom fields** — Admin defines fields: `POST /api/v1/custom-fields/add`  
+                       Frontend loads schema: `GET /api/v1/custom-fields/schema?entityType=employee`  
+                       Employee sections: `identity`, `employment`, `compensation`, `education`, `certification`
+                    2. **(Optional) Documents** — Upload: `POST /api/v1/file/post/multiple?blob_paths=…`  
+                       Attach returned IDs on employee: `document_ids: ["doc_…"]`  
+                       Resolve URLs: `GET /api/v1/file/list?document_ids=…`
+                    3. **Currency** — Set `compensation.currency_id` from seeded `core_platform.cp_currencies` (not a currency code string)
+                    4. **Create** — `POST /api/v1/employees/add` with `status: draft | finalised`
+                    5. **Read / update** — `GET /api/v1/employees/id?employee_id=` · `PUT /api/v1/employees/update`
+
+                    ---
+
+                    ### Documented modules
+
+                    **Employees** · **Custom Fields** · **File Management**
+
+                    Conformance: `docs/MYSTOREGUARD_API_CONFORMANCE.md` · Navigation: `GET /api/v1/navigation`
                     """,
                 Contact = new OpenApiContact { Name = "Deladetech — ZelosHR" },
             });
@@ -72,9 +108,15 @@ public static class SwaggerConfiguration
                 docName == "v1" && SwaggerGroups.IsVisibleInSwagger(apiDesc.GroupName));
 
             options.SchemaFilter<SwaggerAllowedValuesSchemaFilter>();
+            options.SchemaFilter<SwaggerSchemaExamplesFilter>();
             options.ParameterFilter<SwaggerAllowedValuesParameterFilter>();
+            options.ParameterFilter<SwaggerQueryParameterExamplesFilter>();
             options.OperationFilter<TroveStandardHeadersOperationFilter>();
             options.OperationFilter<StandardResponsesOperationFilter>();
+            options.OperationFilter<SwaggerRequestExamplesOperationFilter>();
+            options.OperationFilter<SwaggerResponseExamplesOperationFilter>();
+            options.OperationFilter<SwaggerFileManagementOperationFilter>();
+            options.DocumentFilter<SwaggerFileManagementTagDocumentFilter>();
             options.TagActionsBy(api =>
             {
                 if (api.GroupName is { Length: > 0 } group)

@@ -11,6 +11,7 @@ public sealed class EmployeeRegistrationService
 {
     private readonly IEmployeeRepository _employees;
     private readonly ICpUserRepository _cpUsers;
+    private readonly ICpCurrencyRepository _currencies;
     private readonly IFileStorageService _files;
     private readonly AzureStorageOptions _storage;
     private readonly ITenantContext _tenant;
@@ -19,6 +20,7 @@ public sealed class EmployeeRegistrationService
     public EmployeeRegistrationService(
         IEmployeeRepository employees,
         ICpUserRepository cpUsers,
+        ICpCurrencyRepository currencies,
         IFileStorageService files,
         IOptions<AzureStorageOptions> storage,
         ITenantContext tenant,
@@ -26,6 +28,7 @@ public sealed class EmployeeRegistrationService
     {
         _employees = employees;
         _cpUsers = cpUsers;
+        _currencies = currencies;
         _files = files;
         _storage = storage.Value;
         _tenant = tenant;
@@ -154,6 +157,10 @@ public sealed class EmployeeRegistrationService
         var entity = await LoadDraftAsync(id, ct);
         if (entity.Error is not null)
             return entity.Error;
+
+        var currencyError = await ResolveCurrencyIdAsync(entity.Value!, dto, ct);
+        if (currencyError is not null)
+            return Respons<EmployeeRegistrationReadDto>.ValidationError(currencyError);
 
         ApplyCompensation(entity.Value!, dto);
         entity.Value!.UpdatedAt = DateTimeOffset.UtcNow;
@@ -456,7 +463,6 @@ public sealed class EmployeeRegistrationService
         e.GrossSalary = dto.GrossSalary ?? e.GrossSalary;
         e.PayFrequency = dto.PayFrequency ?? e.PayFrequency;
         e.SalaryEffectiveFrom = dto.SalaryEffectiveFrom ?? e.SalaryEffectiveFrom;
-        e.Currency = dto.Currency ?? e.Currency ?? "GHS";
         e.SsnitNumber = dto.SsnitNumber ?? e.SsnitNumber;
         e.TinNumber = dto.TinNumber ?? e.TinNumber;
         e.Tier2PensionProvider = dto.Tier2PensionProvider ?? e.Tier2PensionProvider;
@@ -485,6 +491,40 @@ public sealed class EmployeeRegistrationService
         return $"{v[..2]}XXXXX{v[^2..]}";
     }
 
+    private async Task<Dictionary<string, string>?> ResolveCurrencyIdAsync(
+        EmployeeEntity entity, CreateEmployeeRequest dto, CancellationToken ct)
+    {
+        if (!string.IsNullOrWhiteSpace(dto.CurrencyId))
+        {
+            var id = dto.CurrencyId.Trim();
+            if (!await _currencies.ExistsAsync(id, _tenant.TenantId, ct))
+            {
+                return new Dictionary<string, string>
+                {
+                    ["compensation.currency_id"] = "Currency not found for this tenant.",
+                };
+            }
+
+            entity.CurrencyId = id;
+            return null;
+        }
+
+        if (entity.CurrencyId is not null || dto.GrossSalary is null)
+            return null;
+
+        var defaultCurrency = await _currencies.GetDefaultAsync(_tenant.TenantId, ct);
+        if (defaultCurrency is null)
+        {
+            return new Dictionary<string, string>
+            {
+                ["compensation.currency_id"] = "Currency is required when gross_salary is set.",
+            };
+        }
+
+        entity.CurrencyId = defaultCurrency.Id;
+        return null;
+    }
+
     private async Task<EmployeeRegistrationReadDto> ToReadDtoAsync(EmployeeEntity e, CancellationToken ct)
     {
         CpUserDto? cp = null;
@@ -504,7 +544,7 @@ public sealed class EmployeeRegistrationService
             WorkEmail = EmployeeIdentityResolver.ResolveWorkEmail(e, cp),
             ProfileUrl = EmployeeIdentityResolver.ResolveProfilePhoto(e, cp),
             AnnualizedCost = e.AnnualizedCost,
-            Currency = e.Currency,
+            CurrencyId = e.CurrencyId,
             MaskedSsnitNumber = MaskSensitive(e.SsnitNumber),
             MaskedTinNumber = MaskSensitive(e.TinNumber),
         };

@@ -2,6 +2,23 @@ using ZelosHR.Api.Configs;
 
 namespace ZelosHR.Api.Entities.Employees;
 
+/// <summary>
+/// One-shot employee create. All sections are optional except <c>identity.full_name</c> on create.
+/// </summary>
+/// <remarks>
+/// **Status:** <c>draft</c> saves without finalising; <c>finalised</c> completes registration and links
+/// <c>cp_users</c> when <c>work_email</c> is set.
+///
+/// **Custom fields:** Define schema first via <c>POST /api/v1/custom-fields/add</c>, load via
+/// <c>GET /api/v1/custom-fields/schema?entityType=employee</c>, then pass values under each section's
+/// <c>custom_fields</c> object (keys = <c>field_key</c>).
+///
+/// **Documents:** Upload via <c>POST /api/v1/file/post/multiple</c>, pass returned IDs in <c>document_ids</c>.
+///
+/// **Currency:** Use <c>compensation.currency_id</c> (FK to <c>core_platform.cp_currencies</c>), not a currency code.
+///
+/// See operation **Examples** dropdown for <c>finalised_full_profile</c> and <c>draft_minimal</c> payloads.
+/// </remarks>
 public sealed class CreateEmployeeAggregateRequest
 {
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.CreateStatuses),
@@ -15,12 +32,19 @@ public sealed class CreateEmployeeAggregateRequest
     public IReadOnlyList<EmployeeCertificationWriteDto> Certifications { get; init; } = [];
 
     /// <summary>
-    /// Document UUIDs from <c>POST /file/post/multiple</c> (upload first, then pass IDs here).
+    /// Document IDs from <c>POST /api/v1/file/post/multiple</c> (upload first, then pass IDs here).
+    /// Resolve URLs via <c>GET /api/v1/file/list?document_ids=</c>.
     /// </summary>
-    public IReadOnlyList<Guid>? Documents { get; init; }
+    public IReadOnlyList<string>? DocumentIds { get; init; }
 }
 
 /// <summary>Partial employee update — only include sections/fields to change.</summary>
+/// <remarks>
+/// Body must include <c>id</c> (employee UUID from <c>GET /employees/id</c>).
+/// Set <c>status</c> to <c>finalised</c> to complete a draft.
+/// <c>document_ids</c> appends file-registry IDs; <c>delete_document_ids</c> removes them.
+/// Education/certification array items: include <c>id</c> to update, omit <c>id</c> to add new rows.
+/// </remarks>
 public sealed class UpdateEmployeeAggregateRequest
 {
     /// <summary>Employee UUID (same as <c>data.id</c> from <c>GET /id</c>).</summary>
@@ -42,11 +66,11 @@ public sealed class UpdateEmployeeAggregateRequest
     public IReadOnlyList<Guid>? DeleteEducationIds { get; init; }
     public IReadOnlyList<Guid>? DeleteCertificationIds { get; init; }
 
-    /// <inheritdoc cref="CreateEmployeeAggregateRequest.Documents"/>
-    public IReadOnlyList<Guid>? Documents { get; init; }
+    /// <inheritdoc cref="CreateEmployeeAggregateRequest.DocumentIds"/>
+    public IReadOnlyList<string>? DocumentIds { get; init; }
 
-    /// <summary>Remove uploaded documents by UUID (see also <see cref="Documents"/>).</summary>
-    public IReadOnlyList<Guid>? DeleteDocumentIds { get; init; }
+    /// <summary>Remove file-registry document IDs (see also <see cref="DocumentIds"/>).</summary>
+    public IReadOnlyList<string>? DeleteDocumentIds { get; init; }
 }
 
 public sealed class EmployeeAggregateIdentityDto
@@ -75,7 +99,10 @@ public sealed class EmployeeAggregateIdentityDto
     public string? LinkedInUrl { get; init; }
     public string? ResidentialAddress { get; init; }
 
-    /// <summary>Custom field values for the identity section (<c>section_name</c> = <c>identity</c>).</summary>
+    /// <summary>
+    /// Custom field **values** for the identity section (<c>section_name = identity</c>).
+    /// Keys must match <c>field_key</c> from custom field definitions. Use <c>{{}}</c> when none.
+    /// </summary>
     public Dictionary<string, string?>? CustomFields { get; init; }
 }
 
@@ -107,10 +134,11 @@ public class EmployeeAggregateEmploymentDto
     public Guid? ReportsToId { get; init; }
     public Guid? DottedLineManagerId { get; init; }
 
-    /// <summary>Custom field values for the employment section (<c>section_name</c> = <c>employment</c>).</summary>
+    /// <summary>Custom field values for employment (<c>section_name = employment</c>).</summary>
     public Dictionary<string, string?>? CustomFields { get; init; }
 }
 
+/// <summary>Compensation on write. Read response adds <c>annualized_cost</c> and joined currency metadata.</summary>
 public class EmployeeAggregateCompensationDto
 {
     public decimal? GrossSalary { get; init; }
@@ -118,10 +146,13 @@ public class EmployeeAggregateCompensationDto
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.PayFrequencies))]
     public string? PayFrequency { get; init; }
 
-    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.Currencies))]
-    public string? Currency { get; init; }
+    /// <summary>FK to <c>core_platform.cp_currencies.id</c> (tenant-scoped, seeded). Not a currency code.</summary>
+    public string? CurrencyId { get; init; }
 
-    /// <summary>Custom field values for the compensation section (<c>section_name</c> = <c>compensation</c>).</summary>
+    /// <summary>
+    /// Custom field values for compensation (<c>section_name = compensation</c>).
+    /// Example after defining <c>bonus_eligible</c>: <c>{{ "bonus_eligible": "yes" }}</c>
+    /// </summary>
     public Dictionary<string, string?>? CustomFields { get; init; }
 }
 
@@ -141,8 +172,11 @@ public sealed class EmployeeAggregateReadDto
     public IReadOnlyList<EmployeeEducationDto> Education { get; init; } = [];
     public IReadOnlyList<EmployeeCertificationDto> Certifications { get; init; } = [];
 
-    /// <summary>Uploaded document UUIDs for this employee.</summary>
-    public IReadOnlyList<Guid> Documents { get; init; } = [];
+    /// <summary>
+    /// File-registry document IDs (<c>human_resource.hr_document_paths.id</c>).
+    /// Upload first via <c>POST /api/v1/file/post/multiple</c>; resolve URLs via <c>GET /api/v1/file/list</c>.
+    /// </summary>
+    public IReadOnlyList<string> DocumentIds { get; init; } = [];
 
     public string? ProfileUrl { get; init; }
 }
@@ -156,6 +190,9 @@ public sealed class EmployeeAggregateEmploymentReadDto : EmployeeAggregateEmploy
 public sealed class EmployeeAggregateCompensationReadDto : EmployeeAggregateCompensationDto
 {
     public decimal? AnnualizedCost { get; init; }
+    public string? CurrencyCode { get; init; }
+    public string? CurrencyName { get; init; }
+    public string? CurrencySymbol { get; init; }
 }
 
 public sealed class EmployeeListQuery

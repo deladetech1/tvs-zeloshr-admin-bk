@@ -12,6 +12,7 @@ public class EmployeeRegistrationTests
 {
     private readonly IEmployeeRepository _employees = Substitute.For<IEmployeeRepository>();
     private readonly ICpUserRepository _cpUsers = Substitute.For<ICpUserRepository>();
+    private readonly ICpCurrencyRepository _currencies = Substitute.For<ICpCurrencyRepository>();
     private readonly IFileStorageService _files = Substitute.For<IFileStorageService>();
     private readonly ITenantContext _tenant = Substitute.For<ITenantContext>();
     private readonly ICurrentUserService _currentUser = Substitute.For<ICurrentUserService>();
@@ -28,6 +29,7 @@ public class EmployeeRegistrationTests
         _sut = new EmployeeRegistrationService(
             _employees,
             _cpUsers,
+            _currencies,
             _files,
             Options.Create(new AzureStorageOptions()),
             _tenant,

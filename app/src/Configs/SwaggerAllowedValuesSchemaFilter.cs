@@ -31,12 +31,22 @@ public sealed class SwaggerAllowedValuesSchemaFilter : ISchemaFilter
 
         mutable.Type = JsonSchemaType.String;
         mutable.Enum = values.Select(v => (JsonNode)JsonValue.Create(v)!).ToList();
+        mutable.Example = JsonValue.Create(values[0]);
+
+        var allowed = string.Join(" | ", values);
+        var allowedText = $"Allowed: {allowed}";
 
         if (!string.IsNullOrWhiteSpace(attr.Description))
         {
             mutable.Description = string.IsNullOrWhiteSpace(mutable.Description)
-                ? attr.Description
-                : $"{mutable.Description} {attr.Description}";
+                ? $"{attr.Description} {allowedText}"
+                : $"{mutable.Description} {attr.Description} {allowedText}";
+        }
+        else
+        {
+            mutable.Description = string.IsNullOrWhiteSpace(mutable.Description)
+                ? allowedText
+                : $"{mutable.Description} {allowedText}";
         }
     }
 }

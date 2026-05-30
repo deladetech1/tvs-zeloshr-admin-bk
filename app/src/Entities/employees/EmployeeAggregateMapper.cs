@@ -35,7 +35,7 @@ internal static class EmployeeAggregateMapper
             DottedLineManagerId = aggregate.Employment?.DottedLineManagerId,
             GrossSalary = aggregate.Compensation?.GrossSalary,
             PayFrequency = aggregate.Compensation?.PayFrequency,
-            Currency = aggregate.Compensation?.Currency,
+            CurrencyId = aggregate.Compensation?.CurrencyId,
             Finalise = string.Equals(aggregate.Status, "finalised", StringComparison.OrdinalIgnoreCase),
         };
 
@@ -70,7 +70,7 @@ internal static class EmployeeAggregateMapper
             DottedLineManagerId = update.Employment?.DottedLineManagerId,
             GrossSalary = update.Compensation?.GrossSalary,
             PayFrequency = update.Compensation?.PayFrequency,
-            Currency = update.Compensation?.Currency,
+            CurrencyId = update.Compensation?.CurrencyId,
         };
 
     public static EmployeeEducationWriteDto ToEducationWrite(EmployeeEducationUpsertDto dto) =>
@@ -98,10 +98,4 @@ internal static class EmployeeAggregateMapper
             return new Dictionary<string, string?>();
         }
     }
-
-    public static IReadOnlyList<Guid> ToDocumentIds(IEnumerable<EmployeeWizardDocumentDto> documents) =>
-        documents
-            .OrderByDescending(d => d.UploadedAt)
-            .Select(d => d.Id)
-            .ToList();
 }

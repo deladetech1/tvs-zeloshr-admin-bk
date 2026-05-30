@@ -7,6 +7,10 @@ using ZelosHR.Api.Shared.Tenant;
 
 namespace ZelosHR.Api.Entities.CustomFields;
 
+/// <summary>
+/// Tenant-scoped custom field **definitions** (schema). Values are stored on employees via
+/// nested <c>custom_fields</c> on <c>POST /employees/add</c> and <c>PUT /employees/update</c>.
+/// </summary>
 [ApiController]
 [ApiExplorerSettings(GroupName = SwaggerGroups.CustomFields)]
 [Route("api/v1/custom-fields")]
@@ -39,6 +43,11 @@ public class CustomFieldsController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Active field definitions for an entity type — use to build employee forms.</summary>
+    /// <remarks>
+    /// Filter by `sectionName` (identity, employment, compensation, education, certification).
+    /// Returned `field_key` values are the keys used in employee section `custom_fields` objects.
+    /// </remarks>
     [HttpGet("schema")]
     [RequiresZelosHrPermission(ZelosHrPermissions.CustomFieldsGet)]
     public async Task<ActionResult<Respons<CustomFieldSchemaDto>>> Schema(
@@ -98,6 +107,11 @@ public class CustomFieldsController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Create a custom field definition (schema only — not a value).</summary>
+    /// <remarks>
+    /// See **Examples** for compensation select and identity text field payloads.
+    /// After creating definitions, send values on employee create/update under the matching section's `custom_fields`.
+    /// </remarks>
     [HttpPost("add")]
     [RequiresZelosHrPermission(ZelosHrPermissions.CustomFieldsCreate)]
     public async Task<ActionResult<Respons<CustomFieldDefinitionDto>>> Create(
