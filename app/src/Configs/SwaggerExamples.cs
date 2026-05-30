@@ -1,4 +1,9 @@
 using System.Text.Json.Nodes;
+using ZelosHR.Api.Entities.CustomFields;
+using ZelosHR.Api.Entities.Departments;
+using ZelosHR.Api.Entities.Employees;
+using ZelosHR.Api.Entities.Files;
+using ZelosHR.Api.Entities.Shared;
 
 namespace ZelosHR.Api.Configs;
 
@@ -48,20 +53,265 @@ internal static class SwaggerExamples
         ["file_name"] = "contract_v2.pdf",
     });
 
-    internal static JsonObject FileDeleteResponse() => EnvelopeOk(new JsonObject
+    internal static JsonObject FileDeleteResponse() => EnvelopeOk(FileDeleteData());
+
+    private static JsonObject EnvelopeOk(JsonNode data, JsonObject? pagination = null)
+    {
+        var envelope = new JsonObject
+        {
+            ["success"] = true,
+            ["status_code"] = 200,
+            ["detail"] = "OK",
+            ["message"] = "OK",
+            ["data"] = data,
+        };
+
+        if (pagination is not null)
+            envelope["pagination"] = pagination;
+
+        return envelope;
+    }
+
+    internal static JsonObject SamplePagination() => new()
+    {
+        ["page"] = 1,
+        ["size"] = 20,
+        ["total"] = 42,
+        ["has_next"] = true,
+        ["page_size"] = 20,
+        ["total_count"] = 42,
+        ["total_pages"] = 3,
+    };
+
+    internal static JsonObject SampleFieldErrors() => new()
+    {
+        ["work_email"] = "Work email is already registered for another employee.",
+        ["compensation.currency_id"] = "Currency not found for this tenant.",
+    };
+
+    internal static JsonObject ValidationErrorEnvelope(JsonObject? fieldErrors = null) => new()
+    {
+        ["success"] = false,
+        ["status_code"] = 400,
+        ["detail"] = "Validation failed",
+        ["message"] = "Validation failed",
+        ["error"] = "Validation failed",
+        ["field_errors"] = fieldErrors ?? SampleFieldErrors(),
+        ["errors"] = new JsonArray(
+            "Work email is already registered for another employee.",
+            "Currency not found for this tenant."),
+    };
+
+    /// <summary>Full success/error envelope example for a declared API response type.</summary>
+    internal static JsonObject? EnvelopeFor(Type type, int statusCode = 200)
+    {
+        if (statusCode is >= 400 and < 500)
+            return statusCode switch
+            {
+                404 => NotFoundEnvelope(),
+                _ => ValidationErrorEnvelope(),
+            };
+
+        if (TryUnwrapRespons(type, out var dataType))
+            return EnvelopeOkForDataType(dataType);
+
+        return EnvelopeOkForDataType(type);
+    }
+
+    private static JsonObject NotFoundEnvelope() => new()
+    {
+        ["success"] = false,
+        ["status_code"] = 404,
+        ["detail"] = "Employee not found.",
+        ["message"] = "Employee not found.",
+        ["error"] = "Employee not found.",
+    };
+
+    private static JsonObject EnvelopeOkForDataType(Type dataType)
+    {
+        if (TryGetCollectionElementType(dataType, out var elementType))
+        {
+            return elementType.Name switch
+            {
+                nameof(FileUploadMultipleReadDto) => FileUploadMultipleResponse(),
+                nameof(FileResponseReadDto) => FileListResponse(),
+                _ when elementType == typeof(string) => EnvelopeOk(new JsonArray("employee", "department")),
+                _ => EnvelopeOk(BuildCollectionData(elementType)),
+            };
+        }
+
+        return dataType.Name switch
+        {
+            nameof(FileDeleteReadDto) => FileDeleteResponse(),
+            nameof(FileResponseReadDto) => FileUpdateResponse(),
+            nameof(FileUploadMultipleReadDto) => EnvelopeOk(FileUploadItem()),
+            nameof(EmployeeAggregateReadDto) => EmployeeAggregateReadResponse(),
+            nameof(CreateEmployeeControllerReadDto) => EnvelopeOk(CreateEmployeeReadData()),
+            nameof(EmployeeListDto) => EnvelopeOk(EmployeeListData(), SamplePagination()),
+            nameof(CustomFieldSchemaDto) => EnvelopeOk(CustomFieldSchemaData()),
+            nameof(CustomFieldDefinitionListDto) => EnvelopeOk(CustomFieldDefinitionListData(), SamplePagination()),
+            nameof(CustomFieldsSummaryDto) => EnvelopeOk(CustomFieldsSummaryData()),
+            nameof(EmployeeBulkImportResult) => EnvelopeOk(BulkImportData()),
+            nameof(OrganisationSummaryDto) => EnvelopeOk(OrganisationSummaryData()),
+            _ when dataType == typeof(string) => EnvelopeOk(JsonValue.Create("Operation completed successfully.")),
+            _ when dataType == typeof(object) => EnvelopeOk(new JsonObject()),
+            _ => EnvelopeOk(new JsonObject()),
+        };
+    }
+
+    private static bool TryUnwrapRespons(Type type, out Type dataType)
+    {
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Respons<>))
+        {
+            dataType = type.GetGenericArguments()[0];
+            return true;
+        }
+
+        dataType = type;
+        return false;
+    }
+
+    private static bool TryGetCollectionElementType(Type type, out Type elementType)
+    {
+        if (type.IsArray)
+        {
+            elementType = type.GetElementType()!;
+            return true;
+        }
+
+        if (!type.IsGenericType)
+        {
+            elementType = type;
+            return false;
+        }
+
+        var def = type.GetGenericTypeDefinition();
+        if (def == typeof(IReadOnlyList<>) || def == typeof(IEnumerable<>) || def == typeof(List<>)
+            || def == typeof(ICollection<>) || def == typeof(IList<>))
+        {
+            elementType = type.GetGenericArguments()[0];
+            return true;
+        }
+
+        elementType = type;
+        return false;
+    }
+
+    private static JsonArray BuildCollectionData(Type elementType) => elementType.Name switch
+    {
+        nameof(CustomFieldDefinitionDto) => new JsonArray(CustomFieldDefinitionItem()),
+        _ => new JsonArray(),
+    };
+
+    internal static JsonObject FileDeleteData() => new()
     {
         ["blob_path"] = SampleBlobPathSingle,
         ["container_name"] = SampleDocumentsContainer,
         ["message"] = "File deleted successfully.",
-    });
-
-    private static JsonObject EnvelopeOk(JsonNode data) => new()
-    {
-        ["success"] = true,
-        ["status_code"] = 200,
-        ["detail"] = "OK",
-        ["data"] = data,
     };
+
+    internal static JsonObject FileResponseData() => new()
+    {
+        ["id"] = SampleDocumentId1,
+        ["presigned_url"] = SamplePresignedUrl,
+        ["description"] = "Employment contract",
+        ["file_name"] = "contract.pdf",
+    };
+
+    private static JsonObject FileUploadItem() => new() { ["id"] = SampleDocumentId1 };
+
+    private static JsonObject CreateEmployeeReadData() => new()
+    {
+        ["employee_id"] = SampleEmployeeId.ToString(),
+        ["employee_code"] = "EMP-000042",
+        ["first_name"] = "Ada",
+        ["middle_name"] = "",
+        ["last_name"] = "Lovelace",
+        ["lifecycle_state"] = "active",
+    };
+
+    private static JsonObject EmployeeListData() => new()
+    {
+        ["items"] = new JsonArray(new JsonObject
+        {
+            ["employee_id"] = SampleEmployeeId.ToString(),
+            ["employee_code"] = "EMP-000042",
+            ["full_name"] = "Ada Lovelace",
+            ["job_title"] = "Software Engineer",
+            ["department_name"] = "Engineering",
+            ["branch_name"] = "Accra HQ",
+            ["work_location"] = "Accra HQ",
+            ["lifecycle_state"] = "active",
+            ["employment_status"] = "Active",
+            ["employment_type"] = "Full-time",
+            ["profile_url"] = "https://storage.example.com/profiles/ada.jpg",
+        }),
+    };
+
+    private static JsonObject CustomFieldSchemaData() => new()
+    {
+        ["entity_type"] = "employee",
+        ["fields"] = new JsonArray(CustomFieldDefinitionItem()),
+    };
+
+    private static JsonObject CustomFieldDefinitionListData() => new()
+    {
+        ["summary"] = CustomFieldsSummaryData(),
+        ["items"] = new JsonArray(CustomFieldDefinitionItem()),
+    };
+
+    private static JsonObject CustomFieldsSummaryData() => new()
+    {
+        ["total_definitions"] = 12,
+        ["active_definitions"] = 10,
+        ["deleted_definitions"] = 2,
+    };
+
+    private static JsonObject CustomFieldDefinitionItem() => new()
+    {
+        ["id"] = "cf_bonus_eligible_001",
+        ["entity_type"] = "employee",
+        ["field_key"] = "bonus_eligible",
+        ["label"] = "Bonus eligible",
+        ["description"] = "Whether the employee qualifies for annual bonus.",
+        ["field_type"] = "select",
+        ["is_required"] = false,
+        ["is_sensitive"] = false,
+        ["is_filterable"] = true,
+        ["is_searchable"] = false,
+        ["display_order"] = 1,
+        ["section_name"] = "compensation",
+        ["section_order"] = 1,
+        ["options"] = "[\"yes\",\"no\"]",
+        ["is_active"] = true,
+        ["is_deleted"] = false,
+        ["created_at"] = "2025-01-15T10:30:00+00:00",
+        ["updated_at"] = "2025-01-15T10:30:00+00:00",
+        ["created_by"] = "usr_admin_001",
+        ["updated_by"] = "usr_admin_001",
+    };
+
+    private static JsonObject BulkImportData() => new()
+    {
+        ["rows"] = new JsonArray(new JsonObject
+        {
+            ["index"] = 1,
+            ["success"] = true,
+            ["employee_id"] = SampleEmployeeId.ToString(),
+        }),
+        ["success_count"] = 1,
+        ["failure_count"] = 0,
+    };
+
+    private static JsonObject OrganisationSummaryData() => new()
+    {
+        ["department_count"] = 8,
+        ["branch_count"] = 3,
+        ["archived_count"] = 1,
+    };
+
+    internal static bool IsResponsType(Type type) =>
+        type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Respons<>);
 
     internal static JsonObject CreateEmployeeFinalised() => new()
     {
@@ -153,6 +403,7 @@ internal static class SwaggerExamples
         ["success"] = true,
         ["status_code"] = 200,
         ["detail"] = "OK",
+        ["message"] = "OK",
         ["data"] = new JsonObject
         {
             ["id"] = SampleEmployeeId.ToString(),

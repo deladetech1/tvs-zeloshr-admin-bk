@@ -107,6 +107,7 @@ public static class SwaggerConfiguration
             options.DocInclusionPredicate((docName, apiDesc) =>
                 docName == "v1" && SwaggerGroups.IsVisibleInSwagger(apiDesc.GroupName));
 
+            options.SchemaFilter<SwaggerEnvelopeSchemaFilter>();
             options.SchemaFilter<SwaggerAllowedValuesSchemaFilter>();
             options.SchemaFilter<SwaggerSchemaExamplesFilter>();
             options.ParameterFilter<SwaggerAllowedValuesParameterFilter>();

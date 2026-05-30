@@ -22,7 +22,20 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
 
         if (IsStringDictionary(context.Type))
         {
-            ApplyCustomFieldsDictionary(mutable, context.MemberInfo as PropertyInfo);
+            var property = context.MemberInfo as PropertyInfo;
+            if (property?.Name.Equals(nameof(Respons<object>.FieldErrors), StringComparison.OrdinalIgnoreCase) == true)
+            {
+                ApplyFieldErrorsDictionary(mutable);
+                return;
+            }
+
+            if (IsCustomFieldsProperty(property))
+            {
+                ApplyCustomFieldsDictionary(mutable, property);
+                return;
+            }
+
+            ApplyGenericStringDictionary(mutable);
             return;
         }
 
@@ -43,6 +56,9 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(UpdateEmployeeAggregateRequest) => SwaggerExamples.UpdateEmployeePartial(),
             nameof(CreateCustomFieldDefinitionDto) => SwaggerExamples.CreateCustomFieldCompensation(),
             nameof(EmployeeAggregateReadDto) => SwaggerExamples.EmployeeAggregateReadData(),
+            nameof(FileDeleteReadDto) => SwaggerExamples.FileDeleteData(),
+            nameof(FileResponseReadDto) => SwaggerExamples.FileResponseData(),
+            nameof(FileUploadMultipleReadDto) => new JsonObject { ["id"] = SwaggerExamples.SampleDocumentId1 },
             _ => schema.Example,
         };
 
@@ -65,6 +81,33 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             _ => schema.Description,
         };
     }
+
+    private static void ApplyFieldErrorsDictionary(OpenApiSchema schema)
+    {
+        schema.AdditionalPropertiesAllowed = true;
+        schema.AdditionalProperties = new OpenApiSchema
+        {
+            Type = JsonSchemaType.String,
+            Example = JsonValue.Create("This field is required."),
+        };
+        schema.Example = SwaggerExamples.SampleFieldErrors();
+        schema.Description = SwaggerSchemaExamplesFilter.AppendDescription(schema.Description,
+            "Present on 400 validation responses. Keys are snake_case field paths.");
+    }
+
+    private static void ApplyGenericStringDictionary(OpenApiSchema schema)
+    {
+        schema.AdditionalPropertiesAllowed = true;
+        schema.AdditionalProperties = new OpenApiSchema
+        {
+            Type = JsonSchemaType.String,
+            Example = JsonValue.Create("example-value"),
+        };
+        schema.Example = new JsonObject { ["example_key"] = "example-value" };
+    }
+
+    private static bool IsCustomFieldsProperty(PropertyInfo? property) =>
+        property?.Name.Equals("CustomFields", StringComparison.OrdinalIgnoreCase) == true;
 
     private static void ApplyCustomFieldsDictionary(OpenApiSchema schema, PropertyInfo? property)
     {
