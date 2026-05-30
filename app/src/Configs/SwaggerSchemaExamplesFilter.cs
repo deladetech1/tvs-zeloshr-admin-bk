@@ -4,6 +4,7 @@ using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Employees;
+using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Entities.Shared;
 
 namespace ZelosHR.Api.Configs;
