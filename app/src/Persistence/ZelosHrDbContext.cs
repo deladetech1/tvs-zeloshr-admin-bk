@@ -27,6 +27,7 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
     public DbSet<EmployeeCertificationEntity> EmployeeCertifications => Set<EmployeeCertificationEntity>();
     public DbSet<CustomFieldDefinitionEntity> CustomFieldDefinitions => Set<CustomFieldDefinitionEntity>();
     public DbSet<CustomFieldAuditLogEntity> CustomFieldAuditLogs => Set<CustomFieldAuditLogEntity>();
+    public DbSet<HrDocumentPathEntity> HrDocumentPaths => Set<HrDocumentPathEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -147,6 +148,7 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
         {
             b.ToTable("zhr_employee_certifications");
             b.HasKey(x => x.Id);
+            b.Property(x => x.CredentialUrl).HasColumnName("credential_url");
             b.HasOne<EmployeeEntity>().WithMany().HasForeignKey(x => x.EmployeeId);
         });
 
@@ -165,6 +167,13 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
         {
             b.ToTable("zhr_custom_field_audit_log");
             b.HasKey(x => x.Id);
+        });
+
+        modelBuilder.Entity<HrDocumentPathEntity>(b =>
+        {
+            b.ToTable("hr_document_paths", "human_resource", t => t.ExcludeFromMigrations());
+            b.HasKey(x => new { x.Id, x.TenantId });
+            b.Property(x => x.DocumentPath).HasColumnName("document_path");
         });
     }
 }

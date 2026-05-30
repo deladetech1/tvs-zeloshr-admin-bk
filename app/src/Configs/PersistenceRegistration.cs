@@ -15,6 +15,7 @@ using ZelosHR.Api.Entities.LifecycleEvents;
 using ZelosHR.Api.Entities.Onboarding;
 using ZelosHR.Api.Entities.Performance;
 using ZelosHR.Api.Entities.Recruitment;
+using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Persistence;
 using ZelosHR.Api.Persistence.Repositories;
 
@@ -52,6 +53,8 @@ public static class PersistenceRegistration
         services.AddScoped<IDocumentsRepository, DocumentsRepository>();
         services.AddScoped<ICustomFieldDefinitionsRepository, CustomFieldDefinitionsRepository>();
         services.AddScoped<IDashboardRepository, DashboardRepository>();
+        services.AddScoped<IHrDocumentPathRepository, HrDocumentPathRepository>();
+        services.AddScoped<FileManagementStorage>();
         return services;
     }
 }

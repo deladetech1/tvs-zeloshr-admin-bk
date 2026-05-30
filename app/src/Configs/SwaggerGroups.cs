@@ -8,6 +8,7 @@ public static class SwaggerGroups
     {
         Employees,
         CustomFields,
+        FileManagement,
     };
 
     public static bool IsVisibleInSwagger(string? groupName) =>
@@ -29,5 +30,6 @@ public static class SwaggerGroups
     public const string Disciplinary = "Disciplinary";
     public const string Documents = "Documents";
     public const string CustomFields = "Custom Fields";
+    public const string FileManagement = "File Management";
     public const string TrovesuitePlatform = "Trovesuite Platform";
 }

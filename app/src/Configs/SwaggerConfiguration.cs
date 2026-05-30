@@ -42,7 +42,8 @@ public static class SwaggerConfiguration
 
                     **Envelope (snake_case JSON, Mystoreguard-aligned):** success, status_code, detail, data, pagination, field_errors
 
-                    Platform-style employee routes: `POST …/employees/add`, `PUT …/employees/update`, `GET …/employees/detail?employee_id=`, `GET …/employees/list`
+                    Platform-style employee routes: `POST …/employees/add`, `PUT …/employees/update`, `GET …/employees/id?employee_id=`, `GET …/employees/list`
+                    File routes (Mystoreguard): `POST …/file/post/multiple`, `PUT …/file/put`, `DELETE …/file/delete`, `GET …/file/list`
 
                     **Documented modules (Swagger):** Employees, Custom Fields only. Other modules remain in code but are hidden until their sprint ships.
 

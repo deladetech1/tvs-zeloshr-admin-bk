@@ -466,7 +466,7 @@ public sealed class EmployeeAggregateService
             Status = entity.IsDraft ? "draft" : entity.LifecycleStatus,
             IsDraft = entity.IsDraft,
             UserId = entity.UserId,
-            ProfilePhotoUrl = profilePhoto,
+            ProfileUrl = profilePhoto,
             Identity = new EmployeeAggregateIdentityDto
             {
                 FullName = fullName,
@@ -538,6 +538,7 @@ public sealed class EmployeeAggregateService
         var items = rows.Select(e =>
         {
             platformUsers.TryGetValue(e.UserId ?? string.Empty, out var cp);
+            var profileUrl = EmployeeIdentityResolver.ResolveProfilePhoto(e, cp);
             return new EmployeeListItemDto
             {
                 EmployeeId = e.Id.ToString(),
@@ -550,6 +551,7 @@ public sealed class EmployeeAggregateService
                 LifecycleState = e.LifecycleState,
                 EmploymentStatus = e.EmploymentStatus,
                 EmploymentType = e.EmploymentType,
+                ProfileUrl = profileUrl,
             };
         }).ToList();
 

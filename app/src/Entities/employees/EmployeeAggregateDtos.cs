@@ -15,7 +15,7 @@ public sealed class CreateEmployeeAggregateRequest
     public IReadOnlyList<EmployeeCertificationWriteDto> Certifications { get; init; } = [];
 
     /// <summary>
-    /// Document UUIDs from <c>POST /employees/documents/upload</c> (upload first, then pass IDs here).
+    /// Document UUIDs from <c>POST /file/post/multiple</c> (upload first, then pass IDs here).
     /// </summary>
     public IReadOnlyList<Guid>? Documents { get; init; }
 }
@@ -23,7 +23,7 @@ public sealed class CreateEmployeeAggregateRequest
 /// <summary>Partial employee update — only include sections/fields to change.</summary>
 public sealed class UpdateEmployeeAggregateRequest
 {
-    /// <summary>Employee UUID (same as <c>data.id</c> from <c>GET /detail</c>).</summary>
+    /// <summary>Employee UUID (same as <c>data.id</c> from <c>GET /id</c>).</summary>
     public required Guid Id { get; init; }
 
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.CreateStatuses),
@@ -144,7 +144,7 @@ public sealed class EmployeeAggregateReadDto
     /// <summary>Uploaded document UUIDs for this employee.</summary>
     public IReadOnlyList<Guid> Documents { get; init; } = [];
 
-    public string? ProfilePhotoUrl { get; init; }
+    public string? ProfileUrl { get; init; }
 }
 
 public sealed class EmployeeAggregateEmploymentReadDto : EmployeeAggregateEmploymentDto
@@ -210,4 +210,5 @@ public sealed class EmployeeListItemDto
 
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.EmploymentTypes))]
     public string? EmploymentType { get; init; }
+    public string? ProfileUrl { get; init; }
 }

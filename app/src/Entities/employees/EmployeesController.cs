@@ -19,6 +19,7 @@ public class EmployeesController : ControllerBase
     private readonly EmployeeRegistrationService _registration;
     private readonly EmployeeSubResourcesService _subResources;
     private readonly EmployeeAggregateService _aggregate;
+    private readonly EmployeeBulkImportService _bulkImport;
     private readonly ITenantContextAccessor _tenant;
 
     public EmployeesController(
@@ -27,6 +28,7 @@ public class EmployeesController : ControllerBase
         EmployeeRegistrationService registration,
         EmployeeSubResourcesService subResources,
         EmployeeAggregateService aggregate,
+        EmployeeBulkImportService bulkImport,
         ITenantContextAccessor tenant)
     {
         _service = service;
@@ -34,12 +36,13 @@ public class EmployeesController : ControllerBase
         _registration = registration;
         _subResources = subResources;
         _aggregate = aggregate;
+        _bulkImport = bulkImport;
         _tenant = tenant;
     }
 
     /// <summary>
     /// Create employee in one request (identity, employment, compensation, education[], certifications[], custom fields).
-    /// Use <c>status</c> <c>draft</c> or <c>finalised</c>. Upload files via <c>POST /documents/upload</c>, then reference IDs in <c>documents</c>.
+    /// Use <c>status</c> <c>draft</c> or <c>finalised</c>. Upload files via <c>POST /file/post/multiple</c>, then reference IDs in <c>documents</c>.
     /// </summary>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeCreate)]
     [HttpPost("add")]
@@ -116,6 +119,27 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Bulk create employees from a CSV file (header row required).</summary>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeCreate)]
+    [HttpPost("bulk")]
+    [RequestSizeLimit(5 * 1024 * 1024)]
+    [ProducesResponseType(typeof(Respons<EmployeeBulkImportResult>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<Respons<EmployeeBulkImportResult>>> BulkImport(
+        IFormFile file,
+        [FromQuery] string status = "draft",
+        CancellationToken ct = default)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest(Respons<EmployeeBulkImportResult>.ValidationError(
+                new Dictionary<string, string> { ["file"] = "CSV file is required." }));
+        }
+
+        await using var stream = file.OpenReadStream();
+        var result = await _bulkImport.ImportCsvAsync(stream, status, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
     /// <summary>Upload profile photo (max 5MB, jpeg/png).</summary>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpPost("photo/upload")]
@@ -136,8 +160,9 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Upload wizard document (max 10MB, PDF/jpeg/png).</summary>
+    /// <summary>Upload wizard document (max 10MB, PDF/jpeg/png). Prefer <c>POST /file/post/multiple</c>.</summary>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
+    [ApiExplorerSettings(IgnoreApi = true)]
     [HttpPost("documents/upload")]
     [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<ActionResult<Respons<EmployeeWizardDocumentDto>>> UploadDocument(
@@ -156,8 +181,9 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Remove uploaded wizard document.</summary>
+    /// <summary>Remove uploaded wizard document. Prefer <c>DELETE /file/delete</c>.</summary>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
+    [ApiExplorerSettings(IgnoreApi = true)]
     [HttpDelete("documents/delete")]
     public async Task<ActionResult<Respons<object>>> DeleteDocument(
         [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId,
@@ -193,10 +219,10 @@ public class EmployeesController : ControllerBase
 
     /// <summary>Employee record (same aggregate shape as create/update).</summary>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
-    [HttpGet("detail")]
+    [HttpGet("id")]
     [ProducesResponseType(typeof(Respons<EmployeeAggregateReadDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Respons<EmployeeAggregateReadDto>), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<Respons<EmployeeAggregateReadDto>>> GetEmployeeDetail(
+    public async Task<ActionResult<Respons<EmployeeAggregateReadDto>>> GetEmployeeById(
         [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId, CancellationToken ct)
     {
         var result = await _aggregate.GetAsync(employeeId, ct);

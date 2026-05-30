@@ -502,7 +502,7 @@ public sealed class EmployeeRegistrationService
             JobTitle = e.JobTitle,
             DepartmentId = e.DepartmentId,
             WorkEmail = EmployeeIdentityResolver.ResolveWorkEmail(e, cp),
-            ProfilePhotoUrl = EmployeeIdentityResolver.ResolveProfilePhoto(e, cp),
+            ProfileUrl = EmployeeIdentityResolver.ResolveProfilePhoto(e, cp),
             AnnualizedCost = e.AnnualizedCost,
             Currency = e.Currency,
             MaskedSsnitNumber = MaskSensitive(e.SsnitNumber),

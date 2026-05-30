@@ -77,7 +77,7 @@ internal static class EmployeeAggregateMapper
         new(dto.Institution, dto.Degree, dto.FieldOfStudy, dto.StartDate, dto.EndDate, dto.IsCurrent, dto.CustomFields);
 
     public static EmployeeCertificationWriteDto ToCertificationWrite(EmployeeCertificationUpsertDto dto) =>
-        new(dto.Name, dto.IssuingBody, dto.IssueDate, dto.ExpiryDate, dto.CredentialId, dto.CustomFields);
+        new(dto.Name, dto.IssuingBody, dto.IssueDate, dto.ExpiryDate, dto.CredentialUrl, dto.CustomFields);
 
     public static string SerializeCustomFields(Dictionary<string, string?>? fields) =>
         fields is null || fields.Count == 0

@@ -53,7 +53,7 @@ public sealed record EmployeeRegistrationReadDto
     public string? JobTitle { get; init; }
     public Guid? DepartmentId { get; init; }
     public string? WorkEmail { get; init; }
-    public string? ProfilePhotoUrl { get; init; }
+    public string? ProfileUrl { get; init; }
     public decimal? AnnualizedCost { get; init; }
     public string? Currency { get; init; }
     public string? MaskedSsnitNumber { get; init; }

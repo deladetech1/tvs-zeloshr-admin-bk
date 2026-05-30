@@ -131,7 +131,7 @@ public sealed class EmployeeSubResourcesService
             IssuingBody = dto.IssuingBody,
             IssueDate = dto.IssueDate,
             ExpiryDate = dto.ExpiryDate,
-            CredentialId = dto.CredentialId,
+            CredentialUrl = dto.CredentialUrl,
         }, ct);
 
         return Respons<EmployeeCertificationDto>.Ok(ToCertificationDto(entity));
@@ -148,7 +148,7 @@ public sealed class EmployeeSubResourcesService
         existing.IssuingBody = dto.IssuingBody;
         existing.IssueDate = dto.IssueDate;
         existing.ExpiryDate = dto.ExpiryDate;
-        existing.CredentialId = dto.CredentialId;
+        existing.CredentialUrl = dto.CredentialUrl;
         await _certifications.UpdateAsync(existing, ct);
         return Respons<EmployeeCertificationDto>.Ok(ToCertificationDto(existing));
     }
@@ -233,7 +233,7 @@ public sealed class EmployeeSubResourcesService
         e.Id, e.EmployeeId, e.Institution, e.Degree, e.FieldOfStudy, e.StartDate, e.EndDate, e.IsCurrent);
 
     private static EmployeeCertificationDto ToCertificationDto(EmployeeCertificationEntity c) => new(
-        c.Id, c.EmployeeId, c.Name, c.IssuingBody, c.IssueDate, c.ExpiryDate, c.CredentialId);
+        c.Id, c.EmployeeId, c.Name, c.IssuingBody, c.IssueDate, c.ExpiryDate, c.CredentialUrl);
 
     private static EmployeeWizardDocumentDto ToDocumentDto(EmployeeDocumentEntity d) => new(
         d.Id, d.EmployeeId, d.Category, d.FileName, d.FileSizeBytes, d.BlobUrl, d.ContentType, d.UploadedAt);

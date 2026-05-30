@@ -22,7 +22,7 @@ public sealed class EmployeeCertificationEntity
     public string? IssuingBody { get; set; }
     public DateOnly? IssueDate { get; set; }
     public DateOnly? ExpiryDate { get; set; }
-    public string? CredentialId { get; set; }
+    public string? CredentialUrl { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 }

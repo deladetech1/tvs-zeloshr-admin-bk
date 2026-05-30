@@ -38,7 +38,7 @@ public sealed record EmployeeCertificationDto(
     string? IssuingBody,
     DateOnly? IssueDate,
     DateOnly? ExpiryDate,
-    string? CredentialId,
+    string? CredentialUrl,
     Dictionary<string, string?>? CustomFields = null);
 
 public sealed record EmployeeCertificationWriteDto(
@@ -46,7 +46,7 @@ public sealed record EmployeeCertificationWriteDto(
     string? IssuingBody,
     DateOnly? IssueDate,
     DateOnly? ExpiryDate,
-    string? CredentialId,
+    string? CredentialUrl,
     Dictionary<string, string?>? CustomFields = null);
 
 /// <summary>Include <c>id</c> to update an existing row; omit to create.</summary>
@@ -56,7 +56,7 @@ public sealed record EmployeeCertificationUpsertDto(
     string? IssuingBody,
     DateOnly? IssueDate,
     DateOnly? ExpiryDate,
-    string? CredentialId,
+    string? CredentialUrl,
     Dictionary<string, string?>? CustomFields = null);
 
 public sealed record EmployeeWizardDocumentDto(
