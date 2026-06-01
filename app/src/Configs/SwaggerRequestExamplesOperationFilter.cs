@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using ZelosHR.Api.Entities.Employees;
 
 namespace ZelosHR.Api.Configs;
 
@@ -39,7 +40,7 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
                 ["draft_minimal"] = Example(
                     SwaggerExamples.CreateEmployeeDraft(),
                     "Draft — minimal",
-                    "Saves a draft with name and basic employment/compensation only. Finalise later via PUT /employees/update with status finalised (Allowed: draft | finalised)."),
+                    "Saves a draft with name and basic employment/compensation only. Finalise later via PUT /employees/update with status finalised."),
             };
         }
 
@@ -48,22 +49,14 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
         {
             return new Dictionary<string, IOpenApiExample>
             {
-                ["partial_update_finalise"] = Example(
-                    SwaggerExamples.UpdateEmployeePartial(),
-                    "Partial update — finalise + compensation",
+                ["full_profile_update"] = Example(
+                    SwaggerExamples.UpdateEmployeeFull(),
+                    "Full profile update",
                     """
-                    status: finalised (Allowed: draft | finalised).
-                    pay_frequency example shows all options (send one value on the wire).
-                    Only fields to change; document_ids appends, delete_document_ids removes.
+                    Same aggregate shape as POST /add plus required id (employee UUID).
+                    Send the complete profile or only the sections/fields you want to change.
+                    document_ids appends; delete_document_ids removes registry IDs.
                     """),
-                ["partial_update_draft"] = Example(
-                    SwaggerExamples.UpdateEmployeeDraftStatus(),
-                    "Partial update — keep draft",
-                    "status: draft. Use when saving progress without linking cp_users yet."),
-                ["partial_identity_only"] = Example(
-                    SwaggerExamples.UpdateEmployeeIdentityOnly(),
-                    "Partial update — identity only",
-                    "gender Allowed: male | female | other. id_type Allowed: ghana_card | passport | voter_id | drivers_license | ssnit | other."),
             };
         }
 
@@ -75,11 +68,11 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
                 ["compensation_select"] = Example(
                     SwaggerExamples.CreateCustomFieldCompensation(),
                     "Compensation select field",
-                    "Defines bonus_eligible for section_name compensation. Frontend reads schema then sends values in compensation.custom_fields on employee create/update."),
+                    $"Defines bonus_eligible for section_name {EmployeeCustomFieldSections.Compensation}. Values go in compensation.custom_fields on employee create/update."),
                 ["identity_text"] = Example(
                     SwaggerExamples.CreateCustomFieldIdentity(),
                     "Identity text field",
-                    "Defines emergency_contact_name for section_name identity."),
+                    $"Defines emergency_contact_name for section_name {EmployeeCustomFieldSections.Identity}."),
             };
         }
 

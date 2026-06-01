@@ -69,13 +69,13 @@ public static class SwaggerConfiguration
 
                     1. **(Optional) Custom fields** — Admin defines fields: `POST /api/v1/custom-fields/add`  
                        Frontend loads schema: `GET /api/v1/custom-fields/schema?entityType=employee`  
-                       Employee sections: `identity` | `employment` | `compensation` | `education` | `certification`
+                       Employee `section_name` values: `employee-directory-identity` | `employee-directory-employment` | `employee-directory-compensation` | `employee-directory-education` | `employee-directory-certification`
                     2. **(Optional) Documents** — Upload: `POST /api/v1/file/post/multiple?blob_paths=…`  
                        Attach returned IDs on employee: `document_ids: ["doc_…"]`  
                        Resolve URLs: `GET /api/v1/file/list?document_ids=…`
                     3. **Currency** — Set `compensation.currency_id` from seeded `core_platform.cp_currencies` (not a currency code string)
                     4. **Create** — `POST /api/v1/employees/add` with `status: draft | finalised`
-                    5. **Read / update** — `GET /api/v1/employees/id?employee_id=` · `PUT /api/v1/employees/update`
+                    5. **Read / update** — `GET /api/v1/employees?employee_id=` · `PUT /api/v1/employees/update` (full profile or partial; body includes `id`)
 
                     ---
 
@@ -115,6 +115,7 @@ public static class SwaggerConfiguration
             options.OperationFilter<TroveStandardHeadersOperationFilter>();
             options.OperationFilter<StandardResponsesOperationFilter>();
             options.OperationFilter<SwaggerRequestExamplesOperationFilter>();
+            options.OperationFilter<SwaggerEmployeesOperationFilter>();
             options.OperationFilter<SwaggerResponseExamplesOperationFilter>();
             options.OperationFilter<SwaggerFileManagementOperationFilter>();
             options.DocumentFilter<SwaggerFileManagementTagDocumentFilter>();

@@ -54,9 +54,10 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
         schema.Example = context.Type.Name switch
         {
             nameof(CreateEmployeeAggregateRequest) => SwaggerExamples.CreateEmployeeFinalised(),
-            nameof(UpdateEmployeeAggregateRequest) => SwaggerExamples.UpdateEmployeePartial(),
+            nameof(UpdateEmployeeAggregateRequest) => SwaggerExamples.UpdateEmployeeFull(),
             nameof(CreateCustomFieldDefinitionDto) => SwaggerExamples.CreateCustomFieldCompensation(),
             nameof(EmployeeAggregateReadDto) => SwaggerExamples.EmployeeAggregateReadData(),
+            nameof(EmployeeDirectorySummaryDto) => SwaggerExamples.EmployeeDirectorySummaryData(),
             nameof(FileDeleteReadDto) => SwaggerExamples.FileDeleteData(),
             nameof(FileResponseReadDto) => SwaggerExamples.FileResponseData(),
             nameof(FileUploadMultipleReadDto) => new JsonObject { ["id"] = SwaggerExamples.SampleDocumentId1 },
@@ -68,7 +69,9 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(CreateEmployeeAggregateRequest) => AppendDescription(schema.Description,
                 "One-shot employee create. See operation examples (finalised vs draft). Upload files first via POST /api/v1/file/post/multiple."),
             nameof(UpdateEmployeeAggregateRequest) => AppendDescription(schema.Description,
-                "Partial update — include only fields to change plus required id. status: draft | finalised. See operation Examples."),
+                "Full profile update — same shape as POST /add plus required id. Partial updates (subset of fields) are also accepted."),
+            nameof(EmployeeDirectorySummaryDto) => AppendDescription(schema.Description,
+                "Directory KPI cards: total headcount, active, on probation, on contract."),
             nameof(CreateCustomFieldDefinitionDto) => AppendDescription(schema.Description,
                 "Defines schema for a custom field. Values are sent later on employee create/update under the matching section custom_fields object."),
             nameof(EmployeeAggregateCompensationDto) => AppendDescription(schema.Description,
@@ -235,7 +238,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                     "Wire: JSON array string. Example UI choices: yes | no (for field_type select | multiselect).");
                 return;
             case "SectionName" when IsCustomFieldDefinitionProperty(property):
-                schema.Example = JsonValue.Create("compensation");
+                schema.Example = JsonValue.Create(EmployeeCustomFieldSections.Compensation);
                 return;
             case nameof(CreateCustomFieldDefinitionDto.FieldKey):
                 schema.Example = JsonValue.Create("bonus_eligible");
@@ -298,11 +301,11 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
 
         return property.DeclaringType.Name switch
         {
-            var n when n.Contains("Identity", StringComparison.OrdinalIgnoreCase) => "identity",
-            var n when n.Contains("Employment", StringComparison.OrdinalIgnoreCase) => "employment",
-            var n when n.Contains("Compensation", StringComparison.OrdinalIgnoreCase) => "compensation",
-            var n when n.Contains("Education", StringComparison.OrdinalIgnoreCase) => "education",
-            var n when n.Contains("Certification", StringComparison.OrdinalIgnoreCase) => "certification",
+            var n when n.Contains("Identity", StringComparison.OrdinalIgnoreCase) => EmployeeCustomFieldSections.Identity,
+            var n when n.Contains("Employment", StringComparison.OrdinalIgnoreCase) => EmployeeCustomFieldSections.Employment,
+            var n when n.Contains("Compensation", StringComparison.OrdinalIgnoreCase) => EmployeeCustomFieldSections.Compensation,
+            var n when n.Contains("Education", StringComparison.OrdinalIgnoreCase) => EmployeeCustomFieldSections.Education,
+            var n when n.Contains("Certification", StringComparison.OrdinalIgnoreCase) => EmployeeCustomFieldSections.Certification,
             _ => null,
         };
     }

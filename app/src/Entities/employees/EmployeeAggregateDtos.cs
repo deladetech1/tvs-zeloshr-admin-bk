@@ -9,8 +9,9 @@ namespace ZelosHR.Api.Entities.Employees;
 /// **Status:** <c>draft</c> | <c>finalised</c> — draft saves without finalising; finalised completes registration and links
 /// <c>cp_users</c> when <c>work_email</c> is set.
 ///
-/// **Custom fields:** Define schema first via <c>POST /api/v1/custom-fields/add</c>, load via
-/// <c>GET /api/v1/custom-fields/schema?entityType=employee</c>, then pass values under each section's
+/// **Custom fields:** Define schema first via <c>POST /api/v1/custom-fields/add</c> with
+/// <c>section_name</c> = <c>employee-directory-identity</c> | <c>employee-directory-employment</c> | etc.
+/// Load via <c>GET /api/v1/custom-fields/schema?entityType=employee</c>, then pass values under each section's
 /// <c>custom_fields</c> object (keys = <c>field_key</c>).
 ///
 /// **Documents:** Upload via <c>POST /api/v1/file/post/multiple</c>, pass returned IDs in <c>document_ids</c>.
@@ -40,8 +41,8 @@ public sealed class CreateEmployeeAggregateRequest
 
 /// <summary>Partial employee update — only include sections/fields to change.</summary>
 /// <remarks>
-/// Body must include <c>id</c> (employee UUID from <c>GET /employees/id</c>).
-/// Set <c>status</c> to <c>finalised</c> | <c>draft</c> (use finalised to complete a draft).
+/// Body must include <c>id</c> (employee UUID from <c>GET /employees?employee_id=</c>).
+/// Same aggregate shape as <c>POST /add</c> — send the full profile or only fields to change.
 /// <c>document_ids</c> appends file-registry IDs; <c>delete_document_ids</c> removes them.
 /// Education/certification array items: include <c>id</c> to update, omit <c>id</c> to add new rows.
 /// </remarks>
@@ -99,10 +100,7 @@ public sealed class EmployeeAggregateIdentityDto
     public string? LinkedInUrl { get; init; }
     public string? ResidentialAddress { get; init; }
 
-    /// <summary>
-    /// Custom field **values** for the identity section (<c>section_name = identity</c>).
-    /// Keys must match <c>field_key</c> from custom field definitions. Use <c>{{}}</c> when none.
-    /// </summary>
+    /// <summary>Custom field **values** for <c>section_name = employee-directory-identity</c>.</summary>
     public Dictionary<string, string?>? CustomFields { get; init; }
 }
 
@@ -134,7 +132,7 @@ public class EmployeeAggregateEmploymentDto
     public Guid? ReportsToId { get; init; }
     public Guid? DottedLineManagerId { get; init; }
 
-    /// <summary>Custom field values for employment (<c>section_name = employment</c>).</summary>
+    /// <summary>Custom field values for <c>section_name = employee-directory-employment</c>.</summary>
     public Dictionary<string, string?>? CustomFields { get; init; }
 }
 
@@ -150,10 +148,7 @@ public class EmployeeAggregateCompensationDto
     /// <summary>FK to <c>core_platform.cp_currencies.id</c> (tenant-scoped, seeded). Not a currency code.</summary>
     public string? CurrencyId { get; init; }
 
-    /// <summary>
-    /// Custom field values for compensation (<c>section_name = compensation</c>).
-    /// Example after defining <c>bonus_eligible</c>: <c>{{ "bonus_eligible": "yes" }}</c>
-    /// </summary>
+    /// <summary>Custom field values for <c>section_name = employee-directory-compensation</c>.</summary>
     public Dictionary<string, string?>? CustomFields { get; init; }
 }
 

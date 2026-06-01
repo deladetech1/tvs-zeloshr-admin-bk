@@ -100,10 +100,19 @@ internal static class EmployeeCustomFieldMapper
         return merged;
     }
 
-    private static string NormalizeSection(string? sectionName) =>
-        string.IsNullOrWhiteSpace(sectionName)
-            ? EmployeeCustomFieldSections.Identity
-            : sectionName.Trim().ToLowerInvariant();
+    private static string NormalizeSection(string? sectionName)
+    {
+        if (string.IsNullOrWhiteSpace(sectionName))
+            return EmployeeCustomFieldSections.Identity;
+
+        var trimmed = sectionName.Trim();
+        if (EmployeeCustomFieldSections.LegacyAliases.TryGetValue(trimmed, out var legacy))
+            return legacy;
+
+        return EmployeeCustomFieldSections.All.FirstOrDefault(
+            s => string.Equals(s, trimmed, StringComparison.OrdinalIgnoreCase))
+            ?? trimmed.ToLowerInvariant();
+    }
 }
 
 internal sealed class EmployeeCustomFieldSectionsDto

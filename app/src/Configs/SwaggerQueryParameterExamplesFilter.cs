@@ -81,7 +81,7 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
 
                 Sources:
                 - `POST /file/post/multiple` → `data[].id`
-                - Employee record → `document_ids` array from `GET /employees/id`
+                - Employee record → `document_ids` array from `GET /employees?employee_id=`
 
                 Returns presigned download URLs valid for **24 hours**.
 
@@ -90,11 +90,24 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
             return;
         }
 
+        if (name.Equals("query", StringComparison.OrdinalIgnoreCase)
+            && context.ApiDescription.RelativePath?.Contains("import/search", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            schema.Example = "ada";
+            parameter.Description = SwaggerOptionFormat.Append(
+                parameter.Description,
+                "Search cp_users by name or email (excludes users already linked to an employee).");
+            return;
+        }
+
         if (name.Equals(PlatformQueryParams.EmployeeId, StringComparison.OrdinalIgnoreCase)
             || name.Equals("employeeId", StringComparison.OrdinalIgnoreCase))
         {
             schema.Example = SwaggerExamples.SampleEmployeeId.ToString();
-            parameter.Description = "Employee UUID from POST /employees/add or GET /employees/list.";
+            parameter.Description = """
+                Employee UUID from POST /employees/add or GET /employees/list.
+                GET single employee: GET /api/v1/employees?employee_id={uuid}
+                """;
             return;
         }
 

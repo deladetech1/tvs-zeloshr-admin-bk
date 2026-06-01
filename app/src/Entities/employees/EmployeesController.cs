@@ -68,9 +68,8 @@ public class EmployeesController : ControllerBase
     }
 
     /// <summary>
-    /// Update employee (partial body). Body must include <c>id</c> (employee UUID).
-    /// Send only sections/fields to change. Set <c>status</c> to <c>finalised</c> to complete a draft.
-    /// Nested <c>education</c>/<c>certifications</c> items: include <c>id</c> to update, omit <c>id</c> to add.
+    /// Update employee — same aggregate shape as <c>POST /add</c>, plus required <c>id</c> (employee UUID).
+    /// You may send the full profile or only sections/fields to change. Set <c>status</c> to <c>finalised</c> to complete a draft.
     /// </summary>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpPut("update")]
@@ -115,21 +114,6 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>
-    /// Create employee (registration wizard, step 1). Use <c>fullName</c> here; platform identity
-    /// (<c>cp_users.fullname</c>, <c>email</c>, <c>contact</c>) is created when you <c>PUT …/update</c> with <c>status: finalised</c>.
-    /// </summary>
-    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeCreate)]
-    [HttpPost("draft")]
-    [ProducesResponseType(typeof(Respons<EmployeeRegistrationReadDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<Respons<EmployeeRegistrationReadDto>>> CreateDraft(
-        [FromBody] CreateDraftRequest body,
-        CancellationToken ct)
-    {
-        var result = await _registration.CreateDraftAsync(body.FullName, body.ExistingUserId, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
     /// <summary>Bulk create employees from a CSV file (header row required).</summary>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeCreate)]
     [HttpPost("bulk")]
@@ -153,30 +137,7 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Upload profile photo (max 5MB, jpeg/png).</summary>
-    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
-    [HttpPost("photo/upload")]
-    [ProducesResponseType(typeof(Respons<string>), StatusCodes.Status200OK)]
-    [RequestSizeLimit(5 * 1024 * 1024)]
-    public async Task<ActionResult<Respons<string>>> UploadPhoto(
-        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId,
-        IFormFile file,
-        CancellationToken ct)
-    {
-        if (file is null || file.Length == 0)
-            return BadRequest(Respons<string>.ValidationError(
-                new Dictionary<string, string> { ["file"] = "Photo file is required." }));
-
-        await using var stream = file.OpenReadStream();
-        var result = await _registration.UploadProfilePhotoAsync(
-            employeeId, stream, file.FileName, file.ContentType, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
     /// <summary>Upload wizard document (max 10MB, PDF/jpeg/png). Prefer <c>POST /file/post/multiple</c>.</summary>
-    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
-    [ApiExplorerSettings(IgnoreApi = true)]
-    [HttpPost("documents/upload")]
     [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<ActionResult<Respons<EmployeeWizardDocumentDto>>> UploadDocument(
         [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId,
@@ -207,7 +168,11 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Employee module statistics (directory KPIs).</summary>
+    /// <summary>Employee module statistics (directory KPI cards).</summary>
+    /// <remarks>
+    /// Returns <c>total_employees</c>, <c>active_employees</c>, <c>on_probation</c>, <c>on_contract</c>
+    /// for the current tenant/org scope (same filters as the employee directory).
+    /// </remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("statistics")]
     [ProducesResponseType(typeof(Respons<EmployeeDirectorySummaryDto>), StatusCodes.Status200OK)]
@@ -232,17 +197,25 @@ public class EmployeesController : ControllerBase
 
     /// <summary>Employee record — same aggregate shape as create/update.</summary>
     /// <remarks>
-    /// Returns nested sections with `custom_fields` split by section, joined currency metadata
-    /// (`currency_code`, `currency_name`, `currency_symbol`, `annualized_cost`), and `document_ids`.
-    /// Use `GET /file/list?document_ids=…` to resolve presigned download URLs.
+    /// Query param <c>employee_id</c> (UUID from <c>POST /add</c> or <c>GET /list</c>).
+    /// Returns nested sections with <c>custom_fields</c>, joined currency metadata, and <c>document_ids</c>.
+    /// Resolve file URLs via <c>GET /file/list?document_ids=…</c>.
     /// </remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
-    [HttpGet("id")]
+    [HttpGet]
     [ProducesResponseType(typeof(Respons<EmployeeAggregateReadDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<EmployeeAggregateReadDto>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(Respons<EmployeeAggregateReadDto>), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<Respons<EmployeeAggregateReadDto>>> GetEmployeeById(
-        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId, CancellationToken ct)
+    public async Task<ActionResult<Respons<EmployeeAggregateReadDto>>> GetEmployee(
+        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId,
+        CancellationToken ct)
     {
+        if (employeeId == Guid.Empty)
+        {
+            return BadRequest(Respons<EmployeeAggregateReadDto>.ValidationError(
+                new Dictionary<string, string> { ["employee_id"] = "employee_id query parameter is required." }));
+        }
+
         var result = await _aggregate.GetAsync(employeeId, ct);
         return StatusCode(result.StatusCode, result);
     }

@@ -127,6 +127,8 @@ internal static class SwaggerExamples
         ["error"] = "Employee not found.",
     };
 
+    internal static JsonObject NotFoundEnvelopeForEmployee() => NotFoundEnvelope();
+
     private static JsonObject EnvelopeOkForDataType(Type dataType)
     {
         if (TryGetCollectionElementType(dataType, out var elementType))
@@ -152,6 +154,8 @@ internal static class SwaggerExamples
             nameof(CustomFieldDefinitionListDto) => EnvelopeOk(CustomFieldDefinitionListData(), SamplePagination()),
             nameof(CustomFieldsSummaryDto) => EnvelopeOk(CustomFieldsSummaryData()),
             nameof(EmployeeBulkImportResult) => EnvelopeOk(BulkImportData()),
+            nameof(EmployeeDirectorySummaryDto) => EmployeeDirectoryStatisticsResponse(),
+            nameof(EmployeeRegistrationReadDto) => EmployeeRegistrationImportResponse(),
             nameof(OrganisationSummaryDto) => EnvelopeOk(OrganisationSummaryData()),
             _ when dataType == typeof(string) => EnvelopeOk(JsonValue.Create("Operation completed successfully.")),
             _ when dataType == typeof(object) => EnvelopeOk(new JsonObject()),
@@ -200,6 +204,7 @@ internal static class SwaggerExamples
     private static JsonArray BuildCollectionData(Type elementType) => elementType.Name switch
     {
         nameof(CustomFieldDefinitionDto) => new JsonArray(CustomFieldDefinitionItem()),
+        nameof(CpUserDto) => new JsonArray(CpUserSearchItem()),
         _ => new JsonArray(),
     };
 
@@ -280,7 +285,7 @@ internal static class SwaggerExamples
         ["is_filterable"] = true,
         ["is_searchable"] = false,
         ["display_order"] = 1,
-        ["section_name"] = "compensation",
+        ["section_name"] = EmployeeCustomFieldSections.Compensation,
         ["section_order"] = 1,
         ["options"] = "[\"yes\",\"no\"]",
         ["is_active"] = true,
@@ -293,14 +298,73 @@ internal static class SwaggerExamples
 
     private static JsonObject BulkImportData() => new()
     {
-        ["rows"] = new JsonArray(new JsonObject
-        {
-            ["index"] = 1,
-            ["success"] = true,
-            ["employee_id"] = SampleEmployeeId.ToString(),
-        }),
+        ["rows"] = new JsonArray(
+            new JsonObject
+            {
+                ["index"] = 1,
+                ["success"] = true,
+                ["employee_id"] = SampleEmployeeId.ToString(),
+            },
+            new JsonObject
+            {
+                ["index"] = 2,
+                ["success"] = false,
+                ["error"] = "Row 2: work_email is already registered for another employee.",
+            }),
         ["success_count"] = 1,
-        ["failure_count"] = 0,
+        ["failure_count"] = 1,
+    };
+
+    internal static JsonObject EmployeeDirectorySummaryData() => new()
+    {
+        ["total_employees"] = 128,
+        ["active_employees"] = 95,
+        ["on_probation"] = 12,
+        ["on_contract"] = 21,
+    };
+
+    internal static JsonObject EmployeeDirectoryStatisticsResponse() => EnvelopeOk(EmployeeDirectorySummaryData());
+
+    internal static JsonObject EmployeeRegistrationReadData() => new()
+    {
+        ["id"] = SampleEmployeeId.ToString(),
+        ["employee_code"] = "EMP-000042",
+        ["full_name"] = "Ada Lovelace",
+        ["user_id"] = "usr_cp_abc123",
+        ["is_draft"] = true,
+        ["lifecycle_status"] = "draft",
+        ["job_title"] = "Software Engineer",
+        ["department_id"] = SampleDepartmentId.ToString(),
+        ["work_email"] = "ada.lovelace@company.com",
+        ["profile_url"] = null,
+        ["annualized_cost"] = 102000.00m,
+        ["currency_id"] = SampleCurrencyId,
+        ["masked_ssnit_number"] = "****5678",
+        ["masked_tin_number"] = "****9012",
+    };
+
+    internal static JsonObject EmployeeRegistrationImportResponse() => EnvelopeOk(EmployeeRegistrationReadData());
+
+    internal static JsonObject ImportSearchResponse() => EnvelopeOk(new JsonArray(CpUserSearchItem()));
+
+    internal static JsonObject ImportEmployeeRequestBody() => new()
+    {
+        ["user_id"] = "usr_cp_abc123",
+    };
+
+    internal static JsonObject DeleteEmployeeSuccessResponse() => EnvelopeOk(new JsonObject());
+
+    private static JsonObject CpUserSearchItem() => new()
+    {
+        ["id"] = "usr_cp_abc123",
+        ["full_name"] = "Ada Lovelace",
+        ["email"] = "ada.lovelace@company.com",
+        ["phone"] = "+233201234567",
+        ["is_active"] = true,
+        ["gender"] = "female",
+        ["dob"] = "1990-05-15",
+        ["address"] = "12 Independence Ave, Accra",
+        ["profile_pic"] = "https://storage.example.com/profiles/ada.jpg",
     };
 
     private static JsonObject OrganisationSummaryData() => new()
@@ -331,63 +395,36 @@ internal static class SwaggerExamples
         {
             ["full_name"] = "Kwame Mensah",
             ["work_email"] = "kwame.mensah@company.com",
-            ["custom_fields"] = EmptyCustomFields("identity"),
+            ["custom_fields"] = EmptyCustomFields(EmployeeCustomFieldSections.Identity),
         },
         ["employment"] = new JsonObject
         {
             ["job_title"] = "HR Coordinator",
-            ["custom_fields"] = EmptyCustomFields("employment"),
+            ["custom_fields"] = EmptyCustomFields(EmployeeCustomFieldSections.Employment),
         },
         ["compensation"] = new JsonObject
         {
             ["gross_salary"] = 4500.00m,
             ["pay_frequency"] = SwaggerExampleHints.PayFrequency,
             ["currency_id"] = SampleCurrencyId,
-            ["custom_fields"] = EmptyCustomFields("compensation"),
+            ["custom_fields"] = EmptyCustomFields(EmployeeCustomFieldSections.Compensation),
         },
         ["education"] = new JsonArray(),
         ["certifications"] = new JsonArray(),
         ["document_ids"] = new JsonArray(),
     };
 
-    internal static JsonObject UpdateEmployeePartial() => new()
+    internal static JsonObject UpdateEmployeeFull()
     {
-        ["id"] = SampleEmployeeId.ToString(),
-        ["status"] = SwaggerExampleHints.Status,
-        ["compensation"] = new JsonObject
-        {
-            ["gross_salary"] = 9200.00m,
-            ["pay_frequency"] = SwaggerExampleHints.PayFrequency,
-            ["currency_id"] = SampleCurrencyId,
-            ["custom_fields"] = new JsonObject { ["bonus_eligible"] = "yes" },
-        },
-        ["document_ids"] = new JsonArray(SampleDocumentId1),
-        ["delete_document_ids"] = new JsonArray(SampleDocumentId2),
-    };
+        var create = CreateEmployeeFinalised();
+        var update = new JsonObject { ["id"] = SampleEmployeeId.ToString() };
+        foreach (var (key, value) in create)
+            update[key] = value?.DeepClone();
+        return update;
+    }
 
-    internal static JsonObject UpdateEmployeeDraftStatus() => new()
-    {
-        ["id"] = SampleEmployeeId.ToString(),
-        ["status"] = "draft",
-        ["identity"] = new JsonObject
-        {
-            ["full_name"] = "Stua Mensah",
-            ["work_email"] = "stua.mensah@example.com",
-        },
-    };
-
-    internal static JsonObject UpdateEmployeeIdentityOnly() => new()
-    {
-        ["id"] = SampleEmployeeId.ToString(),
-        ["identity"] = new JsonObject
-        {
-            ["full_name"] = "Stua Mensah",
-            ["gender"] = SwaggerExampleHints.Gender,
-            ["id_type"] = SwaggerExampleHints.IdType,
-            ["id_number"] = "GHA-123456789-0",
-            ["country"] = "Ghana",
-        },
-    };
+    /// <inheritdoc cref="UpdateEmployeeFull"/>
+    internal static JsonObject UpdateEmployeePartial() => UpdateEmployeeFull();
 
     internal static JsonObject CreateCustomFieldCompensation() => new()
     {
@@ -396,7 +433,7 @@ internal static class SwaggerExamples
         ["label"] = "Bonus eligible",
         ["description"] = "Whether the employee qualifies for annual bonus.",
         ["field_type"] = SwaggerExampleHints.FieldType,
-        ["section_name"] = SwaggerExampleHints.SectionName,
+        ["section_name"] = EmployeeCustomFieldSections.Compensation,
         ["section_order"] = 1,
         ["display_order"] = 1,
         ["options"] = "[\"yes\",\"no\"]",
@@ -413,7 +450,7 @@ internal static class SwaggerExamples
         ["field_key"] = "emergency_contact_name",
         ["label"] = "Emergency contact name",
         ["field_type"] = SwaggerExampleHints.FieldType,
-        ["section_name"] = SwaggerExampleHints.SectionName,
+        ["section_name"] = EmployeeCustomFieldSections.Identity,
         ["display_order"] = 2,
         ["is_required"] = false,
         ["is_active"] = true,
@@ -447,9 +484,11 @@ internal static class SwaggerExamples
 
     internal static JsonObject CustomFieldsForSection(string section) => section switch
     {
-        "compensation" => new JsonObject { ["bonus_eligible"] = "yes" },
-        "identity" => new JsonObject { ["emergency_contact_name"] = "Charles Babbage" },
-        "employment" => new JsonObject { ["desk_number"] = "B-204" },
+        EmployeeCustomFieldSections.Compensation => new JsonObject { ["bonus_eligible"] = "yes" },
+        EmployeeCustomFieldSections.Identity => new JsonObject { ["emergency_contact_name"] = "Charles Babbage" },
+        EmployeeCustomFieldSections.Employment => new JsonObject { ["desk_number"] = "B-204" },
+        EmployeeCustomFieldSections.Education => new JsonObject { ["honors"] = "First Class" },
+        EmployeeCustomFieldSections.Certification => new JsonObject { ["verified"] = "yes" },
         _ => new JsonObject(),
     };
 
@@ -457,12 +496,12 @@ internal static class SwaggerExamples
 
     internal static string CustomFieldsHelpText(string section) =>
         $"""
-        Values for tenant-defined custom fields in the **{section}** section.
+        Values for tenant-defined custom fields bound to section `{section}`.
         1. Admin creates definitions: `POST /api/v1/custom-fields/add` with `section_name: "{section}"`.
         2. Frontend loads schema: `GET /api/v1/custom-fields/schema?entityType=employee`.
-        3. Keys here must match `field_key` from definitions with `section_name = "{section}"`.
-        Unknown keys are ignored. Use an empty object (no keys) when there are no values.
-        Employee sections: identity | employment | compensation | education | certification.
+        3. Keys here must match `field_key` from definitions with matching `section_name`.
+        Unknown keys are ignored. Use an empty object when there are no values.
+        Employee sections: {SwaggerExampleHints.SectionName}.
         """;
 
     private static JsonObject IdentitySection(bool withCustomField = false, bool optionHints = false) => new()
@@ -481,8 +520,8 @@ internal static class SwaggerExamples
         ["linked_in_url"] = "https://linkedin.com/in/adalovelace",
         ["residential_address"] = "12 Independence Ave, Accra",
         ["custom_fields"] = withCustomField
-            ? CustomFieldsForSection("identity")
-            : EmptyCustomFields("identity"),
+            ? CustomFieldsForSection(EmployeeCustomFieldSections.Identity)
+            : EmptyCustomFields(EmployeeCustomFieldSections.Identity),
     };
 
     private static JsonObject EmploymentSection(bool withNames = false, bool optionHints = false)
@@ -503,7 +542,7 @@ internal static class SwaggerExamples
             ["working_hours"] = "40",
             ["notice_period"] = "30 days",
             ["reports_to_id"] = SampleReportsToId.ToString(),
-            ["custom_fields"] = EmptyCustomFields("employment"),
+            ["custom_fields"] = EmptyCustomFields(EmployeeCustomFieldSections.Employment),
         };
 
         if (withNames)
@@ -521,8 +560,8 @@ internal static class SwaggerExamples
         ["pay_frequency"] = SwaggerExampleHints.PayFrequency,
         ["currency_id"] = SampleCurrencyId,
         ["custom_fields"] = withCustomField
-            ? CustomFieldsForSection("compensation")
-            : EmptyCustomFields("compensation"),
+            ? CustomFieldsForSection(EmployeeCustomFieldSections.Compensation)
+            : EmptyCustomFields(EmployeeCustomFieldSections.Compensation),
     };
 
     private static JsonObject CompensationReadSection() => new()
@@ -534,7 +573,7 @@ internal static class SwaggerExamples
         ["currency_name"] = "Ghana Cedi",
         ["currency_symbol"] = "₵",
         ["annualized_cost"] = 102000.00m,
-        ["custom_fields"] = CustomFieldsForSection("compensation"),
+        ["custom_fields"] = CustomFieldsForSection(EmployeeCustomFieldSections.Compensation),
     };
 
     private static JsonObject EducationEntry(bool withId = false)
