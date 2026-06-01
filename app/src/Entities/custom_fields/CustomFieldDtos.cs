@@ -1,4 +1,5 @@
 using ZelosHR.Api.Configs;
+using ZelosHR.Api.Entities.Employees;
 
 namespace ZelosHR.Api.Entities.CustomFields;
 
@@ -28,6 +29,7 @@ public sealed class CustomFieldDefinitionDto
     public bool IsFilterable { get; init; }
     public bool IsSearchable { get; init; }
     public int DisplayOrder { get; init; }
+    [SwaggerAllowedValues(typeof(EmployeeCustomFieldSections), nameof(EmployeeCustomFieldSections.All))]
     public string? SectionName { get; init; }
     public int SectionOrder { get; init; }
     public string? Options { get; init; }
@@ -79,15 +81,13 @@ public sealed class CreateCustomFieldDefinitionDto
     public bool IsSearchable { get; set; } = true;
     public int DisplayOrder { get; set; }
 
-    /// <summary>
-    /// Employee sections: <c>identity</c> | <c>employment</c> | <c>compensation</c> | <c>education</c> | <c>certification</c>.
-    /// Determines which nested <c>custom_fields</c> object on employee create/update accepts this field.
-    /// </summary>
+    /// <summary>Which employee section receives values for this field (see Allowed on schema).</summary>
+    [SwaggerAllowedValues(typeof(EmployeeCustomFieldSections), nameof(EmployeeCustomFieldSections.All))]
     public string? SectionName { get; set; }
 
     public int SectionOrder { get; set; }
 
-    /// <summary>JSON array string for <c>select</c>/<c>multiselect</c>, e.g. <c>["yes","no"]</c>.</summary>
+    /// <summary>JSON array on the wire; UI choices shown as yes | no in examples (select | multiselect).</summary>
     public string? Options { get; set; }
     public string? ValidationRules { get; set; }
     public string? DefaultValue { get; set; }
@@ -108,6 +108,7 @@ public sealed class UpdateCustomFieldDefinitionDto
     public bool? IsFilterable { get; set; }
     public bool? IsSearchable { get; set; }
     public int? DisplayOrder { get; set; }
+    [SwaggerAllowedValues(typeof(EmployeeCustomFieldSections), nameof(EmployeeCustomFieldSections.All))]
     public string? SectionName { get; set; }
     public int? SectionOrder { get; set; }
     public string? Options { get; set; }

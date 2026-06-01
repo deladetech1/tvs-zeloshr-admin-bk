@@ -1,4 +1,5 @@
 using ZelosHR.Api.Configs;
+using ZelosHR.Api.Entities.Employees;
 
 namespace ZelosHR.Api.Entities.CustomFields;
 
@@ -21,6 +22,7 @@ public sealed class CustomFieldListQuery
     public bool? IsFilterable { get; init; }
     public bool? IsSearchable { get; init; }
     public bool? IsActive { get; init; }
+    [SwaggerAllowedValues(typeof(EmployeeCustomFieldSections), nameof(EmployeeCustomFieldSections.All))]
     public string? SectionName { get; init; }
     public bool IncludeDeleted { get; init; }
 

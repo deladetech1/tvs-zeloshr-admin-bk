@@ -6,7 +6,7 @@ namespace ZelosHR.Api.Entities.Employees;
 /// One-shot employee create. All sections are optional except <c>identity.full_name</c> on create.
 /// </summary>
 /// <remarks>
-/// **Status:** <c>draft</c> saves without finalising; <c>finalised</c> completes registration and links
+/// **Status:** <c>draft</c> | <c>finalised</c> — draft saves without finalising; finalised completes registration and links
 /// <c>cp_users</c> when <c>work_email</c> is set.
 ///
 /// **Custom fields:** Define schema first via <c>POST /api/v1/custom-fields/add</c>, load via
@@ -22,7 +22,7 @@ namespace ZelosHR.Api.Entities.Employees;
 public sealed class CreateEmployeeAggregateRequest
 {
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.CreateStatuses),
-        Description = "draft = save without finalising; finalised = create and link platform user when work_email is set.")]
+        Description = "draft: save without finalising | finalised: create and link platform user when work_email is set.")]
     public string Status { get; init; } = "finalised";
 
     public EmployeeAggregateIdentityDto Identity { get; init; } = new();
@@ -51,7 +51,7 @@ public sealed class UpdateEmployeeAggregateRequest
     public required Guid Id { get; init; }
 
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.CreateStatuses),
-        Description = "Set to finalised to complete a draft (links platform user when work_email is set).")]
+        Description = "Use finalised to complete a draft | links platform user when work_email is set.")]
     public string? Status { get; init; }
 
     public EmployeeAggregateIdentityDto? Identity { get; init; }

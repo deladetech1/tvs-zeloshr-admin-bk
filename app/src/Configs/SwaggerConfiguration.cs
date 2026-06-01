@@ -69,7 +69,7 @@ public static class SwaggerConfiguration
 
                     1. **(Optional) Custom fields** — Admin defines fields: `POST /api/v1/custom-fields/add`  
                        Frontend loads schema: `GET /api/v1/custom-fields/schema?entityType=employee`  
-                       Employee sections: `identity`, `employment`, `compensation`, `education`, `certification`
+                       Employee sections: `identity` | `employment` | `compensation` | `education` | `certification`
                     2. **(Optional) Documents** — Upload: `POST /api/v1/file/post/multiple?blob_paths=…`  
                        Attach returned IDs on employee: `document_ids: ["doc_…"]`  
                        Resolve URLs: `GET /api/v1/file/list?document_ids=…`

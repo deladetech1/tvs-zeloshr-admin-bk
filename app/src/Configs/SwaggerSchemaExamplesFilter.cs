@@ -72,7 +72,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(CreateCustomFieldDefinitionDto) => AppendDescription(schema.Description,
                 "Defines schema for a custom field. Values are sent later on employee create/update under the matching section custom_fields object."),
             nameof(EmployeeAggregateCompensationDto) => AppendDescription(schema.Description,
-                "currency_id references core_platform.cp_currencies (seeded per tenant). gross_salary + Monthly/Bi-weekly drives annualized_cost on read."),
+                "currency_id references core_platform.cp_currencies (seeded per tenant). annualized_cost uses pay_frequency: Monthly | Bi-weekly | Weekly | Annual."),
             nameof(FileUploadMultipleReadDto) => AppendDescription(schema.Description,
                 "Registry ID from upload. Attach on employee create/update as document_ids string."),
             nameof(FileResponseReadDto) => AppendDescription(schema.Description,
@@ -220,7 +220,18 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             case nameof(EmployeeAggregateCompensationReadDto.AnnualizedCost):
                 schema.Example = JsonValue.Create(102000.00m);
                 schema.Description = AppendDescription(schema.Description,
-                    "Computed on save: Monthly × 12, Bi-weekly × 26.");
+                    "Computed on save: Monthly × 12 | Bi-weekly × 26.");
+                return;
+            case nameof(CreateCustomFieldDefinitionDto.Options):
+            case nameof(UpdateCustomFieldDefinitionDto.Options):
+                schema.Example = JsonValue.Create("[\"yes\",\"no\"]");
+                schema.Description = AppendDescription(schema.Description,
+                    "Wire: JSON array string. Example UI choices: yes | no (for field_type select | multiselect).");
+                return;
+            case nameof(CreateCustomFieldDefinitionDto.SectionName):
+            case nameof(UpdateCustomFieldDefinitionDto.SectionName):
+            case nameof(CustomFieldDefinitionDto.SectionName):
+                schema.Example = JsonValue.Create("compensation");
                 return;
             case nameof(CreateCustomFieldDefinitionDto.FieldKey):
                 schema.Example = JsonValue.Create("bonus_eligible");
@@ -229,16 +240,6 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 return;
             case nameof(CreateCustomFieldDefinitionDto.Label):
                 schema.Example = JsonValue.Create("Bonus eligible");
-                return;
-            case nameof(CreateCustomFieldDefinitionDto.SectionName):
-                schema.Example = JsonValue.Create("compensation");
-                schema.Description = AppendDescription(schema.Description,
-                    "Allowed employee sections: identity | employment | compensation | education | certification");
-                return;
-            case nameof(CreateCustomFieldDefinitionDto.Options):
-                schema.Example = JsonValue.Create("[\"yes\",\"no\"]");
-                schema.Description = AppendDescription(schema.Description,
-                    "JSON array string for select/multiselect field types.");
                 return;
         }
 
@@ -320,10 +321,6 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
     private static bool IsGuid(Type type) =>
         (Nullable.GetUnderlyingType(type) ?? type) == typeof(Guid);
 
-    internal static string? AppendDescription(string? existing, string addition)
-    {
-        if (string.IsNullOrWhiteSpace(addition))
-            return existing;
-        return string.IsNullOrWhiteSpace(existing) ? addition : $"{existing} {addition}";
-    }
+    internal static string? AppendDescription(string? existing, string addition) =>
+        SwaggerOptionFormat.Append(existing, addition);
 }

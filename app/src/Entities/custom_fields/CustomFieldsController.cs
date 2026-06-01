@@ -45,7 +45,7 @@ public class CustomFieldsController : ControllerBase
 
     /// <summary>Active field definitions for an entity type — use to build employee forms.</summary>
     /// <remarks>
-    /// Filter by `sectionName` (identity, employment, compensation, education, certification).
+    /// Filter by `sectionName`: identity | employment | compensation | education | certification.
     /// Returned `field_key` values are the keys used in employee section `custom_fields` objects.
     /// </remarks>
     [HttpGet("schema")]

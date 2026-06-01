@@ -33,20 +33,9 @@ public sealed class SwaggerAllowedValuesSchemaFilter : ISchemaFilter
         mutable.Enum = values.Select(v => (JsonNode)JsonValue.Create(v)!).ToList();
         mutable.Example = JsonValue.Create(values[0]);
 
-        var allowed = string.Join(" | ", values);
-        var allowedText = $"Allowed: {allowed}";
-
         if (!string.IsNullOrWhiteSpace(attr.Description))
-        {
-            mutable.Description = string.IsNullOrWhiteSpace(mutable.Description)
-                ? $"{attr.Description} {allowedText}"
-                : $"{mutable.Description} {attr.Description} {allowedText}";
-        }
-        else
-        {
-            mutable.Description = string.IsNullOrWhiteSpace(mutable.Description)
-                ? allowedText
-                : $"{mutable.Description} {allowedText}";
-        }
+            mutable.Description = SwaggerOptionFormat.Append(mutable.Description, attr.Description);
+
+        mutable.Description = SwaggerOptionFormat.Append(mutable.Description, SwaggerOptionFormat.Allowed(values));
     }
 }

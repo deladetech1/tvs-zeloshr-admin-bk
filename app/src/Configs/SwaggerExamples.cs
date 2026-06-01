@@ -438,6 +438,7 @@ internal static class SwaggerExamples
         2. Frontend loads schema: `GET /api/v1/custom-fields/schema?entityType=employee`.
         3. Keys here must match `field_key` from definitions with `section_name = "{section}"`.
         Unknown keys are ignored. Use an empty object (no keys) when there are no values.
+        Employee sections: identity | employment | compensation | education | certification.
         """;
 
     private static JsonObject IdentitySection(bool withCustomField = false) => new()
@@ -446,7 +447,7 @@ internal static class SwaggerExamples
         ["date_of_birth"] = "1990-05-15",
         ["gender"] = "female",
         ["country"] = "Ghana",
-        ["id_type"] = "Ghana Card",
+        ["id_type"] = "ghana_card",
         ["id_issue_date"] = "2020-01-10",
         ["id_expiry_date"] = "2030-01-10",
         ["id_number"] = "GHA-123456789-0",

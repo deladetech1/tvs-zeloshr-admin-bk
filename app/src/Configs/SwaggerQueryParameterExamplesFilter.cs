@@ -1,5 +1,7 @@
 using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using ZelosHR.Api.Entities.CustomFields;
+using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Shared.Constants;
 
 namespace ZelosHR.Api.Configs;
@@ -98,8 +100,30 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
 
         if (name.Equals("entityType", StringComparison.OrdinalIgnoreCase))
         {
-            schema.Example = "employee";
-            parameter.Description = "Entity type for custom field definitions. Use employee for HR profile fields.";
+            schema.Example = CustomFieldEntityTypes.Employee;
+            parameter.Description = SwaggerOptionFormat.Append(
+                parameter.Description,
+                "Entity type for custom field definitions. Use `employee` for HR profile fields.");
+            return;
+        }
+
+        if (name.Equals("sectionName", StringComparison.OrdinalIgnoreCase))
+        {
+            schema.Example = EmployeeCustomFieldSections.Compensation;
+            parameter.Description = SwaggerOptionFormat.Append(
+                parameter.Description,
+                "Filter definitions by employee form section.");
+            return;
+        }
+
+        if (name.Equals("status", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(context.ApiDescription?.RelativePath, "api/v1/employees/bulk", StringComparison.OrdinalIgnoreCase))
+        {
+            schema.Example = JsonValue.Create("draft");
+            parameter.Description = SwaggerOptionFormat.Append(
+                parameter.Description,
+                "Lifecycle for every imported row — same as POST /employees/add status.");
+            return;
         }
     }
 }

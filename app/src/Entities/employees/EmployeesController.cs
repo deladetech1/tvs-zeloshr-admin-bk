@@ -137,7 +137,9 @@ public class EmployeesController : ControllerBase
     [ProducesResponseType(typeof(Respons<EmployeeBulkImportResult>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<EmployeeBulkImportResult>>> BulkImport(
         IFormFile file,
-        [FromQuery] string status = "draft",
+        [FromQuery]
+        [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.CreateStatuses))]
+        string status = "draft",
         CancellationToken ct = default)
     {
         if (file is null || file.Length == 0)

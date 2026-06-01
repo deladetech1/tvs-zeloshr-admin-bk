@@ -39,7 +39,7 @@ public partial class CustomFieldsService
         {
             return Respons<CustomFieldDefinitionListDto>.ValidationError(new Dictionary<string, string>
             {
-                ["entityType"] = $"Must be one of: {string.Join(", ", CustomFieldEntityTypes.All)}.",
+                ["entityType"] = $"Must be one of: {string.Join(" | ", CustomFieldEntityTypes.All)}.",
             });
         }
 
@@ -85,7 +85,7 @@ public partial class CustomFieldsService
         {
             return Respons<CustomFieldSchemaDto>.ValidationError(new Dictionary<string, string>
             {
-                ["entityType"] = $"Must be one of: {string.Join(", ", CustomFieldEntityTypes.All)}.",
+                ["entityType"] = $"Must be one of: {string.Join(" | ", CustomFieldEntityTypes.All)}.",
             });
         }
 
@@ -209,7 +209,7 @@ public partial class CustomFieldsService
 
         if (string.IsNullOrWhiteSpace(body.EntityType)
             || !CustomFieldEntityTypes.All.Contains(body.EntityType.Trim(), StringComparer.OrdinalIgnoreCase))
-            errors["entityType"] = $"Required. Allowed: {string.Join(", ", CustomFieldEntityTypes.All)}.";
+            errors["entityType"] = $"Required. Allowed: {string.Join(" | ", CustomFieldEntityTypes.All)}.";
 
         if (string.IsNullOrWhiteSpace(body.FieldKey) || !FieldKeyPattern.IsMatch(body.FieldKey.Trim()))
             errors["fieldKey"] = "Required. Use lowercase letters, numbers, and underscores (2–64 chars).";
@@ -219,7 +219,7 @@ public partial class CustomFieldsService
 
         if (string.IsNullOrWhiteSpace(body.FieldType)
             || !CustomFieldFieldTypes.All.Contains(body.FieldType.Trim(), StringComparer.OrdinalIgnoreCase))
-            errors["fieldType"] = $"Required. Allowed: {string.Join(", ", CustomFieldFieldTypes.All)}.";
+            errors["fieldType"] = $"Required. Allowed: {string.Join(" | ", CustomFieldFieldTypes.All)}.";
 
         return errors.Count == 0 ? null : errors;
     }
