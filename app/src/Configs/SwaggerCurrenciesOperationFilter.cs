@@ -33,8 +33,10 @@ public sealed class SwaggerCurrenciesOperationFilter : IOperationFilter
         }
     }
 
-    private static void SetJsonResponseExample(OpenApiOperation operation, int statusCode, JsonObject example)
+    private static void SetJsonResponseExample(OpenApiOperation operation, int statusCode, JsonObject? example)
     {
+        if (example is null)
+            return;
         var key = statusCode.ToString();
         if (!operation.Responses.TryGetValue(key, out var response) || response.Content is null)
             return;
@@ -47,6 +49,9 @@ public sealed class SwaggerCurrenciesOperationFilter : IOperationFilter
 
     private static void AppendParameterDescription(OpenApiOperation operation, string name, string addition)
     {
+        if (operation.Parameters is null)
+            return;
+
         foreach (var parameter in operation.Parameters)
         {
             if (!string.Equals(parameter.Name, name, StringComparison.OrdinalIgnoreCase))

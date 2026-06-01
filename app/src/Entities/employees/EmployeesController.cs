@@ -124,7 +124,7 @@ public class EmployeesController : ControllerBase
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("bulk/template")]
     [Produces("text/csv")]
-    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public IActionResult DownloadBulkImportTemplate()
     {
         return File(EmployeeBulkImportCsv.TemplateBytes, "text/csv", EmployeeBulkImportCsv.FileName);

@@ -158,7 +158,6 @@ public sealed class SwaggerFileManagementOperationFilter : IOperationFilter
         if (!response.Content.TryGetValue("application/json", out var media))
             return;
 
-        media.Example = example;
         media.Examples = new Dictionary<string, IOpenApiExample>
         {
             [exampleKey] = new OpenApiExample

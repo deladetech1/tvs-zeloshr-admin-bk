@@ -339,7 +339,6 @@ internal static class SwaggerExamples
         ["job_title"] = "Software Engineer",
         ["department_id"] = SampleDepartmentId.ToString(),
         ["work_email"] = "ada.lovelace@company.com",
-        ["profile_url"] = null,
         ["annualized_cost"] = 102000.00m,
         ["currency_id"] = SampleCurrencyId,
         ["masked_ssnit_number"] = "****5678",
