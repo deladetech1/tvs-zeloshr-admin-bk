@@ -115,15 +115,5 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
                 "Filter definitions by employee form section.");
             return;
         }
-
-        if (name.Equals("status", StringComparison.OrdinalIgnoreCase)
-            && string.Equals(context.ApiDescription?.RelativePath, "api/v1/employees/bulk", StringComparison.OrdinalIgnoreCase))
-        {
-            schema.Example = JsonValue.Create("draft");
-            parameter.Description = SwaggerOptionFormat.Append(
-                parameter.Description,
-                "Lifecycle for every imported row — same as POST /employees/add status.");
-            return;
-        }
     }
 }

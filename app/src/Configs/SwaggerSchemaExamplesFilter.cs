@@ -110,6 +110,10 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
     private static bool IsCustomFieldsProperty(PropertyInfo? property) =>
         property?.Name.Equals("CustomFields", StringComparison.OrdinalIgnoreCase) == true;
 
+    private static bool IsCustomFieldDefinitionProperty(PropertyInfo property) =>
+        property.DeclaringType?.Namespace?.Contains("CustomFields", StringComparison.Ordinal) == true
+        || property.DeclaringType?.Name.Contains("CustomField", StringComparison.Ordinal) == true;
+
     private static void ApplyCustomFieldsDictionary(OpenApiSchema schema, PropertyInfo? property)
     {
         var section = ResolveCustomFieldSection(property);
@@ -222,15 +226,12 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 schema.Description = AppendDescription(schema.Description,
                     "Computed on save: Monthly × 12 | Bi-weekly × 26.");
                 return;
-            case nameof(CreateCustomFieldDefinitionDto.Options):
-            case nameof(UpdateCustomFieldDefinitionDto.Options):
+            case "Options" when IsCustomFieldDefinitionProperty(property):
                 schema.Example = JsonValue.Create("[\"yes\",\"no\"]");
                 schema.Description = AppendDescription(schema.Description,
                     "Wire: JSON array string. Example UI choices: yes | no (for field_type select | multiselect).");
                 return;
-            case nameof(CreateCustomFieldDefinitionDto.SectionName):
-            case nameof(UpdateCustomFieldDefinitionDto.SectionName):
-            case nameof(CustomFieldDefinitionDto.SectionName):
+            case "SectionName" when IsCustomFieldDefinitionProperty(property):
                 schema.Example = JsonValue.Create("compensation");
                 return;
             case nameof(CreateCustomFieldDefinitionDto.FieldKey):
