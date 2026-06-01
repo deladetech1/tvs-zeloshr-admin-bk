@@ -53,7 +53,7 @@ public class EmployeesController : ControllerBase
     /// | 3 | (Optional) Upload files: `POST /file/post/multiple` → use IDs in `document_ids` |
     /// | 4 | POST this endpoint with `status: draft` or `finalised` |
     ///
-    /// `compensation.currency_id` must reference `core_platform.cp_currencies` (not `"GHS"` string).
+    /// `compensation.currency_id` — list options via `GET /api/v1/currencies/list`, then use returned `id`.
     /// </remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeCreate)]
     [HttpPost("add")]
@@ -102,16 +102,32 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Create a draft employee linked to an existing cp_users row.</summary>
+    /// <summary>Link one or more existing cp_users rows as draft employees.</summary>
+    /// <remarks>Body: <c>{ "user_ids": ["usr_cp_abc123", "usr_cp_def456"] }</c> — at least one ID required.</remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeCreate)]
     [HttpPost("import")]
-    [ProducesResponseType(typeof(Respons<EmployeeRegistrationReadDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<Respons<EmployeeRegistrationReadDto>>> Import(
-        [FromBody] ImportEmployeeRequest body,
+    [ProducesResponseType(typeof(Respons<ImportEmployeesResult>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<ImportEmployeesResult>), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<Respons<ImportEmployeesResult>>> Import(
+        [FromBody] ImportEmployeesRequest body,
         CancellationToken ct)
     {
-        var result = await _registration.ImportAsync(body.UserId, ct);
+        var result = await _registration.ImportManyAsync(body.UserIds, ct);
         return StatusCode(result.StatusCode, result);
+    }
+
+    /// <summary>Download CSV template for bulk employee import.</summary>
+    /// <remarks>
+    /// Fill the template and upload via <c>POST /employees/bulk?status=draft|finalised</c>.
+    /// Required column: <c>full_name</c>. See template header row for all supported columns.
+    /// </remarks>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
+    [HttpGet("bulk/template")]
+    [Produces("text/csv")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    public IActionResult DownloadBulkImportTemplate()
+    {
+        return File(EmployeeBulkImportCsv.TemplateBytes, "text/csv", EmployeeBulkImportCsv.FileName);
     }
 
     /// <summary>Bulk create employees from a CSV file (header row required).</summary>
@@ -198,11 +214,12 @@ public class EmployeesController : ControllerBase
     /// <summary>Employee record — same aggregate shape as create/update.</summary>
     /// <remarks>
     /// Query param <c>employee_id</c> (UUID from <c>POST /add</c> or <c>GET /list</c>).
+    /// Route: <c>GET /api/v1/employees/get?employee_id=</c>.
     /// Returns nested sections with <c>custom_fields</c>, joined currency metadata, and <c>document_ids</c>.
     /// Resolve file URLs via <c>GET /file/list?document_ids=…</c>.
     /// </remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
-    [HttpGet]
+    [HttpGet("get")]
     [ProducesResponseType(typeof(Respons<EmployeeAggregateReadDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Respons<EmployeeAggregateReadDto>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(Respons<EmployeeAggregateReadDto>), StatusCodes.Status404NotFound)]

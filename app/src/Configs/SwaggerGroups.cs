@@ -7,6 +7,7 @@ public static class SwaggerGroups
     public static readonly HashSet<string> VisibleInSwagger = new(StringComparer.Ordinal)
     {
         Employees,
+        Currencies,
         CustomFields,
         FileManagement,
     };
@@ -18,6 +19,7 @@ public static class SwaggerGroups
     public const string Health = "Health";
     public const string Dashboard = "Dashboard";
     public const string Employees = "Employees";
+    public const string Currencies = "Currencies";
     public const string Organisation = "Organisation";
     public const string OrganisationLegacy = "Organisation (legacy)";
     public const string LifecycleEvents = "Lifecycle Events";

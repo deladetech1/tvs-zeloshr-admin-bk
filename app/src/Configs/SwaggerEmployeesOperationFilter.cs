@@ -14,7 +14,7 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
         var method = context.ApiDescription.HttpMethod ?? "";
         var path = context.ApiDescription.RelativePath ?? "";
 
-        if (method.Equals("GET", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/employees", StringComparison.OrdinalIgnoreCase))
+        if (method.Equals("GET", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/employees/get", StringComparison.OrdinalIgnoreCase))
         {
             SetJsonResponseExample(operation, 200, SwaggerExamples.EmployeeAggregateReadResponse());
             SetJsonResponseExample(operation, 404, SwaggerExamples.NotFoundEnvelopeForEmployee());
@@ -47,8 +47,15 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
 
         if (method.Equals("POST", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/employees/import", StringComparison.OrdinalIgnoreCase))
         {
-            SetJsonRequestExample(operation, SwaggerExamples.ImportEmployeeRequestBody());
-            SetJsonResponseExample(operation, 200, SwaggerExamples.EmployeeRegistrationImportResponse());
+            SetJsonRequestExample(operation, SwaggerExamples.ImportEmployeesRequestBody());
+            SetJsonResponseExample(operation, 200, SwaggerExamples.ImportEmployeesResponse());
+            return;
+        }
+
+        if (method.Equals("GET", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/employees/bulk/template", StringComparison.OrdinalIgnoreCase))
+        {
+            operation.Description = SwaggerOptionFormat.Append(operation.Description,
+                $"Returns {EmployeeBulkImportCsv.FileName} with columns: {string.Join(", ", EmployeeBulkImportCsv.Headers)}.");
             return;
         }
 

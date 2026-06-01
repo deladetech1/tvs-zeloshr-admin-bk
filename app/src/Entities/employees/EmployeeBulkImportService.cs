@@ -20,8 +20,6 @@ public sealed class EmployeeBulkImportResult
 
 public sealed class EmployeeBulkImportService
 {
-    private static readonly string[] RequiredHeaders = ["full_name"];
-
     private readonly EmployeeAggregateService _aggregate;
 
     public EmployeeBulkImportService(EmployeeAggregateService aggregate) => _aggregate = aggregate;
@@ -51,15 +49,12 @@ public sealed class EmployeeBulkImportService
         }
 
         var headers = ParseCsvLine(headerLine).Select(NormalizeHeader).ToList();
-        foreach (var required in RequiredHeaders)
+        if (!headers.Contains("full_name"))
         {
-            if (!headers.Contains(required))
+            return Respons<EmployeeBulkImportResult>.ValidationError(new Dictionary<string, string>
             {
-                return Respons<EmployeeBulkImportResult>.ValidationError(new Dictionary<string, string>
-                {
-                    ["file"] = $"Missing required CSV column: {required}.",
-                });
-            }
+                ["file"] = "Missing required CSV column: full_name.",
+            });
         }
 
         var rows = new List<EmployeeBulkImportRowResult>();

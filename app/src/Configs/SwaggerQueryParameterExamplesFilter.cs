@@ -81,7 +81,7 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
 
                 Sources:
                 - `POST /file/post/multiple` → `data[].id`
-                - Employee record → `document_ids` array from `GET /employees?employee_id=`
+                - Employee record → `document_ids` array from `GET /employees/get?employee_id=`
 
                 Returns presigned download URLs valid for **24 hours**.
 
@@ -105,7 +105,18 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
             schema.Example = SwaggerExamples.SampleEmployeeId.ToString();
             parameter.Description = """
                 Employee UUID from POST /employees/add or GET /employees/list.
-                GET single employee: GET /api/v1/employees?employee_id={uuid}
+                GET single employee: GET /api/v1/employees/get?employee_id={uuid}
+                """;
+            return;
+        }
+
+        if (name.Equals(PlatformQueryParams.CurrencyId, StringComparison.OrdinalIgnoreCase)
+            || name.Equals("currencyId", StringComparison.OrdinalIgnoreCase))
+        {
+            schema.Example = SwaggerExamples.SampleCurrencyId;
+            parameter.Description = """
+                Currency ID from GET /api/v1/currencies/list (e.g. cur_ghs_default).
+                Used as compensation.currency_id on employee create/update — not a currency code string.
                 """;
             return;
         }

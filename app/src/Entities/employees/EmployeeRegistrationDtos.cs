@@ -60,7 +60,28 @@ public sealed record EmployeeRegistrationReadDto
     public string? MaskedTinNumber { get; init; }
 }
 
-public sealed record ImportEmployeeRequest(string UserId);
+public sealed record ImportEmployeesRequest
+{
+    /// <summary>One or more <c>cp_users</c> IDs to link as draft employees.</summary>
+    public required IReadOnlyList<string> UserIds { get; init; }
+}
+
+public sealed class ImportEmployeeRowResult
+{
+    public required string UserId { get; init; }
+    public bool Success { get; init; }
+    public Guid? EmployeeId { get; init; }
+    public string? EmployeeCode { get; init; }
+    public string? FullName { get; init; }
+    public string? Error { get; init; }
+}
+
+public sealed class ImportEmployeesResult
+{
+    public IReadOnlyList<ImportEmployeeRowResult> Items { get; init; } = [];
+    public int SuccessCount { get; init; }
+    public int FailureCount { get; init; }
+}
 
 /// <summary>Step 1 — draft only. Platform user is created on finalise (see <c>cp_users</c>).</summary>
 public sealed record CreateDraftRequest

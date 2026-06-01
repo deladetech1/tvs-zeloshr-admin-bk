@@ -111,6 +111,46 @@ public sealed class EmployeeRegistrationService
     public Task<Respons<EmployeeRegistrationReadDto>> ImportAsync(string userId, CancellationToken ct = default) =>
         CreateDraftAsync(string.Empty, userId, ct);
 
+    public async Task<Respons<ImportEmployeesResult>> ImportManyAsync(
+        IReadOnlyList<string> userIds,
+        CancellationToken ct = default)
+    {
+        if (userIds is not { Count: > 0 })
+        {
+            return Respons<ImportEmployeesResult>.ValidationError(
+                new Dictionary<string, string> { ["user_ids"] = "At least one user_id is required." });
+        }
+
+        var rows = new List<ImportEmployeeRowResult>();
+        foreach (var userId in userIds.Where(id => !string.IsNullOrWhiteSpace(id)).Select(id => id.Trim()).Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            var imported = await ImportAsync(userId, ct);
+            rows.Add(new ImportEmployeeRowResult
+            {
+                UserId = userId,
+                Success = imported.Success,
+                EmployeeId = imported.Data?.Id,
+                EmployeeCode = imported.Data?.EmployeeCode,
+                FullName = imported.Data?.FullName,
+                Error = imported.Success ? null : imported.Error ?? imported.Detail,
+            });
+        }
+
+        if (rows.Count == 0)
+        {
+            return Respons<ImportEmployeesResult>.ValidationError(
+                new Dictionary<string, string> { ["user_ids"] = "At least one non-empty user_id is required." });
+        }
+
+        var successCount = rows.Count(r => r.Success);
+        return Respons<ImportEmployeesResult>.Ok(new ImportEmployeesResult
+        {
+            Items = rows,
+            SuccessCount = successCount,
+            FailureCount = rows.Count - successCount,
+        });
+    }
+
     public async Task<Respons<EmployeeRegistrationReadDto>> UpdatePersonalContactAsync(
         Guid id, CreateEmployeeRequest dto, CancellationToken ct = default)
     {

@@ -83,6 +83,8 @@ public sealed class CpCurrencyEntity
     public string Name { get; set; } = default!;
     public string Code { get; set; } = default!;
     public string Symbol { get; set; } = default!;
+    public int DecimalPlaces { get; set; } = 2;
+    public string CurrencyPosition { get; set; } = "before";
     public bool IsDefault { get; set; }
     public string DeleteStatus { get; set; } = CorePlatformConstants.DeleteStatus.NotDeleted;
     public bool IsActive { get; set; } = true;

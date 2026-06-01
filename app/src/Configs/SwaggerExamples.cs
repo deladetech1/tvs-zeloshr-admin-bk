@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using ZelosHR.Api.Entities.Currencies;
 using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Employees;
@@ -154,6 +155,7 @@ internal static class SwaggerExamples
             nameof(CustomFieldDefinitionListDto) => EnvelopeOk(CustomFieldDefinitionListData(), SamplePagination()),
             nameof(CustomFieldsSummaryDto) => EnvelopeOk(CustomFieldsSummaryData()),
             nameof(EmployeeBulkImportResult) => EnvelopeOk(BulkImportData()),
+            nameof(ImportEmployeesResult) => EnvelopeOk(ImportEmployeesData()),
             nameof(EmployeeDirectorySummaryDto) => EmployeeDirectoryStatisticsResponse(),
             nameof(EmployeeRegistrationReadDto) => EmployeeRegistrationImportResponse(),
             nameof(OrganisationSummaryDto) => EnvelopeOk(OrganisationSummaryData()),
@@ -205,6 +207,7 @@ internal static class SwaggerExamples
     {
         nameof(CustomFieldDefinitionDto) => new JsonArray(CustomFieldDefinitionItem()),
         nameof(CpUserDto) => new JsonArray(CpUserSearchItem()),
+        nameof(GetCurrencySimpleReadDto) => new JsonArray(CurrencyItem()),
         _ => new JsonArray(),
     };
 
@@ -347,9 +350,69 @@ internal static class SwaggerExamples
 
     internal static JsonObject ImportSearchResponse() => EnvelopeOk(new JsonArray(CpUserSearchItem()));
 
-    internal static JsonObject ImportEmployeeRequestBody() => new()
+    internal static JsonObject ImportEmployeesRequestBody() => new()
     {
-        ["user_id"] = "usr_cp_abc123",
+        ["user_ids"] = new JsonArray("usr_cp_abc123", "usr_cp_def456"),
+    };
+
+    internal static JsonObject ImportEmployeesData() => new()
+    {
+        ["items"] = new JsonArray(
+            new JsonObject
+            {
+                ["user_id"] = "usr_cp_abc123",
+                ["success"] = true,
+                ["employee_id"] = SampleEmployeeId.ToString(),
+                ["employee_code"] = "EMP-000042",
+                ["full_name"] = "Ada Lovelace",
+            },
+            new JsonObject
+            {
+                ["user_id"] = "usr_cp_def456",
+                ["success"] = false,
+                ["error"] = "User is already linked to an employee.",
+            }),
+        ["success_count"] = 1,
+        ["failure_count"] = 1,
+    };
+
+    internal static JsonObject ImportEmployeesResponse() => EnvelopeOk(ImportEmployeesData());
+
+    internal static JsonObject CurrencyListData() => new JsonArray(CurrencyItem(), CurrencyItemUsd());
+
+    internal static JsonObject CurrencyListResponse() => EnvelopeOk(CurrencyListData());
+
+    internal static JsonObject CurrencyGetResponse() => EnvelopeOk(new JsonArray(CurrencyItem()));
+
+    internal static JsonObject CurrencyNotFoundResponse() => new()
+    {
+        ["success"] = false,
+        ["status_code"] = 404,
+        ["detail"] = "Currency not found.",
+        ["message"] = "Currency not found.",
+        ["error"] = "Currency not found.",
+    };
+
+    internal static JsonObject CurrencyItem() => new()
+    {
+        ["id"] = SampleCurrencyId,
+        ["name"] = "Ghana Cedi",
+        ["code"] = "GHS",
+        ["symbol"] = "₵",
+        ["decimal_places"] = 2,
+        ["currency_position"] = "before",
+        ["is_default"] = true,
+    };
+
+    private static JsonObject CurrencyItemUsd() => new()
+    {
+        ["id"] = "cur_usd_default",
+        ["name"] = "US Dollar",
+        ["code"] = "USD",
+        ["symbol"] = "$",
+        ["decimal_places"] = 2,
+        ["currency_position"] = "before",
+        ["is_default"] = false,
     };
 
     internal static JsonObject DeleteEmployeeSuccessResponse() => EnvelopeOk(new JsonObject());

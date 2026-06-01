@@ -72,6 +72,8 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
         {
             b.ToTable("cp_currencies", "core_platform", t => t.ExcludeFromMigrations());
             b.HasKey(x => new { x.Id, x.TenantId });
+            b.Property(x => x.DecimalPlaces).HasColumnName("decimal_places");
+            b.Property(x => x.CurrencyPosition).HasColumnName("currency_position");
             b.Property(x => x.IsDefault).HasColumnName("is_default");
         });
 

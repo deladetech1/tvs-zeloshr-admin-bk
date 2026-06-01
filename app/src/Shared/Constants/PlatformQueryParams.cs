@@ -4,6 +4,7 @@ namespace ZelosHR.Api.Shared.Constants;
 public static class PlatformQueryParams
 {
     public const string EmployeeId = "employee_id";
+    public const string CurrencyId = "currency_id";
     public const string EducationId = "education_id";
     public const string CertificationId = "certification_id";
     public const string DocumentId = "document_id";

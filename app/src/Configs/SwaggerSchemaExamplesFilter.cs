@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.Json.Nodes;
 using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using ZelosHR.Api.Entities.Currencies;
 using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Files;
@@ -56,8 +57,10 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(CreateEmployeeAggregateRequest) => SwaggerExamples.CreateEmployeeFinalised(),
             nameof(UpdateEmployeeAggregateRequest) => SwaggerExamples.UpdateEmployeeFull(),
             nameof(CreateCustomFieldDefinitionDto) => SwaggerExamples.CreateCustomFieldCompensation(),
+            nameof(ImportEmployeesRequest) => SwaggerExamples.ImportEmployeesRequestBody(),
             nameof(EmployeeAggregateReadDto) => SwaggerExamples.EmployeeAggregateReadData(),
             nameof(EmployeeDirectorySummaryDto) => SwaggerExamples.EmployeeDirectorySummaryData(),
+            nameof(GetCurrencySimpleReadDto) => SwaggerExamples.CurrencyItem(),
             nameof(FileDeleteReadDto) => SwaggerExamples.FileDeleteData(),
             nameof(FileResponseReadDto) => SwaggerExamples.FileResponseData(),
             nameof(FileUploadMultipleReadDto) => new JsonObject { ["id"] = SwaggerExamples.SampleDocumentId1 },
@@ -74,8 +77,10 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 "Directory KPI cards: total headcount, active, on probation, on contract."),
             nameof(CreateCustomFieldDefinitionDto) => AppendDescription(schema.Description,
                 "Defines schema for a custom field. Values are sent later on employee create/update under the matching section custom_fields object."),
+            nameof(GetCurrencySimpleReadDto) => AppendDescription(schema.Description,
+                "Tenant currency from core_platform.cp_currencies. List via GET /api/v1/currencies/list."),
             nameof(EmployeeAggregateCompensationDto) => AppendDescription(schema.Description,
-                $"currency_id references core_platform.cp_currencies (seeded per tenant). pay_frequency: {SwaggerExampleHints.PayFrequency}."),
+                $"currency_id from GET /api/v1/currencies/list. pay_frequency: {SwaggerExampleHints.PayFrequency}."),
             nameof(FileUploadMultipleReadDto) => AppendDescription(schema.Description,
                 "Registry ID from upload. Attach on employee create/update as document_ids string."),
             nameof(FileResponseReadDto) => AppendDescription(schema.Description,
@@ -216,7 +221,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             case nameof(EmployeeAggregateCompensationDto.CurrencyId):
                 schema.Example = JsonValue.Create(SwaggerExamples.SampleCurrencyId);
                 schema.Description = AppendDescription(schema.Description,
-                    "Required when gross_salary is set (unless tenant default currency applies). List currencies from core_platform.cp_currencies for the tenant.");
+                    "Required when gross_salary is set (unless tenant default applies). List options: GET /api/v1/currencies/list.");
                 return;
             case nameof(EmployeeAggregateCompensationReadDto.CurrencyCode):
                 schema.Example = JsonValue.Create("GHS");

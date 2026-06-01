@@ -73,15 +73,16 @@ public static class SwaggerConfiguration
                     2. **(Optional) Documents** — Upload: `POST /api/v1/file/post/multiple?blob_paths=…`  
                        Attach returned IDs on employee: `document_ids: ["doc_…"]`  
                        Resolve URLs: `GET /api/v1/file/list?document_ids=…`
-                    3. **Currency** — Set `compensation.currency_id` from seeded `core_platform.cp_currencies` (not a currency code string)
+                    3. **Currency** — `GET /api/v1/currencies/list` → use returned `id` as `compensation.currency_id` (not a currency code string)
                     4. **Create** — `POST /api/v1/employees/add` with `status: draft | finalised`
-                    5. **Read / update** — `GET /api/v1/employees?employee_id=` · `PUT /api/v1/employees/update` (full profile or partial; body includes `id`)
+                    5. **Read / update** — `GET /api/v1/employees/get?employee_id=` · `PUT /api/v1/employees/update` (full profile or partial; body includes `id`)
+                    6. **Bulk import** — `GET /api/v1/employees/bulk/template` → fill CSV → `POST /api/v1/employees/bulk?status=`
 
                     ---
 
                     ### Documented modules
 
-                    **Employees** · **Custom Fields** · **File Management**
+                    **Employees** · **Currencies** · **Custom Fields** · **File Management**
 
                     Conformance: `docs/MYSTOREGUARD_API_CONFORMANCE.md` · Navigation: `GET /api/v1/navigation`
                     """,
@@ -116,6 +117,7 @@ public static class SwaggerConfiguration
             options.OperationFilter<StandardResponsesOperationFilter>();
             options.OperationFilter<SwaggerRequestExamplesOperationFilter>();
             options.OperationFilter<SwaggerEmployeesOperationFilter>();
+            options.OperationFilter<SwaggerCurrenciesOperationFilter>();
             options.OperationFilter<SwaggerResponseExamplesOperationFilter>();
             options.OperationFilter<SwaggerFileManagementOperationFilter>();
             options.DocumentFilter<SwaggerFileManagementTagDocumentFilter>();
@@ -238,6 +240,7 @@ public static class SwaggerConfiguration
     private static string MapControllerTag(string controller) => controller switch
     {
         "Employees" => SwaggerGroups.Employees,
+        "Currencies" => SwaggerGroups.Currencies,
         "EmployeesPlatform" => SwaggerGroups.Employees,
         "OrgStructure" => SwaggerGroups.Organisation,
         "Departments" => SwaggerGroups.OrganisationLegacy,
