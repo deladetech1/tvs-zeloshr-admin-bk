@@ -90,13 +90,12 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
             return;
         }
 
-        if (name.Equals("query", StringComparison.OrdinalIgnoreCase)
-            && context.ApiDescription.RelativePath?.Contains("import/search", StringComparison.OrdinalIgnoreCase) == true)
+        if (name.Equals("query", StringComparison.OrdinalIgnoreCase))
         {
             schema.Example = "ada";
             parameter.Description = SwaggerOptionFormat.Append(
                 parameter.Description,
-                "Search cp_users by name or email (excludes users already linked to an employee).");
+                "Search cp_users by name or email (excludes users already linked to an employee). Used on GET /employees/import/search.");
             return;
         }
 
