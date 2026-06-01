@@ -378,7 +378,7 @@ internal static class SwaggerExamples
 
     internal static JsonObject ImportEmployeesResponse() => EnvelopeOk(ImportEmployeesData());
 
-    internal static JsonObject CurrencyListData() => new JsonArray(CurrencyItem(), CurrencyItemUsd());
+    internal static JsonArray CurrencyListData() => new JsonArray(CurrencyItem(), CurrencyItemUsd());
 
     internal static JsonObject CurrencyListResponse() => EnvelopeOk(CurrencyListData());
 
