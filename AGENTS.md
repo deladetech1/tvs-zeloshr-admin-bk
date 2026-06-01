@@ -66,7 +66,8 @@ See `tvs-sqlscript/README.md` for CI dispatch, rollback, and validate.
 4. Update `Sql/Seeds/` when RBAC or reference data changes.
 5. Do **not** add demo tenant / employee inserts to tvs-sqlscript; test data is local-only (SQL/pgAdmin) or comes from the real environment.
 6. Open a PR in **tvs-sqlscript**; link from ZelosHR PR if both repos change.
-7. Verify locally:
+7. **Merge tvs-sqlscript first** — push to `dev` or `main` auto-deploys schema to `saas-dev` / `saas-prod`.
+8. Verify locally:
 
    ```bash
    ./scripts/compose.sh migrate   # tvs-sqlscript deploy into compose Postgres

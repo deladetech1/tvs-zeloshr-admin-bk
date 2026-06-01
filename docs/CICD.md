@@ -5,6 +5,17 @@ Workflows:
 - [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) — PRs and feature branches: `dotnet test` + Docker build (no deploy)
 - [`.github/workflows/build-and-deploy.yml`](../.github/workflows/build-and-deploy.yml) — `main` / `dev`: build, push ACR, deploy Container Apps + Functions
 
+## Database migrations (tvs-sqlscript)
+
+| Repo branch | GitHub Environment | What runs |
+|-------------|-------------------|-----------|
+| `dev` | `saas-dev` | EF Core `deploy` (all modules incl. `human_resource`) |
+| `main` | `saas-prod` | EF Core `deploy` (all modules incl. `human_resource`) |
+
+Schema lives in [tvs-sqlscript](https://github.com/deladetech1/tvs-sqlscript). **This repo does not migrate Postgres on deploy.**
+
+When both repos change: **merge tvs-sqlscript first**, then ZelosHR. Manual DB commands (rollback, enterprise, `migrations-list`): tvs-sqlscript workflow **Database (EF Core dispatch)**.
+
 | Branch | Environment | Container App | Function App | ACR image |
 |--------|-------------|---------------|--------------|-----------|
 | `dev` | dev | `trovesuite-dev-zeloshr-ca` | `trovesuite-dev-zeloshr-func` | `{DEV_ACR}.azurecr.io/zeloshr:{run}` |
