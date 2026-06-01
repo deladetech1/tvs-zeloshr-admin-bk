@@ -1,6 +1,6 @@
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Shared;
-using ZelosHR.Api.Shared.Tenant;
+using ZelosHR.Api.Shared.Abstractions;
 
 namespace ZelosHR.Api.Entities.Currencies;
 
