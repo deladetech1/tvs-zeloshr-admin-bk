@@ -44,7 +44,7 @@ public sealed class SwaggerCurrenciesOperationFilter : IOperationFilter
         if (!response.Content.TryGetValue("application/json", out var media))
             return;
 
-        media.Example = example;
+        SwaggerMediaExamples.SetSingleExample(media, example);
     }
 
     private static void AppendParameterDescription(OpenApiOperation operation, string name, string addition)

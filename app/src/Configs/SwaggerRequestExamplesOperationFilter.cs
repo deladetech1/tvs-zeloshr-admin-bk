@@ -21,8 +21,7 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
         if (examples.Count == 0)
             return;
 
-        media.Examples = examples;
-        // OpenAPI allows only one of `example` or `examples` on a media type — never set both.
+        SwaggerMediaExamples.SetNamedExamples(media, examples);
     }
 
     private static Dictionary<string, IOpenApiExample> ResolveExamples(string method, string path)

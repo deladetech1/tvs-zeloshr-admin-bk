@@ -86,7 +86,7 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
         if (!response.Content.TryGetValue("application/json", out var media))
             return;
 
-        media.Example = example;
+        SwaggerMediaExamples.SetSingleExample(media, example);
     }
 
     private static void SetJsonRequestExample(OpenApiOperation operation, JsonObject example)
@@ -95,7 +95,7 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
             || !operation.RequestBody.Content.TryGetValue("application/json", out var media))
             return;
 
-        media.Example = example;
+        SwaggerMediaExamples.SetSingleExample(media, example);
     }
 
     private static void AppendParameterDescription(OpenApiOperation operation, string name, string addition)

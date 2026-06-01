@@ -153,24 +153,6 @@ public class EmployeesController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Upload wizard document (max 10MB, PDF/jpeg/png). Prefer <c>POST /file/post/multiple</c>.</summary>
-    [RequestSizeLimit(10 * 1024 * 1024)]
-    public async Task<ActionResult<Respons<EmployeeWizardDocumentDto>>> UploadDocument(
-        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId,
-        IFormFile file,
-        [FromForm] string category,
-        CancellationToken ct)
-    {
-        if (file is null || file.Length == 0)
-            return BadRequest(Respons<EmployeeWizardDocumentDto>.ValidationError(
-                new Dictionary<string, string> { ["file"] = "File is required." }));
-
-        await using var stream = file.OpenReadStream();
-        var result = await _subResources.UploadDocumentAsync(
-            employeeId, category, stream, file.FileName, file.ContentType, file.Length, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
     /// <summary>Remove uploaded wizard document. Prefer <c>DELETE /file/delete</c>.</summary>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [ApiExplorerSettings(IgnoreApi = true)]

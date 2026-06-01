@@ -118,8 +118,8 @@ public static class SwaggerConfiguration
             options.OperationFilter<SwaggerRequestExamplesOperationFilter>();
             options.OperationFilter<SwaggerEmployeesOperationFilter>();
             options.OperationFilter<SwaggerCurrenciesOperationFilter>();
-            options.OperationFilter<SwaggerResponseExamplesOperationFilter>();
             options.OperationFilter<SwaggerFileManagementOperationFilter>();
+            options.OperationFilter<SwaggerResponseExamplesOperationFilter>();
             options.DocumentFilter<SwaggerFileManagementTagDocumentFilter>();
             options.TagActionsBy(api =>
             {

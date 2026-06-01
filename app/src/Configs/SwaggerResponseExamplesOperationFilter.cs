@@ -23,14 +23,14 @@ public sealed class SwaggerResponseExamplesOperationFilter : IOperationFilter
             if (!response.Content.TryGetValue("application/json", out var media))
                 continue;
 
-            if (media.Examples is { Count: > 0 })
+            if (media.Examples is { Count: > 0 } || media.Example is not null)
                 continue;
 
             var example = SwaggerExamples.EnvelopeFor(supported.Type, supported.StatusCode);
             if (example is null)
                 continue;
 
-            media.Example ??= example;
+            SwaggerMediaExamples.SetSingleExample(media, example);
         }
     }
 }
