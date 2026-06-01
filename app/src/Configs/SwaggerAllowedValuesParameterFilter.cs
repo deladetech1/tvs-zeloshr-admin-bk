@@ -13,6 +13,6 @@ public sealed class SwaggerAllowedValuesParameterFilter : IParameterFilter
         if (attr is null || parameter.Schema is not OpenApiSchema schema)
             return;
 
-        SwaggerAllowedValuesSchemaFilter.ApplyAllowedValues(schema, attr);
+        SwaggerAllowedValuesSchemaFilter.ApplyAllowedValues(schema, attr, usePipeJoinedExample: false);
     }
 }

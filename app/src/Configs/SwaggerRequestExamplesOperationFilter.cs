@@ -48,10 +48,22 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
         {
             return new Dictionary<string, IOpenApiExample>
             {
-                ["partial_update"] = Example(
+                ["partial_update_finalise"] = Example(
                     SwaggerExamples.UpdateEmployeePartial(),
-                    "Partial update + finalise",
-                    "Only send sections/fields to change. Include id (employee UUID). document_ids appends; delete_document_ids removes."),
+                    "Partial update — finalise + compensation",
+                    """
+                    status: finalised (Allowed: draft | finalised).
+                    pay_frequency example shows all options (send one value on the wire).
+                    Only fields to change; document_ids appends, delete_document_ids removes.
+                    """),
+                ["partial_update_draft"] = Example(
+                    SwaggerExamples.UpdateEmployeeDraftStatus(),
+                    "Partial update — keep draft",
+                    "status: draft. Use when saving progress without linking cp_users yet."),
+                ["partial_identity_only"] = Example(
+                    SwaggerExamples.UpdateEmployeeIdentityOnly(),
+                    "Partial update — identity only",
+                    "gender Allowed: male | female | other. id_type Allowed: ghana_card | passport | voter_id | drivers_license | ssnit | other."),
             };
         }
 

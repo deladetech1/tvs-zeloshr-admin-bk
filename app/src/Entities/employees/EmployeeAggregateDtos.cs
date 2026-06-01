@@ -41,7 +41,7 @@ public sealed class CreateEmployeeAggregateRequest
 /// <summary>Partial employee update — only include sections/fields to change.</summary>
 /// <remarks>
 /// Body must include <c>id</c> (employee UUID from <c>GET /employees/id</c>).
-/// Set <c>status</c> to <c>finalised</c> to complete a draft.
+/// Set <c>status</c> to <c>finalised</c> | <c>draft</c> (use finalised to complete a draft).
 /// <c>document_ids</c> appends file-registry IDs; <c>delete_document_ids</c> removes them.
 /// Education/certification array items: include <c>id</c> to update, omit <c>id</c> to add new rows.
 /// </remarks>
@@ -143,7 +143,8 @@ public class EmployeeAggregateCompensationDto
 {
     public decimal? GrossSalary { get; init; }
 
-    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.PayFrequencies))]
+    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.PayFrequencies),
+        Description = "Annualized cost uses Monthly × 12 | Bi-weekly × 26 | Weekly × 52 | Annual × 1.")]
     public string? PayFrequency { get; init; }
 
     /// <summary>FK to <c>core_platform.cp_currencies.id</c> (tenant-scoped, seeded). Not a currency code.</summary>

@@ -68,11 +68,11 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(CreateEmployeeAggregateRequest) => AppendDescription(schema.Description,
                 "One-shot employee create. See operation examples (finalised vs draft). Upload files first via POST /api/v1/file/post/multiple."),
             nameof(UpdateEmployeeAggregateRequest) => AppendDescription(schema.Description,
-                "Partial update — include only fields to change plus required id. Set status to finalised to complete a draft."),
+                "Partial update — include only fields to change plus required id. status: draft | finalised. See operation Examples."),
             nameof(CreateCustomFieldDefinitionDto) => AppendDescription(schema.Description,
                 "Defines schema for a custom field. Values are sent later on employee create/update under the matching section custom_fields object."),
             nameof(EmployeeAggregateCompensationDto) => AppendDescription(schema.Description,
-                "currency_id references core_platform.cp_currencies (seeded per tenant). annualized_cost uses pay_frequency: Monthly | Bi-weekly | Weekly | Annual."),
+                $"currency_id references core_platform.cp_currencies (seeded per tenant). pay_frequency: {SwaggerExampleHints.PayFrequency}."),
             nameof(FileUploadMultipleReadDto) => AppendDescription(schema.Description,
                 "Registry ID from upload. Attach on employee create/update as document_ids string."),
             nameof(FileResponseReadDto) => AppendDescription(schema.Description,
@@ -134,6 +134,9 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
 
     private static void ApplyPropertyExample(OpenApiSchema schema, PropertyInfo property)
     {
+        if (property.GetCustomAttribute<SwaggerAllowedValuesAttribute>() is not null)
+            return;
+
         var name = property.Name;
         var type = property.PropertyType;
 
