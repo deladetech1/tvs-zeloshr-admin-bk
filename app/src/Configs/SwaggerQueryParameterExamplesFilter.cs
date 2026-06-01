@@ -123,7 +123,7 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
 
         if (name.Equals("entityType", StringComparison.OrdinalIgnoreCase))
         {
-            schema.Example = CustomFieldEntityTypes.Employee;
+            schema.Example = SwaggerExampleHints.EntityType;
             parameter.Description = SwaggerOptionFormat.Append(
                 parameter.Description,
                 "Entity type for custom field definitions. Use `employee` for HR profile fields.");
@@ -132,10 +132,10 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
 
         if (name.Equals("sectionName", StringComparison.OrdinalIgnoreCase))
         {
-            schema.Example = EmployeeCustomFieldSections.Compensation;
+            schema.Example = SwaggerExampleHints.SectionName;
             parameter.Description = SwaggerOptionFormat.Append(
                 parameter.Description,
-                "Filter definitions by employee form section.");
+                $"Filter definitions by employee form section. Allowed: {SwaggerExampleHints.SectionName}.");
             return;
         }
     }

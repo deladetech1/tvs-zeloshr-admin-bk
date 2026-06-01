@@ -56,7 +56,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
         {
             nameof(CreateEmployeeAggregateRequest) => SwaggerExamples.CreateEmployeeFinalised(),
             nameof(UpdateEmployeeAggregateRequest) => SwaggerExamples.UpdateEmployeeFull(),
-            nameof(CreateCustomFieldDefinitionDto) => SwaggerExamples.CreateCustomFieldCompensation(),
+            nameof(CreateCustomFieldDefinitionDto) => SwaggerExamples.CreateCustomFieldDefinitionTemplate(),
             nameof(ImportEmployeesRequest) => SwaggerExamples.ImportEmployeesRequestBody(),
             nameof(EmployeeAggregateReadDto) => SwaggerExamples.EmployeeAggregateReadData(),
             nameof(EmployeeDirectorySummaryDto) => SwaggerExamples.EmployeeDirectorySummaryData(),
@@ -241,9 +241,6 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 schema.Example = JsonValue.Create("[\"yes\",\"no\"]");
                 schema.Description = AppendDescription(schema.Description,
                     "Wire: JSON array string. Example UI choices: yes | no (for field_type select | multiselect).");
-                return;
-            case "SectionName" when IsCustomFieldDefinitionProperty(property):
-                schema.Example = JsonValue.Create(EmployeeCustomFieldSections.Compensation);
                 return;
             case nameof(CreateCustomFieldDefinitionDto.FieldKey):
                 schema.Example = JsonValue.Create("bonus_eligible");

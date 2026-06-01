@@ -82,7 +82,8 @@ public sealed class CreateCustomFieldDefinitionDto
     public int DisplayOrder { get; set; }
 
     /// <summary>Which employee section receives values for this field (see Allowed on schema).</summary>
-    [SwaggerAllowedValues(typeof(EmployeeCustomFieldSections), nameof(EmployeeCustomFieldSections.All))]
+    [SwaggerAllowedValues(typeof(EmployeeCustomFieldSections), nameof(EmployeeCustomFieldSections.All),
+        Description = "One section per definition — use employee-directory-identity | employee-directory-employment | employee-directory-compensation | employee-directory-education | employee-directory-certification.")]
     public string? SectionName { get; set; }
 
     public int SectionOrder { get; set; }

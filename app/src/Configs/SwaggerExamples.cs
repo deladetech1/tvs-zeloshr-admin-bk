@@ -205,7 +205,7 @@ internal static class SwaggerExamples
 
     private static JsonArray BuildCollectionData(Type elementType) => elementType.Name switch
     {
-        nameof(CustomFieldDefinitionDto) => new JsonArray(CustomFieldDefinitionItem()),
+        nameof(CustomFieldDefinitionDto) => CustomFieldDefinitionItemsAllSections(),
         nameof(CpUserDto) => new JsonArray(CpUserSearchItem()),
         nameof(GetCurrencySimpleReadDto) => new JsonArray(CurrencyItem()),
         _ => new JsonArray(),
@@ -258,14 +258,14 @@ internal static class SwaggerExamples
 
     private static JsonObject CustomFieldSchemaData() => new()
     {
-        ["entity_type"] = "employee",
-        ["fields"] = new JsonArray(CustomFieldDefinitionItem()),
+        ["entity_type"] = CustomFieldEntityTypes.Employee,
+        ["fields"] = CustomFieldDefinitionItemsAllSections(),
     };
 
     private static JsonObject CustomFieldDefinitionListData() => new()
     {
         ["summary"] = CustomFieldsSummaryData(),
-        ["items"] = new JsonArray(CustomFieldDefinitionItem()),
+        ["items"] = CustomFieldDefinitionItemsAllSections(),
     };
 
     private static JsonObject CustomFieldsSummaryData() => new()
@@ -275,20 +275,20 @@ internal static class SwaggerExamples
         ["deleted_definitions"] = 2,
     };
 
-    private static JsonObject CustomFieldDefinitionItem() => new()
+    private static JsonObject CustomFieldDefinitionItem(string section, string fieldKey, string label) => new()
     {
-        ["id"] = "cf_bonus_eligible_001",
-        ["entity_type"] = "employee",
-        ["field_key"] = "bonus_eligible",
-        ["label"] = "Bonus eligible",
-        ["description"] = "Whether the employee qualifies for annual bonus.",
+        ["id"] = $"cf_{fieldKey}_001",
+        ["entity_type"] = CustomFieldEntityTypes.Employee,
+        ["field_key"] = fieldKey,
+        ["label"] = label,
+        ["description"] = $"Example custom field for section `{section}`.",
         ["field_type"] = "select",
         ["is_required"] = false,
         ["is_sensitive"] = false,
         ["is_filterable"] = true,
         ["is_searchable"] = false,
         ["display_order"] = 1,
-        ["section_name"] = EmployeeCustomFieldSections.Compensation,
+        ["section_name"] = section,
         ["section_order"] = 1,
         ["options"] = "[\"yes\",\"no\"]",
         ["is_active"] = true,
@@ -298,6 +298,13 @@ internal static class SwaggerExamples
         ["created_by"] = "usr_admin_001",
         ["updated_by"] = "usr_admin_001",
     };
+
+    internal static JsonArray CustomFieldDefinitionItemsAllSections() => new JsonArray(
+        CustomFieldDefinitionItem(EmployeeCustomFieldSections.Identity, "emergency_contact_name", "Emergency contact name"),
+        CustomFieldDefinitionItem(EmployeeCustomFieldSections.Employment, "desk_number", "Desk number"),
+        CustomFieldDefinitionItem(EmployeeCustomFieldSections.Compensation, "bonus_eligible", "Bonus eligible"),
+        CustomFieldDefinitionItem(EmployeeCustomFieldSections.Education, "honors", "Honors"),
+        CustomFieldDefinitionItem(EmployeeCustomFieldSections.Certification, "verified", "Verified"));
 
     private static JsonObject BulkImportData() => new()
     {
@@ -488,6 +495,24 @@ internal static class SwaggerExamples
     /// <inheritdoc cref="UpdateEmployeeFull"/>
     internal static JsonObject UpdateEmployeePartial() => UpdateEmployeeFull();
 
+    internal static JsonObject CreateCustomFieldDefinitionTemplate() => new()
+    {
+        ["entity_type"] = SwaggerExampleHints.EntityType,
+        ["field_key"] = "bonus_eligible",
+        ["label"] = "Bonus eligible",
+        ["description"] = "Whether the employee qualifies for annual bonus.",
+        ["field_type"] = SwaggerExampleHints.FieldType,
+        ["section_name"] = SwaggerExampleHints.SectionName,
+        ["section_order"] = 1,
+        ["display_order"] = 1,
+        ["options"] = "[\"yes\",\"no\"]",
+        ["is_required"] = false,
+        ["is_sensitive"] = false,
+        ["is_filterable"] = true,
+        ["is_searchable"] = false,
+        ["is_active"] = true,
+    };
+
     internal static JsonObject CreateCustomFieldCompensation() => new()
     {
         ["entity_type"] = SwaggerExampleHints.EntityType,
@@ -514,6 +539,42 @@ internal static class SwaggerExamples
         ["field_type"] = SwaggerExampleHints.FieldType,
         ["section_name"] = EmployeeCustomFieldSections.Identity,
         ["display_order"] = 2,
+        ["is_required"] = false,
+        ["is_active"] = true,
+    };
+
+    internal static JsonObject CreateCustomFieldEmployment() => new()
+    {
+        ["entity_type"] = SwaggerExampleHints.EntityType,
+        ["field_key"] = "desk_number",
+        ["label"] = "Desk number",
+        ["field_type"] = SwaggerExampleHints.FieldType,
+        ["section_name"] = EmployeeCustomFieldSections.Employment,
+        ["display_order"] = 1,
+        ["is_required"] = false,
+        ["is_active"] = true,
+    };
+
+    internal static JsonObject CreateCustomFieldEducation() => new()
+    {
+        ["entity_type"] = SwaggerExampleHints.EntityType,
+        ["field_key"] = "honors",
+        ["label"] = "Honors",
+        ["field_type"] = SwaggerExampleHints.FieldType,
+        ["section_name"] = EmployeeCustomFieldSections.Education,
+        ["display_order"] = 1,
+        ["is_required"] = false,
+        ["is_active"] = true,
+    };
+
+    internal static JsonObject CreateCustomFieldCertification() => new()
+    {
+        ["entity_type"] = SwaggerExampleHints.EntityType,
+        ["field_key"] = "verified",
+        ["label"] = "Verified",
+        ["field_type"] = SwaggerExampleHints.FieldType,
+        ["section_name"] = EmployeeCustomFieldSections.Certification,
+        ["display_order"] = 1,
         ["is_required"] = false,
         ["is_active"] = true,
     };
@@ -559,11 +620,10 @@ internal static class SwaggerExamples
     internal static string CustomFieldsHelpText(string section) =>
         $"""
         Values for tenant-defined custom fields bound to section `{section}`.
-        1. Admin creates definitions: `POST /api/v1/custom-fields/add` with `section_name: "{section}"`.
+        1. Admin creates definitions: `POST /api/v1/custom-fields/add` with `section_name` one of: {SwaggerExampleHints.SectionName}.
         2. Frontend loads schema: `GET /api/v1/custom-fields/schema?entityType=employee`.
         3. Keys here must match `field_key` from definitions with matching `section_name`.
         Unknown keys are ignored. Use an empty object when there are no values.
-        Employee sections: {SwaggerExampleHints.SectionName}.
         """;
 
     private static JsonObject IdentitySection(bool withCustomField = false, bool optionHints = false) => new()
@@ -648,7 +708,7 @@ internal static class SwaggerExamples
             ["start_date"] = "2008-09-01",
             ["end_date"] = "2012-06-30",
             ["is_current"] = false,
-            ["custom_fields"] = EmptyCustomFields("education"),
+            ["custom_fields"] = EmptyCustomFields(EmployeeCustomFieldSections.Education),
         };
 
         if (withId)
@@ -666,7 +726,7 @@ internal static class SwaggerExamples
             ["issue_date"] = "2023-03-15",
             ["expiry_date"] = "2026-03-15",
             ["credential_url"] = "https://aws.amazon.com/verification/example-cert",
-            ["custom_fields"] = EmptyCustomFields("certification"),
+            ["custom_fields"] = EmptyCustomFields(EmployeeCustomFieldSections.Certification),
         };
 
         if (withId)
