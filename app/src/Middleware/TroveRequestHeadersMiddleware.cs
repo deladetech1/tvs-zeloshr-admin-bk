@@ -69,8 +69,9 @@ public sealed class TroveRequestHeadersMiddleware
 
         PopulateFromHeaders(context);
 
-        if (!options.RequireAuthentication)
-            PopulateClaimsFromBearerWithoutValidation(context);
+        // Read tenant_id / user_id from Bearer for platform validation even when full
+        // Trovesuite auth runs next (RequireAuthentication). Auth overwrites with validated claims.
+        PopulateClaimsFromBearerWithoutValidation(context);
 
         if (options.ValidatePlatformContext)
         {
