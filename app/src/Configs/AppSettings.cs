@@ -21,7 +21,18 @@ public class AppSettings
     public string? Algorithm { get; set; }
     public int AccessTokenExpireMinutes { get; set; } = 300;
 
-    public string CorsOrigins { get; set; } = "http://localhost:3000";
+    public string CorsOrigins { get; set; } =
+        "http://localhost:3000,http://localhost:3003,http://localhost:8080";
+
+    /// <summary>
+    /// Used when <see cref="CorsOrigins"/> is empty (e.g. Production json placeholder before env override).
+    /// </summary>
+    public static readonly string[] LocalDevCorsFallback =
+    [
+        "http://localhost:3000",
+        "http://localhost:3003",
+        "http://localhost:8080",
+    ];
     public string AppUrl { get; set; } = "https://zeloshr.com";
     public string AppId { get; set; } = "app-zeloshr";
 

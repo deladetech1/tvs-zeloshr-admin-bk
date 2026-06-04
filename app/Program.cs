@@ -55,21 +55,22 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        var cors = builder.Configuration[$"{AppSettings.SectionName}:CorsOrigins"];
-        var origins = string.IsNullOrWhiteSpace(cors)
-            ? ["http://localhost:3000"]
-            : cors.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var appSettings = builder.Configuration.GetSection(AppSettings.SectionName).Get<AppSettings>() ?? new AppSettings();
+        var origins = appSettings.CorsOriginsList.Count > 0
+            ? appSettings.CorsOriginsList
+            : AppSettings.LocalDevCorsFallback;
         policy.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
     });
 });
 
 var app = builder.Build();
 
+// CORS (including OPTIONS preflight) must run before Trove header/auth middleware.
+app.UseCors();
 app.UseMiddleware<LoggingMiddleware>();
 app.UseMiddleware<TroveRequestHeadersMiddleware>();
 app.UseMiddleware<TrovesuiteAuthMiddleware>();
 app.UseMiddleware<ExceptionHandlerMiddleware>();
-app.UseCors();
 
 app.MapControllers();
 app.UseZelosHrSwagger();

@@ -19,7 +19,7 @@ Environment variables and Container App secrets **override** the same keys using
 | `AppName`, `AppVersion`, `Environment`, `Debug` | Metadata |
 | `LogLevel`, `LogDir` | Logging |
 | `SecretKey`, `Algorithm`, `AccessTokenExpireMinutes` | Legacy JWT helpers / Swagger dev token fallback |
-| `CorsOrigins` | Comma-separated allowed origins |
+| `CorsOrigins` | Comma-separated allowed origins (include `http://localhost:3003` for local frontends). When empty, the API falls back to localhost ports 3000/3003/8080 for local UI dev. |
 | `AppUrl`, `AppId` | Public URL; must use `app-hr` for Trove `app-id` header |
 | `RunDatabaseMigrations` | Must stay `false` in prod (schema from tvs-sqlscript) |
 | `CorePlatformUsersTable`, `CorePlatformMembersTable` | Optional table overrides |

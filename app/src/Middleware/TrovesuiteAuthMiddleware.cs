@@ -33,6 +33,12 @@ public class TrovesuiteAuthMiddleware
         IAuthService authService,
         IOptions<TrovesuiteIntegrationOptions> integrationOptions)
     {
+        if (HttpMethods.IsOptions(context.Request.Method))
+        {
+            await _next(context);
+            return;
+        }
+
         if (!integrationOptions.Value.RequireAuthentication || IsAnonymous(context.Request.Path))
         {
             await _next(context);

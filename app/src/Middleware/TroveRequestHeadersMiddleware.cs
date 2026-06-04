@@ -22,6 +22,12 @@ public sealed class TroveRequestHeadersMiddleware
         IOptions<TrovesuiteIntegrationOptions> integrationOptions,
         IPlatformContextRepository platformContext)
     {
+        if (HttpMethods.IsOptions(context.Request.Method))
+        {
+            await _next(context);
+            return;
+        }
+
         if (!RequiresStandardHeaders(context.Request.Path))
         {
             await _next(context);
