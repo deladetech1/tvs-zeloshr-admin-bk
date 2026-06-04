@@ -26,6 +26,9 @@ All local testing and database setup go through **Docker Compose** and `./script
 | `./scripts/compose.sh reset` | `down -v` → fresh Postgres → migrate → API |
 | `./scripts/compose.sh ci` | `test` + `docker build` (same as GitHub Actions) |
 | `./scripts/compose.sh smoke` | HTTP checks against running API |
+| `./scripts/local-dev/smoke-dev.sh smoke` | HTTP checks against **deployed dev** (uses gitignored `scripts/local-dev/live-session.env`) |
+| `./scripts/local-dev/pull-azure-dev-env.sh` | Pull **dev Postgres** connection from Azure into `live-db.env` |
+| `./scripts/local-dev/run-api-live-db.sh` | Run API on **localhost** using that **live DB** (see `scripts/local-dev/README.md`) |
 | `./scripts/compose.sh db` | Postgres + Redis only |
 
 ## Database (source of truth)

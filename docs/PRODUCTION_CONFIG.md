@@ -69,6 +69,18 @@ Set **`App__ConnectionString`** to a full PostgreSQL URI, for example:
 
 In Azure Portal: Container App → **Containers** → your container → **Environment variables** (or **Secrets** referenced by env vars). The revision restarts automatically when env changes.
 
+### Fix `IDX10703` / HTTP 400–503 “key length is zero”
+
+This is **not** an application bug — the API cannot validate JWTs until a signing key is present.
+
+1. On **Core Platform** dev Container App, confirm **`SECRET_KEY`** references a non-empty secret (same check you already use for login).
+2. On **`trovesuite-dev-zeloshr-ca`** (resource group **`trovesuite-dev-appservers-rg`**), add the **same** secret:
+   - **Secrets** → create or reuse e.g. `jwt-secret-key`
+   - **Environment variables** → `SECRET_KEY` = **Reference secret** → `jwt-secret-key`
+3. Wait for a healthy revision; users **log in again** (new Bearer token).
+
+Optional GitHub Actions: set org/repo secret **`TROVESUITE_SECRET_KEY`** to that value; deploy workflow can sync it to the Container App (see [CICD.md](CICD.md)).
+
 ## Verify
 
 ```bash

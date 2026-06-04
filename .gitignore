@@ -11,6 +11,12 @@ obj/
 app/.env
 func/local.settings.json
 
+## Live dev session (Bearer tokens) — never commit
+scripts/local-dev/live-session.env
+scripts/local-dev/live-db.env
+scripts/local-dev/*.local.env
+scripts/local-dev/.jwt-secret.local
+
 ## Logs
 logs/
 *.log

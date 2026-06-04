@@ -34,6 +34,7 @@ If a resource is missing, the workflow **still builds and pushes the image to AC
 | `TROVESUITE_DEV_AZURE_SUBSCRIPTION_ID` | `dev` branch deploys |
 | `TROVESUITE_PROD_AZURE_SUBSCRIPTION_ID` | `main` branch deploys |
 | `PACKAGES_TOKEN` | Docker build / CI — restore **Trovesuite.Package** (`read:packages` PAT). Required for PR workflow (`ci.yml`) and deploy build. |
+| `TROVESUITE_SECRET_KEY` | Optional — same HS256 value as Core Platform `SECRET_KEY` (≥ 32 chars). When set, deploy workflow syncs **`SECRET_KEY`** on the ZelosHR Container App. |
 
 ## Repository variables
 
@@ -41,8 +42,8 @@ If a resource is missing, the workflow **still builds and pushes the image to AC
 |----------|---------|
 | `DEV_CONTAINER_REGISTRY_NAME` | `trovesuitedevacr` |
 | `PROD_CONTAINER_REGISTRY_NAME` | `trovesuiteprodacr` |
-| `DEV_RESOURCE_GROUP` | `rg-trovesuite-dev` |
-| `PROD_RESOURCE_GROUP` | `rg-trovesuite-prod` |
+| `DEV_RESOURCE_GROUP` | `trovesuite-dev-appservers-rg` (dev Container Apps / Functions) |
+| `PROD_RESOURCE_GROUP` | prod apps resource group (mirror MyStoreGuard naming) |
 
 Same names as Core Platform if both backends share one Trovesuite subscription.
 
