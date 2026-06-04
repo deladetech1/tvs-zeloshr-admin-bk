@@ -20,6 +20,9 @@ cp scripts/local-dev/live-session.example.env scripts/local-dev/live-session.env
 
 # Custom-fields only (ordered smoke)
 ./scripts/local-dev/test-custom-fields.sh
+
+# Employees (statistics, list, import search, bulk template, optional get by id)
+./scripts/local-dev/test-employees.sh
 ```
 
 After JWT secret rotation, **log in again** and refresh `TROVE_BEARER_TOKEN`. Ensure `TROVE_TENANT_ID` matches the JWT claim exactly (a typo causes `403 Invalid platform context` even when org/bus/loc look correct).
