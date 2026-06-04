@@ -56,9 +56,9 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
     {
         var appSettings = builder.Configuration.GetSection(AppSettings.SectionName).Get<AppSettings>() ?? new AppSettings();
-        var origins = appSettings.CorsOriginsList.Count > 0
+        var origins = (appSettings.CorsOriginsList.Count > 0
             ? appSettings.CorsOriginsList
-            : AppSettings.LocalDevCorsFallback;
+            : AppSettings.LocalDevCorsFallback).ToArray();
         policy.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
     });
 });
