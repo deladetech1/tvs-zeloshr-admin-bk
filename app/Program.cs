@@ -65,12 +65,13 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// CORS (including OPTIONS preflight) must run before Trove header/auth middleware.
+// CORS first; exception handler wraps Trove/auth/controllers so failures return JSON
+// (and browsers still see Access-Control-Allow-Origin on error responses).
 app.UseCors();
+app.UseMiddleware<ExceptionHandlerMiddleware>();
 app.UseMiddleware<LoggingMiddleware>();
 app.UseMiddleware<TroveRequestHeadersMiddleware>();
 app.UseMiddleware<TrovesuiteAuthMiddleware>();
-app.UseMiddleware<ExceptionHandlerMiddleware>();
 
 app.MapControllers();
 app.UseZelosHrSwagger();
