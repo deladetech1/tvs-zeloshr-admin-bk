@@ -73,7 +73,7 @@ Used for Swagger dev bootstrap and dev fallbacks only. Leave empty in production
 Set these on the Container App (same names as appsettings, `__` separator):
 
 - `App__ConnectionString` (PostgreSQL URI)
-- `Trovesuite__Jwt__SecretKey` and `App__SecretKey` (same value)
+- `Trovesuite__Jwt__SecretKey` and `App__SecretKey` (same value), **or** `SECRET_KEY` (same env name as Core Platform; mapped automatically)
 - `AzureStorage__ConnectionString`
 - `Trovesuite__Mail__SenderEmail`, `Trovesuite__Mail__SenderPassword`
 - `App__CorsOrigins`

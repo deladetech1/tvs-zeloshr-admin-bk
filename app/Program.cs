@@ -8,6 +8,7 @@ using ZelosHR.Api.Shared.Tenant;
 var builder = WebApplication.CreateBuilder(args);
 
 AppConnectionString.ApplyPackageDatabaseConfiguration(builder.Configuration);
+JwtSecretConfiguration.Apply(builder.Configuration);
 
 builder.Services.Configure<AppSettings>(builder.Configuration.GetSection(AppSettings.SectionName));
 builder.Services.Configure<TrovesuiteIntegrationOptions>(

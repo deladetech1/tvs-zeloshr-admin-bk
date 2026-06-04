@@ -19,6 +19,7 @@ Full key reference: [APPCONFIG.md](APPCONFIG.md).
 | `App:ConnectionString` | `App__ConnectionString` | Single PostgreSQL URI for ZelosHR (same DB hosts `core_platform` auth used by Trovesuite.Package) |
 | `Trovesuite:Jwt:SecretKey` | `Trovesuite__Jwt__SecretKey` | Match Core Platform issuer (≥ 32 chars) |
 | `App:SecretKey` | `App__SecretKey` | Same as Jwt secret |
+| *(Core Platform convention)* | `SECRET_KEY` | ZelosHR copies this into `Trovesuite:Jwt:SecretKey` when the Trovesuite/App keys are unset — use the **same secret reference** as Core Platform dev |
 | `AzureStorage:ConnectionString` | `AzureStorage__ConnectionString` | Employee docs / profile photos |
 | `App:CorsOrigins` | `App__CorsOrigins` | Admin UI origin(s), comma-separated. **Dev Container App:** include `http://localhost:3003` (and other local ports) if engineers hit the deployed API from a local frontend. If unset, the API allows localhost 3000/3003/8080 by default. |
 | `TrovesuiteIntegration:RequireAuthentication` | `TrovesuiteIntegration__RequireAuthentication` | `true` (in Production json) |
