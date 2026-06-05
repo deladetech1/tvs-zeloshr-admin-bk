@@ -138,8 +138,11 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
             || name.Equals("entity_type", StringComparison.OrdinalIgnoreCase))
         {
             schema.Example = SwaggerExampleHints.EntityType;
-            var path = context.ApiDescription.RelativePath ?? "";
-            parameter.Description = path.Contains("sections", StringComparison.OrdinalIgnoreCase)
+            var isSectionsEndpoint = string.Equals(
+                context.ParameterInfo?.Member.Name,
+                "Sections",
+                StringComparison.OrdinalIgnoreCase);
+            parameter.Description = isSectionsEndpoint
                 ? SwaggerOptionFormat.Append(
                     parameter.Description,
                     "Required. Entity type from GET /custom-fields/entity-types. Returns valid section_name options for that type.")
@@ -209,7 +212,9 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
         }
 
         if (name.Equals("search", StringComparison.OrdinalIgnoreCase)
-            && context.ApiDescription.RelativePath?.Contains("org-structure", StringComparison.OrdinalIgnoreCase) == true)
+            && context.ParameterInfo?.Member.DeclaringType?.FullName?.Contains(
+                "OrgStructure",
+                StringComparison.Ordinal) == true)
         {
             schema.Example = "eng";
             parameter.Description = "Optional name filter (minimum 3 characters, case-insensitive).";
