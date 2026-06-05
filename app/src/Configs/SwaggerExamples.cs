@@ -1,9 +1,11 @@
 using System.Text.Json.Nodes;
+using ZelosHR.Api.Entities.Branches;
 using ZelosHR.Api.Entities.Currencies;
 using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Files;
+using ZelosHR.Api.Entities.OrgStructure;
 using ZelosHR.Api.Entities.Shared;
 
 namespace ZelosHR.Api.Configs;
@@ -13,6 +15,7 @@ internal static class SwaggerExamples
 {
     internal static readonly Guid SampleDepartmentId = Guid.Parse("11111111-1111-1111-1111-111111111101");
     internal static readonly Guid SampleBranchId = Guid.Parse("11111111-1111-1111-1111-111111111102");
+    internal static readonly Guid SampleCustomFieldId = Guid.Parse("44444444-4444-4444-4444-444444444401");
     internal static readonly Guid SampleEmployeeId = Guid.Parse("22222222-2222-2222-2222-222222222201");
     internal static readonly Guid SampleReportsToId = Guid.Parse("33333333-3333-3333-3333-333333333301");
 
@@ -152,6 +155,7 @@ internal static class SwaggerExamples
             nameof(CreateEmployeeControllerReadDto) => EnvelopeOk(CreateEmployeeReadData()),
             nameof(EmployeeListDto) => EnvelopeOk(EmployeeListData(), SamplePagination()),
             nameof(CustomFieldSchemaDto) => EnvelopeOk(CustomFieldSchemaData()),
+            nameof(CustomFieldSectionsDto) => EnvelopeOk(CustomFieldSectionsData()),
             nameof(CustomFieldDefinitionListDto) => EnvelopeOk(CustomFieldDefinitionListData(), SamplePagination()),
             nameof(CustomFieldsSummaryDto) => EnvelopeOk(CustomFieldsSummaryData()),
             nameof(EmployeeBulkImportResult) => EnvelopeOk(BulkImportData()),
@@ -159,6 +163,11 @@ internal static class SwaggerExamples
             nameof(EmployeeDirectorySummaryDto) => EmployeeDirectoryStatisticsResponse(),
             nameof(EmployeeRegistrationReadDto) => EmployeeRegistrationImportResponse(),
             nameof(OrganisationSummaryDto) => EnvelopeOk(OrganisationSummaryData()),
+            nameof(OrgChartDto) => OrgChartResponse(),
+            nameof(DepartmentListDto) => EnvelopeOk(DepartmentListData(), SamplePagination()),
+            nameof(BranchListDto) => EnvelopeOk(BranchListData(), SamplePagination()),
+            nameof(CreateDepartmentResponseDto) => EnvelopeOk(CreateDepartmentResponseData()),
+            nameof(BranchMutationResponseDto) => EnvelopeOk(BranchMutationResponseData()),
             _ when dataType == typeof(string) => EnvelopeOk(JsonValue.Create("Operation completed successfully.")),
             _ when dataType == typeof(object) => EnvelopeOk(new JsonObject()),
             _ => EnvelopeOk(new JsonObject()),
@@ -262,6 +271,17 @@ internal static class SwaggerExamples
         ["fields"] = CustomFieldDefinitionItemsAllSections(),
     };
 
+    internal static JsonObject CustomFieldSectionsData() => new()
+    {
+        ["entity_type"] = CustomFieldEntityTypes.Employee,
+        ["sections"] = new JsonArray(
+            new JsonObject { ["value"] = EmployeeCustomFieldSections.Identity, ["label"] = "Identity" },
+            new JsonObject { ["value"] = EmployeeCustomFieldSections.Employment, ["label"] = "Employment" },
+            new JsonObject { ["value"] = EmployeeCustomFieldSections.Compensation, ["label"] = "Compensation" },
+            new JsonObject { ["value"] = EmployeeCustomFieldSections.Education, ["label"] = "Education" },
+            new JsonObject { ["value"] = EmployeeCustomFieldSections.Certification, ["label"] = "Certification" }),
+    };
+
     private static JsonObject CustomFieldDefinitionListData() => new()
     {
         ["summary"] = CustomFieldsSummaryData(),
@@ -295,8 +315,10 @@ internal static class SwaggerExamples
         ["is_deleted"] = false,
         ["created_at"] = "2025-01-15T10:30:00+00:00",
         ["updated_at"] = "2025-01-15T10:30:00+00:00",
-        ["created_by"] = "usr_admin_001",
-        ["updated_by"] = "usr_admin_001",
+        ["created_by_id"] = "uid_admin_001",
+        ["updated_by_id"] = "uid_admin_001",
+        ["created_by"] = "Ada Lovelace",
+        ["updated_by"] = "Ada Lovelace",
     };
 
     internal static JsonArray CustomFieldDefinitionItemsAllSections() => new JsonArray(
@@ -443,6 +465,104 @@ internal static class SwaggerExamples
         ["archived_count"] = 1,
     };
 
+    internal static JsonObject OrgChartResponse() => EnvelopeOk(new JsonObject
+    {
+        ["roots"] = new JsonArray(OrgChartRootNode()),
+    });
+
+    private static JsonObject OrgChartRootNode() => new()
+    {
+        ["id"] = SampleDepartmentId.ToString(),
+        ["name"] = "Engineering",
+        ["node_type"] = "department",
+        ["parent_id"] = null,
+        ["head_of_department"] = DepartmentHeadExample(),
+        ["employee_count"] = 24,
+        ["children"] = new JsonArray(new JsonObject
+        {
+            ["id"] = Guid.Parse("11111111-1111-1111-1111-111111111103").ToString(),
+            ["name"] = "Platform",
+            ["node_type"] = "department",
+            ["parent_id"] = SampleDepartmentId.ToString(),
+            ["head_of_department"] = DepartmentHeadExample(),
+            ["employee_count"] = 12,
+            ["children"] = new JsonArray(),
+        }),
+    };
+
+    private static JsonObject DepartmentHeadExample() => new()
+    {
+        ["employee_id"] = SampleEmployeeId.ToString(),
+        ["full_name"] = "Ada Lovelace",
+        ["job_title"] = "Engineering Director",
+        ["initials"] = "AL",
+    };
+
+    private static JsonObject DepartmentListData() => new()
+    {
+        ["summary"] = OrganisationSummaryData(),
+        ["items"] = new JsonArray(new JsonObject
+        {
+            ["department_id"] = SampleDepartmentId.ToString(),
+            ["name"] = "Engineering",
+            ["parent_department_id"] = null,
+            ["parent_department_name"] = null,
+            ["head_of_department"] = DepartmentHeadExample(),
+            ["employee_count"] = 24,
+            ["is_archived"] = false,
+            ["hierarchy_level"] = 0,
+        }),
+        ["showing_label"] = "Showing 1–15 of 8 departments",
+    };
+
+    private static JsonObject BranchListData() => new()
+    {
+        ["items"] = new JsonArray(new JsonObject
+        {
+            ["branch_id"] = SampleBranchId.ToString(),
+            ["name"] = "Accra HQ",
+            ["employee_count"] = 42,
+            ["is_archived"] = false,
+        }),
+    };
+
+    private static JsonObject CreateDepartmentResponseData() => new()
+    {
+        ["department_id"] = SampleDepartmentId.ToString(),
+        ["name"] = "Engineering",
+    };
+
+    private static JsonObject BranchMutationResponseData() => new()
+    {
+        ["branch_id"] = SampleBranchId.ToString(),
+        ["name"] = "Accra HQ",
+    };
+
+    internal static JsonObject CreateDepartmentRoot() => new()
+    {
+        ["name"] = "Engineering",
+        ["parent_department_id"] = null,
+        ["head_of_department_id"] = SampleEmployeeId.ToString(),
+    };
+
+    internal static JsonObject CreateDepartmentChild() => new()
+    {
+        ["name"] = "Platform",
+        ["parent_department_id"] = SampleDepartmentId.ToString(),
+        ["head_of_department_id"] = null,
+    };
+
+    internal static JsonObject UpdateDepartmentBody() => new()
+    {
+        ["name"] = "Engineering & Product",
+        ["parent_department_id"] = null,
+        ["head_of_department_id"] = SampleEmployeeId.ToString(),
+    };
+
+    internal static JsonObject CreateBranchBody() => new() { ["name"] = "Accra HQ" };
+
+    internal static JsonObject UpdateBranchBody() => new() { ["name"] = "Accra Headquarters" };
+
     internal static bool IsResponsType(Type type) =>
         type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Respons<>);
 
@@ -485,99 +605,53 @@ internal static class SwaggerExamples
 
     internal static JsonObject UpdateEmployeeFull()
     {
-        var create = CreateEmployeeFinalised();
-        var update = new JsonObject { ["id"] = SampleEmployeeId.ToString() };
-        foreach (var (key, value) in create)
-            update[key] = value?.DeepClone();
+        var update = CreateEmployeeFinalised();
         return update;
     }
 
     /// <inheritdoc cref="UpdateEmployeeFull"/>
     internal static JsonObject UpdateEmployeePartial() => UpdateEmployeeFull();
 
-    internal static JsonObject CreateCustomFieldDefinitionTemplate() => new()
+    internal static JsonObject UpdateCustomFieldBody() => new()
+    {
+        ["label"] = "Emergency contact name (updated)",
+        ["is_required"] = true,
+        ["placeholder"] = "Full name of emergency contact",
+    };
+
+    internal static JsonObject CreateCustomFieldAddBody() => new()
     {
         ["entity_type"] = SwaggerExampleHints.EntityType,
-        ["field_key"] = "bonus_eligible",
-        ["label"] = "Bonus eligible",
-        ["description"] = "Whether the employee qualifies for annual bonus.",
+        ["field_key"] = "tier",
+        ["label"] = "Compensation tier",
+        ["description"] = "Optional help text shown to admins.",
         ["field_type"] = SwaggerExampleHints.FieldType,
+        ["is_required"] = SwaggerExampleHints.BooleanPipe,
+        ["is_sensitive"] = SwaggerExampleHints.BooleanPipe,
+        ["is_filterable"] = SwaggerExampleHints.BooleanPipe,
+        ["is_searchable"] = SwaggerExampleHints.BooleanPipe,
+        ["display_order"] = 0,
         ["section_name"] = SwaggerExampleHints.SectionName,
-        ["section_order"] = 1,
-        ["display_order"] = 1,
-        ["options"] = "[\"yes\",\"no\"]",
-        ["is_required"] = false,
-        ["is_sensitive"] = false,
-        ["is_filterable"] = true,
-        ["is_searchable"] = false,
-        ["is_active"] = true,
+        ["section_order"] = 0,
+        ["options"] = SwaggerExampleHints.SelectOptionsPipe,
+        ["validation_rules"] = null,
+        ["default_value"] = "option_a",
+        ["placeholder"] = "Select…",
+        ["is_active"] = SwaggerExampleHints.BooleanPipe,
     };
 
-    internal static JsonObject CreateCustomFieldCompensation() => new()
-    {
-        ["entity_type"] = SwaggerExampleHints.EntityType,
-        ["field_key"] = "bonus_eligible",
-        ["label"] = "Bonus eligible",
-        ["description"] = "Whether the employee qualifies for annual bonus.",
-        ["field_type"] = SwaggerExampleHints.FieldType,
-        ["section_name"] = EmployeeCustomFieldSections.Compensation,
-        ["section_order"] = 1,
-        ["display_order"] = 1,
-        ["options"] = "[\"yes\",\"no\"]",
-        ["is_required"] = false,
-        ["is_sensitive"] = false,
-        ["is_filterable"] = true,
-        ["is_searchable"] = false,
-        ["is_active"] = true,
-    };
+    internal static JsonObject CreateCustomFieldDefinitionTemplate() => CreateCustomFieldAddBody();
 
-    internal static JsonObject CreateCustomFieldIdentity() => new()
-    {
-        ["entity_type"] = SwaggerExampleHints.EntityType,
-        ["field_key"] = "emergency_contact_name",
-        ["label"] = "Emergency contact name",
-        ["field_type"] = SwaggerExampleHints.FieldType,
-        ["section_name"] = EmployeeCustomFieldSections.Identity,
-        ["display_order"] = 2,
-        ["is_required"] = false,
-        ["is_active"] = true,
-    };
+    internal static string CreateCustomFieldAddExampleDescription() =>
+        """
+        One request creates **one** field definition. Pipe-separated values in the example (`employee|branch`, `text|select`, `true|false`) list allowed choices — **send one value** on real API calls.
 
-    internal static JsonObject CreateCustomFieldEmployment() => new()
-    {
-        ["entity_type"] = SwaggerExampleHints.EntityType,
-        ["field_key"] = "desk_number",
-        ["label"] = "Desk number",
-        ["field_type"] = SwaggerExampleHints.FieldType,
-        ["section_name"] = EmployeeCustomFieldSections.Employment,
-        ["display_order"] = 1,
-        ["is_required"] = false,
-        ["is_active"] = true,
-    };
+        **Required:** `entity_type`, `field_key`, `label`, `field_type`
+        **Required when field_type is select or multiselect:** `options` (JSON array string; pick one choice per slot)
+        **Optional:** `description`, `is_required`, `is_sensitive`, `is_filterable`, `is_searchable`, `display_order`, `section_name` (from GET /custom-fields/sections?entity_type=), `section_order`, `validation_rules`, `default_value`, `placeholder`, `is_active`
 
-    internal static JsonObject CreateCustomFieldEducation() => new()
-    {
-        ["entity_type"] = SwaggerExampleHints.EntityType,
-        ["field_key"] = "honors",
-        ["label"] = "Honors",
-        ["field_type"] = SwaggerExampleHints.FieldType,
-        ["section_name"] = EmployeeCustomFieldSections.Education,
-        ["display_order"] = 1,
-        ["is_required"] = false,
-        ["is_active"] = true,
-    };
-
-    internal static JsonObject CreateCustomFieldCertification() => new()
-    {
-        ["entity_type"] = SwaggerExampleHints.EntityType,
-        ["field_key"] = "verified",
-        ["label"] = "Verified",
-        ["field_type"] = SwaggerExampleHints.FieldType,
-        ["section_name"] = EmployeeCustomFieldSections.Certification,
-        ["display_order"] = 1,
-        ["is_required"] = false,
-        ["is_active"] = true,
-    };
+        Omit `options` for text, number, date, boolean, email, phone, url.
+        """;
 
     internal static JsonObject EmployeeAggregateReadData() =>
         (JsonObject)EmployeeAggregateReadResponse()["data"]!;

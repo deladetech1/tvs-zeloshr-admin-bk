@@ -68,8 +68,8 @@ public class EmployeesController : ControllerBase
     }
 
     /// <summary>
-    /// Update employee — same aggregate shape as <c>POST /add</c>, plus required <c>id</c> (employee UUID).
-    /// You may send the full profile or only sections/fields to change. Set <c>status</c> to <c>finalised</c> to complete a draft.
+    /// Update employee — same aggregate shape as <c>POST /add</c> (partial or full).
+    /// Pass <c>employee_id</c> on the query string. Set <c>status</c> to <c>finalised</c> to complete a draft.
     /// </summary>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpPut("update")]
@@ -77,16 +77,17 @@ public class EmployeesController : ControllerBase
     [ProducesResponseType(typeof(Respons<EmployeeAggregateReadDto>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(Respons<EmployeeAggregateReadDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<EmployeeAggregateReadDto>>> UpdateEmployee(
+        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId,
         [FromBody] UpdateEmployeeAggregateRequest body,
         CancellationToken ct)
     {
-        if (body.Id == Guid.Empty)
+        if (employeeId == Guid.Empty)
         {
             return BadRequest(Respons<EmployeeAggregateReadDto>.ValidationError(
-                new Dictionary<string, string> { ["id"] = "Employee id is required in the request body." }));
+                new Dictionary<string, string> { ["employee_id"] = "employee_id query parameter is required." }));
         }
 
-        var result = await _aggregate.UpdateAsync(body.Id, body, ct);
+        var result = await _aggregate.UpdateAsync(employeeId, body, ct);
         return StatusCode(result.StatusCode, result);
     }
 

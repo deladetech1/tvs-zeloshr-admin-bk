@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Employees;
 
@@ -8,6 +9,24 @@ public sealed class CustomFieldsSummaryDto
     public int TotalDefinitions { get; init; }
     public int ActiveDefinitions { get; init; }
     public int DeletedDefinitions { get; init; }
+}
+
+public sealed class CustomFieldSectionOptionDto
+{
+    /// <summary>Stored as <c>section_name</c> on the custom field definition.</summary>
+    public required string Value { get; init; }
+
+    /// <summary>Human-readable label for dropdowns.</summary>
+    public required string Label { get; init; }
+}
+
+public sealed class CustomFieldSectionsDto
+{
+    [SwaggerAllowedValues(typeof(CustomFieldEntityTypes), nameof(CustomFieldEntityTypes.All))]
+    public required string EntityType { get; init; }
+
+    /// <summary>Valid sections for the entity type. Empty when the entity has no sections.</summary>
+    public IReadOnlyList<CustomFieldSectionOptionDto> Sections { get; init; } = [];
 }
 
 public sealed class CustomFieldDefinitionDto
@@ -32,7 +51,10 @@ public sealed class CustomFieldDefinitionDto
     [SwaggerAllowedValues(typeof(EmployeeCustomFieldSections), nameof(EmployeeCustomFieldSections.All))]
     public string? SectionName { get; init; }
     public int SectionOrder { get; init; }
+    /// <summary>JSON array on the wire as string, or a JSON array for select/multiselect choices.</summary>
+    [JsonConverter(typeof(JsonStoredStringConverter))]
     public string? Options { get; init; }
+    [JsonConverter(typeof(JsonStoredStringConverter))]
     public string? ValidationRules { get; init; }
     public string? DefaultValue { get; init; }
     public string? Placeholder { get; init; }
@@ -40,7 +62,17 @@ public sealed class CustomFieldDefinitionDto
     public bool IsDeleted { get; init; }
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
+
+    /// <summary>Platform user id (<c>cp_users.id</c>) who created this definition.</summary>
+    public string? CreatedById { get; init; }
+
+    /// <summary>Platform user id (<c>cp_users.id</c>) who last updated this definition.</summary>
+    public string? UpdatedById { get; init; }
+
+    /// <summary>Display name from <c>cp_users.fullname</c> — not the raw user id.</summary>
     public string? CreatedBy { get; init; }
+
+    /// <summary>Display name from <c>cp_users.fullname</c> — not the raw user id.</summary>
     public string? UpdatedBy { get; init; }
 }
 
@@ -60,39 +92,61 @@ public sealed class CustomFieldSchemaDto
 
 public sealed class CreateCustomFieldDefinitionDto
 {
-    /// <summary>Target entity. Use <c>employee</c> for employee profile fields.</summary>
+    /// <summary>(Required) Target entity — load options from GET /custom-fields/entity-types.</summary>
     [SwaggerAllowedValues(typeof(CustomFieldEntityTypes), nameof(CustomFieldEntityTypes.All))]
     public required string EntityType { get; set; }
 
-    /// <summary>Stable key used in employee <c>custom_fields</c> objects (snake_case recommended).</summary>
+    /// <summary>(Required) Stable key used in employee <c>custom_fields</c> objects (snake_case, unique per entity_type).</summary>
     public required string FieldKey { get; set; }
 
-    /// <summary>Human-readable label shown in UI.</summary>
+    /// <summary>(Required) Human-readable label shown in UI.</summary>
     public required string Label { get; set; }
 
+    /// <summary>(Optional) Help text for admins building the form.</summary>
     public string? Description { get; set; }
 
+    /// <summary>(Required) Input kind — controls validation and whether <c>options</c> is needed.</summary>
     [SwaggerAllowedValues(typeof(CustomFieldFieldTypes), nameof(CustomFieldFieldTypes.All))]
     public required string FieldType { get; set; }
 
+    /// <summary>(Optional, default false) Whether employee forms must supply a value.</summary>
     public bool IsRequired { get; set; }
+
+    /// <summary>(Optional, default false) Mask value in UI / restrict visibility.</summary>
     public bool IsSensitive { get; set; }
+
+    /// <summary>(Optional, default true) Allow filtering employee lists by this field.</summary>
     public bool IsFilterable { get; set; } = true;
+
+    /// <summary>(Optional, default true) Include in employee search index.</summary>
     public bool IsSearchable { get; set; } = true;
+
+    /// <summary>(Optional, default 0) Sort order within the section.</summary>
     public int DisplayOrder { get; set; }
 
-    /// <summary>Which employee section receives values for this field (see Allowed on schema).</summary>
+    /// <summary>(Optional for non-employee types) Load from GET /custom-fields/sections?entity_type=.</summary>
     [SwaggerAllowedValues(typeof(EmployeeCustomFieldSections), nameof(EmployeeCustomFieldSections.All),
         Description = "One section per definition — use employee-directory-identity | employee-directory-employment | employee-directory-compensation | employee-directory-education | employee-directory-certification.")]
     public string? SectionName { get; set; }
 
+    /// <summary>(Optional, default 0) Sort order among sections on the form.</summary>
     public int SectionOrder { get; set; }
 
-    /// <summary>JSON array on the wire; UI choices shown as yes | no in examples (select | multiselect).</summary>
+    /// <summary>(Required for select/multiselect only) JSON array on the wire as string, e.g. <c>["tier1","tier2"]</c>.</summary>
+    [JsonConverter(typeof(JsonStoredStringConverter))]
     public string? Options { get; set; }
+
+    /// <summary>(Optional) JSON rules string for client/server validation hints.</summary>
+    [JsonConverter(typeof(JsonStoredStringConverter))]
     public string? ValidationRules { get; set; }
+
+    /// <summary>(Optional) Pre-filled value on new employee forms.</summary>
     public string? DefaultValue { get; set; }
+
+    /// <summary>(Optional) Input placeholder in UI.</summary>
     public string? Placeholder { get; set; }
+
+    /// <summary>(Optional, default true) Inactive fields are hidden from schema/forms.</summary>
     public bool IsActive { get; set; } = true;
 }
 
@@ -112,7 +166,9 @@ public sealed class UpdateCustomFieldDefinitionDto
     [SwaggerAllowedValues(typeof(EmployeeCustomFieldSections), nameof(EmployeeCustomFieldSections.All))]
     public string? SectionName { get; set; }
     public int? SectionOrder { get; set; }
+    [JsonConverter(typeof(JsonStoredStringConverter))]
     public string? Options { get; set; }
+    [JsonConverter(typeof(JsonStoredStringConverter))]
     public string? ValidationRules { get; set; }
     public string? DefaultValue { get; set; }
     public string? Placeholder { get; set; }
@@ -142,7 +198,13 @@ public sealed class CustomFieldAuditLogDto
     public required string FieldKey { get; init; }
     public string? OldValue { get; init; }
     public string? NewValue { get; init; }
+
+    /// <summary>Platform user id (<c>cp_users.id</c>) who made the change.</summary>
+    public required string ChangedById { get; init; }
+
+    /// <summary>Display name from <c>cp_users.fullname</c>.</summary>
     public required string ChangedBy { get; init; }
+
     public DateTimeOffset ChangedAt { get; init; }
 
     [SwaggerAllowedValues(typeof(CustomFieldChangeTypes), nameof(CustomFieldChangeTypes.All))]

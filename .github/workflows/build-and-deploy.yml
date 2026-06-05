@@ -200,6 +200,29 @@ jobs:
 
           echo "image=${ACR_LOGIN_SERVER}/${{ env.SERVICE_NAME }}:${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
 
+      - name: Sync SECRET_KEY to Container App
+        if: steps.containerapp.outputs.exists == 'true'
+        env:
+          JWT_SECRET: ${{ secrets.TROVESUITE_SECRET_KEY }}
+        run: |
+          if [[ -z "${JWT_SECRET}" ]]; then
+            echo "::warning::TROVESUITE_SECRET_KEY is not set — configure SECRET_KEY manually on the Container App (see docs/PRODUCTION_CONFIG.md)."
+            exit 0
+          fi
+          NAME="${{ steps.env.outputs.container_app_name }}"
+          RG="${{ steps.env.outputs.resource_group }}"
+          az containerapp secret set \
+            --name "$NAME" \
+            --resource-group "$RG" \
+            --secrets "jwt-secret-key=${JWT_SECRET}" \
+            --output none
+          az containerapp update \
+            --name "$NAME" \
+            --resource-group "$RG" \
+            --set-env-vars "SECRET_KEY=secretref:jwt-secret-key" \
+            --output none
+          echo "SECRET_KEY synced from TROVESUITE_SECRET_KEY."
+
       - name: Deploy to Azure Container Apps
         if: steps.containerapp.outputs.exists == 'true'
         run: |

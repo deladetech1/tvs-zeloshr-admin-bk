@@ -1,3 +1,4 @@
+using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Branches;
 
@@ -12,6 +13,7 @@ public sealed class OrgChartNodeDto
 {
     public required string Id { get; init; }
     public required string Name { get; init; }
+    [SwaggerAllowedValues(typeof(OrgStructureFieldOptions), nameof(OrgStructureFieldOptions.NodeTypes))]
     public required string NodeType { get; init; }
     public string? ParentId { get; init; }
     public DepartmentHeadDto? HeadOfDepartment { get; init; }

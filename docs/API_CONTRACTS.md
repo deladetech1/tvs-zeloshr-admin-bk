@@ -26,7 +26,7 @@ See [ENTERPRISE_API.md](ENTERPRISE_API.md) for the full CRUD matrix and [GET /ap
 | GET | `/get?employee_id=` | Aggregate read |
 | GET | `/detail?employee_id=` | Flat profile DTO |
 | POST | `/add` | Create (aggregate body) |
-| PUT | `/update` | Partial update — body includes `id` (employee UUID); send only changed sections |
+| PUT | `/update?employee_id=` | Partial update — send only changed sections (no `id` in body) |
 | DELETE | `/delete?employee_id=` | Soft delete |
 
 Link existing platform user: `POST /import` (separate from `POST /add`). Wizard: `POST /draft`, `PUT /update`, `POST /finalise?employee_id=`.
@@ -36,7 +36,6 @@ Link existing platform user: `POST /import` (separate from `POST /add`). Wizard:
 | Field | Create | Update | Notes |
 |-------|--------|--------|-------|
 | `status` | yes | no | Create only: `draft` \| `finalised` |
-| `id` | no | **required** | Employee UUID from `GET /get` |
 | `identity` | object | optional | See identity table below |
 | `employment` | optional | optional | Job, dept, branch, manager, etc. |
 | `compensation` | optional | optional | Salary, SSNIT, TIN, bank |

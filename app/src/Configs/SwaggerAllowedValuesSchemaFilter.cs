@@ -35,7 +35,7 @@ public sealed class SwaggerAllowedValuesSchemaFilter : ISchemaFilter
         mutable.Type = JsonSchemaType.String;
         mutable.Enum = values.Select(v => (JsonNode)JsonValue.Create(v)!).ToList();
         mutable.Example = JsonValue.Create(
-            usePipeJoinedExample ? SwaggerOptionFormat.Join(values) : values[0]);
+            usePipeJoinedExample ? SwaggerOptionFormat.JoinPipe(values) : values[0]);
 
         if (!string.IsNullOrWhiteSpace(attr.Description))
             mutable.Description = SwaggerOptionFormat.Append(mutable.Description, attr.Description);

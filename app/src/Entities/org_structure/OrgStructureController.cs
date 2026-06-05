@@ -8,8 +8,9 @@ using ZelosHR.Api.Shared.Tenant;
 
 namespace ZelosHR.Api.Entities.OrgStructure;
 
+/// <summary>Organisation structure — org chart, departments, and branches.</summary>
 [ApiController]
-[ApiExplorerSettings(GroupName = SwaggerGroups.Organisation, IgnoreApi = true)]
+[ApiExplorerSettings(GroupName = SwaggerGroups.Organisation)]
 [Route("api/v1/org-structure")]
 [Produces("application/json")]
 public class OrgStructureController : ControllerBase
@@ -23,6 +24,7 @@ public class OrgStructureController : ControllerBase
         _tenant = tenant;
     }
 
+    /// <summary>Organisation tab counts (departments, branches, archived).</summary>
     [HttpGet("statistics")]
     public async Task<ActionResult<Respons<OrganisationSummaryDto>>> Statistics(CancellationToken ct)
     {
@@ -31,11 +33,16 @@ public class OrgStructureController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>List departments (paginated, sortable).</summary>
     [HttpGet("departments")]
     public async Task<ActionResult<Respons<DepartmentListDto>>> Departments(
         [FromQuery] string? search,
-        [FromQuery] string sortBy = "name",
-        [FromQuery] string sortOrder = "asc",
+        [FromQuery]
+        [SwaggerAllowedValues(typeof(OrgStructureFieldOptions), nameof(OrgStructureFieldOptions.DepartmentSortBy))]
+        string sortBy = "name",
+        [FromQuery]
+        [SwaggerAllowedValues(typeof(OrgStructureFieldOptions), nameof(OrgStructureFieldOptions.SortOrder))]
+        string sortOrder = "asc",
         [FromQuery] bool includeArchived = false,
         [FromQuery] int page = 1,
         [FromQuery] int size = 15,
@@ -47,6 +54,7 @@ public class OrgStructureController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>List branches (paginated).</summary>
     [HttpGet("branches")]
     public async Task<ActionResult<Respons<BranchListDto>>> Branches(
         [FromQuery] string? search,
@@ -61,6 +69,7 @@ public class OrgStructureController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Nested org chart (department tree with heads and employee counts).</summary>
     [HttpGet("chart")]
     public async Task<ActionResult<Respons<OrgChartDto>>> Chart(CancellationToken ct)
     {
@@ -69,6 +78,7 @@ public class OrgStructureController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Create a department.</summary>
     [HttpPost("departments/add")]
     public async Task<ActionResult<Respons<CreateDepartmentResponseDto>>> CreateDepartment(
         [FromBody] CreateDepartmentRequestDto body,
@@ -79,6 +89,7 @@ public class OrgStructureController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Update a department.</summary>
     [HttpPut("departments/update")]
     public async Task<ActionResult<Respons<CreateDepartmentResponseDto>>> UpdateDepartment(
         [FromQuery(Name = PlatformQueryParams.DepartmentId)] Guid departmentId,
@@ -90,6 +101,7 @@ public class OrgStructureController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Archive a department (soft-delete).</summary>
     [HttpDelete("departments/delete")]
     public async Task<ActionResult<Respons<object>>> ArchiveDepartment(
         [FromQuery(Name = PlatformQueryParams.DepartmentId)] Guid departmentId,
@@ -100,6 +112,7 @@ public class OrgStructureController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Create a branch.</summary>
     [HttpPost("branches/add")]
     public async Task<ActionResult<Respons<BranchMutationResponseDto>>> CreateBranch(
         [FromBody] CreateBranchRequestDto body,
@@ -110,6 +123,7 @@ public class OrgStructureController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Update a branch.</summary>
     [HttpPut("branches/update")]
     public async Task<ActionResult<Respons<BranchMutationResponseDto>>> UpdateBranch(
         [FromQuery(Name = PlatformQueryParams.BranchId)] Guid branchId,
@@ -121,6 +135,7 @@ public class OrgStructureController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Archive a branch (soft-delete).</summary>
     [HttpDelete("branches/delete")]
     public async Task<ActionResult<Respons<object>>> ArchiveBranch(
         [FromQuery(Name = PlatformQueryParams.BranchId)] Guid branchId,

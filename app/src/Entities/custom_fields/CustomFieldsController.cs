@@ -43,10 +43,28 @@ public class CustomFieldsController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Section dropdown options for a selected entity type (admin create/edit form).</summary>
+    /// <remarks>
+    /// Call after the user picks <c>entity_type</c> from <c>GET /custom-fields/entity-types</c>.
+    /// Use returned <c>value</c> as <c>section_name</c> on <c>POST /custom-fields/add</c>.
+    /// Non-employee entity types return an empty <c>sections</c> array (section is optional for those).
+    /// </remarks>
+    [HttpGet("sections")]
+    [RequiresZelosHrPermission(ZelosHrPermissions.CustomFieldsGet)]
+    public async Task<ActionResult<Respons<CustomFieldSectionsDto>>> Sections(
+        [FromQuery]
+        [SwaggerAllowedValues(typeof(CustomFieldEntityTypes), nameof(CustomFieldEntityTypes.All))]
+        string entityType,
+        CancellationToken ct)
+    {
+        var result = await _service.GetSectionsAsync(entityType);
+        return StatusCode(result.StatusCode, result);
+    }
+
     /// <summary>Active field definitions for an entity type — use to build employee forms.</summary>
     /// <remarks>
-    /// Filter by `sectionName`: identity | employment | compensation | education | certification.
-    /// Returned `field_key` values are the keys used in employee section `custom_fields` objects.
+    /// Optional filter by <c>section_name</c> (values from <c>GET /custom-fields/sections?entity_type=</c>).
+    /// Returned <c>field_key</c> values are the keys used in employee section <c>custom_fields</c> objects.
     /// </remarks>
     [HttpGet("schema")]
     [RequiresZelosHrPermission(ZelosHrPermissions.CustomFieldsGet)]
@@ -109,7 +127,8 @@ public class CustomFieldsController : ControllerBase
 
     /// <summary>Create a custom field definition (schema only — not a value).</summary>
     /// <remarks>
-    /// See **Examples** for compensation select and identity text field payloads.
+    /// See the **Examples** dropdown for one full payload with required vs optional fields marked.
+    /// Load `entity_type` from GET /custom-fields/entity-types and `section_name` from GET /custom-fields/sections?entity_type=.
     /// After creating definitions, send values on employee create/update under the matching section's `custom_fields`.
     /// </remarks>
     [HttpPost("add")]
@@ -123,6 +142,7 @@ public class CustomFieldsController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Update a custom field definition. Pass <c>custom_field_id</c> on the query string.</summary>
     [HttpPut("update")]
     [RequiresZelosHrPermission(ZelosHrPermissions.CustomFieldsUpdate)]
     public async Task<ActionResult<Respons<CustomFieldDefinitionDto>>> Update(

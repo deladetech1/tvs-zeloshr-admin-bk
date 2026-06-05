@@ -67,22 +67,32 @@ public static class SwaggerConfiguration
 
                     ### Employee create workflow
 
-                    1. **(Optional) Custom fields** — Admin defines fields: `POST /api/v1/custom-fields/add`  
-                       Frontend loads schema: `GET /api/v1/custom-fields/schema?entityType=employee`  
-                       Employee `section_name` values: `employee-directory-identity` | `employee-directory-employment` | `employee-directory-compensation` | `employee-directory-education` | `employee-directory-certification`
+                    1. **(Optional) Custom fields** — Admin form: `GET /api/v1/custom-fields/entity-types` → `GET /api/v1/custom-fields/sections?entity_type=` → `POST /api/v1/custom-fields/add` (use section `value` as `section_name`)  
+                       Update definition: `PUT /api/v1/custom-fields/update?custom_field_id=`  
+                       Employee form schema: `GET /api/v1/custom-fields/schema?entity_type=employee`
                     2. **(Optional) Documents** — Upload: `POST /api/v1/file/post/multiple?blob_paths=…`  
                        Attach returned IDs on employee: `document_ids: ["doc_…"]`  
                        Resolve URLs: `GET /api/v1/file/list?document_ids=…`
                     3. **Currency** — `GET /api/v1/currencies/list` → use returned `id` as `compensation.currency_id` (not a currency code string)
                     4. **Create** — `POST /api/v1/employees/add` with `status: draft | finalised`
-                    5. **Read / update** — `GET /api/v1/employees/get?employee_id=` · `PUT /api/v1/employees/update` (full profile or partial; body includes `id`)
+                    5. **Read / update** — `GET /api/v1/employees/get?employee_id=` · `PUT /api/v1/employees/update?employee_id=` (full profile or partial body)
                     6. **Bulk import** — `GET /api/v1/employees/bulk/template` → fill CSV → `POST /api/v1/employees/bulk?status=`
+
+                    ---
+
+                    ### Organisation / org chart workflow
+
+                    1. **Summary tabs** — `GET /api/v1/org-structure/statistics`
+                    2. **Org chart tree** — `GET /api/v1/org-structure/chart` (`node_type`: department)
+                    3. **Departments** — list `GET …/departments` (`sort_by`: name | employeeCount · `sort_order`: asc | desc · `include_archived`: false | true)
+                       · create `POST …/departments/add` · update `PUT …/departments/update?department_id=` · archive `DELETE …/departments/delete?department_id=`
+                    4. **Branches** — list `GET …/branches` · create `POST …/branches/add` · update `PUT …/branches/update?branch_id=` · archive `DELETE …/branches/delete?branch_id=`
 
                     ---
 
                     ### Documented modules
 
-                    **Employees** · **Currencies** · **Custom Fields** · **File Management**
+                    **Employees** · **Currencies** · **Custom Fields** · **File Management** · **Organisation** (org chart, departments, branches)
 
                     Conformance: `docs/MYSTOREGUARD_API_CONFORMANCE.md` · Navigation: `GET /api/v1/navigation`
                     """,
@@ -119,6 +129,7 @@ public static class SwaggerConfiguration
             options.OperationFilter<SwaggerEmployeesOperationFilter>();
             options.OperationFilter<SwaggerCurrenciesOperationFilter>();
             options.OperationFilter<SwaggerFileManagementOperationFilter>();
+            options.OperationFilter<SwaggerOrgStructureOperationFilter>();
             options.OperationFilter<SwaggerResponseExamplesOperationFilter>();
             options.DocumentFilter<SwaggerFileManagementTagDocumentFilter>();
             options.TagActionsBy(api =>

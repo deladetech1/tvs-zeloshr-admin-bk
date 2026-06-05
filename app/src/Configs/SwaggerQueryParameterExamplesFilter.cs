@@ -2,6 +2,7 @@ using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Employees;
+using ZelosHR.Api.Entities.OrgStructure;
 using ZelosHR.Api.Shared.Constants;
 
 namespace ZelosHR.Api.Configs;
@@ -106,6 +107,18 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
             parameter.Description = """
                 Employee UUID from POST /employees/add or GET /employees/list.
                 GET single employee: GET /api/v1/employees/get?employee_id={uuid}
+                Update: PUT /api/v1/employees/update?employee_id={uuid}
+                """;
+            return;
+        }
+
+        if (name.Equals(PlatformQueryParams.CustomFieldId, StringComparison.OrdinalIgnoreCase)
+            || name.Equals("customFieldId", StringComparison.OrdinalIgnoreCase))
+        {
+            schema.Example = SwaggerExamples.SampleCustomFieldId.ToString();
+            parameter.Description = """
+                Custom field definition UUID from POST /custom-fields/add or GET /custom-fields/list.
+                Used on GET /custom-fields/get, PUT /custom-fields/update, and DELETE /custom-fields/delete.
                 """;
             return;
         }
@@ -121,12 +134,18 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
             return;
         }
 
-        if (name.Equals("entityType", StringComparison.OrdinalIgnoreCase))
+        if (name.Equals("entityType", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("entity_type", StringComparison.OrdinalIgnoreCase))
         {
             schema.Example = SwaggerExampleHints.EntityType;
-            parameter.Description = SwaggerOptionFormat.Append(
-                parameter.Description,
-                "Entity type for custom field definitions. Use `employee` for HR profile fields.");
+            var path = context.ApiDescription.RelativePath ?? "";
+            parameter.Description = path.Contains("sections", StringComparison.OrdinalIgnoreCase)
+                ? SwaggerOptionFormat.Append(
+                    parameter.Description,
+                    "Required. Entity type from GET /custom-fields/entity-types. Returns valid section_name options for that type.")
+                : SwaggerOptionFormat.Append(
+                    parameter.Description,
+                    "Entity type for custom field definitions. Use `employee` for HR profile fields.");
             return;
         }
 
@@ -137,6 +156,63 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
                 parameter.Description,
                 $"Filter definitions by employee form section. Allowed: {SwaggerExampleHints.SectionName}.");
             return;
+        }
+
+        if (name.Equals("sortBy", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("sort_by", StringComparison.OrdinalIgnoreCase))
+        {
+            schema.Example = SwaggerExampleHints.OrgDepartmentSortBy;
+            parameter.Description = SwaggerOptionFormat.Append(
+                parameter.Description,
+                $"Allowed: {SwaggerExampleHints.OrgDepartmentSortBy}.");
+            return;
+        }
+
+        if (name.Equals("sortOrder", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("sort_order", StringComparison.OrdinalIgnoreCase))
+        {
+            schema.Example = SwaggerExampleHints.OrgSortOrder;
+            parameter.Description = SwaggerOptionFormat.Append(
+                parameter.Description,
+                $"Allowed: {SwaggerExampleHints.OrgSortOrder}.");
+            return;
+        }
+
+        if (name.Equals("includeArchived", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("include_archived", StringComparison.OrdinalIgnoreCase))
+        {
+            schema.Example = SwaggerExampleHints.OrgIncludeArchived;
+            parameter.Description = SwaggerOptionFormat.Append(
+                parameter.Description,
+                $"Allowed: {SwaggerExampleHints.OrgIncludeArchived}.");
+            return;
+        }
+
+        if (name.Equals(PlatformQueryParams.DepartmentId, StringComparison.OrdinalIgnoreCase)
+            || name.Equals("departmentId", StringComparison.OrdinalIgnoreCase))
+        {
+            schema.Example = SwaggerExamples.SampleDepartmentId.ToString();
+            parameter.Description = """
+                Department UUID from POST /org-structure/departments/add or GET /org-structure/departments.
+                """;
+            return;
+        }
+
+        if (name.Equals(PlatformQueryParams.BranchId, StringComparison.OrdinalIgnoreCase)
+            || name.Equals("branchId", StringComparison.OrdinalIgnoreCase))
+        {
+            schema.Example = SwaggerExamples.SampleBranchId.ToString();
+            parameter.Description = """
+                Branch UUID from POST /org-structure/branches/add or GET /org-structure/branches.
+                """;
+            return;
+        }
+
+        if (name.Equals("search", StringComparison.OrdinalIgnoreCase)
+            && context.ApiDescription.RelativePath?.Contains("org-structure", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            schema.Example = "eng";
+            parameter.Description = "Optional name filter (minimum 3 characters, case-insensitive).";
         }
     }
 }

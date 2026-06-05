@@ -10,6 +10,7 @@ public static class SwaggerGroups
         Currencies,
         CustomFields,
         FileManagement,
+        Organisation,
     };
 
     public static bool IsVisibleInSwagger(string? groupName) =>

@@ -23,6 +23,9 @@ cp scripts/local-dev/live-session.example.env scripts/local-dev/live-session.env
 
 # Employees (statistics, list, import search, bulk template, optional get by id)
 ./scripts/local-dev/test-employees.sh
+
+# Organisation / org chart
+./scripts/local-dev/test-org-structure.sh
 ```
 
 After JWT secret rotation, **log in again** and refresh `TROVE_BEARER_TOKEN`. Ensure `TROVE_TENANT_ID` matches the JWT claim exactly (a typo causes `403 Invalid platform context` even when org/bus/loc look correct).
@@ -48,8 +51,10 @@ chmod +x scripts/local-dev/*.sh
 
 **Warnings for live DB**
 
-- `App__RunDatabaseMigrations=false` — never bootstrap schema against shared dev.
+- **Never run `tvs-sqlscript deploy` (or any EF migration) against shared dev Postgres** from this machine. All schema and shipped reference data: implement in [tvs-sqlscript](https://github.com/deladetech1/tvs-sqlscript), then CI/deploy — not from ZelosHR or these scripts.
+- `App__RunDatabaseMigrations=false` — the local API must not bootstrap schema against shared dev.
 - Prefer read-only testing; avoid destructive writes unless intentional.
+- If an endpoint returns **500** because the API expects columns the DB does not have yet, fix is **merge + deploy tvs-sqlscript** (or ask the platform team) — not a local migration against `live-db.env`.
 
 ## Files
 

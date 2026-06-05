@@ -17,6 +17,14 @@ This repo (**ZelosHR.Api**) does **not** own production schema. Do **not** add o
 
 **Never** ship DDL or production seeds only in this repo.
 
+**Do not run migrations from this repo or from local-dev scripts against shared dev/staging/prod Postgres.** Implement the change in **tvs-sqlscript** (EF migration + entity/config + seeds if needed), merge there, and let the normal **tvs-sqlscript** deploy pipeline apply it. ZelosHR.Api only consumes the schema that pipeline has already applied.
+
+| You need… | Do this |
+|-----------|---------|
+| New column, table, index, FK | `tvs-sqlscript` → `dotnet ef migrations add` → PR → CI deploy |
+| New RBAC / reference row that ships to all envs | `tvs-sqlscript` → `Seeds/` |
+| Demo tenant rows for local testing | Local compose DB or manual insert — **not** tvs-sqlscript, **not** shared `dev-db` from an agent |
+
 ## tvs-sqlscript (.NET 10 / EF Core)
 
 ```

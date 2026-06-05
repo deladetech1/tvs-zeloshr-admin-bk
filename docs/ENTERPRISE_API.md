@@ -38,7 +38,7 @@ ZelosHR is a **multi-tenant HR platform**, not a demo read API. Every business m
 
 Legacy read-only aliases: `GET /departments/statistics`, `GET /departments/list`; `GET /branches/list`. Hidden from Swagger: `GET /employees/directory/summary` (use `statistics`).
 
-`GET /custom-fields/list` supports `search`, `entity_type`, filters, `page`, `size`. Also: `GET /custom-fields/schema?entity_type=`, audit routes as documented in Swagger.
+`GET /custom-fields/list` supports `search`, `entity_type`, filters, `page`, `size`. Also: `GET /custom-fields/entity-types`, `GET /custom-fields/sections?entity_type=`, `GET /custom-fields/schema?entity_type=`, audit routes as documented in Swagger.
 
 `GET /employees/list` and `GET /employees/directory` support `search`, department/branch filters, `sort_by`, `sort_order`, `page`, `size`, `include_inactive`.
 

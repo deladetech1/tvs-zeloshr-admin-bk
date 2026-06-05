@@ -330,6 +330,7 @@ public sealed class CustomFieldDefinitionsRepository(ZelosHrDbContext db) : ICus
                 FieldKey = a.FieldKey,
                 OldValue = a.OldValue,
                 NewValue = a.NewValue,
+                ChangedById = a.ChangedBy,
                 ChangedBy = a.ChangedBy,
                 ChangedAt = a.ChangedAt,
                 ChangeType = a.ChangeType,
@@ -446,7 +447,7 @@ public sealed class CustomFieldDefinitionsRepository(ZelosHrDbContext db) : ICus
         IsDeleted = d.IsDeleted,
         CreatedAt = d.CreatedAt,
         UpdatedAt = d.UpdatedAt,
-        CreatedBy = d.CreatedBy,
-        UpdatedBy = d.UpdatedBy,
+        CreatedById = d.CreatedBy,
+        UpdatedById = d.UpdatedBy,
     };
 }

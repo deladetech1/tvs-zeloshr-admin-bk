@@ -41,16 +41,13 @@ public sealed class CreateEmployeeAggregateRequest
 
 /// <summary>Partial employee update — only include sections/fields to change.</summary>
 /// <remarks>
-/// Body must include <c>id</c> (employee UUID from <c>GET /employees/get?employee_id=</c>).
+/// Pass <c>employee_id</c> on the query string (UUID from <c>GET /employees/get?employee_id=</c>).
 /// Same aggregate shape as <c>POST /add</c> — send the full profile or only fields to change.
 /// <c>document_ids</c> appends file-registry IDs; <c>delete_document_ids</c> removes them.
 /// Education/certification array items: include <c>id</c> to update, omit <c>id</c> to add new rows.
 /// </remarks>
 public sealed class UpdateEmployeeAggregateRequest
 {
-    /// <summary>Employee UUID (same as <c>data.id</c> from <c>GET /id</c>).</summary>
-    public required Guid Id { get; init; }
-
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.CreateStatuses),
         Description = "Use finalised to complete a draft | links platform user when work_email is set.")]
     public string? Status { get; init; }

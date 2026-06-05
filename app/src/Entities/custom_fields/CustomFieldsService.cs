@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Persistence.Repositories;
 using ZelosHR.Api.Shared.Pagination;
@@ -11,13 +12,16 @@ public partial class CustomFieldsService
     private static readonly Regex FieldKeyPattern = FieldKeyRegex();
 
     private readonly ICustomFieldDefinitionsRepository _repository;
+    private readonly ICpUserRepository _cpUsers;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
     public CustomFieldsService(
         ICustomFieldDefinitionsRepository repository,
+        ICpUserRepository cpUsers,
         IHttpContextAccessor httpContextAccessor)
     {
         _repository = repository;
+        _cpUsers = cpUsers;
         _httpContextAccessor = httpContextAccessor;
     }
 
@@ -66,15 +70,16 @@ public partial class CustomFieldsService
 
         var (items, total) = await _repository.ListScopedAsync(tenantId, orgId, listQuery, ct);
         var summary = await _repository.GetSummaryScopedAsync(tenantId, orgId, ct);
+        var enriched = await EnrichDefinitionsAsync(items, tenantId, ct);
 
         return Respons<CustomFieldDefinitionListDto>.Ok(
-            new CustomFieldDefinitionListDto { Summary = summary, Items = items },
+            new CustomFieldDefinitionListDto { Summary = summary, Items = enriched },
             pagination: new PaginationMeta
             {
                 Page = paging.Page,
                 Size = paging.Size,
                 Total = total,
-                HasNext = paging.Offset + items.Count < total,
+                HasNext = paging.Offset + enriched.Count < total,
             });
     }
 
@@ -90,23 +95,52 @@ public partial class CustomFieldsService
         }
 
         var fields = await _repository.ListSchemaScopedAsync(tenantId, orgId, entityType.Trim(), ct);
+        var enriched = await EnrichDefinitionsAsync(fields, tenantId, ct);
         return Respons<CustomFieldSchemaDto>.Ok(new CustomFieldSchemaDto
         {
             EntityType = entityType.Trim(),
-            Fields = fields,
+            Fields = enriched,
         });
     }
 
     public Task<Respons<IReadOnlyList<string>>> GetEntityTypesAsync() =>
         Task.FromResult(Respons<IReadOnlyList<string>>.Ok(CustomFieldEntityTypes.All));
 
+    public Task<Respons<CustomFieldSectionsDto>> GetSectionsAsync(string entityType)
+    {
+        if (string.IsNullOrWhiteSpace(entityType))
+        {
+            return Task.FromResult(Respons<CustomFieldSectionsDto>.ValidationError(new Dictionary<string, string>
+            {
+                ["entity_type"] = "entity_type query parameter is required.",
+            }));
+        }
+
+        var canonical = CustomFieldEntitySections.ResolveCanonicalEntityType(entityType);
+        if (canonical is null)
+        {
+            return Task.FromResult(Respons<CustomFieldSectionsDto>.ValidationError(new Dictionary<string, string>
+            {
+                ["entity_type"] = $"Must be one of: {string.Join(" | ", CustomFieldEntityTypes.All)}.",
+            }));
+        }
+
+        return Task.FromResult(Respons<CustomFieldSectionsDto>.Ok(new CustomFieldSectionsDto
+        {
+            EntityType = canonical,
+            Sections = CustomFieldEntitySections.ForEntityType(canonical),
+        }));
+    }
+
     public async Task<Respons<CustomFieldDefinitionDto>> GetByIdAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct)
     {
         var row = await _repository.GetByIdScopedAsync(id, tenantId, orgId, ct);
-        return row is null
-            ? Respons<CustomFieldDefinitionDto>.Fail("Custom field definition not found.", statusCode: 404)
-            : Respons<CustomFieldDefinitionDto>.Ok(row);
+        if (row is null)
+            return Respons<CustomFieldDefinitionDto>.Fail("Custom field definition not found.", statusCode: 404);
+
+        var enriched = await EnrichDefinitionAsync(row, tenantId, ct);
+        return Respons<CustomFieldDefinitionDto>.Ok(enriched);
     }
 
     public async Task<Respons<CustomFieldDefinitionDto>> CreateAsync(
@@ -126,7 +160,8 @@ public partial class CustomFieldsService
 
         var id = await _repository.CreateScopedAsync(body, tenantId, orgId, CurrentUserId, ct);
         var created = await _repository.GetByIdScopedAsync(id, tenantId, orgId, ct);
-        return Respons<CustomFieldDefinitionDto>.Ok(created!, "Custom field definition created.", statusCode: 201);
+        var enriched = await EnrichDefinitionAsync(created!, tenantId, ct);
+        return Respons<CustomFieldDefinitionDto>.Ok(enriched, "Custom field definition created.", statusCode: 201);
     }
 
     public async Task<Respons<CustomFieldDefinitionDto>> UpdateAsync(
@@ -134,7 +169,7 @@ public partial class CustomFieldsService
     {
         var updated = await _repository.UpdateScopedAsync(id, body, tenantId, orgId, CurrentUserId, ct);
         if (updated is not null)
-            return Respons<CustomFieldDefinitionDto>.Ok(updated);
+            return Respons<CustomFieldDefinitionDto>.Ok(await EnrichDefinitionAsync(updated, tenantId, ct));
 
         var exists = await _repository.GetByIdScopedAsync(id, tenantId, orgId, ct);
         return exists is null
@@ -192,15 +227,44 @@ public partial class CustomFieldsService
             paging.Size,
             ct);
 
+        var enriched = await EnrichAuditLogsAsync(items, tenantId, ct);
+
         return Respons<CustomFieldAuditLogListDto>.Ok(
-            new CustomFieldAuditLogListDto { Items = items },
+            new CustomFieldAuditLogListDto { Items = enriched },
             pagination: new PaginationMeta
             {
                 Page = paging.Page,
                 Size = paging.Size,
                 Total = total,
-                HasNext = paging.Offset + items.Count < total,
+                HasNext = paging.Offset + enriched.Count < total,
             });
+    }
+
+    private async Task<CustomFieldDefinitionDto> EnrichDefinitionAsync(
+        CustomFieldDefinitionDto item, string tenantId, CancellationToken ct)
+    {
+        var enriched = await EnrichDefinitionsAsync([item], tenantId, ct);
+        return enriched[0];
+    }
+
+    private async Task<IReadOnlyList<CustomFieldDefinitionDto>> EnrichDefinitionsAsync(
+        IReadOnlyList<CustomFieldDefinitionDto> items, string tenantId, CancellationToken ct)
+    {
+        if (items.Count == 0)
+            return items;
+
+        var users = await _cpUsers.GetByIdsAsync(CustomFieldDefinitionMapper.CollectUserIds(items), tenantId, ct);
+        return CustomFieldDefinitionMapper.EnrichAuthors(items, users);
+    }
+
+    private async Task<IReadOnlyList<CustomFieldAuditLogDto>> EnrichAuditLogsAsync(
+        IReadOnlyList<CustomFieldAuditLogDto> items, string tenantId, CancellationToken ct)
+    {
+        if (items.Count == 0)
+            return items;
+
+        var users = await _cpUsers.GetByIdsAsync(CustomFieldDefinitionMapper.CollectUserIds(items), tenantId, ct);
+        return CustomFieldDefinitionMapper.EnrichChangedBy(items, users);
     }
 
     private static Dictionary<string, string>? ValidateCreate(CreateCustomFieldDefinitionDto body)

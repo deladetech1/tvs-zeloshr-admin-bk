@@ -31,6 +31,7 @@ public class TrovesuiteAuthMiddleware
     public async Task InvokeAsync(
         HttpContext context,
         IAuthService authService,
+        IConfiguration configuration,
         IOptions<TrovesuiteIntegrationOptions> integrationOptions)
     {
         if (HttpMethods.IsOptions(context.Request.Method))
@@ -42,6 +43,13 @@ public class TrovesuiteAuthMiddleware
         if (!integrationOptions.Value.RequireAuthentication || IsAnonymous(context.Request.Path))
         {
             await _next(context);
+            return;
+        }
+
+        if (!JwtSecretConfiguration.IsConfigured(configuration))
+        {
+            _logger.LogError("JWT secret is not configured; set SECRET_KEY on the Container App.");
+            await WriteServiceUnavailableAsync(context, JwtSecretConfiguration.MissingKeyMessage);
             return;
         }
 
@@ -95,6 +103,18 @@ public class TrovesuiteAuthMiddleware
         {
             success = false,
             status_code = 401,
+            error = message,
+        }, PlatformJson.SerializerOptions));
+    }
+
+    private static Task WriteServiceUnavailableAsync(HttpContext context, string message)
+    {
+        context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+        context.Response.ContentType = "application/json";
+        return context.Response.WriteAsync(JsonSerializer.Serialize(new
+        {
+            success = false,
+            status_code = 503,
             error = message,
         }, PlatformJson.SerializerOptions));
     }

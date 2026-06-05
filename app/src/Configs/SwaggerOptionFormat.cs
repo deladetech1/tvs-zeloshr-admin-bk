@@ -7,6 +7,11 @@ internal static class SwaggerOptionFormat
 
     internal static string Join(IEnumerable<string> values) => string.Join(" | ", values);
 
+    /// <summary>Compact pipe list for request-body examples (e.g. <c>employee|branch|department</c>).</summary>
+    internal static string JoinPipe(IReadOnlyList<string> values) => string.Join('|', values);
+
+    internal static string JoinPipe(IEnumerable<string> values) => string.Join('|', values);
+
     internal static string Allowed(IReadOnlyList<string> values) => $"Allowed: {Join(values)}";
 
     internal static string? Append(string? existing, string addition)

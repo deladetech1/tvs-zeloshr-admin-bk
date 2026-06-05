@@ -81,6 +81,17 @@ app.MapZelosHrSwaggerDevBootstrap();
 app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
+
+var integrationOptions = app.Services
+    .GetRequiredService<Microsoft.Extensions.Options.IOptions<TrovesuiteIntegrationOptions>>().Value;
+if (integrationOptions.RequireAuthentication
+    && !JwtSecretConfiguration.IsConfigured(app.Configuration))
+{
+    logger.LogCritical(
+        "JWT signing key is missing. {Message}",
+        JwtSecretConfiguration.MissingKeyMessage);
+}
+
 try
 {
     var db = app.Services.GetRequiredService<IDatabaseManager>();

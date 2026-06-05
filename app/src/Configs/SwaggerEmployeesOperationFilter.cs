@@ -67,6 +67,15 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
             return;
         }
 
+        if (method.Equals("PUT", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/employees/update", StringComparison.OrdinalIgnoreCase))
+        {
+            SetJsonResponseExample(operation, 200, SwaggerExamples.EmployeeAggregateReadResponse());
+            SetJsonResponseExample(operation, 404, SwaggerExamples.NotFoundEnvelopeForEmployee());
+            AppendParameterDescription(operation, "employee_id",
+                "Required. Employee UUID from POST /employees/add or GET /employees/get?employee_id=.");
+            return;
+        }
+
         if (method.Equals("POST", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/employees/bulk", StringComparison.OrdinalIgnoreCase))
         {
             SetJsonResponseExample(operation, 200, SwaggerExamples.EnvelopeFor(typeof(Respons<EmployeeBulkImportResult>), 200));

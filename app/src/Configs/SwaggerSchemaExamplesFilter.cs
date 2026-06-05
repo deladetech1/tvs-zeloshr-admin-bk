@@ -56,7 +56,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
         {
             nameof(CreateEmployeeAggregateRequest) => SwaggerExamples.CreateEmployeeFinalised(),
             nameof(UpdateEmployeeAggregateRequest) => SwaggerExamples.UpdateEmployeeFull(),
-            nameof(CreateCustomFieldDefinitionDto) => SwaggerExamples.CreateCustomFieldDefinitionTemplate(),
+            nameof(CreateCustomFieldDefinitionDto) => SwaggerExamples.CreateCustomFieldAddBody(),
             nameof(ImportEmployeesRequest) => SwaggerExamples.ImportEmployeesRequestBody(),
             nameof(EmployeeAggregateReadDto) => SwaggerExamples.EmployeeAggregateReadData(),
             nameof(EmployeeDirectorySummaryDto) => SwaggerExamples.EmployeeDirectorySummaryData(),
@@ -72,11 +72,11 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(CreateEmployeeAggregateRequest) => AppendDescription(schema.Description,
                 "One-shot employee create. See operation examples (finalised vs draft). Upload files first via POST /api/v1/file/post/multiple."),
             nameof(UpdateEmployeeAggregateRequest) => AppendDescription(schema.Description,
-                "Full profile update — same shape as POST /add plus required id. Partial updates (subset of fields) are also accepted."),
+                "Partial or full profile update — same shape as POST /add. Pass employee_id on the query string, not in the body."),
             nameof(EmployeeDirectorySummaryDto) => AppendDescription(schema.Description,
                 "Directory KPI cards: total headcount, active, on probation, on contract."),
             nameof(CreateCustomFieldDefinitionDto) => AppendDescription(schema.Description,
-                "Defines schema for a custom field. Values are sent later on employee create/update under the matching section custom_fields object."),
+                SwaggerExamples.CreateCustomFieldAddExampleDescription()),
             nameof(GetCurrencySimpleReadDto) => AppendDescription(schema.Description,
                 "Tenant currency from core_platform.cp_currencies. List via GET /api/v1/currencies/list."),
             nameof(EmployeeAggregateCompensationDto) => AppendDescription(schema.Description,
@@ -238,9 +238,9 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                     "Computed on save: Monthly × 12 | Bi-weekly × 26.");
                 return;
             case "Options" when IsCustomFieldDefinitionProperty(property):
-                schema.Example = JsonValue.Create("[\"yes\",\"no\"]");
+                schema.Example = JsonValue.Create(SwaggerExampleHints.SelectOptionsPipe);
                 schema.Description = AppendDescription(schema.Description,
-                    "Wire: JSON array string. Example UI choices: yes | no (for field_type select | multiselect).");
+                    "Required for field_type select|multiselect. Wire: JSON array string. Example choices: option_a|option_b|option_c — pick one per slot on real requests.");
                 return;
             case nameof(CreateCustomFieldDefinitionDto.FieldKey):
                 schema.Example = JsonValue.Create("bonus_eligible");
