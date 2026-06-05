@@ -40,6 +40,8 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.DefaultIgnoreCondition =
             PlatformJson.SerializerOptions.DefaultIgnoreCondition;
     });
+builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(
+    ApiBehaviorConfiguration.ConfigureInvalidModelStateResponse);
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.PropertyNamingPolicy = PlatformJson.SerializerOptions.PropertyNamingPolicy;
@@ -73,6 +75,7 @@ app.UseMiddleware<ExceptionHandlerMiddleware>();
 app.UseMiddleware<LoggingMiddleware>();
 app.UseMiddleware<TroveRequestHeadersMiddleware>();
 app.UseMiddleware<TrovesuiteAuthMiddleware>();
+app.UseMiddleware<RequestContextLoggingMiddleware>();
 
 app.MapControllers();
 app.UseZelosHrSwagger();

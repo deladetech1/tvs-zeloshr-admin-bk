@@ -24,6 +24,11 @@ internal static class SwaggerExampleHints
     internal static string SectionName => SwaggerOptionFormat.JoinPipe(EmployeeCustomFieldSections.All);
     internal static string BooleanPipe => "true|false";
     internal static string SelectOptionsPipe => "[\"option_a|option_b|option_c\"]";
+    internal static string EnvelopeSuccessPipe => "true|false";
+    internal static string EnvelopeStatusCodePipe => "200|400|404|409|500";
+    internal static string EnvelopeDetailPipe => "Success|Validation failed|Not found|Error";
+    internal static string EnvelopeStatusCodeErrorPipe => "400|404|409|500";
+    internal static string EnvelopeDetailErrorPipe => "Validation failed|Not found|Conflict|Error";
     internal static string OrgDepartmentSortBy => SwaggerOptionFormat.JoinPipe(OrgStructureFieldOptions.DepartmentSortBy);
     internal static string OrgSortOrder => SwaggerOptionFormat.JoinPipe(OrgStructureFieldOptions.SortOrder);
     internal static string OrgNodeType => SwaggerOptionFormat.JoinPipe(OrgStructureFieldOptions.NodeTypes);

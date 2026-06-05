@@ -83,7 +83,7 @@ public class AttendanceService
         var hasClockOut = data.ClockOut is not null;
         var hasHours = data.HoursWorked.HasValue;
         if (!hasStatus && !hasClockIn && !hasClockOut && !hasHours)
-            return Respons<AttendanceListItemDto>.Fail("No fields to update.", statusCode: 400);
+            return Respons<AttendanceListItemDto>.EmptyUpdateRequest();
 
         var updated = await _attendance.UpdateScopedAsync(
             id, tenantId, orgId,
@@ -98,7 +98,7 @@ public class AttendanceService
             var exists = await _attendance.GetByIdScopedAsync(id, tenantId, orgId, ct);
             return exists is null
                 ? Respons<AttendanceListItemDto>.Fail("Attendance record not found.", statusCode: 404)
-                : Respons<AttendanceListItemDto>.Fail("No fields to update.", statusCode: 400);
+                : Respons<AttendanceListItemDto>.EmptyUpdateRequest();
         }
 
         return Respons<AttendanceListItemDto>.Ok(updated);

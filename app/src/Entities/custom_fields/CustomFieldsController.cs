@@ -4,6 +4,7 @@ using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Shared.Authorization;
 using ZelosHR.Api.Shared.Constants;
 using ZelosHR.Api.Shared.Tenant;
+using ZelosHR.Api.Shared.Validation;
 
 namespace ZelosHR.Api.Entities.CustomFields;
 
@@ -120,6 +121,10 @@ public class CustomFieldsController : ControllerBase
         [FromQuery(Name = PlatformQueryParams.CustomFieldId)] Guid customFieldId,
         CancellationToken ct)
     {
+        if (QueryParamValidation.BadRequestIfEmptyGuid<CustomFieldDefinitionDto>(
+                customFieldId, PlatformQueryParams.CustomFieldId) is { } missingId)
+            return missingId;
+
         var ctx = _tenant.Current;
         var result = await _service.GetByIdAsync(customFieldId, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
@@ -150,6 +155,10 @@ public class CustomFieldsController : ControllerBase
         [FromBody] UpdateCustomFieldDefinitionDto body,
         CancellationToken ct)
     {
+        if (QueryParamValidation.BadRequestIfEmptyGuid<CustomFieldDefinitionDto>(
+                customFieldId, PlatformQueryParams.CustomFieldId) is { } missingId)
+            return missingId;
+
         var ctx = _tenant.Current;
         var result = await _service.UpdateAsync(customFieldId, body, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
@@ -161,6 +170,10 @@ public class CustomFieldsController : ControllerBase
         [FromQuery(Name = PlatformQueryParams.CustomFieldId)] Guid customFieldId,
         CancellationToken ct)
     {
+        if (QueryParamValidation.BadRequestIfEmptyGuid<object>(
+                customFieldId, PlatformQueryParams.CustomFieldId) is { } missingId)
+            return missingId;
+
         var ctx = _tenant.Current;
         var result = await _service.DeleteAsync(customFieldId, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);

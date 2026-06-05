@@ -92,7 +92,7 @@ public class LifecycleEventsService
         var hasStatus = !string.IsNullOrWhiteSpace(data.Status);
         var hasUrgency = !string.IsNullOrWhiteSpace(data.Urgency);
         if (!hasEventType && !hasDueDate && !hasStatus && !hasUrgency)
-            return Respons<LifecycleEventListItemDto>.Fail("No fields to update.", statusCode: 400);
+            return Respons<LifecycleEventListItemDto>.EmptyUpdateRequest();
 
         var updated = await _lifecycleEvents.UpdateScopedAsync(
             id,
@@ -109,7 +109,7 @@ public class LifecycleEventsService
             var exists = await _lifecycleEvents.GetByIdScopedAsync(id, tenantId, orgId, ct);
             return exists is null
                 ? Respons<LifecycleEventListItemDto>.Fail("Lifecycle event not found.", statusCode: 404)
-                : Respons<LifecycleEventListItemDto>.Fail("No fields to update.", statusCode: 400);
+                : Respons<LifecycleEventListItemDto>.EmptyUpdateRequest();
         }
 
         if (hasStatus)

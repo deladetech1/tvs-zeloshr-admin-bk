@@ -96,7 +96,7 @@ public class LeaveService
         var hasStatus = !string.IsNullOrWhiteSpace(data.Status);
         var hasApprover = data.ApproverName is not null;
         if (!hasStatus && !hasApprover)
-            return Respons<LeaveRequestListItemDto>.Fail("No fields to update.", statusCode: 400);
+            return Respons<LeaveRequestListItemDto>.EmptyUpdateRequest();
 
         var updated = await _leave.UpdateRequestScopedAsync(
             id,
@@ -111,7 +111,7 @@ public class LeaveService
             var exists = await _leave.GetRequestByIdScopedAsync(id, tenantId, orgId, ct);
             return exists is null
                 ? Respons<LeaveRequestListItemDto>.Fail("Leave request not found.", statusCode: 404)
-                : Respons<LeaveRequestListItemDto>.Fail("No fields to update.", statusCode: 400);
+                : Respons<LeaveRequestListItemDto>.EmptyUpdateRequest();
         }
 
         return Respons<LeaveRequestListItemDto>.Ok(updated);

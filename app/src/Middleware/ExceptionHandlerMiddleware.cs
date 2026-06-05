@@ -41,7 +41,10 @@ public class ExceptionHandlerMiddleware
         catch (ArgumentException ex)
         {
             _logger.LogInformation(ex, "Bad request");
-            await WriteResponsAsync(context, Respons<object>.Fail(ex.Message, statusCode: 400));
+            await WriteResponsAsync(context, Respons<object>.ValidationError(new Dictionary<string, string>
+            {
+                ["request"] = ex.Message.TrimEnd('.') + ".",
+            }));
         }
         catch (Exception ex)
         {

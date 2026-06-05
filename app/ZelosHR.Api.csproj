@@ -26,4 +26,8 @@
     <PackageReference Include="Trovesuite.Package" Version="1.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="ZelosHR.Api.Tests" />
+  </ItemGroup>
+
 </Project>

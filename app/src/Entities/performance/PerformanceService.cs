@@ -80,7 +80,7 @@ public class PerformanceService
         var hasRating = data.OverallRating is not null;
         var hasStatus = !string.IsNullOrWhiteSpace(data.Status);
         if (!hasReviewPeriod && !hasDueDate && !hasReviewer && !hasRating && !hasStatus)
-            return Respons<PerformanceReviewListItemDto>.Fail("No fields to update.", statusCode: 400);
+            return Respons<PerformanceReviewListItemDto>.EmptyUpdateRequest();
 
         var updated = await _performance.UpdateScopedAsync(
             id,
@@ -98,7 +98,7 @@ public class PerformanceService
             var exists = await _performance.GetByIdScopedAsync(id, tenantId, orgId, ct);
             return exists is null
                 ? Respons<PerformanceReviewListItemDto>.Fail("Performance review not found.", statusCode: 404)
-                : Respons<PerformanceReviewListItemDto>.Fail("No fields to update.", statusCode: 400);
+                : Respons<PerformanceReviewListItemDto>.EmptyUpdateRequest();
         }
 
         return Respons<PerformanceReviewListItemDto>.Ok(updated);

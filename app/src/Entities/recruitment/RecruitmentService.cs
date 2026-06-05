@@ -72,7 +72,7 @@ public class RecruitmentService
         var hasStatus = !string.IsNullOrWhiteSpace(data.Status);
         var hasApplicants = data.ApplicantsCount.HasValue;
         if (!hasTitle && !hasDept && !hasBranch && !hasEmpType && !hasPostedAt && !hasClosingDate && !hasStatus && !hasApplicants)
-            return Respons<JobPostingListItemDto>.Fail("No fields to update.", statusCode: 400);
+            return Respons<JobPostingListItemDto>.EmptyUpdateRequest();
 
         var updated = await _recruitment.UpdateScopedAsync(
             id,
@@ -93,7 +93,7 @@ public class RecruitmentService
             var exists = await _recruitment.GetByIdScopedAsync(id, tenantId, orgId, ct);
             return exists is null
                 ? Respons<JobPostingListItemDto>.Fail("Job posting not found.", statusCode: 404)
-                : Respons<JobPostingListItemDto>.Fail("No fields to update.", statusCode: 400);
+                : Respons<JobPostingListItemDto>.EmptyUpdateRequest();
         }
 
         return Respons<JobPostingListItemDto>.Ok(updated);

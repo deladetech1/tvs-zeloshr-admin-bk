@@ -192,7 +192,7 @@ public partial class EmployeesService : IEmployeesService, IEmployeeLookup
         }
 
         if (!changed)
-            return Respons<EmployeeDetailDto>.Fail("No fields to update.", statusCode: 400);
+            return Respons<EmployeeDetailDto>.EmptyUpdateRequest();
 
         await _employees.UpdateAsync(entity, ct);
         return await GetByIdAsync(id, tenantId, orgId, ct);
@@ -281,7 +281,7 @@ public partial class EmployeesService : IEmployeesService, IEmployeeLookup
         }
 
         if (!changed)
-            return Respons<EmployeeDetailDto>.Fail("No fields to update.", statusCode: 400);
+            return Respons<EmployeeDetailDto>.EmptyUpdateRequest();
 
         await _employees.UpdateAsync(entity, ct);
         return await GetByIdAsync(id, tenantId, orgId, ct);

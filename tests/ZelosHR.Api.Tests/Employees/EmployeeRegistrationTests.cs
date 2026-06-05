@@ -137,6 +137,8 @@ public class EmployeeRegistrationTests
         };
         _employees.GetByIdScopedForUpdateAsync(id, TestDefaults.TenantId, TestDefaults.OrgId, Arg.Any<CancellationToken>())
             .Returns(entity);
+        _currencies.GetDefaultAsync(TestDefaults.TenantId, Arg.Any<CancellationToken>())
+            .Returns(new CpCurrencyDto("cur-ghs", "Ghana Cedi", "GHS", "₵", true));
 
         var result = await _sut.UpdateCompensationAsync(
             id, new CreateEmployeeRequest { GrossSalary = 1000m, PayFrequency = "Monthly" });
@@ -179,6 +181,8 @@ public class EmployeeRegistrationTests
         };
         _employees.GetByIdScopedForUpdateAsync(id, TestDefaults.TenantId, TestDefaults.OrgId, Arg.Any<CancellationToken>())
             .Returns(entity);
+        _currencies.GetDefaultAsync(TestDefaults.TenantId, Arg.Any<CancellationToken>())
+            .Returns(new CpCurrencyDto("cur-ghs", "Ghana Cedi", "GHS", "₵", true));
 
         var result = await _sut.UpdateCompensationAsync(
             id, new CreateEmployeeRequest { GrossSalary = 1000m, PayFrequency = "bi-weekly" });

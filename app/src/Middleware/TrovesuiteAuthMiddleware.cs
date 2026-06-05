@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Trovesuite.Package.Auth;
 using ZelosHR.Api.Configs;
+using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Shared.Tenant;
 
 namespace ZelosHR.Api.Middleware;
@@ -56,7 +57,14 @@ public class TrovesuiteAuthMiddleware
         var token = TroveBearerTokenHelper.ExtractBearerToken(context);
         if (string.IsNullOrWhiteSpace(token))
         {
-            await WriteUnauthorizedAsync(context, "Header 'authorization' must be a Bearer JWT.");
+            _logger.LogWarning(
+                "Missing Bearer token on {Method} {Path}",
+                context.Request.Method,
+                context.Request.Path);
+            await WriteUnauthorizedAsync(context, new Dictionary<string, string>
+            {
+                ["authorization"] = "Header 'authorization' must be a Bearer JWT.",
+            });
             return;
         }
 
@@ -95,16 +103,13 @@ public class TrovesuiteAuthMiddleware
         return false;
     }
 
-    private static Task WriteUnauthorizedAsync(HttpContext context, string message)
+    private static Task WriteUnauthorizedAsync(HttpContext context, Dictionary<string, string> fieldErrors)
     {
+        var response = Respons<object>.ValidationError(fieldErrors);
+        response.StatusCode = StatusCodes.Status401Unauthorized;
         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
         context.Response.ContentType = "application/json";
-        return context.Response.WriteAsync(JsonSerializer.Serialize(new
-        {
-            success = false,
-            status_code = 401,
-            error = message,
-        }, PlatformJson.SerializerOptions));
+        return context.Response.WriteAsync(JsonSerializer.Serialize(response, PlatformJson.SerializerOptions));
     }
 
     private static Task WriteServiceUnavailableAsync(HttpContext context, string message)

@@ -83,7 +83,7 @@ public class DisciplinaryService
         var hasDescription = data.Description is not null;
         var hasStatus = !string.IsNullOrWhiteSpace(data.Status);
         if (!hasCaseType && !hasSeverity && !hasOpenedAt && !hasDescription && !hasStatus)
-            return Respons<DisciplinaryCaseListItemDto>.Fail("No fields to update.", statusCode: 400);
+            return Respons<DisciplinaryCaseListItemDto>.EmptyUpdateRequest();
 
         var updated = await _disciplinary.UpdateScopedAsync(
             id,
@@ -101,7 +101,7 @@ public class DisciplinaryService
             var exists = await _disciplinary.GetByIdScopedAsync(id, tenantId, orgId, ct);
             return exists is null
                 ? Respons<DisciplinaryCaseListItemDto>.Fail("Disciplinary case not found.", statusCode: 404)
-                : Respons<DisciplinaryCaseListItemDto>.Fail("No fields to update.", statusCode: 400);
+                : Respons<DisciplinaryCaseListItemDto>.EmptyUpdateRequest();
         }
 
         return Respons<DisciplinaryCaseListItemDto>.Ok(updated);

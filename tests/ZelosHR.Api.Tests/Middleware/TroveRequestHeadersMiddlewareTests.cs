@@ -1,5 +1,7 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 using ZelosHR.Api.Configs;
@@ -15,7 +17,7 @@ public class TroveRequestHeadersMiddlewareTests
         Substitute.For<IPlatformContextRepository>();
 
     private static TroveRequestHeadersMiddleware CreateSut(RequestDelegate next) =>
-        new(next);
+        new(next, NullLogger<TroveRequestHeadersMiddleware>.Instance);
 
     private static (TroveRequestHeadersMiddleware Sut, IPlatformContextRepository Platform) CreateWithPlatform(
         Action? onNext = null)

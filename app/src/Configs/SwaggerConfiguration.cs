@@ -48,6 +48,10 @@ public static class SwaggerConfiguration
 
                     `success`, `status_code`, `detail`, `data`, `pagination`, `field_errors`
 
+                    **Validation (400):** `detail` summarizes the problem; `field_errors` maps field paths → messages (e.g. `identity.full_name`: "Full name is required."). Use `field_errors` keys to highlight form fields.
+
+                    **Example values:** Pipe-separated strings in Swagger (`true|false`, `200|400|500`, `draft|finalised`) list allowed shapes — send **one** value per field on real API calls.
+
                     ---
 
                     ### Employee create workflow

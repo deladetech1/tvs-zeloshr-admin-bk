@@ -82,7 +82,7 @@ public class DocumentsService
         var hasUploadedBy = !string.IsNullOrWhiteSpace(data.UploadedBy);
         var hasStatus = !string.IsNullOrWhiteSpace(data.Status);
         if (!hasDocName && !hasCategory && !hasFileSize && !hasUploadedBy && !hasStatus)
-            return Respons<DocumentListItemDto>.Fail("No fields to update.", statusCode: 400);
+            return Respons<DocumentListItemDto>.EmptyUpdateRequest();
 
         var updated = await _documents.UpdateScopedAsync(
             id,
@@ -100,7 +100,7 @@ public class DocumentsService
             var exists = await _documents.GetByIdScopedAsync(id, tenantId, orgId, ct);
             return exists is null
                 ? Respons<DocumentListItemDto>.Fail("Document not found.", statusCode: 404)
-                : Respons<DocumentListItemDto>.Fail("No fields to update.", statusCode: 400);
+                : Respons<DocumentListItemDto>.EmptyUpdateRequest();
         }
 
         return Respons<DocumentListItemDto>.Ok(updated);

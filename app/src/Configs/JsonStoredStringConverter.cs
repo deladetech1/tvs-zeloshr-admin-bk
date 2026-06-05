@@ -24,11 +24,11 @@ public sealed class JsonStoredStringConverter : JsonConverter<string?>
                     if (doc.RootElement.ValueKind == JsonValueKind.Array
                         && doc.RootElement.GetArrayLength() == 0)
                         return null;
-                    return doc.RootElement.GetRawText();
+                    return JsonSerializer.Serialize(doc.RootElement);
                 }
             case JsonTokenType.StartObject:
                 using (var docObj = JsonDocument.ParseValue(ref reader))
-                    return docObj.RootElement.GetRawText();
+                    return JsonSerializer.Serialize(docObj.RootElement);
             default:
                 throw new JsonException(
                     $"Cannot convert JSON {reader.TokenType} to stored string; send a string, array, object, or null.");

@@ -11,12 +11,17 @@ namespace ZelosHR.Api.Configs;
 /// <summary>Org chart / organisation structure OpenAPI examples and parameter hints.</summary>
 public sealed class SwaggerOrgStructureOperationFilter : IOperationFilter
 {
+    private const string PipeExampleNote =
+        "Pipe-separated values in examples (`true|false`, `200|400|500`, `Success|Validation failed`) list allowed shapes — send **one** value on real API calls.";
+
     public void Apply(OpenApiOperation operation, OperationFilterContext context)
     {
         var method = context.ApiDescription.HttpMethod ?? "";
         var path = context.ApiDescription.RelativePath ?? "";
         if (!path.StartsWith("api/v1/org-structure", StringComparison.OrdinalIgnoreCase))
             return;
+
+        operation.Description = SwaggerOptionFormat.Append(operation.Description, PipeExampleNote);
 
         if (method.Equals("GET", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/org-structure/chart", StringComparison.OrdinalIgnoreCase))
         {
@@ -36,7 +41,7 @@ public sealed class SwaggerOrgStructureOperationFilter : IOperationFilter
                 },
             });
             operation.Summary ??= "Org chart";
-            operation.Description = "Returns `{ data: { roots: [...] } }`. Each node: `id`, `name`, `node_type`, `parent_id`, `head_of_department`, `employee_count`, `children`.";
+            operation.Description = "Returns `{ data: { roots: [...] } }`. Each node: `id` (department UUID) · `name` · `node_type` (department) · `parent_id` (null | UUID) · `head_of_department` (null | employee summary) · `employee_count` · `children` (nested nodes).";
             return;
         }
 
@@ -51,6 +56,8 @@ public sealed class SwaggerOrgStructureOperationFilter : IOperationFilter
         if (method.Equals("GET", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/org-structure/departments", StringComparison.OrdinalIgnoreCase))
         {
             SetJsonResponseExample(operation, 200, SwaggerExamples.EnvelopeFor(typeof(Respons<DepartmentListDto>), 200));
+            operation.Description = SwaggerOptionFormat.Append(operation.Description,
+                "Response `data.items[]`: department_id · name · parent_department_id (null | UUID) · parent_department_name · head_of_department · employee_count · is_archived (false | true) · hierarchy_level.");
             AppendParameterDescription(operation, "sort_by",
                 $"Sort column. Allowed: {SwaggerExampleHints.OrgDepartmentSortBy}.");
             AppendParameterDescription(operation, "sort_order",
@@ -64,7 +71,9 @@ public sealed class SwaggerOrgStructureOperationFilter : IOperationFilter
 
         if (method.Equals("GET", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/org-structure/branches", StringComparison.OrdinalIgnoreCase))
         {
-            SetJsonResponseExample(operation, 200, SwaggerExamples.EnvelopeFor(typeof(Respons<BranchListDto>), 200));
+            SetJsonResponseExample(operation, 200, SwaggerExamples.BranchListResponseExample());
+            operation.Description = SwaggerOptionFormat.Append(operation.Description,
+                "Response `data.items[]`: branch_id (UUID) · name · employee_count · is_archived (false | true).");
             AppendParameterDescription(operation, "include_archived",
                 $"Include archived branches. Allowed: {SwaggerExampleHints.OrgIncludeArchived}.");
             AppendParameterDescription(operation, "search",

@@ -43,7 +43,7 @@ public partial class CustomFieldsService
         {
             return Respons<CustomFieldDefinitionListDto>.ValidationError(new Dictionary<string, string>
             {
-                ["entityType"] = $"Must be one of: {string.Join(" | ", CustomFieldEntityTypes.All)}.",
+                ["entity_type"] = $"Must be one of: {string.Join(" | ", CustomFieldEntityTypes.All)}.",
             });
         }
 
@@ -90,7 +90,7 @@ public partial class CustomFieldsService
         {
             return Respons<CustomFieldSchemaDto>.ValidationError(new Dictionary<string, string>
             {
-                ["entityType"] = $"Must be one of: {string.Join(" | ", CustomFieldEntityTypes.All)}.",
+                ["entity_type"] = $"Must be one of: {string.Join(" | ", CustomFieldEntityTypes.All)}.",
             });
         }
 
@@ -174,7 +174,7 @@ public partial class CustomFieldsService
         var exists = await _repository.GetByIdScopedAsync(id, tenantId, orgId, ct);
         return exists is null
             ? Respons<CustomFieldDefinitionDto>.Fail("Custom field definition not found.", statusCode: 404)
-            : Respons<CustomFieldDefinitionDto>.Fail("No fields to update.", statusCode: 400);
+            : Respons<CustomFieldDefinitionDto>.EmptyUpdateRequest();
     }
 
     public async Task<Respons<object>> DeleteAsync(
@@ -190,7 +190,10 @@ public partial class CustomFieldsService
         ReorderCustomFieldDefinitionDto body, string tenantId, string orgId, CancellationToken ct)
     {
         if (body.Items is null || body.Items.Count == 0)
-            return Respons<object>.Fail("At least one item is required.", statusCode: 400);
+            return Respons<object>.ValidationError(new Dictionary<string, string>
+            {
+                ["items"] = "At least one item is required in the reorder list.",
+            });
 
         var updated = await _repository.ReorderScopedAsync(
             tenantId, orgId, body.Items, CurrentUserId, ct);
@@ -273,17 +276,17 @@ public partial class CustomFieldsService
 
         if (string.IsNullOrWhiteSpace(body.EntityType)
             || !CustomFieldEntityTypes.All.Contains(body.EntityType.Trim(), StringComparer.OrdinalIgnoreCase))
-            errors["entityType"] = $"Required. Allowed: {string.Join(" | ", CustomFieldEntityTypes.All)}.";
+            errors["entity_type"] = $"Required. Allowed: {string.Join(" | ", CustomFieldEntityTypes.All)}.";
 
         if (string.IsNullOrWhiteSpace(body.FieldKey) || !FieldKeyPattern.IsMatch(body.FieldKey.Trim()))
-            errors["fieldKey"] = "Required. Use lowercase letters, numbers, and underscores (2–64 chars).";
+            errors["field_key"] = "Required. Use lowercase letters, numbers, and underscores (2–64 chars).";
 
         if (string.IsNullOrWhiteSpace(body.Label))
             errors["label"] = "Label is required.";
 
         if (string.IsNullOrWhiteSpace(body.FieldType)
             || !CustomFieldFieldTypes.All.Contains(body.FieldType.Trim(), StringComparer.OrdinalIgnoreCase))
-            errors["fieldType"] = $"Required. Allowed: {string.Join(" | ", CustomFieldFieldTypes.All)}.";
+            errors["field_type"] = $"Required. Allowed: {string.Join(" | ", CustomFieldFieldTypes.All)}.";
 
         return errors.Count == 0 ? null : errors;
     }

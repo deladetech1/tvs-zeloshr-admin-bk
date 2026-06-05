@@ -47,19 +47,21 @@ public sealed class SwaggerEnvelopeSchemaFilter : ISchemaFilter
         switch (property.Name)
         {
             case nameof(Respons<object>.Detail):
-                schema.Example = JsonValue.Create("OK");
+                schema.Example = JsonValue.Create(SwaggerExampleHints.EnvelopeDetailPipe);
+                schema.Description = SwaggerSchemaExamplesFilter.AppendDescription(schema.Description,
+                    "Human-readable outcome. Success responses vs validation/not-found errors.");
                 return;
             case nameof(Respons<object>.Success):
-                schema.Example = JsonValue.Create(true);
+                schema.Example = JsonValue.Create(SwaggerExampleHints.EnvelopeSuccessPipe);
                 return;
             case nameof(Respons<object>.StatusCode):
-                schema.Example = JsonValue.Create(200);
+                schema.Example = JsonValue.Create(SwaggerExampleHints.EnvelopeStatusCodePipe);
                 return;
             case nameof(Respons<object>.Message):
-                schema.Example = JsonValue.Create("OK");
+                schema.Example = JsonValue.Create(SwaggerExampleHints.EnvelopeDetailPipe);
                 return;
             case nameof(Respons<object>.Error):
-                schema.Example = null;
+                schema.Example = JsonValue.Create(SwaggerExampleHints.EnvelopeDetailErrorPipe);
                 return;
             case nameof(Respons<object>.FieldErrors):
                 schema.Example = SwaggerExamples.SampleFieldErrors();
@@ -80,7 +82,7 @@ public sealed class SwaggerEnvelopeSchemaFilter : ISchemaFilter
             nameof(PaginationMeta.Page) => JsonValue.Create(1),
             nameof(PaginationMeta.Size) or nameof(PaginationMeta.PageSize) => JsonValue.Create(20),
             nameof(PaginationMeta.Total) or nameof(PaginationMeta.TotalCount) => JsonValue.Create(42),
-            nameof(PaginationMeta.HasNext) => JsonValue.Create(true),
+            nameof(PaginationMeta.HasNext) => JsonValue.Create(SwaggerExampleHints.BooleanPipe),
             nameof(PaginationMeta.TotalPages) => JsonValue.Create(3),
             _ => schema.Example,
         };

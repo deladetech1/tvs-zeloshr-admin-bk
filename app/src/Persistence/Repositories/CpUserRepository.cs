@@ -73,72 +73,23 @@ public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
             ? "+233000000000"
             : request.Contact.Trim();
 
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-        try
+        if (db.Database.CurrentTransaction is null)
         {
-            db.CpUsers.Add(new CpUserEntity
+            await using var tx = await db.Database.BeginTransactionAsync(ct);
+            try
             {
-                Id = userId,
-                TenantId = request.TenantId,
-                Fullname = request.FullName.Trim(),
-                Email = email,
-                Contact = contact,
-                Gender = request.Gender,
-                Dob = request.Dob,
-                Address = request.Address,
-                ProfilePic = request.ProfilePic,
-                CanLogin = true,
-                IsOwner = false,
-                DeleteStatus = CorePlatformConstants.DeleteStatus.NotDeleted,
-                IsActive = true,
-                CreatedBy = request.CreatedBy,
-                Cdatetime = now,
-            });
-
-            db.CpLoginSettings.Add(new CpLoginSettingsEntity
+                await PersistProvisionAsync(request, userId, email, contact, now, ct);
+                await tx.CommitAsync(ct);
+            }
+            catch
             {
-                Id = Guid.NewGuid().ToString(),
-                TenantId = request.TenantId,
-                UserId = userId,
-                CanAlwaysLogin = true,
-                DeleteStatus = CorePlatformConstants.DeleteStatus.NotDeleted,
-                IsActive = true,
-            });
-
-            var busAppLocId = await ResolveBusAppLocationIdAsync(
-                request.TenantId, request.OrgId, request.BusId, request.LocId, TroveStandardHeaders.HrAppId, ct)
-                ?? throw new InvalidOperationException(
-                    "Platform context (org, business, location, app) is not configured for this tenant.");
-
-            db.CpUserLocations.Add(new CpUserLocationEntity
-            {
-                Id = Guid.NewGuid().ToString(),
-                TenantId = request.TenantId,
-                UserId = userId,
-                OrgId = request.OrgId,
-                BusId = request.BusId,
-                AppId = TroveStandardHeaders.HrAppId,
-                BusAppLocId = busAppLocId,
-                DeleteStatus = CorePlatformConstants.DeleteStatus.NotDeleted,
-                IsActive = true,
-            });
-
-            db.HrEmployees.Add(new HrEmployeeEntity
-            {
-                Id = Guid.NewGuid().ToString(),
-                TenantId = request.TenantId,
-                UserId = userId,
-                CreatedBy = request.CreatedBy,
-                Cdatetime = now,
-            });
-
-            await db.SaveChangesAsync(ct);
-            await tx.CommitAsync(ct);
+                await tx.RollbackAsync(ct);
+                throw;
+            }
         }
-        catch
+        else
         {
-            await tx.RollbackAsync(ct);
-            throw;
+            await PersistProvisionAsync(request, userId, email, contact, now, ct);
         }
 
         return new CpUserDto(
@@ -151,6 +102,73 @@ public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
             request.Dob,
             request.Address,
             request.ProfilePic);
+    }
+
+    private async Task PersistProvisionAsync(
+        ProvisionCpUserRequest request,
+        string userId,
+        string email,
+        string contact,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        db.CpUsers.Add(new CpUserEntity
+        {
+            Id = userId,
+            TenantId = request.TenantId,
+            Fullname = request.FullName.Trim(),
+            Email = email,
+            Contact = contact,
+            Gender = request.Gender,
+            Dob = request.Dob,
+            Address = request.Address,
+            ProfilePic = request.ProfilePic,
+            CanLogin = true,
+            IsOwner = false,
+            DeleteStatus = CorePlatformConstants.DeleteStatus.NotDeleted,
+            IsActive = true,
+            CreatedBy = request.CreatedBy,
+            Cdatetime = now,
+        });
+
+        db.CpLoginSettings.Add(new CpLoginSettingsEntity
+        {
+            Id = Guid.NewGuid().ToString(),
+            TenantId = request.TenantId,
+            UserId = userId,
+            CanAlwaysLogin = true,
+            DeleteStatus = CorePlatformConstants.DeleteStatus.NotDeleted,
+            IsActive = true,
+        });
+
+        var busAppLocId = await ResolveBusAppLocationIdAsync(
+                request.TenantId, request.OrgId, request.BusId, request.LocId, TroveStandardHeaders.HrAppId, ct)
+            ?? throw new InvalidOperationException(
+                "Platform context (org, business, location, app) is not configured for this tenant.");
+
+        db.CpUserLocations.Add(new CpUserLocationEntity
+        {
+            Id = Guid.NewGuid().ToString(),
+            TenantId = request.TenantId,
+            UserId = userId,
+            OrgId = request.OrgId,
+            BusId = request.BusId,
+            AppId = TroveStandardHeaders.HrAppId,
+            BusAppLocId = busAppLocId,
+            DeleteStatus = CorePlatformConstants.DeleteStatus.NotDeleted,
+            IsActive = true,
+        });
+
+        db.HrEmployees.Add(new HrEmployeeEntity
+        {
+            Id = Guid.NewGuid().ToString(),
+            TenantId = request.TenantId,
+            UserId = userId,
+            CreatedBy = request.CreatedBy,
+            Cdatetime = now,
+        });
+
+        await db.SaveChangesAsync(ct);
     }
 
     public async Task<CpUserDto> UpdateIdentityAsync(

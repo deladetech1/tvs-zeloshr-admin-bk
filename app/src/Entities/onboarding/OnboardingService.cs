@@ -81,7 +81,7 @@ public class OnboardingService
         var hasStatus = !string.IsNullOrWhiteSpace(data.Status);
         var hasAssignedTo = data.AssignedTo is not null;
         if (!hasTaskName && !hasCategory && !hasDueDate && !hasStatus && !hasAssignedTo)
-            return Respons<OnboardingTaskListItemDto>.Fail("No fields to update.", statusCode: 400);
+            return Respons<OnboardingTaskListItemDto>.EmptyUpdateRequest();
 
         var updated = await _onboarding.UpdateScopedAsync(
             id,
@@ -99,7 +99,7 @@ public class OnboardingService
             var exists = await _onboarding.GetByIdScopedAsync(id, tenantId, orgId, ct);
             return exists is null
                 ? Respons<OnboardingTaskListItemDto>.Fail("Onboarding task not found.", statusCode: 404)
-                : Respons<OnboardingTaskListItemDto>.Fail("No fields to update.", statusCode: 400);
+                : Respons<OnboardingTaskListItemDto>.EmptyUpdateRequest();
         }
 
         return Respons<OnboardingTaskListItemDto>.Ok(updated);

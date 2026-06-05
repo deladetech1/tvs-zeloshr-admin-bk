@@ -1,3 +1,5 @@
+using ZelosHR.Api.Shared.Validation;
+
 namespace ZelosHR.Api.Entities.Shared;
 
 /// <summary>Standard API response envelope for all business endpoints.</summary>
@@ -21,16 +23,21 @@ public class Respons<T>
 
     public static Respons<T> ValidationError(
         Dictionary<string, string> fieldErrors,
-        string error = "Validation failed",
-        int statusCode = 400) =>
-        new()
+        string? summary = null,
+        int statusCode = 400)
+    {
+        var normalized = ValidationErrors.NormalizeKeys(fieldErrors);
+        var detail = summary ?? ValidationErrors.BuildSummary(normalized);
+
+        return new()
         {
-            Detail = "Validation failed",
+            Detail = detail,
             Success = false,
             StatusCode = statusCode,
-            Error = error,
-            FieldErrors = fieldErrors,
+            Error = detail,
+            FieldErrors = normalized,
         };
+    }
 
     public static Respons<T> Ok(T data, string detail = "Success", int statusCode = 200, PaginationMeta? pagination = null) =>
         new()
@@ -56,6 +63,9 @@ public class Respons<T>
 
     public static Respons<T> Forbidden(string message = "Forbidden") =>
         Fail(message, statusCode: 403, detail: message);
+
+    public static Respons<T> EmptyUpdateRequest() =>
+        ValidationError(ValidationErrors.EmptyUpdateRequest());
 }
 
 public class PaginationMeta

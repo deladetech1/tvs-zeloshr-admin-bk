@@ -4,6 +4,7 @@ using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Shared.Authorization;
 using ZelosHR.Api.Shared.Constants;
 using ZelosHR.Api.Shared.Tenant;
+using ZelosHR.Api.Shared.Validation;
 
 namespace ZelosHR.Api.Entities.Employees;
 
@@ -81,11 +82,9 @@ public class EmployeesController : ControllerBase
         [FromBody] UpdateEmployeeAggregateRequest body,
         CancellationToken ct)
     {
-        if (employeeId == Guid.Empty)
-        {
-            return BadRequest(Respons<EmployeeAggregateReadDto>.ValidationError(
-                new Dictionary<string, string> { ["employee_id"] = "employee_id query parameter is required." }));
-        }
+        if (QueryParamValidation.BadRequestIfEmptyGuid<EmployeeAggregateReadDto>(
+                employeeId, PlatformQueryParams.EmployeeId) is { } missingEmployeeId)
+            return missingEmployeeId;
 
         var result = await _aggregate.UpdateAsync(employeeId, body, ct);
         return StatusCode(result.StatusCode, result);
@@ -210,11 +209,9 @@ public class EmployeesController : ControllerBase
         [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId,
         CancellationToken ct)
     {
-        if (employeeId == Guid.Empty)
-        {
-            return BadRequest(Respons<EmployeeAggregateReadDto>.ValidationError(
-                new Dictionary<string, string> { ["employee_id"] = "employee_id query parameter is required." }));
-        }
+        if (QueryParamValidation.BadRequestIfEmptyGuid<EmployeeAggregateReadDto>(
+                employeeId, PlatformQueryParams.EmployeeId) is { } missingEmployeeId)
+            return missingEmployeeId;
 
         var result = await _aggregate.GetAsync(employeeId, ct);
         return StatusCode(result.StatusCode, result);
@@ -235,9 +232,7 @@ public class EmployeesController : ControllerBase
     {
         if (!ModelState.IsValid)
         {
-            var modelErrors = ModelState
-                .Where(e => e.Value?.Errors.Count > 0)
-                .ToDictionary(e => e.Key, e => e.Value!.Errors[0].ErrorMessage);
+            var modelErrors = ValidationErrors.FromModelState(ModelState);
             return BadRequest(Respons<CreateEmployeeControllerReadDto>.ValidationError(modelErrors));
         }
 

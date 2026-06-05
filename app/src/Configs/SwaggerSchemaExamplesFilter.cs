@@ -2,8 +2,10 @@ using System.Reflection;
 using System.Text.Json.Nodes;
 using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using ZelosHR.Api.Entities.Branches;
 using ZelosHR.Api.Entities.Currencies;
 using ZelosHR.Api.Entities.CustomFields;
+using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Entities.OrgStructure;
@@ -68,6 +70,9 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(CreateDepartmentRequestDto) => SwaggerExamples.CreateDepartmentRoot(),
             nameof(UpdateDepartmentRequestDto) => SwaggerExamples.UpdateDepartmentBody(),
             nameof(OrgChartDto) => SwaggerExamples.OrgChartDataForSchema(),
+            nameof(BranchListItemDto) => SwaggerExamples.BranchListItemExample(),
+            nameof(DepartmentListItemDto) => SwaggerExamples.DepartmentListItemExample(),
+            nameof(OrgChartNodeDto) => SwaggerExamples.OrgChartNodeExample(),
             _ => schema.Example,
         };
 
@@ -94,7 +99,13 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(CreateDepartmentRequestDto) => AppendDescription(schema.Description,
                 "Create department. Optional parent_department_id and head_of_department_id (employee UUID)."),
             nameof(OrgChartDto) => AppendDescription(schema.Description,
-                "Org chart payload: nested department nodes under roots."),
+                "Nested department tree. Each node: id · name · node_type (department) · parent_id · head_of_department · employee_count · children."),
+            nameof(BranchListItemDto) => AppendDescription(schema.Description,
+                $"branch_id (UUID) · name · employee_count · is_archived ({SwaggerExampleHints.OrgIncludeArchived})."),
+            nameof(DepartmentListItemDto) => AppendDescription(schema.Description,
+                $"department_id (UUID) · name · parent_department_id · head_of_department · employee_count · is_archived ({SwaggerExampleHints.OrgIncludeArchived}) · hierarchy_level."),
+            nameof(OrgChartNodeDto) => AppendDescription(schema.Description,
+                $"Chart node. node_type: {SwaggerExampleHints.OrgNodeType}. parent_id null on roots."),
             _ => schema.Description,
         };
     }
@@ -257,6 +268,30 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 return;
             case nameof(CreateCustomFieldDefinitionDto.Label):
                 schema.Example = JsonValue.Create("Bonus eligible");
+                return;
+            case "BranchId" when property.DeclaringType == typeof(BranchListItemDto):
+                schema.Example = JsonValue.Create(SwaggerExamples.SampleBranchId.ToString());
+                schema.Description = AppendDescription(schema.Description,
+                    "UUID from POST /org-structure/branches/add or GET /org-structure/branches.");
+                return;
+            case "IsArchived" when property.DeclaringType == typeof(BranchListItemDto)
+                                  || property.DeclaringType == typeof(DepartmentListItemDto):
+                schema.Example = JsonValue.Create(SwaggerExampleHints.BooleanPipe);
+                schema.Description = AppendDescription(schema.Description,
+                    $"Allowed: {SwaggerExampleHints.OrgIncludeArchived}.");
+                return;
+            case "DepartmentId" when property.DeclaringType == typeof(DepartmentListItemDto):
+                schema.Example = JsonValue.Create(SwaggerExamples.SampleDepartmentId.ToString());
+                return;
+            case "NodeType" when property.DeclaringType == typeof(OrgChartNodeDto):
+                schema.Example = JsonValue.Create(SwaggerExampleHints.OrgNodeType);
+                schema.Description = AppendDescription(schema.Description,
+                    $"Allowed: {SwaggerExampleHints.OrgNodeType}.");
+                return;
+            case "EmployeeCount":
+                schema.Example = JsonValue.Create(24);
+                schema.Description = AppendDescription(schema.Description,
+                    "Active employees assigned to this department or branch.");
                 return;
         }
 

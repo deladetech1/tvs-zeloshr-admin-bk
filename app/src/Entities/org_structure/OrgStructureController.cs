@@ -5,6 +5,7 @@ using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Shared.Constants;
 using ZelosHR.Api.Shared.Tenant;
+using ZelosHR.Api.Shared.Validation;
 
 namespace ZelosHR.Api.Entities.OrgStructure;
 
@@ -96,6 +97,10 @@ public class OrgStructureController : ControllerBase
         [FromBody] UpdateDepartmentRequestDto body,
         CancellationToken ct)
     {
+        if (QueryParamValidation.BadRequestIfEmptyGuid<CreateDepartmentResponseDto>(
+                departmentId, PlatformQueryParams.DepartmentId) is { } missingId)
+            return missingId;
+
         var ctx = _tenant.Current;
         var result = await _service.UpdateDepartmentAsync(departmentId, body, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
@@ -107,6 +112,10 @@ public class OrgStructureController : ControllerBase
         [FromQuery(Name = PlatformQueryParams.DepartmentId)] Guid departmentId,
         CancellationToken ct)
     {
+        if (QueryParamValidation.BadRequestIfEmptyGuid<object>(
+                departmentId, PlatformQueryParams.DepartmentId) is { } missingId)
+            return missingId;
+
         var ctx = _tenant.Current;
         var result = await _service.ArchiveDepartmentAsync(departmentId, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
@@ -130,6 +139,10 @@ public class OrgStructureController : ControllerBase
         [FromBody] UpdateBranchRequestDto body,
         CancellationToken ct)
     {
+        if (QueryParamValidation.BadRequestIfEmptyGuid<BranchMutationResponseDto>(
+                branchId, PlatformQueryParams.BranchId) is { } missingId)
+            return missingId;
+
         var ctx = _tenant.Current;
         var result = await _service.UpdateBranchAsync(branchId, body, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
@@ -141,6 +154,10 @@ public class OrgStructureController : ControllerBase
         [FromQuery(Name = PlatformQueryParams.BranchId)] Guid branchId,
         CancellationToken ct)
     {
+        if (QueryParamValidation.BadRequestIfEmptyGuid<object>(
+                branchId, PlatformQueryParams.BranchId) is { } missingId)
+            return missingId;
+
         var ctx = _tenant.Current;
         var result = await _service.ArchiveBranchAsync(branchId, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);

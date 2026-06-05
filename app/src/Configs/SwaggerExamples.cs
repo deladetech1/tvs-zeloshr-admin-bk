@@ -13,10 +13,13 @@ namespace ZelosHR.Api.Configs;
 /// <summary>Canonical OpenAPI request/response examples (snake_case wire format).</summary>
 internal static class SwaggerExamples
 {
-    internal static readonly Guid SampleDepartmentId = Guid.Parse("11111111-1111-1111-1111-111111111101");
-    internal static readonly Guid SampleBranchId = Guid.Parse("11111111-1111-1111-1111-111111111102");
+    internal static readonly Guid SampleDepartmentId = Guid.Parse("823eb77c-11b7-452b-9c18-6f547a0cd003");
+    internal static readonly Guid SampleChildDepartmentId = Guid.Parse("cc194e8e-b34d-42f6-baae-aae3b12041aa");
+    internal static readonly Guid SampleBranchId = Guid.Parse("063e2b9a-9254-4154-89e7-98b8de5a4df5");
+    internal static readonly Guid SampleBranchId2 = Guid.Parse("7f4e8291-2c55-4a9b-8d1e-5b6c7d8e9f0a");
+    internal static readonly Guid SampleBranchId3 = Guid.Parse("5c3d2e1f-0a9b-8c7d-6e5f-4a3b2c1d0e9f");
     internal static readonly Guid SampleCustomFieldId = Guid.Parse("44444444-4444-4444-4444-444444444401");
-    internal static readonly Guid SampleEmployeeId = Guid.Parse("22222222-2222-2222-2222-222222222201");
+    internal static readonly Guid SampleEmployeeId = Guid.Parse("3804deee-d6ee-4b05-9efc-6e8ccf3b5ae3");
     internal static readonly Guid SampleReportsToId = Guid.Parse("33333333-3333-3333-3333-333333333301");
 
     internal const string SampleCurrencyId = "cur_ghs_default";
@@ -63,10 +66,10 @@ internal static class SwaggerExamples
     {
         var envelope = new JsonObject
         {
-            ["success"] = true,
-            ["status_code"] = 200,
-            ["detail"] = "Success",
-            ["message"] = "Success",
+            ["success"] = SwaggerExampleHints.EnvelopeSuccessPipe,
+            ["status_code"] = SwaggerExampleHints.EnvelopeStatusCodePipe,
+            ["detail"] = SwaggerExampleHints.EnvelopeDetailPipe,
+            ["message"] = SwaggerExampleHints.EnvelopeDetailPipe,
             ["data"] = data,
         };
 
@@ -76,12 +79,46 @@ internal static class SwaggerExamples
         return envelope;
     }
 
+    internal static void ApplyResponseEnvelopeHints(JsonObject envelope)
+    {
+        envelope["success"] = SwaggerExampleHints.EnvelopeSuccessPipe;
+        envelope["status_code"] = SwaggerExampleHints.EnvelopeStatusCodePipe;
+        envelope["detail"] = SwaggerExampleHints.EnvelopeDetailPipe;
+        if (envelope.ContainsKey("message"))
+            envelope["message"] = SwaggerExampleHints.EnvelopeDetailPipe;
+    }
+
+    internal static JsonObject BranchListResponseExample() =>
+        EnvelopeOk(BranchListData(), OrgBranchListPagination());
+
+    internal static JsonObject OrgBranchListPagination() => new()
+    {
+        ["page"] = 1,
+        ["size"] = 20,
+        ["total"] = 3,
+        ["has_next"] = SwaggerExampleHints.BooleanPipe,
+        ["page_size"] = 20,
+        ["total_count"] = 3,
+        ["total_pages"] = 1,
+    };
+
+    internal static JsonObject OrgDepartmentListPagination() => new()
+    {
+        ["page"] = 1,
+        ["size"] = 15,
+        ["total"] = 8,
+        ["has_next"] = SwaggerExampleHints.BooleanPipe,
+        ["page_size"] = 15,
+        ["total_count"] = 8,
+        ["total_pages"] = 1,
+    };
+
     internal static JsonObject SamplePagination() => new()
     {
         ["page"] = 1,
         ["size"] = 20,
         ["total"] = 42,
-        ["has_next"] = true,
+        ["has_next"] = SwaggerExampleHints.BooleanPipe,
         ["page_size"] = 20,
         ["total_count"] = 42,
         ["total_pages"] = 3,
@@ -93,18 +130,24 @@ internal static class SwaggerExamples
         ["compensation.currency_id"] = "Currency not found for this tenant.",
     };
 
-    internal static JsonObject ValidationErrorEnvelope(JsonObject? fieldErrors = null) => new()
+    internal static JsonObject ValidationErrorEnvelope(JsonObject? fieldErrors = null)
     {
-        ["success"] = false,
-        ["status_code"] = 400,
-        ["detail"] = "Validation failed",
-        ["message"] = "Validation failed",
-        ["error"] = "Validation failed",
-        ["field_errors"] = fieldErrors ?? SampleFieldErrors(),
-        ["errors"] = new JsonArray(
-            "Work email is already registered for another employee.",
-            "Currency not found for this tenant."),
-    };
+        var errors = fieldErrors ?? SampleFieldErrors();
+        var detail = errors.Count == 1
+            ? errors.First().Value?.GetValue<string>() ?? "Validation failed."
+            : $"Fix {errors.Count} validation errors: {string.Join(", ", errors.Select(e => e.Key))}.";
+
+        return new JsonObject
+        {
+            ["success"] = "false",
+            ["status_code"] = SwaggerExampleHints.EnvelopeStatusCodeErrorPipe,
+            ["detail"] = detail,
+            ["message"] = detail,
+            ["error"] = SwaggerExampleHints.EnvelopeDetailErrorPipe,
+            ["field_errors"] = errors,
+            ["errors"] = new JsonArray(errors.Select(e => e.Value?.DeepClone()).ToArray()),
+        };
+    }
 
     /// <summary>Full success/error envelope example for a declared API response type.</summary>
     internal static JsonObject? EnvelopeFor(Type type, int statusCode = 200)
@@ -124,11 +167,11 @@ internal static class SwaggerExamples
 
     private static JsonObject NotFoundEnvelope() => new()
     {
-        ["success"] = false,
-        ["status_code"] = 404,
-        ["detail"] = "Employee not found.",
-        ["message"] = "Employee not found.",
-        ["error"] = "Employee not found.",
+        ["success"] = "false",
+        ["status_code"] = "404|409",
+        ["detail"] = "Not found|Conflict",
+        ["message"] = "Not found|Conflict",
+        ["error"] = "Not found|Conflict",
     };
 
     internal static JsonObject NotFoundEnvelopeForEmployee() => NotFoundEnvelope();
@@ -164,8 +207,8 @@ internal static class SwaggerExamples
             nameof(EmployeeRegistrationReadDto) => EmployeeRegistrationImportResponse(),
             nameof(OrganisationSummaryDto) => EnvelopeOk(OrganisationSummaryData()),
             nameof(OrgChartDto) => EnvelopeOk(OrgChartData()),
-            nameof(DepartmentListDto) => EnvelopeOk(DepartmentListData(), SamplePagination()),
-            nameof(BranchListDto) => EnvelopeOk(BranchListData(), SamplePagination()),
+            nameof(DepartmentListDto) => EnvelopeOk(DepartmentListData(), OrgDepartmentListPagination()),
+            nameof(BranchListDto) => BranchListResponseExample(),
             nameof(CreateDepartmentResponseDto) => EnvelopeOk(CreateDepartmentResponseData()),
             nameof(BranchMutationResponseDto) => EnvelopeOk(BranchMutationResponseData()),
             _ when dataType == typeof(string) => EnvelopeOk(JsonValue.Create("Operation completed successfully.")),
@@ -414,8 +457,8 @@ internal static class SwaggerExamples
 
     internal static JsonObject CurrencyNotFoundResponse() => new()
     {
-        ["success"] = false,
-        ["status_code"] = 404,
+        ["success"] = "false",
+        ["status_code"] = "404",
         ["detail"] = "Currency not found.",
         ["message"] = "Currency not found.",
         ["error"] = "Currency not found.",
@@ -483,15 +526,15 @@ internal static class SwaggerExamples
     {
         ["id"] = SampleDepartmentId.ToString(),
         ["name"] = "Engineering",
-        ["node_type"] = "department",
+        ["node_type"] = SwaggerExampleHints.OrgNodeType,
         ["parent_id"] = null,
         ["head_of_department"] = DepartmentHeadExample(),
         ["employee_count"] = 24,
         ["children"] = new JsonArray(new JsonObject
         {
-            ["id"] = Guid.Parse("11111111-1111-1111-1111-111111111103").ToString(),
+            ["id"] = SampleChildDepartmentId.ToString(),
             ["name"] = "Platform",
-            ["node_type"] = "department",
+            ["node_type"] = SwaggerExampleHints.OrgNodeType,
             ["parent_id"] = SampleDepartmentId.ToString(),
             ["head_of_department"] = null,
             ["employee_count"] = 12,
@@ -510,29 +553,78 @@ internal static class SwaggerExamples
     private static JsonObject DepartmentListData() => new()
     {
         ["summary"] = OrganisationSummaryData(),
-        ["items"] = new JsonArray(new JsonObject
-        {
-            ["department_id"] = SampleDepartmentId.ToString(),
-            ["name"] = "Engineering",
-            ["parent_department_id"] = null,
-            ["parent_department_name"] = null,
-            ["head_of_department"] = DepartmentHeadExample(),
-            ["employee_count"] = 24,
-            ["is_archived"] = false,
-            ["hierarchy_level"] = 0,
-        }),
-        ["showing_label"] = "Showing 1 of 8 departments",
+        ["items"] = new JsonArray(
+            new JsonObject
+            {
+                ["department_id"] = SampleDepartmentId.ToString(),
+                ["name"] = "Engineering",
+                ["parent_department_id"] = null,
+                ["parent_department_name"] = null,
+                ["head_of_department"] = DepartmentHeadExample(),
+                ["employee_count"] = 24,
+                ["is_archived"] = false,
+                ["hierarchy_level"] = 0,
+            },
+            new JsonObject
+            {
+                ["department_id"] = SampleChildDepartmentId.ToString(),
+                ["name"] = "Platform",
+                ["parent_department_id"] = SampleDepartmentId.ToString(),
+                ["parent_department_name"] = "Engineering",
+                ["head_of_department"] = null,
+                ["employee_count"] = 12,
+                ["is_archived"] = SwaggerExampleHints.BooleanPipe,
+                ["hierarchy_level"] = 1,
+            }),
+        ["showing_label"] = "Showing 2 of 8 departments",
     };
+
+    internal static JsonObject BranchListItemExample() => new()
+    {
+        ["branch_id"] = SampleBranchId.ToString(),
+        ["name"] = "Accra HQ",
+        ["employee_count"] = 24,
+        ["is_archived"] = SwaggerExampleHints.BooleanPipe,
+    };
+
+    internal static JsonObject DepartmentListItemExample() => new()
+    {
+        ["department_id"] = SampleDepartmentId.ToString(),
+        ["name"] = "Engineering",
+        ["parent_department_id"] = null,
+        ["parent_department_name"] = null,
+        ["head_of_department"] = DepartmentHeadExample(),
+        ["employee_count"] = 24,
+        ["is_archived"] = SwaggerExampleHints.BooleanPipe,
+        ["hierarchy_level"] = 0,
+    };
+
+    internal static JsonObject OrgChartNodeExample() => OrgChartRootNode();
 
     private static JsonObject BranchListData() => new()
     {
-        ["items"] = new JsonArray(new JsonObject
-        {
-            ["branch_id"] = SampleBranchId.ToString(),
-            ["name"] = "Accra HQ",
-            ["employee_count"] = 42,
-            ["is_archived"] = false,
-        }),
+        ["items"] = new JsonArray(
+            new JsonObject
+            {
+                ["branch_id"] = SampleBranchId.ToString(),
+                ["name"] = "Accra HQ",
+                ["employee_count"] = 24,
+                ["is_archived"] = false,
+            },
+            new JsonObject
+            {
+                ["branch_id"] = SampleBranchId2.ToString(),
+                ["name"] = "Kumasi Office",
+                ["employee_count"] = 18,
+                ["is_archived"] = false,
+            },
+            new JsonObject
+            {
+                ["branch_id"] = SampleBranchId3.ToString(),
+                ["name"] = "Tamale Office",
+                ["employee_count"] = 9,
+                ["is_archived"] = SwaggerExampleHints.BooleanPipe,
+            }),
     };
 
     private static JsonObject CreateDepartmentResponseData() => new()
@@ -665,28 +757,29 @@ internal static class SwaggerExamples
     internal static JsonObject EmployeeAggregateReadData() =>
         (JsonObject)EmployeeAggregateReadResponse()["data"]!;
 
-    internal static JsonObject EmployeeAggregateReadResponse() => new()
+    internal static JsonObject EmployeeAggregateReadResponse()
     {
-        ["success"] = true,
-        ["status_code"] = 200,
-        ["detail"] = "OK",
-        ["message"] = "OK",
-        ["data"] = new JsonObject
+        var response = new JsonObject
         {
-            ["id"] = SampleEmployeeId.ToString(),
-            ["employee_code"] = "EMP-000042",
-            ["status"] = "finalised",
-            ["is_draft"] = false,
-            ["user_id"] = "usr_cp_abc123",
-            ["profile_url"] = "https://storage.example.com/profiles/ada.jpg",
-            ["identity"] = IdentitySection(withCustomField: true),
-            ["employment"] = EmploymentSection(withNames: true),
-            ["compensation"] = CompensationReadSection(),
-            ["education"] = new JsonArray(EducationEntry(withId: true)),
-            ["certifications"] = new JsonArray(CertificationEntry(withId: true)),
-            ["document_ids"] = new JsonArray(SampleDocumentId1, SampleDocumentId2),
-        },
-    };
+            ["data"] = new JsonObject
+            {
+                ["id"] = SampleEmployeeId.ToString(),
+                ["employee_code"] = "EMP-000042",
+                ["status"] = SwaggerExampleHints.Status,
+                ["is_draft"] = SwaggerExampleHints.BooleanPipe,
+                ["user_id"] = "usr_cp_abc123",
+                ["profile_url"] = "https://storage.example.com/profiles/ada.jpg",
+                ["identity"] = IdentitySection(withCustomField: true),
+                ["employment"] = EmploymentSection(withNames: true),
+                ["compensation"] = CompensationReadSection(),
+                ["education"] = new JsonArray(EducationEntry(withId: true)),
+                ["certifications"] = new JsonArray(CertificationEntry(withId: true)),
+                ["document_ids"] = new JsonArray(SampleDocumentId1, SampleDocumentId2),
+            },
+        };
+        ApplyResponseEnvelopeHints(response);
+        return response;
+    }
 
     internal static JsonObject CustomFieldsForSection(string section) => section switch
     {

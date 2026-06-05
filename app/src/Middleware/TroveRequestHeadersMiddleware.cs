@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using ZelosHR.Api.Configs;
+using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Persistence.Repositories;
 using ZelosHR.Api.Shared.Constants;
 using ZelosHR.Api.Shared.Tenant;
@@ -14,8 +15,13 @@ namespace ZelosHR.Api.Middleware;
 public sealed class TroveRequestHeadersMiddleware
 {
     private readonly RequestDelegate _next;
+    private readonly ILogger<TroveRequestHeadersMiddleware> _logger;
 
-    public TroveRequestHeadersMiddleware(RequestDelegate next) => _next = next;
+    public TroveRequestHeadersMiddleware(RequestDelegate next, ILogger<TroveRequestHeadersMiddleware> logger)
+    {
+        _next = next;
+        _logger = logger;
+    }
 
     public async Task InvokeAsync(
         HttpContext context,
@@ -46,10 +52,19 @@ public sealed class TroveRequestHeadersMiddleware
         {
             if (string.IsNullOrWhiteSpace(context.Request.Headers[headerName]))
             {
-                await WriteErrorAsync(
+                _logger.LogWarning(
+                    "Missing required header {HeaderName} on {Method} {Path}",
+                    headerName,
+                    context.Request.Method,
+                    context.Request.Path);
+                await WriteValidationErrorAsync(
                     context,
                     StatusCodes.Status400BadRequest,
-                    $"Required header '{headerName}' is missing.");
+                    new Dictionary<string, string>
+                    {
+                        [headerName] =
+                            $"Required header '{headerName}' is missing. Include it on every /api/v1/* request.",
+                    });
                 return;
             }
         }
@@ -57,19 +72,35 @@ public sealed class TroveRequestHeadersMiddleware
         var appId = context.Request.Headers[TroveStandardHeaders.AppId].ToString().Trim();
         if (!string.Equals(appId, TroveStandardHeaders.HrAppId, StringComparison.OrdinalIgnoreCase))
         {
-            await WriteErrorAsync(
+            _logger.LogWarning(
+                "Invalid app-id {AppId} on {Method} {Path}",
+                appId,
+                context.Request.Method,
+                context.Request.Path);
+            await WriteValidationErrorAsync(
                 context,
                 StatusCodes.Status400BadRequest,
-                $"Header '{TroveStandardHeaders.AppId}' must be '{TroveStandardHeaders.HrAppId}'.");
+                new Dictionary<string, string>
+                {
+                    [TroveStandardHeaders.AppId] =
+                        $"Header '{TroveStandardHeaders.AppId}' must be '{TroveStandardHeaders.HrAppId}'.",
+                });
             return;
         }
 
         if (TroveBearerTokenHelper.ExtractBearerToken(context) is null)
         {
-            await WriteErrorAsync(
+            _logger.LogWarning(
+                "Missing Bearer token on {Method} {Path}",
+                context.Request.Method,
+                context.Request.Path);
+            await WriteValidationErrorAsync(
                 context,
                 StatusCodes.Status401Unauthorized,
-                "Header 'authorization' must be a Bearer JWT.");
+                new Dictionary<string, string>
+                {
+                    ["authorization"] = "Header 'authorization' must be a Bearer JWT.",
+                });
             return;
         }
 
@@ -84,10 +115,17 @@ public sealed class TroveRequestHeadersMiddleware
             var tenantId = context.Items[TrovesuiteHttpContextKeys.TenantId] as string;
             if (string.IsNullOrWhiteSpace(tenantId))
             {
-                await WriteErrorAsync(
+                _logger.LogWarning(
+                    "JWT missing tenant_id claim on {Method} {Path}",
+                    context.Request.Method,
+                    context.Request.Path);
+                await WriteValidationErrorAsync(
                     context,
                     StatusCodes.Status401Unauthorized,
-                    "JWT must include a tenant_id claim for platform context validation.");
+                    new Dictionary<string, string>
+                    {
+                        ["authorization"] = "JWT must include a tenant_id claim for platform context validation.",
+                    });
                 return;
             }
 
@@ -101,6 +139,12 @@ public sealed class TroveRequestHeadersMiddleware
 
             if (!valid)
             {
+                _logger.LogWarning(
+                    "Invalid platform context for tenant {TenantId} user {UserId} on {Method} {Path}",
+                    tenantId,
+                    userId,
+                    context.Request.Method,
+                    context.Request.Path);
                 await WriteErrorAsync(
                     context,
                     StatusCodes.Status403Forbidden,
@@ -141,6 +185,18 @@ public sealed class TroveRequestHeadersMiddleware
         if (claims.TryGetValue(CorePlatformConstants.JwtClaims.UserId, out var userId)
             && !string.IsNullOrWhiteSpace(userId))
             context.Items[TrovesuiteHttpContextKeys.UserId] = userId;
+    }
+
+    private static Task WriteValidationErrorAsync(
+        HttpContext context,
+        int statusCode,
+        Dictionary<string, string> fieldErrors)
+    {
+        var response = Respons<object>.ValidationError(fieldErrors);
+        response.StatusCode = statusCode;
+        context.Response.StatusCode = statusCode;
+        context.Response.ContentType = "application/json";
+        return context.Response.WriteAsync(JsonSerializer.Serialize(response, PlatformJson.SerializerOptions));
     }
 
     private static Task WriteErrorAsync(HttpContext context, int statusCode, string message)

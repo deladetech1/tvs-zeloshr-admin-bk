@@ -65,13 +65,6 @@ public sealed class EmployeeAggregateService
             return Respons<EmployeeAggregateReadDto>.ValidationError(validation);
 
         var isFinalised = string.Equals(request.Status, "finalised", StringComparison.OrdinalIgnoreCase);
-        if (!isFinalised && !string.Equals(request.Status, "draft", StringComparison.OrdinalIgnoreCase))
-        {
-            return Respons<EmployeeAggregateReadDto>.ValidationError(new Dictionary<string, string>
-            {
-                ["status"] = "Status must be 'draft' or 'finalised'.",
-            });
-        }
 
         await using var transaction = await _db.Database.BeginTransactionAsync(ct);
         try
@@ -105,7 +98,7 @@ public sealed class EmployeeAggregateService
                 {
                     await transaction.RollbackAsync(ct);
                     return Respons<EmployeeAggregateReadDto>.ValidationError(
-                        new Dictionary<string, string> { ["employment.departmentId"] = "Department not found." });
+                        new Dictionary<string, string> { ["employment.department_id"] = "Department not found." });
                 }
 
                 if (request.Employment.BranchId is { } branchId
@@ -113,7 +106,7 @@ public sealed class EmployeeAggregateService
                 {
                     await transaction.RollbackAsync(ct);
                     return Respons<EmployeeAggregateReadDto>.ValidationError(
-                        new Dictionary<string, string> { ["employment.branchId"] = "Branch not found." });
+                        new Dictionary<string, string> { ["employment.branch_id"] = "Branch not found." });
                 }
 
                 var employment = await _registration.UpdateEmploymentDetailsAsync(employeeId, wizard, ct);
@@ -596,6 +589,13 @@ public sealed class EmployeeAggregateService
         if (string.IsNullOrWhiteSpace(request.Identity.FullName))
             errors["identity.full_name"] = "Full name is required.";
 
+        if (!string.IsNullOrWhiteSpace(request.Status)
+            && !string.Equals(request.Status, "finalised", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(request.Status, "draft", StringComparison.OrdinalIgnoreCase))
+        {
+            errors["status"] = "Status must be 'draft' or 'finalised'.";
+        }
+
         if (request.Education.Count > MaxEducation)
             errors["education"] = $"At most {MaxEducation} education records allowed.";
 
@@ -730,14 +730,33 @@ public sealed class EmployeeAggregateService
         return errors.Count == 0 ? null : errors;
     }
 
-    private static Respons<T> MapError<T>(Respons<EmployeeRegistrationReadDto> source) =>
-        Fail<T>(source.StatusCode, source.Error, source.Detail);
+    private static Respons<T> MapError<T>(Respons<EmployeeRegistrationReadDto> source)
+    {
+        if (source.FieldErrors is { Count: > 0 })
+            return Respons<T>.ValidationError(
+                new Dictionary<string, string>(source.FieldErrors),
+                source.Error ?? source.Detail);
+
+        return Fail<T>(source.StatusCode, source.Error, source.Detail);
+    }
 
     private static Respons<T> MapError<T>(Respons<EmployeeEducationDto> source) =>
-        Fail<T>(source.StatusCode, source.Error, source.Detail);
+        MapNestedError<T>(source.StatusCode, source.Error, source.Detail, source.FieldErrors);
 
     private static Respons<T> MapError<T>(Respons<EmployeeCertificationDto> source) =>
-        Fail<T>(source.StatusCode, source.Error, source.Detail);
+        MapNestedError<T>(source.StatusCode, source.Error, source.Detail, source.FieldErrors);
+
+    private static Respons<T> MapNestedError<T>(
+        int statusCode,
+        string? error,
+        string? detail,
+        Dictionary<string, string>? fieldErrors)
+    {
+        if (fieldErrors is { Count: > 0 })
+            return Respons<T>.ValidationError(new Dictionary<string, string>(fieldErrors), error ?? detail);
+
+        return Fail<T>(statusCode, error, detail);
+    }
 
     private static Respons<T> Fail<T>(int statusCode, string? error, string? detail) =>
         Respons<T>.Fail(error ?? detail ?? "Request failed.", statusCode: statusCode);

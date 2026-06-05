@@ -120,13 +120,16 @@ public class OrgStructureService
 
         if (request.ParentDepartmentId == id)
             return Respons<CreateDepartmentResponseDto>.ValidationError(
-                new Dictionary<string, string> { ["parentDepartmentId"] = "Department cannot be its own parent." });
+                new Dictionary<string, string> { ["parent_department_id"] = "Department cannot be its own parent." });
 
         var hasName = !string.IsNullOrWhiteSpace(request.Name);
         var hasParent = request.ParentDepartmentId.HasValue;
         var hasHead = request.HeadOfDepartmentId.HasValue;
         if (!hasName && !hasParent && !hasHead)
-            return Respons<CreateDepartmentResponseDto>.Fail("No fields to update.", statusCode: 400);
+            return Respons<CreateDepartmentResponseDto>.ValidationError(new Dictionary<string, string>
+            {
+                ["request"] = "Provide at least one of: name, parent_department_id, head_of_department_id.",
+            });
 
         var name = await _departmentRepo.UpdateScopedAsync(
             id,
@@ -140,7 +143,7 @@ public class OrgStructureService
         if (name is null)
             return Respons<CreateDepartmentResponseDto>.Fail("Department not found.", statusCode: 404);
         if (name.Length == 0)
-            return Respons<CreateDepartmentResponseDto>.Fail("No fields to update.", statusCode: 400);
+            return Respons<CreateDepartmentResponseDto>.EmptyUpdateRequest();
 
         return Respons<CreateDepartmentResponseDto>.Ok(new CreateDepartmentResponseDto
         {
@@ -191,7 +194,10 @@ public class OrgStructureService
         CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
-            return Respons<BranchMutationResponseDto>.Fail("No fields to update.", statusCode: 400);
+            return Respons<BranchMutationResponseDto>.ValidationError(new Dictionary<string, string>
+            {
+                ["name"] = "Branch name is required.",
+            });
 
         var name = await _branchRepo.UpdateNameScopedAsync(id, tenantId, orgId, request.Name!, ct);
         if (name is null)
