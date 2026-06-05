@@ -6,6 +6,7 @@ using ZelosHR.Api.Entities.Currencies;
 using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Files;
+using ZelosHR.Api.Entities.OrgStructure;
 using ZelosHR.Api.Entities.Shared;
 
 namespace ZelosHR.Api.Configs;
@@ -64,6 +65,9 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(FileDeleteReadDto) => SwaggerExamples.FileDeleteData(),
             nameof(FileResponseReadDto) => SwaggerExamples.FileResponseData(),
             nameof(FileUploadMultipleReadDto) => new JsonObject { ["id"] = SwaggerExamples.SampleDocumentId1 },
+            nameof(CreateDepartmentRequestDto) => SwaggerExamples.CreateDepartmentRoot(),
+            nameof(UpdateDepartmentRequestDto) => SwaggerExamples.UpdateDepartmentBody(),
+            nameof(OrgChartDto) => SwaggerExamples.OrgChartDataForSchema(),
             _ => schema.Example,
         };
 
@@ -86,7 +90,11 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(FileResponseReadDto) => AppendDescription(schema.Description,
                 "Presigned URL expires after 24 hours. Re-call GET /file/list when expired."),
             nameof(FileDeleteReadDto) => AppendDescription(schema.Description,
-                "blob_path is the client-supplied path from upload. container_name is server config (not sent on upload)."),
+                "Echo of storage location after delete."),
+            nameof(CreateDepartmentRequestDto) => AppendDescription(schema.Description,
+                "Create department. Optional parent_department_id and head_of_department_id (employee UUID)."),
+            nameof(OrgChartDto) => AppendDescription(schema.Description,
+                "Org chart payload: nested department nodes under roots."),
             _ => schema.Description,
         };
     }
@@ -274,11 +282,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 ? new JsonArray(SwaggerExamples.SampleDocumentId2)
                 : new JsonArray(SwaggerExamples.SampleDocumentId1, SwaggerExamples.SampleDocumentId2);
             schema.Description = AppendDescription(schema.Description,
-                """
-                Workflow: (1) POST /api/v1/file/post/multiple?blob_paths={tenant}/{org}/{bus}/employees/{filename}
-                (2) use returned id strings here
-                (3) GET /api/v1/file/list?document_ids=id1,id2 for presigned URLs (24h).
-                """);
+                "Registry IDs from POST /file/post/multiple. Resolve URLs via GET /file/list?document_ids=…");
         }
     }
 

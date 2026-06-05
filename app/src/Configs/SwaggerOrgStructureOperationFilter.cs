@@ -20,10 +20,23 @@ public sealed class SwaggerOrgStructureOperationFilter : IOperationFilter
 
         if (method.Equals("GET", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/org-structure/chart", StringComparison.OrdinalIgnoreCase))
         {
-            SetJsonResponseExample(operation, 200, SwaggerExamples.OrgChartResponse());
+            SetNamedJsonResponseExamples(operation, 200, new Dictionary<string, IOpenApiExample>
+            {
+                ["empty"] = new OpenApiExample
+                {
+                    Summary = "No departments",
+                    Description = "New tenant or org with no department rows yet.",
+                    Value = SwaggerExamples.OrgChartEmptyResponse(),
+                },
+                ["with_tree"] = new OpenApiExample
+                {
+                    Summary = "Nested department tree",
+                    Description = "Roots have null parent_id; children nest under their parent department.",
+                    Value = SwaggerExamples.OrgChartResponse(),
+                },
+            });
             operation.Summary ??= "Org chart";
-            operation.Description = SwaggerOptionFormat.Append(operation.Description,
-                "Nested department tree for the org chart UI. Roots have no parent_id; children nest under their parent department.");
+            operation.Description = "Returns `{ data: { roots: [...] } }`. Each node: `id`, `name`, `node_type`, `parent_id`, `head_of_department`, `employee_count`, `children`.";
             return;
         }
 
@@ -111,6 +124,19 @@ public sealed class SwaggerOrgStructureOperationFilter : IOperationFilter
         if (!response.Content.TryGetValue("application/json", out var media))
             return;
         SwaggerMediaExamples.SetSingleExample(media, example);
+    }
+
+    private static void SetNamedJsonResponseExamples(
+        OpenApiOperation operation,
+        int statusCode,
+        Dictionary<string, IOpenApiExample> examples)
+    {
+        var key = statusCode.ToString();
+        if (!operation.Responses.TryGetValue(key, out var response) || response.Content is null)
+            return;
+        if (!response.Content.TryGetValue("application/json", out var media))
+            return;
+        SwaggerMediaExamples.SetNamedExamples(media, examples);
     }
 
     private static void AppendParameterDescription(OpenApiOperation operation, string name, string addition)

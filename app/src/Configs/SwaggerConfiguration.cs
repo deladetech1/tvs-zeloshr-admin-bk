@@ -24,7 +24,7 @@ public static class SwaggerConfiguration
                 Title = "ZelosHR API",
                 Version = $"v1 · build {buildVersion}",
                 Description = $"""
-                    Enterprise multi-tenant HR platform API (Mystoreguard-aligned).
+                    Enterprise multi-tenant HR platform API.
 
                     **Deployed build:** `{buildVersion}`
 
@@ -50,29 +50,12 @@ public static class SwaggerConfiguration
 
                     ---
 
-                    ### File Management workflow (Azure Blob — Mystoreguard)
-
-                    | Step | Route | What you send | What you get |
-                    |------|-------|---------------|--------------|
-                    | 1 Upload | `POST /file/post/multiple` | `blob_paths` + multipart `files` | an `id` per uploaded file |
-                    | 2 Attach | `POST /employees/add` | `document_ids: ["id", …]` | Employee record |
-                    | 3 Download | `GET /file/list` | `document_ids=id1,id2` | `presigned_url` (24h) |
-                    | 4 Replace | `PUT /file/put` | `document_id` + multipart `file` | Updated metadata + URL |
-                    | 5 Delete | `DELETE /file/delete` | `document_id` | `blob_path`, `container_name` |
-
-                    **Client sends:** `blob_paths` (logical path inside container), `document_id(s)` (registry strings).  
-                    **Server config (ops only):** `Trovesuite:AzureStorage:AccountName`, `AzureStorage:DocumentsContainer` — see **File Management** tag.
-
-                    ---
-
                     ### Employee create workflow
 
                     1. **(Optional) Custom fields** — Admin form: `GET /api/v1/custom-fields/entity-types` → `GET /api/v1/custom-fields/sections?entity_type=` → `POST /api/v1/custom-fields/add` (use section `value` as `section_name`)  
                        Update definition: `PUT /api/v1/custom-fields/update?custom_field_id=`  
                        Employee form schema: `GET /api/v1/custom-fields/schema?entity_type=employee`
-                    2. **(Optional) Documents** — Upload: `POST /api/v1/file/post/multiple?blob_paths=…`  
-                       Attach returned IDs on employee: `document_ids: ["doc_…"]`  
-                       Resolve URLs: `GET /api/v1/file/list?document_ids=…`
+                    2. **(Optional) Documents** — `POST /api/v1/file/post/multiple` → attach returned IDs as `document_ids` on employee create/update
                     3. **Currency** — `GET /api/v1/currencies/list` → use returned `id` as `compensation.currency_id` (not a currency code string)
                     4. **Create** — `POST /api/v1/employees/add` with `status: draft | finalised`
                     5. **Read / update** — `GET /api/v1/employees/get?employee_id=` · `PUT /api/v1/employees/update?employee_id=` (full profile or partial body)
@@ -83,7 +66,7 @@ public static class SwaggerConfiguration
                     ### Organisation / org chart workflow
 
                     1. **Summary tabs** — `GET /api/v1/org-structure/statistics`
-                    2. **Org chart tree** — `GET /api/v1/org-structure/chart` (`node_type`: department)
+                    2. **Org chart tree** — `GET /api/v1/org-structure/chart` → `data.roots[]` hierarchy (`node_type`: department)
                     3. **Departments** — list `GET …/departments` (`sort_by`: name | employeeCount · `sort_order`: asc | desc · `include_archived`: false | true)
                        · create `POST …/departments/add` · update `PUT …/departments/update?department_id=` · archive `DELETE …/departments/delete?department_id=`
                     4. **Branches** — list `GET …/branches` · create `POST …/branches/add` · update `PUT …/branches/update?branch_id=` · archive `DELETE …/branches/delete?branch_id=`

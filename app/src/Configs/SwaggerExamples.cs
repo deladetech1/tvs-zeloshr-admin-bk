@@ -65,8 +65,8 @@ internal static class SwaggerExamples
         {
             ["success"] = true,
             ["status_code"] = 200,
-            ["detail"] = "OK",
-            ["message"] = "OK",
+            ["detail"] = "Success",
+            ["message"] = "Success",
             ["data"] = data,
         };
 
@@ -163,7 +163,7 @@ internal static class SwaggerExamples
             nameof(EmployeeDirectorySummaryDto) => EmployeeDirectoryStatisticsResponse(),
             nameof(EmployeeRegistrationReadDto) => EmployeeRegistrationImportResponse(),
             nameof(OrganisationSummaryDto) => EnvelopeOk(OrganisationSummaryData()),
-            nameof(OrgChartDto) => OrgChartResponse(),
+            nameof(OrgChartDto) => EnvelopeOk(OrgChartData()),
             nameof(DepartmentListDto) => EnvelopeOk(DepartmentListData(), SamplePagination()),
             nameof(BranchListDto) => EnvelopeOk(BranchListData(), SamplePagination()),
             nameof(CreateDepartmentResponseDto) => EnvelopeOk(CreateDepartmentResponseData()),
@@ -465,10 +465,19 @@ internal static class SwaggerExamples
         ["archived_count"] = 1,
     };
 
-    internal static JsonObject OrgChartResponse() => EnvelopeOk(new JsonObject
+    internal static JsonObject OrgChartResponse() => EnvelopeOk(OrgChartData());
+
+    internal static JsonObject OrgChartEmptyResponse() => EnvelopeOk(new JsonObject
+    {
+        ["roots"] = new JsonArray(),
+    });
+
+    private static JsonObject OrgChartData() => new()
     {
         ["roots"] = new JsonArray(OrgChartRootNode()),
-    });
+    };
+
+    internal static JsonObject OrgChartDataForSchema() => OrgChartData();
 
     private static JsonObject OrgChartRootNode() => new()
     {
@@ -484,7 +493,7 @@ internal static class SwaggerExamples
             ["name"] = "Platform",
             ["node_type"] = "department",
             ["parent_id"] = SampleDepartmentId.ToString(),
-            ["head_of_department"] = DepartmentHeadExample(),
+            ["head_of_department"] = null,
             ["employee_count"] = 12,
             ["children"] = new JsonArray(),
         }),
@@ -512,7 +521,7 @@ internal static class SwaggerExamples
             ["is_archived"] = false,
             ["hierarchy_level"] = 0,
         }),
-        ["showing_label"] = "Showing 1–15 of 8 departments",
+        ["showing_label"] = "Showing 1 of 8 departments",
     };
 
     private static JsonObject BranchListData() => new()

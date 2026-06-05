@@ -6,10 +6,7 @@ using ZelosHR.Api.Shared.Constants;
 
 namespace ZelosHR.Api.Entities.Files;
 
-/// <summary>
-/// File upload registry (Mystoreguard-aligned). Azure Blob + <c>hr_document_paths</c>.
-/// See **File Management** tag in Swagger for full workflow, blob path rules, and server config notes.
-/// </summary>
+/// <summary>File upload registry for employee documents.</summary>
 [ApiController]
 [ApiExplorerSettings(GroupName = SwaggerGroups.FileManagement)]
 [Route("api/v1/file")]
@@ -21,10 +18,6 @@ public class FileManagementController : ControllerBase
     public FileManagementController(FileManagementService files) => _files = files;
 
     /// <summary>Upload multiple files to Azure Storage and register document IDs.</summary>
-    /// <remarks>
-    /// Mystoreguard route: <c>POST /api/v1/file/post/multiple</c>.
-    /// See operation description and **Examples** on the 200 response for the success envelope.
-    /// </remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpPost("post/multiple")]
     [RequestSizeLimit(50 * 1024 * 1024)]
@@ -41,10 +34,6 @@ public class FileManagementController : ControllerBase
     }
 
     /// <summary>Replace an uploaded file (same registry ID).</summary>
-    /// <remarks>
-    /// Mystoreguard route: <c>PUT /api/v1/file/put?document_id=…</c>.
-    /// Optional <c>blob_path</c> moves the blob to a new path inside the container.
-    /// </remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpPut("put")]
     [RequestSizeLimit(10 * 1024 * 1024)]
@@ -62,11 +51,6 @@ public class FileManagementController : ControllerBase
     }
 
     /// <summary>Delete blob and soft-delete registry row.</summary>
-    /// <remarks>
-    /// Mystoreguard route: <c>DELETE /api/v1/file/delete?document_id=…</c>.
-    /// Response includes <c>blob_path</c> and <c>container_name</c> for audit.
-    /// Detach from employees via <c>PUT /employees/update</c> → <c>delete_document_ids</c>.
-    /// </remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpDelete("delete")]
     [ProducesResponseType(typeof(Respons<FileDeleteReadDto>), StatusCodes.Status200OK)]
@@ -80,10 +64,6 @@ public class FileManagementController : ControllerBase
     }
 
     /// <summary>Get presigned download URLs for document IDs (24h expiry).</summary>
-    /// <remarks>
-    /// Mystoreguard route: <c>GET /api/v1/file/list?document_ids=…</c>.
-    /// Comma-separated IDs from upload or employee <c>document_ids</c> array.
-    /// </remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("list")]
     [ProducesResponseType(typeof(Respons<IReadOnlyList<FileResponseReadDto>>), StatusCodes.Status200OK)]
