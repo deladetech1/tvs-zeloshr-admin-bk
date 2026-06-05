@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Employees;
 
@@ -8,6 +9,7 @@ public sealed class CustomFieldListQuery
 {
     public string? Search { get; init; }
 
+    [FromQuery(Name = "entity_type")]
     [SwaggerAllowedValues(typeof(CustomFieldEntityTypes), nameof(CustomFieldEntityTypes.All))]
     public string? EntityType { get; init; }
 
@@ -39,6 +41,7 @@ public sealed class CustomFieldListQuery
 /// <summary>Query filters for <c>GET /api/v1/custom-fields/audit-logs</c>.</summary>
 public sealed class CustomFieldAuditLogQuery
 {
+    [FromQuery(Name = "entity_type")]
     [SwaggerAllowedValues(typeof(CustomFieldEntityTypes), nameof(CustomFieldEntityTypes.All))]
     public string? EntityType { get; init; }
 

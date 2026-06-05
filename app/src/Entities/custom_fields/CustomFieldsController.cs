@@ -52,7 +52,7 @@ public class CustomFieldsController : ControllerBase
     [HttpGet("sections")]
     [RequiresZelosHrPermission(ZelosHrPermissions.CustomFieldsGet)]
     public async Task<ActionResult<Respons<CustomFieldSectionsDto>>> Sections(
-        [FromQuery]
+        [FromQuery(Name = "entity_type")]
         [SwaggerAllowedValues(typeof(CustomFieldEntityTypes), nameof(CustomFieldEntityTypes.All))]
         string entityType,
         CancellationToken ct)
@@ -69,7 +69,7 @@ public class CustomFieldsController : ControllerBase
     [HttpGet("schema")]
     [RequiresZelosHrPermission(ZelosHrPermissions.CustomFieldsGet)]
     public async Task<ActionResult<Respons<CustomFieldSchemaDto>>> Schema(
-        [FromQuery]
+        [FromQuery(Name = "entity_type")]
         [SwaggerAllowedValues(typeof(CustomFieldEntityTypes), nameof(CustomFieldEntityTypes.All))]
         string entityType,
         CancellationToken ct)

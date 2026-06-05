@@ -34,7 +34,8 @@ curl_headers=(
 paths=(
   "/api/v1/custom-fields/statistics"
   "/api/v1/custom-fields/entity-types"
-  "/api/v1/custom-fields/schema?entityType=employee"
+  "/api/v1/custom-fields/sections?entity_type=employee"
+  "/api/v1/custom-fields/schema?entity_type=employee"
   "/api/v1/custom-fields/list?page=1&size=5"
   "/api/v1/custom-fields/audit-logs?page=1&size=5"
 )

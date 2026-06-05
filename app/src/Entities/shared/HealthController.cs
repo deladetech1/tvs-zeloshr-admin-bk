@@ -7,6 +7,7 @@ namespace ZelosHR.Api.Entities.Shared;
 [ApiController]
 [ApiExplorerSettings(GroupName = SwaggerGroups.Health, IgnoreApi = true)]
 [Route("health")]
+[Route("api/v1/health")]
 public class HealthController : ControllerBase
 {
     private readonly IDatabaseManager _database;
