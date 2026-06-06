@@ -124,4 +124,41 @@ public sealed class HrDocumentPresignedUrlService
             return null;
         }
     }
+
+    /// <summary>Resolve registry IDs to metadata + presigned URLs (same shape as <c>GET /file/list</c>).</summary>
+    public async Task<IReadOnlyList<FileResponseReadDto>> ResolveDocumentsAsync(
+        IEnumerable<string> documentIds,
+        CancellationToken ct = default)
+    {
+        var ids = documentIds
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id.Trim())
+            .ToList();
+        if (ids.Count == 0)
+            return [];
+
+        var rows = await _documents.GetByIdsAsync(ids, _tenant.TenantId, ct);
+        var byId = rows.ToDictionary(x => x.Id, StringComparer.Ordinal);
+
+        var items = new List<FileResponseReadDto>();
+        foreach (var id in ids)
+        {
+            if (!byId.TryGetValue(id, out var row))
+                continue;
+
+            var presignedUrl = await ResolvePresignedUrlForBlobPathAsync(row.DocumentPath, ct);
+            if (presignedUrl is null)
+                continue;
+
+            items.Add(new FileResponseReadDto
+            {
+                Id = row.Id,
+                PresignedUrl = presignedUrl,
+                Description = row.Description,
+                FileName = row.FileName,
+            });
+        }
+
+        return items;
+    }
 }

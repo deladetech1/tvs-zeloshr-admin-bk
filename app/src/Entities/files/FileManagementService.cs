@@ -224,28 +224,7 @@ public sealed class FileManagementService
         }
 
         var ids = documentIds.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-        var rows = await _documents.GetByIdsAsync(ids, _tenant.TenantId, ct);
-        var byId = rows.ToDictionary(x => x.Id, StringComparer.Ordinal);
-
-        var items = new List<FileResponseReadDto>();
-        foreach (var id in ids)
-        {
-            if (!byId.TryGetValue(id, out var row))
-                continue;
-
-            var url = await ResolvePresignedUrlAsync(row.DocumentPath, ct);
-            if (!url.Success || url.Data is null)
-                continue;
-
-            items.Add(new FileResponseReadDto
-            {
-                Id = row.Id,
-                PresignedUrl = url.Data.PresignedUrl,
-                Description = row.Description,
-                FileName = row.FileName,
-            });
-        }
-
+        var items = await _presignedUrls.ResolveDocumentsAsync(ids, ct);
         return Respons<IReadOnlyList<FileResponseReadDto>>.Ok(items);
     }
 

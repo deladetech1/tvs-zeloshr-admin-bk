@@ -37,7 +37,7 @@ public sealed class CreateEmployeeAggregateRequest
 
     /// <summary>
     /// Document IDs from <c>POST /api/v1/file/post/multiple</c> (upload first, then pass IDs here).
-    /// Resolve URLs via <c>GET /api/v1/file/list?document_ids=</c>.
+    /// On read, <c>GET /employees/get</c> returns <c>documents[]</c> with <c>id</c>, <c>presigned_url</c>, and <c>description</c>.
     /// </summary>
     public IReadOnlyList<string>? DocumentIds { get; init; }
 }
@@ -178,10 +178,23 @@ public sealed class EmployeeAggregateReadDto
     public IReadOnlyList<EmployeeCertificationDto>? Certifications { get; init; }
 
     /// <summary>
-    /// File-registry document IDs (<c>human_resource.hr_document_paths.id</c>).
-    /// Upload first via <c>POST /api/v1/file/post/multiple</c>; resolve URLs via <c>GET /api/v1/file/list</c>.
+    /// Attached files on read: registry <c>id</c>, time-limited <c>presigned_url</c>, and optional <c>description</c>.
+    /// Write via <c>document_ids</c> (string IDs from <c>POST /file/post/multiple</c>) on create/update.
     /// </summary>
-    public IReadOnlyList<string>? DocumentIds { get; init; }
+    public IReadOnlyList<EmployeeDocumentReadDto>? Documents { get; init; }
+}
+
+/// <summary>Employee attachment on read — id, presigned URL (~24h), and description.</summary>
+public sealed class EmployeeDocumentReadDto
+{
+    /// <summary>Document registry ID (<c>hr_document_paths.id</c>).</summary>
+    public required string Id { get; init; }
+
+    /// <summary>Azure Blob presigned URL (24h expiry).</summary>
+    public required string PresignedUrl { get; init; }
+
+    /// <summary>Optional label from upload <c>descriptions</c> or file update.</summary>
+    public string? Description { get; init; }
 }
 
 public sealed class EmployeeAggregateEmploymentReadDto : EmployeeAggregateEmploymentDto

@@ -774,7 +774,19 @@ internal static class SwaggerExamples
                 ["compensation"] = CompensationReadSection(),
                 ["education"] = new JsonArray(EducationEntry(withId: true)),
                 ["certifications"] = new JsonArray(CertificationEntry(withId: true)),
-                ["document_ids"] = new JsonArray(SampleDocumentId1, SampleDocumentId2),
+                ["documents"] = new JsonArray(
+                    new JsonObject
+                    {
+                        ["id"] = SampleDocumentId1,
+                        ["presigned_url"] = SamplePresignedUrl,
+                        ["description"] = "Employment contract",
+                    },
+                    new JsonObject
+                    {
+                        ["id"] = SampleDocumentId2,
+                        ["presigned_url"] = SamplePresignedUrl,
+                        ["description"] = "National ID scan",
+                    }),
             },
         };
         ApplyResponseEnvelopeHints(response);

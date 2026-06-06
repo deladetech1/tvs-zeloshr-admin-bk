@@ -317,7 +317,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 ? new JsonArray(SwaggerExamples.SampleDocumentId2)
                 : new JsonArray(SwaggerExamples.SampleDocumentId1, SwaggerExamples.SampleDocumentId2);
             schema.Description = AppendDescription(schema.Description,
-                "Registry IDs from POST /file/post/multiple. Resolve URLs via GET /file/list?document_ids=…");
+                "Registry IDs from POST /file/post/multiple. On employee GET, see documents[] (id, presigned_url, description).");
         }
     }
 

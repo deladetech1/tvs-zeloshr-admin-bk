@@ -467,7 +467,16 @@ public sealed class EmployeeAggregateService
         var certificationItems = certifications.Success && certifications.Data is { Count: > 0 } certData
             ? certData
             : null;
-        var documentIds = EmployeeAggregateReadMapper.DocumentIdsOrNull(entity.DocumentIds);
+        var documents = entity.DocumentIds.Count > 0
+            ? (await _profileUrls.ResolveDocumentsAsync(entity.DocumentIds, ct))
+                .Select(d => new EmployeeDocumentReadDto
+                {
+                    Id = d.Id,
+                    PresignedUrl = d.PresignedUrl,
+                    Description = d.Description,
+                })
+                .ToList()
+            : null;
 
         CpCurrencyDto? currency = null;
         if (!string.IsNullOrWhiteSpace(entity.CurrencyId))
@@ -523,7 +532,7 @@ public sealed class EmployeeAggregateService
                     CustomFields = EmployeeAggregateReadMapper.CustomFieldsOrNull(sections.Certification),
                 })
                 .ToList(),
-            DocumentIds = documentIds,
+            Documents = EmployeeAggregateReadMapper.DocumentsOrNull(documents),
         };
 
         return Respons<EmployeeAggregateReadDto>.Ok(read);
