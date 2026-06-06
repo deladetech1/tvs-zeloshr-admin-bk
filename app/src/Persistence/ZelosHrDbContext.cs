@@ -88,6 +88,13 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
         {
             b.ToTable("zhr_employees");
             b.HasKey(x => x.Id);
+            b.Property(x => x.EmployeeCode).HasMaxLength(32).IsRequired();
+            b.Property(x => x.FullName).HasMaxLength(500).IsRequired();
+            b.Property(x => x.LifecycleState).HasDefaultValue("Pre-hire").IsRequired();
+            b.Property(x => x.LifecycleStatus).HasDefaultValue("draft").IsRequired();
+            b.Property(x => x.IsDraft).HasDefaultValue(true);
+            b.Property(x => x.EmploymentStatus).HasDefaultValue("Active").IsRequired();
+            b.Property(x => x.IsDeleted).HasDefaultValue(false);
             b.HasIndex(x => new { x.TenantId, x.EmployeeCode }).IsUnique();
             b.HasIndex(x => new { x.TenantId, x.GhanaCardNumber })
                 .IsUnique()
@@ -105,7 +112,7 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
             // Match tvs-sqlscript migration column names (snake_case convention would produce tier2_pension_provider).
             b.Property(x => x.Tier2PensionProvider).HasColumnName("tier2pension_provider");
             b.Property(x => x.Tier3PensionProvider).HasColumnName("tier3pension_provider");
-            b.Property(x => x.CustomFieldsData).HasColumnType("jsonb").HasDefaultValue("{}");
+            b.Property(x => x.CustomFieldsData).HasColumnType("jsonb").HasDefaultValue("{}").IsRequired();
             b.HasOne(x => x.Department).WithMany().HasForeignKey(x => x.DepartmentId);
             b.HasOne(x => x.Branch).WithMany().HasForeignKey(x => x.BranchId);
             b.HasOne(x => x.Manager).WithMany().HasForeignKey(x => x.ManagerId);

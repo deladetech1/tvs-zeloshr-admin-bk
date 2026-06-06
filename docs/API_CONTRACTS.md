@@ -57,6 +57,21 @@ All `employment` fields (`job_title`, `department_id`, `branch_id`, `work_arrang
 When `department_id` or `branch_id` is sent, the ID must exist in org structure.
 `work_arrangement: remote` with a `branch_id` is rejected (inconsistent data).
 
+#### Database alignment (`zhr_employees`)
+
+API-optional employment fields map to **nullable** Postgres columns: `job_title`, `department_id`, `branch_id`, `work_arrangement`, `contract_type`, etc.
+
+Server-set NOT NULL columns (populated on insert, not required in the request body):
+
+| Column | Set by API on insert |
+|--------|----------------------|
+| `employee_code` | Generated |
+| `tenant_id`, `org_id` | Trove headers |
+| `full_name` | `identity.full_name` (may be cleared after `cp_users` link) |
+| `lifecycle_state`, `lifecycle_status`, `is_draft` | Draft defaults |
+| `employment_status` | `Draft` until finalise |
+| `custom_fields_data`, `document_ids` | `{}` / `[]` |
+
 #### Required vs optional — update (`PUT /update`)
 
 Send **only** sections/fields you are changing. At least one top-level field or section must be present.

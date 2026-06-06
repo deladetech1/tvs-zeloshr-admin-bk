@@ -153,6 +153,7 @@ public sealed class EmployeeRepository(ZelosHrDbContext db) : IEmployeeRepositor
 
     public async Task<EmployeeEntity> AddAsync(EmployeeEntity entity, CancellationToken ct = default)
     {
+        EmployeeEntityInsertDefaults.EnsureRequiredColumns(entity);
         entity.CreatedAt = DateTimeOffset.UtcNow;
         entity.UpdatedAt = entity.CreatedAt;
         db.Employees.Add(entity);

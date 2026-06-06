@@ -104,6 +104,7 @@ public sealed class EmployeeRegistrationService
             UpdatedAt = now,
             CreatedBy = _currentUser.UserId?.ToString(),
         };
+        EmployeeEntityInsertDefaults.EnsureRequiredColumns(entity);
 
         const int maxAttempts = EmployeeCodeAllocation.MaxAttempts;
         var startSeq = await _employees.GetNextEmployeeSequenceAsync(_tenant.TenantId, _tenant.OrgId, ct);
