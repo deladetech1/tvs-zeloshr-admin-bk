@@ -51,11 +51,11 @@ Link existing platform user: `POST /import` (separate from `POST /add`). Wizard:
 | Field | Required on finalise |
 |-------|----------------------|
 | `identity.full_name` | yes |
-| `employment.job_title` | yes |
 | `identity.work_email` | yes (creates/links `cp_users`) |
 
-`employment.department_id` and `employment.branch_id` are **optional**. When provided, the ID must exist in org structure.
-If `work_arrangement` is `on_site` or `field`, `branch_id` is required **on finalise** (not on draft save).
+All `employment` fields (`job_title`, `department_id`, `branch_id`, `work_arrangement`, etc.) are **optional**.
+When `department_id` or `branch_id` is sent, the ID must exist in org structure.
+`work_arrangement: remote` with a `branch_id` is rejected (inconsistent data).
 
 #### Required vs optional — update (`PUT /update`)
 

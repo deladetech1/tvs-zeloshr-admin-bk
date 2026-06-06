@@ -14,10 +14,15 @@ public class WorkArrangementRulesTests
         WorkArrangementRules.Normalize(input).Should().Be(expected);
 
     [Fact]
-    public void On_site_requires_branch()
+    public void On_site_without_branch_is_allowed()
     {
-        var errors = WorkArrangementRules.ValidateBranchForArrangement("on_site", null);
-        errors.Should().ContainKey("employment.branch_id");
+        WorkArrangementRules.ValidateBranchForArrangement("on_site", null).Should().BeNull();
+    }
+
+    [Fact]
+    public void Field_without_branch_is_allowed()
+    {
+        WorkArrangementRules.ValidateBranchForArrangement("field", null).Should().BeNull();
     }
 
     [Fact]

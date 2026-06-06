@@ -362,7 +362,7 @@ public class EmployeeRegistrationTests
     }
 
     [Fact]
-    public async Task FinaliseEmployee_OnSiteWithoutBranch_ReturnsValidationError()
+    public async Task FinaliseEmployee_OnSiteWithoutBranch_Succeeds()
     {
         var id = Guid.NewGuid();
         var entity = new EmployeeEntity
@@ -373,6 +373,40 @@ public class EmployeeRegistrationTests
             FullName = "Ada",
             JobTitle = "Engineer",
             WorkArrangement = "on_site",
+            WorkEmail = "ada@corp.com",
+            UserId = "u-existing",
+            IsDraft = true,
+        };
+        _employees.GetByIdScopedForUpdateAsync(id, TestDefaults.TenantId, TestDefaults.OrgId, Arg.Any<CancellationToken>())
+            .Returns(entity);
+        _cpUsers.IsLinkedToEmployeeAsync("u-existing", TestDefaults.TenantId, Arg.Any<CancellationToken>())
+            .Returns(false);
+        _cpUsers.EnsureHrMembershipAsync("u-existing", TestDefaults.TenantId, Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        _cpUsers.UpdateIdentityAsync("u-existing", TestDefaults.TenantId, Arg.Any<CpUserIdentityData>(), Arg.Any<CancellationToken>())
+            .Returns(new CpUserDto("u-existing", "Ada", "ada@corp.com", null, true));
+        _cpUsers.EnsureUserLocationAsync(
+            "u-existing", TestDefaults.TenantId, TestDefaults.OrgId, TestDefaults.BusId, TestDefaults.LocId, Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+
+        var result = await _sut.FinaliseAsync(id);
+
+        result.Success.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task FinaliseEmployee_RemoteWithBranch_ReturnsValidationError()
+    {
+        var id = Guid.NewGuid();
+        var entity = new EmployeeEntity
+        {
+            Id = id,
+            TenantId = TestDefaults.TenantId,
+            OrgId = TestDefaults.OrgId,
+            FullName = "Ada",
+            WorkArrangement = "remote",
+            BranchId = Guid.NewGuid(),
+            WorkEmail = "ada@corp.com",
             UserId = "u-existing",
             IsDraft = true,
         };

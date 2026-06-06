@@ -4,9 +4,9 @@ namespace ZelosHR.Api.Entities.Employees;
 
 /// <summary>
 /// One-shot employee create. Required on create: <c>identity.full_name</c> and <c>identity.phone</c>.
-/// Finalise additionally requires <c>employment.job_title</c> and <c>identity.work_email</c>.
-/// <c>employment.department_id</c> and <c>employment.branch_id</c> are optional; when set, IDs must exist.
-/// <c>work_arrangement</c> rules (on_site/field → branch, remote → no branch) apply on finalise only.
+/// Finalise requires <c>identity.work_email</c> (links/creates <c>cp_users</c>).
+/// All <c>employment</c> fields are optional; when <c>department_id</c> or <c>branch_id</c> is set, the ID must exist.
+/// <c>work_arrangement: remote</c> with a <c>branch_id</c> is rejected (inconsistent data).
 /// </summary>
 /// <remarks>
 /// **Status:** <c>draft</c> | <c>finalised</c> — draft saves without finalising; finalised completes registration and links

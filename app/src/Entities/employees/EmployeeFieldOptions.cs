@@ -60,7 +60,7 @@ public static class EmployeeFieldOptions
 
     public static readonly IReadOnlyList<string> ContractTypes = ["Permanent", "Fixed-term"];
 
-    /// <summary>How the employee works. <c>on_site</c> requires <c>branch_id</c>; <c>remote</c> must omit it.</summary>
+    /// <summary>How the employee works. <c>remote</c> must not be paired with <c>branch_id</c>.</summary>
     public static readonly IReadOnlyList<string> WorkArrangements =
         ["remote", "hybrid", "on_site", "onsite", "field"];
 

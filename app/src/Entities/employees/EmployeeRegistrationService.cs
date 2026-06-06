@@ -242,9 +242,6 @@ public sealed class EmployeeRegistrationService
         if (string.IsNullOrWhiteSpace(displayName))
             return Respons<EmployeeRegistrationReadDto>.ValidationError(
                 new Dictionary<string, string> { ["identity.full_name"] = "Full name is required." });
-        if (string.IsNullOrWhiteSpace(e.JobTitle))
-            return Respons<EmployeeRegistrationReadDto>.ValidationError(
-                new Dictionary<string, string> { ["employment.job_title"] = "Job title is required." });
 
         var branchRule = WorkArrangementRules.ValidateBranchForArrangement(e.WorkArrangement, e.BranchId);
         if (branchRule is not null)

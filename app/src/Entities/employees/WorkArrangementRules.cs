@@ -1,7 +1,7 @@
 namespace ZelosHR.Api.Entities.Employees;
 
 /// <summary>
-/// Normalizes work arrangement values and enforces branch_id rules
+/// Normalizes work arrangement values and rejects inconsistent branch_id pairings
 /// (departments and branches meet only on the employee record).
 /// </summary>
 internal static class WorkArrangementRules
@@ -22,9 +22,6 @@ internal static class WorkArrangementRules
         };
     }
 
-    internal static bool RequiresBranch(string? normalized) =>
-        normalized is "on_site" or "field";
-
     internal static bool ProhibitsBranch(string? normalized) =>
         normalized is "remote";
 
@@ -35,15 +32,6 @@ internal static class WorkArrangementRules
         var normalized = Normalize(workArrangement);
         if (normalized is null)
             return null;
-
-        if (RequiresBranch(normalized) && branchId is null)
-        {
-            return new Dictionary<string, string>
-            {
-                ["employment.branch_id"] =
-                    "Branch is required when work_arrangement is on_site or field.",
-            };
-        }
 
         if (ProhibitsBranch(normalized) && branchId is not null)
         {
