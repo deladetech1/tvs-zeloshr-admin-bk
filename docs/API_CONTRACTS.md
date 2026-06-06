@@ -33,6 +33,42 @@ Link existing platform user: `POST /import` (separate from `POST /add`). Wizard:
 
 ### `POST /add` and `PUT /update` body (snake_case)
 
+#### Required vs optional — create (`POST /add`)
+
+| Field | Required | When required | Notes |
+|-------|----------|---------------|-------|
+| `status` | no | — | Default `finalised`. Use `draft` to save incomplete profile. |
+| `identity.full_name` | **yes** | always on create | Only hard requirement for draft create. |
+| `identity` (other fields) | no | — | See identity table below (includes optional `profile_url`). |
+| `employment` | no | — | Required fields apply only when **finalising** (see below). |
+| `compensation` | no | — | `currency_id` required when `gross_salary` is set and employee has no currency yet. |
+| `education` / `certifications` | no | — | Arrays; empty `[]` is fine. |
+| `document_ids` | no | — | From `POST /file/post/multiple`. |
+
+**When `status` is `finalised`** (or completing a draft later), the API also requires:
+
+| Field | Required on finalise |
+|-------|----------------------|
+| `identity.full_name` | yes |
+| `employment.job_title` | yes |
+| `employment.department_id` | yes |
+| `identity.work_email` | yes (creates/links `cp_users`) |
+
+#### Required vs optional — update (`PUT /update`)
+
+Send **only** sections/fields you are changing. At least one top-level field or section must be present.
+
+| Field | Notes |
+|-------|-------|
+| `status` | Set to `finalised` to complete a draft (same rules as finalise above). |
+| `identity`, `employment`, `compensation` | Partial objects — omitted keys are left unchanged. Include `identity.profile_url` to set or clear photo. |
+| `lifecycle_state` | Update only. |
+| `education` / `certifications` | Include `id` to update row; omit `id` to add. |
+| `delete_education_ids` / `delete_certification_ids` | UUID arrays. |
+| `document_ids` / `delete_document_ids` | Append or remove file-registry IDs. |
+
+#### Top-level body fields
+
 | Field | Create | Update | Notes |
 |-------|--------|--------|-------|
 | `status` | yes | no | Create only: `draft` \| `finalised` |
@@ -42,29 +78,34 @@ Link existing platform user: `POST /import` (separate from `POST /add`). Wizard:
 | `lifecycle_state` | no | optional | e.g. `pre_hire`, `active`, `terminated` |
 | `education` | array | optional | Items: include `id` to update, omit to add |
 | `certifications` | array | optional | Same as education |
-| `custom_fields` | object | optional | `{ "field_key": "value" }` |
+| `document_ids` | optional | optional | File-registry IDs (not profile photo) |
 | `delete_education_ids` | no | optional | UUID[] |
 | `delete_certification_ids` | no | optional | UUID[] |
+| `delete_document_ids` | no | optional | UUID[] |
 
 **Do not** send `import` / `existing_user_id` on `POST /add` — use `POST /import` instead.
 
 ### `identity` object
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `full_name` | string | Display name (required on create) |
-| `date_of_birth` | date | `YYYY-MM-DD` |
-| `gender` | string | e.g. `male`, `female` |
-| `country` | string | Country of citizenship, e.g. `Ghana` |
-| `id_type` | string | **What kind of ID** — suggested: `ghana_card`, `passport`, `voter_id`, `drivers_license`, `ssnit`, `other` |
-| `id_issue_date` | date | When the ID was issued (`YYYY-MM-DD`) |
-| `id_expiry_date` | date | When the ID expires (`YYYY-MM-DD`) |
-| `id_number` | string | **The ID number** matching `id_type` |
-| `personal_email` | string | Non-work email (HR record) |
-| `work_email` | string | Work email; links/creates platform user |
-| `phone` | string | Contact number |
-| `linkedin_url` | string | |
-| `residential_address` | string | |
+| Field | Required | Type | Description |
+|-------|----------|------|-------------|
+| `full_name` | **yes** (create) | string | Display name |
+| `date_of_birth` | no | date | `YYYY-MM-DD` |
+| `gender` | no | string | e.g. `male`, `female` |
+| `country` | no | string | Country of citizenship, e.g. `Ghana` |
+| `id_type` | no | string | Suggested: `ghana_card`, `passport`, `voter_id`, `drivers_license`, `ssnit`, `other` |
+| `id_issue_date` | no | date | When the ID was issued (`YYYY-MM-DD`) |
+| `id_expiry_date` | no | date | When the ID expires (`YYYY-MM-DD`) |
+| `id_number` | no | string | The ID number matching `id_type` |
+| `personal_email` | no | string | Non-work email (HR record) |
+| `work_email` | no* | string | Work email; links/creates platform user (*required to finalise) |
+| `phone` | no | string | Contact number |
+| `linkedin_url` | no | string | |
+| `residential_address` | no | string | |
+| `profile_url` | no | string | HTTPS URL; synced to `cp_users.profile_pic` when linked. Pass `""` on update to clear. |
+| `custom_fields` | no | object | Tenant-defined values; keys = admin `field_key` for section `employee-directory-identity` |
+
+**Profile photo:** set `identity.profile_url` on create/update, or upload after save when `work_email` is linked (`POST /photo/upload` — see [TROVESUITE.md](TROVESUITE.md)).
 
 **Government ID (frontend):** `id_type` + `id_number` + optional `id_issue_date` / `id_expiry_date`. Example:
 

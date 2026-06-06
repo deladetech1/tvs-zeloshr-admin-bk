@@ -28,8 +28,9 @@ if [[ -z "${TROVE_BEARER_TOKEN:-}" ]]; then
 fi
 
 TOKEN="${TROVE_BEARER_TOKEN}"
+MINTED_TOKEN=""
 if [[ -f "${JWT_FILE}" && -n "${TROVESUITE_JWT_SECRET:-}" ]]; then
-  TOKEN="$(python3 - <<'PY'
+  MINTED_TOKEN="$(python3 - <<'PY'
 import os, json, base64, time
 import jwt
 
@@ -44,9 +45,50 @@ claims["exp"] = now + 7200
 print(jwt.encode(claims, secret, algorithm="HS256"))
 PY
 )"
+  TOKEN="${MINTED_TOKEN}"
   echo "Using refreshed JWT (minted from .jwt-secret.local)"
 else
   echo "Using TROVE_BEARER_TOKEN from live-session.env (refresh if expired)"
+fi
+
+auth_probe() {
+  local token="$1"
+  curl -sS -o /dev/null -w "%{http_code}" \
+    -H "app-id: ${TROVE_APP_ID:-app-hr}" \
+    -H "authorization: Bearer ${token}" \
+    -H "bus-id: ${TROVE_BUS_ID}" \
+    -H "loc-id: ${TROVE_LOC_ID}" \
+    -H "org-id: ${TROVE_ORG_ID}" \
+    "${BASE}/api/v1/health"
+}
+
+AUTH_CODE="$(auth_probe "${TOKEN}")"
+if [[ ! "${AUTH_CODE}" =~ ^2 ]]; then
+  if [[ -n "${MINTED_TOKEN}" && "${TOKEN}" != "${TROVE_BEARER_TOKEN}" ]]; then
+    FALLBACK_CODE="$(auth_probe "${TROVE_BEARER_TOKEN}")"
+    if [[ "${FALLBACK_CODE}" =~ ^2 ]]; then
+      echo "Minted JWT rejected (HTTP ${AUTH_CODE}); falling back to TROVE_BEARER_TOKEN from live-session.env"
+      TOKEN="${TROVE_BEARER_TOKEN}"
+      AUTH_CODE="${FALLBACK_CODE}"
+    fi
+  fi
+fi
+
+if [[ ! "${AUTH_CODE}" =~ ^2 ]]; then
+  cat >&2 <<EOF
+Auth failed (HTTP ${AUTH_CODE}) on GET /api/v1/health — credentials are stale or invalid.
+
+Fix:
+  1. Log in to dev Trove (browser) and open DevTools → Network → any API call.
+  2. Copy the Bearer token (no "Bearer " prefix) into scripts/local-dev/live-session.env:
+       TROVE_BEARER_TOKEN=...
+       TROVE_ORG_ID / TROVE_BUS_ID / TROVE_LOC_ID (must match the session)
+  3. If you use .jwt-secret.local for auto-refresh, update TROVESUITE_JWT_SECRET to match
+     the dev Container App SECRET_KEY (jwt-secret-key) after platform rotation.
+
+See scripts/local-dev/README.md
+EOF
+  exit 1
 fi
 
 FAIL=0

@@ -3,7 +3,8 @@ using ZelosHR.Api.Configs;
 namespace ZelosHR.Api.Entities.Employees;
 
 /// <summary>
-/// One-shot employee create. All sections are optional except <c>identity.full_name</c> on create.
+/// One-shot employee create. Required on create: <c>identity.full_name</c> only (draft).
+/// Finalise additionally requires <c>employment.job_title</c>, <c>employment.department_id</c>, and <c>identity.work_email</c>.
 /// </summary>
 /// <remarks>
 /// **Status:** <c>draft</c> | <c>finalised</c> — draft saves without finalising; finalised completes registration and links
@@ -97,6 +98,12 @@ public sealed class EmployeeAggregateIdentityDto
     public string? LinkedInUrl { get; init; }
     public string? ResidentialAddress { get; init; }
 
+    /// <summary>
+    /// Profile photo URL (optional). Stored on <c>cp_users.profile_pic</c> when linked; on
+    /// <c>zhr_employees.profile_photo_url</c> until then. Pass <c>""</c> on update to clear.
+    /// </summary>
+    public string? ProfileUrl { get; init; }
+
     /// <summary>Custom field **values** for <c>section_name = employee-directory-identity</c>.</summary>
     public Dictionary<string, string?>? CustomFields { get; init; }
 }
@@ -170,8 +177,6 @@ public sealed class EmployeeAggregateReadDto
     /// Upload first via <c>POST /api/v1/file/post/multiple</c>; resolve URLs via <c>GET /api/v1/file/list</c>.
     /// </summary>
     public IReadOnlyList<string> DocumentIds { get; init; } = [];
-
-    public string? ProfileUrl { get; init; }
 }
 
 public sealed class EmployeeAggregateEmploymentReadDto : EmployeeAggregateEmploymentDto

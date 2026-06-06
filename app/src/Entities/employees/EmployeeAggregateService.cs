@@ -479,7 +479,6 @@ public sealed class EmployeeAggregateService
             Status = entity.IsDraft ? "draft" : entity.LifecycleStatus,
             IsDraft = entity.IsDraft,
             UserId = entity.UserId,
-            ProfileUrl = profilePhoto,
             Identity = new EmployeeAggregateIdentityDto
             {
                 FullName = fullName,
@@ -495,6 +494,7 @@ public sealed class EmployeeAggregateService
                 Phone = entity.Phone ?? entity.PersonalPhone ?? cp?.Phone,
                 LinkedInUrl = entity.LinkedInUrl,
                 ResidentialAddress = entity.ResidentialAddress ?? cp?.Address,
+                ProfileUrl = profilePhoto,
                 CustomFields = sections.Identity,
             },
             Employment = new EmployeeAggregateEmploymentReadDto

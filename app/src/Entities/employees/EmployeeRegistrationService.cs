@@ -160,6 +160,7 @@ public sealed class EmployeeRegistrationService
 
         var e = entity.Value!;
         ApplyHrPersonalFields(e, dto);
+        ApplyProfileUrl(e, dto);
 
         var syncError = await SyncPlatformIdentityAsync(e, dto, ct);
         if (syncError is not null)
@@ -411,6 +412,14 @@ public sealed class EmployeeRegistrationService
         e.IdNumber = dto.IdNumber ?? e.IdNumber;
         e.PersonalEmail = dto.PersonalEmail ?? e.PersonalEmail;
         e.LinkedInUrl = dto.LinkedInUrl ?? e.LinkedInUrl;
+    }
+
+    private static void ApplyProfileUrl(EmployeeEntity e, CreateEmployeeRequest dto)
+    {
+        if (dto.ProfileUrl is null)
+            return;
+
+        e.ProfilePhotoUrl = string.IsNullOrWhiteSpace(dto.ProfileUrl) ? null : dto.ProfileUrl.Trim();
     }
 
     private async Task<string> ResolveDraftDisplayNameAsync(EmployeeEntity e, CancellationToken ct)

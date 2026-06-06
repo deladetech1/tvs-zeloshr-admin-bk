@@ -32,7 +32,15 @@ public static class CpUserIdentityMapper
             NormalizeGender(dto?.Gender ?? employee.Gender),
             FormatDob(dto?.DateOfBirth ?? employee.DateOfBirth),
             BuildAddress(dto, employee),
-            employee.ProfilePhotoUrl);
+            ResolveProfilePic(dto, employee));
+    }
+
+    private static string? ResolveProfilePic(CreateEmployeeRequest? dto, EmployeeEntity employee)
+    {
+        if (dto?.ProfileUrl is not null)
+            return string.IsNullOrWhiteSpace(dto.ProfileUrl) ? null : dto.ProfileUrl.Trim();
+
+        return employee.ProfilePhotoUrl;
     }
 
     public static string? BuildAddress(CreateEmployeeRequest? dto, EmployeeEntity employee)

@@ -15,6 +15,7 @@ public sealed record CreateEmployeeRequest
     public string? Phone { get; init; }
     public string? LinkedInUrl { get; init; }
     public string? ResidentialAddress { get; init; }
+    public string? ProfileUrl { get; init; }
     public string? JobTitle { get; init; }
     public Guid? DepartmentId { get; init; }
     public Guid? BranchId { get; init; }

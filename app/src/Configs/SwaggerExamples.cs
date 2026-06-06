@@ -768,7 +768,6 @@ internal static class SwaggerExamples
                 ["status"] = SwaggerExampleHints.Status,
                 ["is_draft"] = SwaggerExampleHints.BooleanPipe,
                 ["user_id"] = "usr_cp_abc123",
-                ["profile_url"] = "https://storage.example.com/profiles/ada.jpg",
                 ["identity"] = IdentitySection(withCustomField: true),
                 ["employment"] = EmploymentSection(withNames: true),
                 ["compensation"] = CompensationReadSection(),
@@ -817,6 +816,7 @@ internal static class SwaggerExamples
         ["phone"] = "+233201234567",
         ["linked_in_url"] = "https://linkedin.com/in/adalovelace",
         ["residential_address"] = "12 Independence Ave, Accra",
+        ["profile_url"] = "https://storage.example.com/profiles/ada.jpg",
         ["custom_fields"] = withCustomField
             ? CustomFieldsForSection(EmployeeCustomFieldSections.Identity)
             : EmptyCustomFields(EmployeeCustomFieldSections.Identity),
