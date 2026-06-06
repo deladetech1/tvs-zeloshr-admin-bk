@@ -42,6 +42,7 @@ public sealed class FileManagementService
                 new Dictionary<string, string> { ["files"] = "At least one file is required." });
         }
 
+        string[] paths;
         if (string.IsNullOrWhiteSpace(blobPaths))
         {
             paths = files
