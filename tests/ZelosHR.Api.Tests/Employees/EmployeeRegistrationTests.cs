@@ -90,6 +90,7 @@ public class EmployeeRegistrationTests
         result.Success.Should().BeTrue();
         saved!.IsDraft.Should().BeTrue();
         saved.LifecycleStatus.Should().Be("draft");
+        saved.EmploymentStatus.Should().Be(EmploymentStatusValues.Draft);
         saved.FullName.Should().Be("Kwame Asare");
     }
 

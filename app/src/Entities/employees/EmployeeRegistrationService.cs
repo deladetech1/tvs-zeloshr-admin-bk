@@ -98,6 +98,7 @@ public sealed class EmployeeRegistrationService
             LifecycleState = EmployeeLifecycleStates.Draft,
             LifecycleStatus = "draft",
             IsDraft = true,
+            EmploymentStatus = EmploymentStatusValues.Draft,
             ContractType = null,
             CreatedAt = now,
             UpdatedAt = now,
