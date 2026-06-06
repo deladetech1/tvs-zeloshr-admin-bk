@@ -23,6 +23,7 @@ public class EmployeeSubResourcesTests
     {
         _tenant.TenantId.Returns(TestDefaults.TenantId);
         _tenant.OrgId.Returns(TestDefaults.OrgId);
+        _tenant.BusId.Returns(TestDefaults.BusId);
         _sut = new EmployeeSubResourcesService(
             _education,
             _certifications,

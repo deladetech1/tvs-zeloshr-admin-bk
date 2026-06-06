@@ -3,6 +3,7 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Shared.Abstractions;
 
 namespace ZelosHR.Api.Shared.Infrastructure;
@@ -20,9 +21,9 @@ public sealed class AzureStorageOptions
     /// <summary>Optional override, e.g. Azurite or private endpoint URI.</summary>
     public string BlobServiceUri { get; set; } = "";
 
-    public string ProfilePhotosContainer { get; set; } = "profile-photos";
+    public string ProfilePhotosContainer { get; set; } = "zeloshr";
 
-    public string DocumentsContainer { get; set; } = "employee-documents";
+    public string DocumentsContainer { get; set; } = "zeloshr";
 }
 
 public sealed class AzureBlobStorageService : IFileStorageService
@@ -47,13 +48,16 @@ public sealed class AzureBlobStorageService : IFileStorageService
         string contentType,
         string containerName,
         string tenantId,
+        string orgId,
+        string busId,
         Guid employeeId,
         CancellationToken ct = default)
     {
         var container = _client.GetBlobContainerClient(containerName);
         await EnsureContainerReadyAsync(container, ct);
 
-        var blobName = $"{tenantId}/{employeeId}/{Guid.NewGuid()}/{SanitizeFileName(fileName)}";
+        var blobName = EmployeeBlobPathBuilder.BuildWizardDocumentPath(
+            tenantId, orgId, busId, employeeId, fileName);
         var blob = container.GetBlobClient(blobName);
 
         await blob.UploadAsync(
@@ -133,11 +137,5 @@ public sealed class AzureBlobStorageService : IFileStorageService
         containerName = path[..slash];
         blobName = path[(slash + 1)..];
         return true;
-    }
-
-    private static string SanitizeFileName(string fileName)
-    {
-        var name = Path.GetFileName(fileName.Trim());
-        return string.IsNullOrWhiteSpace(name) ? "file" : name;
     }
 }

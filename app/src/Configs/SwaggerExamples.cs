@@ -25,12 +25,12 @@ internal static class SwaggerExamples
     internal const string SampleCurrencyId = "cur_ghs_default";
     internal const string SampleDocumentId1 = "doc_contract_a1b2c3";
     internal const string SampleDocumentId2 = "doc_national_id_d4e5f6";
-    internal const string SampleBlobPathSingle = "tenant_demo/org_demo/bus_demo/employees/contract.pdf";
-    internal const string SampleBlobPathMulti1 = "tenant_demo/org_demo/bus_demo/employees/contract.pdf";
-    internal const string SampleBlobPathMulti2 = "tenant_demo/org_demo/bus_demo/employees/national_id.jpg";
-    internal const string SampleDocumentsContainer = "employee-documents";
+    internal const string SampleBlobPathSingle = "tenant_demo/org_demo/bus_demo/employees/documents/a1b2c3d4-contract.pdf";
+    internal const string SampleBlobPathMulti1 = "tenant_demo/org_demo/bus_demo/employees/documents/a1b2c3d4-contract.pdf";
+    internal const string SampleBlobPathMulti2 = "tenant_demo/org_demo/bus_demo/employees/documents/e5f6g7h8-national_id.jpg";
+    internal const string SampleDocumentsContainer = "zeloshr";
     internal const string SamplePresignedUrl =
-        "https://devstorage.blob.core.windows.net/employee-documents/tenant_demo/org_demo/bus_demo/employees/contract.pdf?sv=2024&se=2026-05-20T12%3A00%3A00Z&sig=example";
+        "https://devstorage.blob.core.windows.net/zeloshr/tenant_demo/org_demo/bus_demo/employees/documents/a1b2c3d4-contract.pdf?sv=2024&se=2026-05-20T12%3A00%3A00Z&sig=example";
 
     internal static JsonObject FileUploadMultipleResponse() => EnvelopeOk(new JsonArray(
         new JsonObject { ["id"] = SampleDocumentId1 },

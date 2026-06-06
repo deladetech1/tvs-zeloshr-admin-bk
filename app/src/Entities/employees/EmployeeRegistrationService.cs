@@ -512,7 +512,8 @@ public sealed class EmployeeRegistrationService
         }
 
         var ext = contentType == "image/png" ? "png" : "jpg";
-        var blobPath = $"employees/{_tenant.TenantId}/{id}/profile.{ext}";
+        var blobPath = EmployeeBlobPathBuilder.BuildProfilePath(
+            _tenant.TenantId, _tenant.OrgId, _tenant.BusId, id, ext);
 
         await using var stream = photoStream;
         using var ms = new MemoryStream();

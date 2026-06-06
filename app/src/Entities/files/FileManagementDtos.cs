@@ -29,7 +29,7 @@ public sealed class FileDeleteReadDto
     /// <summary>Logical blob path that was deleted (same value sent as <c>blob_paths</c> on upload).</summary>
     public required string BlobPath { get; init; }
 
-    /// <summary>Azure container name (server config — e.g. <c>employee-documents</c>). Not sent by clients on upload.</summary>
+    /// <summary>Azure container name (server config — <c>zeloshr</c>). Not sent by clients on upload.</summary>
     public required string ContainerName { get; init; }
 
     /// <summary>Human-readable result message.</summary>

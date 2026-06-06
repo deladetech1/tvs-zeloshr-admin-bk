@@ -11,10 +11,13 @@ public sealed class LocalDevFileStorageService : IFileStorageService
         string contentType,
         string containerName,
         string tenantId,
+        string orgId,
+        string busId,
         Guid employeeId,
         CancellationToken ct = default)
     {
-        var url = $"https://localhost/dev-storage/{containerName}/{tenantId}/{employeeId}/{Guid.NewGuid()}/{fileName}";
+        var url =
+            $"https://localhost/dev-storage/{containerName}/{tenantId}/{orgId}/{busId}/employees/documents/wizard/{employeeId}/{Guid.NewGuid()}/{fileName}";
         return Task.FromResult(url);
     }
 

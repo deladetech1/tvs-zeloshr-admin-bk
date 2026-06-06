@@ -66,6 +66,37 @@ print(cur)
 PY
 }
 
+# Print document registry fields from GET /file/list (or PUT response data object).
+print_file_document() {
+  local json="$1"
+  FILE_DOC_JSON="$json" python3 - <<'PY'
+import json, os, sys
+
+raw = os.environ.get("FILE_DOC_JSON", "")
+try:
+    body = json.loads(raw)
+except json.JSONDecodeError:
+    sys.exit(0)
+
+data = body.get("data")
+items = data if isinstance(data, list) else ([data] if isinstance(data, dict) else [])
+for item in items:
+    if not isinstance(item, dict):
+        continue
+    doc_id = item.get("id") or item.get("document_id") or ""
+    if doc_id:
+        print(f"  document_id:   {doc_id}")
+    if item.get("file_name"):
+        print(f"  file_name:     {item['file_name']}")
+    if item.get("description") is not None:
+        print(f"  description:   {item['description']}")
+    url = item.get("presigned_url") or ""
+    if url:
+        preview = url if len(url) <= 160 else url[:160] + "…"
+        print(f"  presigned_url: {preview}")
+PY
+}
+
 record() {
   local mark method path
   mark="$1"
@@ -244,26 +275,25 @@ EOF
 fi
 
 echo "=== File management (POST multipart / GET / PUT / DELETE) ==="
-TENANT="${TROVE_TENANT_ID:-tenant}"
-ORG="${TROVE_ORG_ID:-org}"
-BUS="${TROVE_BUS_ID:-bus}"
 TMPFILE="$(mktemp)"
 echo "Live test upload ${TAG}" >"$TMPFILE"
-BLOB_PATH="${TENANT}/${ORG}/${BUS}/employees/${TAG}.txt"
 DOC_ID=""
 
 upload_raw="$(curl "${curl_base[@]}" -X POST -H "accept: application/json" \
   -F "files=@${TMPFILE};type=text/plain" \
   -w "\n__HTTP__%{http_code}" \
-  "${BASE}/api/v1/file/post/multiple?blob_paths=${BLOB_PATH}&descriptions=live-test")"
+  "${BASE}/api/v1/file/post/multiple?descriptions=live-test")"
 rm -f "$TMPFILE"
 LAST_CODE="${upload_raw##*__HTTP__}"
 LAST_JSON="${upload_raw%$'\n'__HTTP__*}"
 if [[ "$LAST_CODE" =~ ^2 ]]; then
-  record OK POST "/api/v1/file/post/multiple?blob_paths=…"
+  record OK POST "/api/v1/file/post/multiple (auto blob path)"
   DOC_ID="$(json_path "$LAST_JSON" "data.0.id" 2>/dev/null || true)"
   if [[ -n "$DOC_ID" ]]; then
-    api_get "/api/v1/file/list?document_ids=${DOC_ID}" || true
+    echo "  uploaded document_id: ${DOC_ID}"
+    if api_get "/api/v1/file/list?document_ids=${DOC_ID}"; then
+      print_file_document "$LAST_JSON"
+    fi
     TMPFILE2="$(mktemp)"
     echo "Live test replace ${TAG}" >"$TMPFILE2"
     replace_raw="$(curl "${curl_base[@]}" -X PUT -H "accept: application/json" \
@@ -275,6 +305,12 @@ if [[ "$LAST_CODE" =~ ^2 ]]; then
     LAST_JSON="${replace_raw%$'\n'__HTTP__*}"
     if [[ "$LAST_CODE" =~ ^2 ]]; then
       record OK PUT "/api/v1/file/put?document_id=${DOC_ID}"
+      echo "  after PUT (presigned_url in response):"
+      print_file_document "$LAST_JSON"
+      if api_get "/api/v1/file/list?document_ids=${DOC_ID}"; then
+        echo "  after PUT (GET /file/list):"
+        print_file_document "$LAST_JSON"
+      fi
     else
       record FAIL PUT "/api/v1/file/put?document_id=${DOC_ID}"
     fi

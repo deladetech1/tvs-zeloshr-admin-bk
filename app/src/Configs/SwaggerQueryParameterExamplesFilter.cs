@@ -21,17 +21,16 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
         {
             schema.Example = $"{SwaggerExamples.SampleBlobPathMulti1},{SwaggerExamples.SampleBlobPathMulti2}";
             parameter.Description = """
-                **Required.** Comma-separated blob path(s) inside the Azure container (you choose the path).
+                Optional comma-separated blob path(s) inside the **zeloshr** container.
 
-                Pattern: `{tenant_id}/{org_id}/{bus_id}/employees/{filename}`
+                **Omit** to auto-generate:
+                `{tenant_id}/{org_id}/{bus_id}/employees/documents/{unique}-{filename}`
 
-                Rules:
+                Or supply paths explicitly:
                 - One path → applied to every uploaded file
                 - N paths → must equal number of files (one path per file)
 
-                Example (two files): `tenant_demo/org_demo/bus_demo/employees/contract.pdf,tenant_demo/org_demo/bus_demo/employees/id.jpg`
-
-                Server picks storage account + container — not sent by the client.
+                Storage account is server config — clients send paths only, not container name.
                 """;
             return;
         }

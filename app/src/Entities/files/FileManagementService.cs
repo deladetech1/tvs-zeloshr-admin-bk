@@ -44,18 +44,28 @@ public sealed class FileManagementService
 
         if (string.IsNullOrWhiteSpace(blobPaths))
         {
-            return Respons<IReadOnlyList<FileUploadMultipleReadDto>>.ValidationError(
-                new Dictionary<string, string> { ["blob_paths"] = "blob_paths is required." });
+            paths = files
+                .Select(f => EmployeeBlobPathBuilder.BuildDocumentPath(
+                    _tenant.TenantId, _tenant.OrgId, _tenant.BusId, f.FileName))
+                .ToArray();
+        }
+        else
+        {
+            paths = blobPaths.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            if (paths.Length != 1 && paths.Length != files.Count)
+            {
+                return Respons<IReadOnlyList<FileUploadMultipleReadDto>>.ValidationError(
+                    new Dictionary<string, string>
+                    {
+                        ["blob_paths"] = "Provide one path for all files, one path per file, or omit to auto-generate under {tenant}/{org}/{bus}/employees/documents/.",
+                    });
+            }
         }
 
-        var paths = blobPaths.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-        if (paths.Length != 1 && paths.Length != files.Count)
+        if (paths.Length == 0)
         {
             return Respons<IReadOnlyList<FileUploadMultipleReadDto>>.ValidationError(
-                new Dictionary<string, string>
-                {
-                    ["blob_paths"] = "Provide one path for all files or one path per file (comma-separated).",
-                });
+                new Dictionary<string, string> { ["blob_paths"] = "Could not resolve blob path(s) for upload." });
         }
 
         var descriptionList = (descriptions ?? string.Empty)

@@ -46,8 +46,16 @@ The package expects a `Trovesuite` section in configuration. **Database host/use
 | Key | Purpose |
 |-----|---------|
 | `ConnectionString` | If set, uses Azure Blob; else local dev file storage |
-| `ProfilePhotosContainer` | Blob container |
-| `DocumentsContainer` | Blob container |
+| `DocumentsContainer` | Blob container for employee files (**default: `zeloshr`**) |
+| `ProfilePhotosContainer` | Legacy key; profile photos use `DocumentsContainer` via file registry |
+
+**Blob layout** (inside `zeloshr` container):
+
+```
+{tenant_id}/{org_id}/{bus_id}/employees/documents/{unique}-{filename}   ← file API (auto path)
+{tenant_id}/{org_id}/{bus_id}/employees/profile/{employee_id}.{ext}     ← profile photo
+{tenant_id}/{org_id}/{bus_id}/employees/documents/wizard/{employee_id}/… ← wizard upload
+```
 
 ## TrovesuiteIntegration (ZelosHR middleware)
 

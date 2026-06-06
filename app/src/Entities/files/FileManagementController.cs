@@ -24,12 +24,12 @@ public class FileManagementController : ControllerBase
     [ProducesResponseType(typeof(Respons<IReadOnlyList<FileUploadMultipleReadDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Respons<IReadOnlyList<FileUploadMultipleReadDto>>), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<Respons<IReadOnlyList<FileUploadMultipleReadDto>>>> UploadMultiple(
-        [FromQuery] string blob_paths,
+        [FromQuery] string? blob_paths,
         [FromQuery] string? descriptions,
         [FromForm(Name = "files")] IReadOnlyList<IFormFile> files,
         CancellationToken ct)
     {
-        var result = await _files.UploadMultipleAsync(files, blob_paths, descriptions, ct);
+        var result = await _files.UploadMultipleAsync(files, blob_paths ?? string.Empty, descriptions, ct);
         return StatusCode(result.StatusCode, result);
     }
 

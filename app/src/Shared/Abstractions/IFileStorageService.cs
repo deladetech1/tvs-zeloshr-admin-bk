@@ -8,6 +8,8 @@ public interface IFileStorageService
         string contentType,
         string containerName,
         string tenantId,
+        string orgId,
+        string busId,
         Guid employeeId,
         CancellationToken ct = default);
 

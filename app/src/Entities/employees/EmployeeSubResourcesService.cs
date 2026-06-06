@@ -199,6 +199,8 @@ public sealed class EmployeeSubResourcesService
             contentType,
             _storage.DocumentsContainer,
             _tenant.TenantId,
+            _tenant.OrgId,
+            _tenant.BusId,
             employeeId,
             ct);
 

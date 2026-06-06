@@ -16,7 +16,7 @@ public sealed class FileManagementStorage
     }
 
     public string ContainerName =>
-        string.IsNullOrWhiteSpace(_options.DocumentsContainer) ? "employee-documents" : _options.DocumentsContainer;
+        string.IsNullOrWhiteSpace(_options.DocumentsContainer) ? "zeloshr" : _options.DocumentsContainer;
 
     public string StorageAccountUrl
     {
