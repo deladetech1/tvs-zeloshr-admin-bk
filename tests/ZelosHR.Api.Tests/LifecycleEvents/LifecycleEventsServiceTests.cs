@@ -40,6 +40,54 @@ public class LifecycleEventsServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_uses_full_name_when_first_and_last_missing()
+    {
+        var empId = Guid.NewGuid();
+        _employees.GetByIdScopedAsync(empId, "t1", "o1", Arg.Any<CancellationToken>())
+            .Returns(new EmployeeEntity
+            {
+                Id = empId,
+                TenantId = "t1",
+                OrgId = "o1",
+                EmployeeCode = "ZEL-0099",
+                FullName = "Live Test Employee",
+                LifecycleState = EmployeeLifecycleStates.Draft,
+            });
+        _lifecycle.CreateScopedAsync(
+                "t1", "o1", empId, "Live Test Employee",
+                "Probation Review", null, null,
+                Arg.Any<DateOnly>(), "Pending", "Upcoming", Arg.Any<CancellationToken>())
+            .Returns(Guid.NewGuid());
+        _lifecycle.GetByIdScopedAsync(Arg.Any<Guid>(), "t1", "o1", Arg.Any<CancellationToken>())
+            .Returns(new LifecycleEventListItemDto
+            {
+                LifecycleEventId = Guid.NewGuid().ToString(),
+                EmployeeId = empId.ToString(),
+                EmployeeFullName = "Live Test Employee",
+                EventType = "Probation Review",
+                DueDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                Status = "Pending",
+                Urgency = "Upcoming",
+            });
+
+        var result = await _sut.CreateAsync(
+            new CreateLifecycleEventDto
+            {
+                EmployeeId = empId,
+                EventType = "Probation Review",
+                DueDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            },
+            "t1",
+            "o1");
+
+        result.Success.Should().BeTrue();
+        await _lifecycle.Received(1).CreateScopedAsync(
+            "t1", "o1", empId, "Live Test Employee",
+            "Probation Review", null, null,
+            Arg.Any<DateOnly>(), "Pending", "Upcoming", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task UpdateAsync_syncs_employee_lifecycle_when_status_maps()
     {
         var empId = Guid.NewGuid();

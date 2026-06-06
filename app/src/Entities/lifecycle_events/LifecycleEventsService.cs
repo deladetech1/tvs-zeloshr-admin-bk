@@ -66,7 +66,10 @@ public class LifecycleEventsService
 
         var status = string.IsNullOrWhiteSpace(data.Status) ? "Pending" : data.Status.Trim();
         var urgency = string.IsNullOrWhiteSpace(data.Urgency) ? "Upcoming" : data.Urgency.Trim();
-        var fullName = NameFormatting.BuildFullName(emp.FirstName, emp.MiddleName, emp.LastName);
+        var fullName = NameFormatting.ResolveFullName(
+            emp.FullName, emp.FirstName, emp.MiddleName, emp.LastName);
+        if (string.IsNullOrWhiteSpace(fullName))
+            fullName = "Employee";
 
         var id = await _lifecycleEvents.CreateScopedAsync(
             tenantId,
