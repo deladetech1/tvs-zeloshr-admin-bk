@@ -269,16 +269,22 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 schema.Example = JsonValue.Create("University of Ghana");
                 return;
             case nameof(EmployeeEducationUpsertDto.Degree):
-                schema.Example = JsonValue.Create("BSc Computer Science");
+                schema.Example = JsonValue.Create("BSc");
                 return;
             case nameof(EmployeeEducationUpsertDto.FieldOfStudy):
                 schema.Example = JsonValue.Create("Computer Science");
                 return;
             case nameof(EmployeeCertificationUpsertDto.Name):
-                schema.Example = JsonValue.Create("AWS Solutions Architect");
+            case "Name" when property.DeclaringType == typeof(EmployeeCertificationDto):
+                schema.Example = JsonValue.Create("Masters in react");
                 return;
             case nameof(EmployeeCertificationUpsertDto.IssuingBody):
-                schema.Example = JsonValue.Create("Amazon Web Services");
+            case "IssuingBody" when property.DeclaringType == typeof(EmployeeCertificationDto):
+                schema.Example = JsonValue.Create("Udemy");
+                return;
+            case nameof(EmployeeCertificationUpsertDto.CredentialUrl):
+            case "CredentialUrl" when property.DeclaringType == typeof(EmployeeCertificationDto):
+                schema.Example = JsonValue.Create("https://udemy.com/certificate/3424-3424");
                 return;
             case nameof(FileResponseReadDto.PresignedUrl):
                 schema.Example = JsonValue.Create(SwaggerExamples.SamplePresignedUrl);
@@ -358,16 +364,14 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
 
         if (IsDateOnly(type))
         {
-            schema.Example = JsonValue.Create(name.Contains("Birth", StringComparison.OrdinalIgnoreCase)
-                ? "1990-05-15"
-                : "2025-06-01");
+            schema.Example = JsonValue.Create(ResolveDateExample(name, property.DeclaringType));
             schema.Description = AppendDescription(schema.Description, "ISO date YYYY-MM-DD.");
             return;
         }
 
         if (IsGuid(type))
         {
-            schema.Example = JsonValue.Create(ResolveGuidExample(name));
+            schema.Example = JsonValue.Create(ResolveGuidExample(name, property.DeclaringType));
             return;
         }
 
@@ -437,19 +441,62 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
         }
     }
 
-    private static string ResolveGuidExample(string propertyName) => propertyName switch
+    private static string ResolveGuidExample(string propertyName, Type? declaringType)
     {
-        var n when n.Contains("Department", StringComparison.OrdinalIgnoreCase)
-            => SwaggerExamples.SampleDepartmentId.ToString(),
-        var n when n.Contains("Branch", StringComparison.OrdinalIgnoreCase)
-            => SwaggerExamples.SampleBranchId.ToString(),
-        var n when n.Contains("ReportsTo", StringComparison.OrdinalIgnoreCase)
-            || n.Contains("Manager", StringComparison.OrdinalIgnoreCase)
-            => SwaggerExamples.SampleReportsToId.ToString(),
-        var n when n.Equals("Id", StringComparison.OrdinalIgnoreCase)
-            => SwaggerExamples.SampleEmployeeId.ToString(),
-        _ => "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    };
+        if (propertyName.Equals("Id", StringComparison.OrdinalIgnoreCase)
+            && declaringType is not null)
+        {
+            if (declaringType == typeof(EmployeeEducationUpsertDto)
+                || declaringType == typeof(EmployeeEducationDto))
+                return SwaggerExamples.SampleEducationRowId.ToString();
+
+            if (declaringType == typeof(EmployeeCertificationUpsertDto)
+                || declaringType == typeof(EmployeeCertificationDto))
+                return SwaggerExamples.SampleCertificationRowId.ToString();
+
+            if (declaringType == typeof(EmployeeAggregateReadDto))
+                return SwaggerExamples.SampleEmployeeId.ToString();
+        }
+
+        return propertyName switch
+        {
+            var n when n.Contains("Department", StringComparison.OrdinalIgnoreCase)
+                => SwaggerExamples.SampleDepartmentId.ToString(),
+            var n when n.Contains("Branch", StringComparison.OrdinalIgnoreCase)
+                => SwaggerExamples.SampleBranchId.ToString(),
+            var n when n.Contains("ReportsTo", StringComparison.OrdinalIgnoreCase)
+                || n.Contains("Manager", StringComparison.OrdinalIgnoreCase)
+                => SwaggerExamples.SampleReportsToId.ToString(),
+            var n when n.Equals("Id", StringComparison.OrdinalIgnoreCase)
+                => SwaggerExamples.SampleEmployeeId.ToString(),
+            _ => "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        };
+    }
+
+    private static string ResolveDateExample(string propertyName, Type? declaringType)
+    {
+        if (declaringType == typeof(EmployeeEducationUpsertDto)
+            || declaringType == typeof(EmployeeEducationDto))
+        {
+            if (propertyName.Contains("Start", StringComparison.OrdinalIgnoreCase))
+                return "2008-09-01";
+            if (propertyName.Contains("End", StringComparison.OrdinalIgnoreCase))
+                return "2012-06-30";
+        }
+
+        if (declaringType == typeof(EmployeeCertificationUpsertDto)
+            || declaringType == typeof(EmployeeCertificationDto))
+        {
+            if (propertyName.Contains("Issue", StringComparison.OrdinalIgnoreCase))
+                return "2026-05-31";
+            if (propertyName.Contains("Expiry", StringComparison.OrdinalIgnoreCase))
+                return "2026-03-15";
+        }
+
+        return propertyName.Contains("Birth", StringComparison.OrdinalIgnoreCase)
+            ? "1990-05-15"
+            : "2025-06-01";
+    }
 
     private static string? ResolveCustomFieldSection(PropertyInfo? property)
     {

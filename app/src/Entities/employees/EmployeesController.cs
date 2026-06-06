@@ -70,10 +70,9 @@ public class EmployeesController : ControllerBase
     }
 
     /// <summary>
-    /// Update employee — same aggregate shape as <c>POST /add</c> (partial or full).
-    /// Pass <c>employee_id</c> on the query string. Set <c>status</c> to <c>finalised</c> to complete a draft.
-    /// Education/certifications: round-trip <c>id</c> from GET on each array item to update; omit <c>id</c> to add.
-    /// Use <c>sync_education</c> / <c>sync_certifications</c> with the full array to replace a section.
+    /// Partial employee update — send only changed sections on the query-scoped employee.
+    /// education[] / certifications[] use the same row shape as GET; round-trip <c>id</c> to update, omit to add.
+    /// <c>sync_education</c> / <c>sync_certifications</c> replace the section when true.
     /// </summary>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpPut("update")]

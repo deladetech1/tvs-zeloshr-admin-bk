@@ -20,6 +20,8 @@ internal static class SwaggerExamples
     internal static readonly Guid SampleBranchId3 = Guid.Parse("5c3d2e1f-0a9b-8c7d-6e5f-4a3b2c1d0e9f");
     internal static readonly Guid SampleCustomFieldId = Guid.Parse("44444444-4444-4444-4444-444444444401");
     internal static readonly Guid SampleEmployeeId = Guid.Parse("3804deee-d6ee-4b05-9efc-6e8ccf3b5ae3");
+    internal static readonly Guid SampleEducationRowId = Guid.Parse("55555555-5555-5555-5555-555555555501");
+    internal static readonly Guid SampleCertificationRowId = Guid.Parse("66666666-6666-6666-6666-666666666601");
     internal static readonly Guid SampleReportsToId = Guid.Parse("33333333-3333-3333-3333-333333333301");
 
     internal const string SampleCurrencyId = "cur_ghs_default";
@@ -718,24 +720,26 @@ internal static class SwaggerExamples
         ["document_ids"] = new JsonArray(),
     };
 
-    internal static JsonObject UpdateEmployeeFull()
+    internal static JsonObject UpdateEmployeeFull() => new()
     {
-        var update = CreateEmployeeFinalised();
-        update["education"] = new JsonArray(
+        ["identity"] = IdentitySection(withCustomField: true),
+        ["employment"] = EmploymentSection(withNames: true),
+        ["compensation"] = CompensationSection(withCustomField: true),
+        ["education"] = new JsonArray(
             EducationEntry(withId: true),
             EducationEntry(
                 withId: true,
                 id: Guid.Parse("55555555-5555-5555-5555-555555555502"),
                 degree: "MSc",
-                fieldOfStudy: "Software Engineering"));
-        update["certifications"] = new JsonArray(
+                fieldOfStudy: "Software Engineering")),
+        ["certifications"] = new JsonArray(
             CertificationEntry(withId: true),
             CertificationEntry(
                 withId: true,
                 id: Guid.Parse("66666666-6666-6666-6666-666666666602"),
-                name: "Masters in react fundamentals"));
-        return update;
-    }
+                name: "Masters in react fundamentals")),
+        ["document_ids"] = new JsonArray(SampleDocumentId1, SampleDocumentId2),
+    };
 
     /// <summary>Partial update — one section only (typical bulk save).</summary>
     internal static JsonObject UpdateEmployeePartialIdentity() => new()
@@ -1007,7 +1011,7 @@ internal static class SwaggerExamples
         };
 
         if (withId)
-            obj["id"] = (id ?? Guid.Parse("55555555-5555-5555-5555-555555555501")).ToString();
+            obj["id"] = (id ?? SampleEducationRowId).ToString();
 
         return obj;
     }
@@ -1020,7 +1024,7 @@ internal static class SwaggerExamples
         string? issueDate = null,
         string? expiryDate = null,
         string? credentialUrl = null,
-        bool omitExpiryDate = false)
+        bool omitExpiryDate = true)
     {
         var obj = new JsonObject
         {
@@ -1037,7 +1041,7 @@ internal static class SwaggerExamples
             obj["expiry_date"] = "2026-03-15";
 
         if (withId)
-            obj["id"] = (id ?? Guid.Parse("66666666-6666-6666-6666-666666666601")).ToString();
+            obj["id"] = (id ?? SampleCertificationRowId).ToString();
 
         return obj;
     }

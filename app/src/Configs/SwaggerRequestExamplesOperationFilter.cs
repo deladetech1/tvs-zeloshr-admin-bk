@@ -46,18 +46,19 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
         {
             return new Dictionary<string, IOpenApiExample>
             {
+                ["education_cert_upsert"] = Example(
+                    SwaggerExamples.UpdateEmployeeEducationCertUpsert(),
+                    "Bulk edit — education + certifications with id (sync false)",
+                    """
+                    Same row shape as GET /employees/get (without employee_id on items).
+                    Default sync=false: patch mode — only sent rows are upserted.
+                    Round-trip id from GET to update; omit id to add.
+                    """),
                 ["partial_identity"] = Example(
                     SwaggerExamples.UpdateEmployeePartialIdentity(),
                     "Partial — identity only",
                     """
                     Send only the section/fields you change. identity fields are merged — you do not need full_name on every save unless changing it.
-                    """),
-                ["education_cert_upsert"] = Example(
-                    SwaggerExamples.UpdateEmployeeEducationCertUpsert(),
-                    "Bulk edit — education + certifications with id (sync false)",
-                    """
-                    Default sync=false: patch mode. Only rows in the body are upserted; all other rows stay.
-                    Round-trip id from GET to update; omit id to add.
                     """),
                 ["patch_one_certification"] = Example(
                     SwaggerExamples.UpdateEmployeePatchOneCertification(),
@@ -96,8 +97,8 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
                     SwaggerExamples.UpdateEmployeeFull(),
                     "Full profile update",
                     """
-                    All sections optional — send only what you need. Same row shapes as POST /add for education/certifications,
-                    but include id from GET on existing rows. document_ids appends; delete_document_ids removes registry IDs.
+                    All sections optional — send only what you need. education/certifications use the same row shape as GET (with id on existing rows).
+                    document_ids appends; delete_document_ids removes registry IDs.
                     """),
             };
         }
