@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Files;
@@ -108,7 +107,6 @@ public sealed class EmployeeAggregateEducationDto
 public sealed class EmployeeAggregateIdentityDto
 {
     /// <summary>Display name. Required on create.</summary>
-    [Required]
     public string FullName { get; init; } = string.Empty;
 
     public DateOnly? DateOfBirth { get; init; }
