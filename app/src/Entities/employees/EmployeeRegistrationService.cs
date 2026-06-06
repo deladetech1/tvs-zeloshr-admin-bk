@@ -1,10 +1,11 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
+using Trovesuite.Package.Storage;
+using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Persistence.Entities;
+using ZelosHR.Api.Persistence.Repositories;
 using ZelosHR.Api.Shared.Abstractions;
 using ZelosHR.Api.Shared.Formatting;
-using ZelosHR.Api.Shared.Infrastructure;
 using ZelosHR.Api.Shared.Validation;
 
 namespace ZelosHR.Api.Entities.Employees;
@@ -14,8 +15,10 @@ public sealed class EmployeeRegistrationService
     private readonly IEmployeeRepository _employees;
     private readonly ICpUserRepository _cpUsers;
     private readonly ICpCurrencyRepository _currencies;
-    private readonly IFileStorageService _files;
-    private readonly AzureStorageOptions _storage;
+    private readonly IStorageService _storage;
+    private readonly IHrDocumentPathRepository _documents;
+    private readonly FileManagementStorage _storageConfig;
+    private readonly HrDocumentPresignedUrlService _profileUrls;
     private readonly ITenantContext _tenant;
     private readonly ICurrentUserService _currentUser;
 
@@ -23,16 +26,20 @@ public sealed class EmployeeRegistrationService
         IEmployeeRepository employees,
         ICpUserRepository cpUsers,
         ICpCurrencyRepository currencies,
-        IFileStorageService files,
-        IOptions<AzureStorageOptions> storage,
+        IStorageService storage,
+        IHrDocumentPathRepository documents,
+        FileManagementStorage storageConfig,
+        HrDocumentPresignedUrlService profileUrls,
         ITenantContext tenant,
         ICurrentUserService currentUser)
     {
         _employees = employees;
         _cpUsers = cpUsers;
         _currencies = currencies;
-        _files = files;
-        _storage = storage.Value;
+        _storage = storage;
+        _documents = documents;
+        _storageConfig = storageConfig;
+        _profileUrls = profileUrls;
         _tenant = tenant;
         _currentUser = currentUser;
     }
@@ -183,6 +190,12 @@ public sealed class EmployeeRegistrationService
 
         var e = entity.Value!;
         ApplyHrPersonalFields(e, dto);
+
+        var profileErrors = await _profileUrls.ValidateDocumentReferenceAsync(
+            "identity.profile_url", dto.ProfileUrl, ct);
+        if (profileErrors is not null)
+            return Respons<EmployeeRegistrationReadDto>.ValidationError(profileErrors);
+
         ApplyProfileUrl(e, dto);
 
         var syncError = await SyncPlatformIdentityAsync(e, dto, ct);
@@ -499,12 +512,46 @@ public sealed class EmployeeRegistrationService
                 });
         }
 
-        var url = await _files.UploadAsync(
-            photoStream, fileName, contentType, _storage.ProfilePhotosContainer, _tenant.TenantId, id, ct);
-        await _cpUsers.UpdateProfilePicAsync(entity.UserId, _tenant.TenantId, url, ct);
+        var ext = contentType == "image/png" ? "png" : "jpg";
+        var blobPath = $"employees/{_tenant.TenantId}/{id}/profile.{ext}";
+
+        await using var stream = photoStream;
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms, ct);
+
+        var upload = await _storage.UploadFileAsync(new StorageFileUploadServiceWriteDto
+        {
+            StorageAccountUrl = _storageConfig.StorageAccountUrl,
+            ContainerName = _storageConfig.ContainerName,
+            BlobName = blobPath,
+            FileContent = ms.ToArray(),
+            ContentType = contentType,
+        }, ct);
+
+        if (!upload.Success || upload.Data is null)
+        {
+            return Respons<string>.Fail(
+                upload.Error ?? upload.Detail ?? "File upload failed.",
+                statusCode: upload.StatusCode > 0 ? upload.StatusCode : 502);
+        }
+
+        var documentId = Guid.NewGuid().ToString();
+        await _documents.AddAsync(new HrDocumentPathEntity
+        {
+            Id = documentId,
+            TenantId = _tenant.TenantId,
+            DocumentPath = blobPath,
+            FileName = fileName,
+            Description = "Employee profile photo",
+            CreatedBy = _currentUser.UserId?.ToString(),
+            Cdatetime = DateTimeOffset.UtcNow,
+        }, ct);
+
+        await _cpUsers.UpdateProfilePicAsync(entity.UserId, _tenant.TenantId, documentId, ct);
+        entity.ProfilePhotoUrl = documentId;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
         await _employees.UpdateAsync(entity, ct);
-        return Respons<string>.Ok(url);
+        return Respons<string>.Ok(documentId);
     }
 
     private async Task<(EmployeeEntity? Value, Respons<EmployeeRegistrationReadDto>? Error)> LoadDraftAsync(
@@ -633,7 +680,8 @@ public sealed class EmployeeRegistrationService
             JobTitle = e.JobTitle,
             DepartmentId = e.DepartmentId,
             WorkEmail = EmployeeIdentityResolver.ResolveWorkEmail(e, cp),
-            ProfileUrl = EmployeeIdentityResolver.ResolveProfilePhoto(e, cp),
+            ProfileUrl = await _profileUrls.ResolveDisplayUrlAsync(
+                EmployeeIdentityResolver.ResolveStoredProfileReference(e, cp), ct),
             AnnualizedCost = e.AnnualizedCost,
             CurrencyId = e.CurrencyId,
             MaskedSsnitNumber = MaskSensitive(e.SsnitNumber),

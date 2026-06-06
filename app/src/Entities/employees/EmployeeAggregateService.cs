@@ -1,6 +1,7 @@
 using ZelosHR.Api.Entities.Branches;
 using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Departments;
+using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Persistence;
 using ZelosHR.Api.Persistence.Entities;
@@ -27,6 +28,7 @@ public sealed class EmployeeAggregateService
     private readonly ICustomFieldDefinitionsRepository _customFieldDefinitions;
     private readonly IHrDocumentPathRepository _hrDocuments;
     private readonly ICpCurrencyRepository _currencies;
+    private readonly HrDocumentPresignedUrlService _profileUrls;
     private readonly ITenantContext _tenant;
 
     public EmployeeAggregateService(
@@ -41,6 +43,7 @@ public sealed class EmployeeAggregateService
         ICustomFieldDefinitionsRepository customFieldDefinitions,
         IHrDocumentPathRepository hrDocuments,
         ICpCurrencyRepository currencies,
+        HrDocumentPresignedUrlService profileUrls,
         ITenantContext tenant)
     {
         _db = db;
@@ -54,6 +57,7 @@ public sealed class EmployeeAggregateService
         _customFieldDefinitions = customFieldDefinitions;
         _hrDocuments = hrDocuments;
         _currencies = currencies;
+        _profileUrls = profileUrls;
         _tenant = tenant;
     }
 
@@ -456,7 +460,8 @@ public sealed class EmployeeAggregateService
 
         var fullName = EmployeeIdentityResolver.ResolveFullName(entity, cp);
         var workEmail = EmployeeIdentityResolver.ResolveWorkEmail(entity, cp);
-        var profilePhoto = EmployeeIdentityResolver.ResolveProfilePhoto(entity, cp);
+        var storedProfileRef = EmployeeIdentityResolver.ResolveStoredProfileReference(entity, cp);
+        var profilePhoto = await _profileUrls.ResolveDisplayUrlAsync(storedProfileRef, ct);
 
         var educationItems = education.Success && education.Data is { Count: > 0 } data ? data : null;
         var certificationItems = certifications.Success && certifications.Data is { Count: > 0 } certData
@@ -534,10 +539,22 @@ public sealed class EmployeeAggregateService
         var userIds = rows.Select(r => r.UserId).Where(id => !string.IsNullOrWhiteSpace(id)).Select(id => id!).Distinct();
         var platformUsers = await _cpUsers.GetByIdsAsync(userIds, _tenant.TenantId, ct);
 
+        var storedProfileRefs = rows
+            .Select(e =>
+            {
+                platformUsers.TryGetValue(e.UserId ?? string.Empty, out var cp);
+                return EmployeeIdentityResolver.ResolveStoredProfileReference(e, cp);
+            })
+            .ToList();
+        var profileUrlMap = await _profileUrls.ResolveDisplayUrlsAsync(storedProfileRefs, ct);
+
         var items = rows.Select(e =>
         {
             platformUsers.TryGetValue(e.UserId ?? string.Empty, out var cp);
-            var profileUrl = EmployeeIdentityResolver.ResolveProfilePhoto(e, cp);
+            var storedProfileRef = EmployeeIdentityResolver.ResolveStoredProfileReference(e, cp);
+            var profileUrl = storedProfileRef is null
+                ? null
+                : profileUrlMap.GetValueOrDefault(storedProfileRef);
             return new EmployeeListItemDto
             {
                 EmployeeId = e.Id.ToString(),

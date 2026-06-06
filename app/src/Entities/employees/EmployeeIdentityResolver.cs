@@ -18,8 +18,12 @@ internal static class EmployeeIdentityResolver
     public static string? ResolvePhone(EmployeeEntity employee, CpUserDto? platformUser) =>
         platformUser?.Phone ?? employee.Phone ?? employee.PersonalPhone;
 
-    public static string? ResolveProfilePhoto(EmployeeEntity employee, CpUserDto? platformUser) =>
+    /// <summary>Stored reference: document id from file upload, or legacy https URL — not a presigned display URL.</summary>
+    public static string? ResolveStoredProfileReference(EmployeeEntity employee, CpUserDto? platformUser) =>
         platformUser?.ProfilePic ?? employee.ProfilePhotoUrl;
+
+    public static string? ResolveProfilePhoto(EmployeeEntity employee, CpUserDto? platformUser) =>
+        ResolveStoredProfileReference(employee, platformUser);
 
     public static (string First, string Last) ResolveNameParts(EmployeeEntity employee, CpUserDto? platformUser)
     {

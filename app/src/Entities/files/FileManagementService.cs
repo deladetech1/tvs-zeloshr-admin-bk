@@ -8,11 +8,10 @@ namespace ZelosHR.Api.Entities.Files;
 
 public sealed class FileManagementService
 {
-    private const int DefaultPresignedExpiryHours = 24;
-
     private readonly IStorageService _storage;
     private readonly IHrDocumentPathRepository _documents;
     private readonly FileManagementStorage _storageConfig;
+    private readonly HrDocumentPresignedUrlService _presignedUrls;
     private readonly ITenantContext _tenant;
     private readonly ICurrentUserService _currentUser;
 
@@ -20,12 +19,14 @@ public sealed class FileManagementService
         IStorageService storage,
         IHrDocumentPathRepository documents,
         FileManagementStorage storageConfig,
+        HrDocumentPresignedUrlService presignedUrls,
         ITenantContext tenant,
         ICurrentUserService currentUser)
     {
         _storage = storage;
         _documents = documents;
         _storageConfig = storageConfig;
+        _presignedUrls = presignedUrls;
         _tenant = tenant;
         _currentUser = currentUser;
     }
@@ -246,25 +247,18 @@ public sealed class FileManagementService
     private async Task<Respons<FileResponseReadDto>> ResolvePresignedUrlAsync(
         string blobPath, CancellationToken ct)
     {
-        var result = await _storage.GetFileUrlAsync(new StorageFileUrlServiceWriteDto
-        {
-            StorageAccountUrl = _storageConfig.StorageAccountUrl,
-            ContainerName = _storageConfig.ContainerName,
-            BlobName = blobPath,
-            ExpiryHours = DefaultPresignedExpiryHours,
-        }, ct);
-
-        if (!result.Success || result.Data is null || result.Data.Count == 0)
+        var presignedUrl = await _presignedUrls.ResolvePresignedUrlForBlobPathAsync(blobPath, ct);
+        if (presignedUrl is null)
         {
             return Respons<FileResponseReadDto>.Fail(
-                result.Error ?? result.Detail ?? "Could not generate presigned URL.",
-                statusCode: result.StatusCode > 0 ? result.StatusCode : 502);
+                "Could not generate presigned URL.",
+                statusCode: 502);
         }
 
         return Respons<FileResponseReadDto>.Ok(new FileResponseReadDto
         {
             Id = string.Empty,
-            PresignedUrl = result.Data[0].PresignedUrl,
+            PresignedUrl = presignedUrl,
         });
     }
 }

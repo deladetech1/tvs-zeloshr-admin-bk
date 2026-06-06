@@ -1,10 +1,14 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Npgsql;
 using NSubstitute;
+using Trovesuite.Package.Storage;
 using ZelosHR.Api.Entities.Employees;
+using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Persistence.Entities;
+using ZelosHR.Api.Persistence.Repositories;
 using ZelosHR.Api.Shared.Abstractions;
 using ZelosHR.Api.Shared.Infrastructure;
 
@@ -15,7 +19,8 @@ public class EmployeeRegistrationTests
     private readonly IEmployeeRepository _employees = Substitute.For<IEmployeeRepository>();
     private readonly ICpUserRepository _cpUsers = Substitute.For<ICpUserRepository>();
     private readonly ICpCurrencyRepository _currencies = Substitute.For<ICpCurrencyRepository>();
-    private readonly IFileStorageService _files = Substitute.For<IFileStorageService>();
+    private readonly IStorageService _storage = Substitute.For<IStorageService>();
+    private readonly IHrDocumentPathRepository _documents = Substitute.For<IHrDocumentPathRepository>();
     private readonly ITenantContext _tenant = Substitute.For<ITenantContext>();
     private readonly ICurrentUserService _currentUser = Substitute.For<ICurrentUserService>();
     private readonly EmployeeRegistrationService _sut;
@@ -28,12 +33,19 @@ public class EmployeeRegistrationTests
         _tenant.LocId.Returns(TestDefaults.LocId);
         _tenant.AppId.Returns(TestDefaults.AppId);
         _currentUser.UserId.Returns(Guid.Parse("11111111-1111-1111-1111-111111111111"));
+        var storageConfig = new FileManagementStorage(
+            new ConfigurationBuilder().Build(),
+            Options.Create(new AzureStorageOptions()));
+        var profileUrls = new HrDocumentPresignedUrlService(
+            _storage, _documents, storageConfig, _tenant);
         _sut = new EmployeeRegistrationService(
             _employees,
             _cpUsers,
             _currencies,
-            _files,
-            Options.Create(new AzureStorageOptions()),
+            _storage,
+            _documents,
+            storageConfig,
+            profileUrls,
             _tenant,
             _currentUser);
     }
