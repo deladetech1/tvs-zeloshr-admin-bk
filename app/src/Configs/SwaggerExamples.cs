@@ -911,7 +911,7 @@ internal static class SwaggerExamples
         return obj;
     }
 
-    private static JsonObject CertificationEntry(bool withId = false)
+    internal static JsonObject CertificationEntry(bool withId = false)
     {
         var obj = new JsonObject
         {

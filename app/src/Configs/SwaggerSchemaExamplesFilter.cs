@@ -58,6 +58,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
         schema.Example = context.Type.Name switch
         {
             nameof(EmployeeEducationUpsertDto) => SwaggerExamples.EducationEntry(withId: true),
+            nameof(EmployeeCertificationUpsertDto) => SwaggerExamples.CertificationEntry(withId: true),
             nameof(CreateEmployeeAggregateRequest) => SwaggerExamples.CreateEmployeeFinalised(),
             nameof(UpdateEmployeeAggregateRequest) => SwaggerExamples.UpdateEmployeeFull(),
             nameof(CreateCustomFieldDefinitionDto) => SwaggerExamples.CreateCustomFieldAddBody(),
@@ -94,6 +95,8 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 $"currency_id from GET /api/v1/currencies/list. pay_frequency: {SwaggerExampleHints.PayFrequency}."),
             nameof(EmployeeEducationUpsertDto) => AppendDescription(schema.Description,
                 "Include id from GET to update; omit to add. institution is required."),
+            nameof(EmployeeCertificationUpsertDto) => AppendDescription(schema.Description,
+                "Include id from GET to update; omit to add. name is required."),
             nameof(EmployeeAggregateReadDto) => AppendDescription(schema.Description,
                 "Read-only employee aggregate. documents[] on read: MyStoreGuard DocumentReadDto (doc_id, name, presigned_url, description). Write via document_ids string array."),
             nameof(DocumentReadDto) => AppendDescription(schema.Description,
@@ -267,6 +270,14 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             case nameof(EmployeeEducationUpsertDto.FieldOfStudy):
             case "FieldOfStudy" when property.DeclaringType == typeof(EmployeeEducationWriteDto):
                 schema.Example = JsonValue.Create("Computer Science");
+                return;
+            case nameof(EmployeeCertificationUpsertDto.Name):
+            case "Name" when property.DeclaringType == typeof(EmployeeCertificationWriteDto):
+                schema.Example = JsonValue.Create("AWS Solutions Architect");
+                return;
+            case nameof(EmployeeCertificationUpsertDto.IssuingBody):
+            case "IssuingBody" when property.DeclaringType == typeof(EmployeeCertificationWriteDto):
+                schema.Example = JsonValue.Create("Amazon Web Services");
                 return;
             case nameof(FileResponseReadDto.PresignedUrl):
                 schema.Example = JsonValue.Create(SwaggerExamples.SamplePresignedUrl);

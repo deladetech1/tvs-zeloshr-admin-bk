@@ -53,6 +53,12 @@ public sealed class SwaggerRequiredSchemaFilter : ISchemaFilter
             required.Add("institution");
         }
 
+        if (type == typeof(EmployeeCertificationUpsertDto)
+            || type == typeof(EmployeeCertificationWriteDto))
+        {
+            required.Add("name");
+        }
+
         if (type == typeof(CreateCustomFieldDefinitionDto))
         {
             required.Add("entity_type");

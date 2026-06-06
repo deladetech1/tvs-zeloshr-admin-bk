@@ -138,18 +138,56 @@ Send **only** sections/fields you are changing. At least one top-level field or 
 "id_expiry_date": "2030-05-14"
 ```
 
-### `education[]` / `certifications[]`
+### `education[]` / `certifications[]` (same rules)
 
-| Item field | Rule |
-|------------|------|
-| `id` | From GET — include to **update**; omit to **add** |
-| `institution` | Required on each item |
-| `delete_*_ids` | Remove specific rows |
-| `sync_education` / `sync_certifications` | `true` + full array = replace section (orphans deleted) |
+Both are **arrays of sub-records** with their own `id`. Identity/employment/compensation stay single objects.
 
-**Bulk edit:** send only changed rows with their `id` + full row fields from GET.
+| Item field | Education | Certifications |
+|------------|-----------|----------------|
+| `id` | From GET — include to **update**; omit to **add** | Same |
+| Required field | `institution` | `name` |
+| Remove row | `delete_education_ids` | `delete_certification_ids` |
+| Replace section | `sync_education: true` + full array | `sync_certifications: true` + full array |
 
-### `certifications[]`
+**Bulk edit:** send only the rows you changed, each with `id` + full row from GET.
+
+#### `education[]` item fields
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `id` | uuid | update only | Omit on add |
+| `institution` | string | **yes** | |
+| `degree` | string | no | |
+| `field_of_study` | string | no | |
+| `start_date` | date | no | `YYYY-MM-DD` |
+| `end_date` | date | no | `YYYY-MM-DD` |
+| `is_current` | boolean | no | |
+| `custom_fields` | object | no | Section `employee-directory-education` |
+
+#### `certifications[]` item fields
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `id` | uuid | update only | Omit on add |
+| `name` | string | **yes** | Certification title |
+| `issuing_body` | string | no | |
+| `issue_date` | date | no | `YYYY-MM-DD` |
+| `expiry_date` | date | no | `YYYY-MM-DD` |
+| `credential_url` | string | no | Verification link |
+| `custom_fields` | object | no | Section `employee-directory-certification` |
+
+**Example — update one certification in bulk save:**
+```json
+{
+  "certifications": [{
+    "id": "66666666-6666-6666-6666-666666666601",
+    "name": "AWS Solutions Architect Professional",
+    "issuing_body": "Amazon Web Services",
+    "issue_date": "2023-03-15",
+    "expiry_date": "2026-03-15"
+  }]
+}
+```
 
 See [FILE_MANAGEMENT.md](FILE_MANAGEMENT.md) for uploads (`POST /file/post/multiple`), attachments (`document_ids` / `documents[]`), and profile photos (`identity.profile_url`).
 

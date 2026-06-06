@@ -275,6 +275,92 @@ if api_post "/api/v1/employees/add" "$EMP_BODY"; then
 EOF
 )"
   api_put "/api/v1/employees/update?employee_id=${EMP_ID}" "$UPDATE_BODY" || true
+
+  echo "=== Employee education + certifications (id upsert) ==="
+  EDU_CERT_ADD="$(cat <<EOF
+{
+  "education": [{
+    "institution": "University of Ghana",
+    "degree": "BSc Computer Science",
+    "field_of_study": "Computer Science"
+  }],
+  "certifications": [{
+    "name": "AWS Solutions Architect",
+    "issuing_body": "Amazon Web Services"
+  }]
+}
+EOF
+)"
+  if api_put "/api/v1/employees/update?employee_id=${EMP_ID}" "$EDU_CERT_ADD"; then
+    if api_get "/api/v1/employees/get?employee_id=${EMP_ID}"; then
+      EDU_ID="$(json_path "$LAST_JSON" "data.education.0.id" 2>/dev/null || true)"
+      CERT_ID="$(json_path "$LAST_JSON" "data.certifications.0.id" 2>/dev/null || true)"
+      if [[ -n "$EDU_ID" && -n "$CERT_ID" ]]; then
+        EDU_CERT_UPDATE="$(cat <<EOF
+{
+  "education": [{
+    "id": "${EDU_ID}",
+    "institution": "University of Ghana",
+    "degree": "MSc Computer Science",
+    "field_of_study": "Computer Science"
+  }],
+  "certifications": [{
+    "id": "${CERT_ID}",
+    "name": "AWS Solutions Architect Professional",
+    "issuing_body": "Amazon Web Services"
+  }]
+}
+EOF
+)"
+        api_put "/api/v1/employees/update?employee_id=${EMP_ID}" "$EDU_CERT_UPDATE" || true
+        if api_get "/api/v1/employees/get?employee_id=${EMP_ID}"; then
+          EDU_DEGREE="$(json_path "$LAST_JSON" "data.education.0.degree" 2>/dev/null || true)"
+          CERT_NAME="$(json_path "$LAST_JSON" "data.certifications.0.name" 2>/dev/null || true)"
+          EDU_COUNT="$(JSON_INPUT="$LAST_JSON" python3 - <<'PY'
+import json, os
+data = json.loads(os.environ["JSON_INPUT"])
+print(len(data.get("data", {}).get("education") or []))
+PY
+)"
+          CERT_COUNT="$(JSON_INPUT="$LAST_JSON" python3 - <<'PY'
+import json, os
+data = json.loads(os.environ["JSON_INPUT"])
+print(len(data.get("data", {}).get("certifications") or []))
+PY
+)"
+          if [[ "$EDU_DEGREE" == "MSc Computer Science" && "$CERT_NAME" == "AWS Solutions Architect Professional" && "$EDU_COUNT" == "1" && "$CERT_COUNT" == "1" ]]; then
+            record OK PUT "/api/v1/employees/update (education+cert id upsert)"
+          else
+            LAST_CODE="409"
+            record FAIL PUT "/api/v1/employees/update (education+cert id upsert — duplicate or wrong values)"
+          fi
+          api_put "/api/v1/employees/update?employee_id=${EMP_ID}" "$EDU_CERT_UPDATE" || true
+          if api_get "/api/v1/employees/get?employee_id=${EMP_ID}"; then
+            EDU_COUNT2="$(JSON_INPUT="$LAST_JSON" python3 - <<'PY'
+import json, os
+data = json.loads(os.environ["JSON_INPUT"])
+print(len(data.get("data", {}).get("education") or []))
+PY
+)"
+            CERT_COUNT2="$(JSON_INPUT="$LAST_JSON" python3 - <<'PY'
+import json, os
+data = json.loads(os.environ["JSON_INPUT"])
+print(len(data.get("data", {}).get("certifications") or []))
+PY
+)"
+            if [[ "$EDU_COUNT2" == "1" && "$CERT_COUNT2" == "1" ]]; then
+              record OK PUT "/api/v1/employees/update (re-save with ids — no duplicate)"
+            else
+              LAST_CODE="409"
+              record FAIL PUT "/api/v1/employees/update (re-save with ids — expected 1 row each)"
+            fi
+          fi
+        fi
+      else
+        record_skip PUT "/api/v1/employees/update (education+cert)" "Missing education or certification id on GET."
+      fi
+    fi
+  fi
 fi
 
 echo "=== Lifecycle events (POST / GET / PUT / DELETE) ==="

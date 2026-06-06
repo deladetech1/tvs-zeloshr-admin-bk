@@ -34,6 +34,12 @@ internal static class EmployeeAggregateCreateValidator
         if (request.Certifications.Count > MaxCertifications)
             errors["certifications"] = $"At most {MaxCertifications} certification records allowed.";
 
+        for (var i = 0; i < request.Certifications.Count; i++)
+        {
+            if (string.IsNullOrWhiteSpace(request.Certifications[i].Name))
+                errors[$"certifications[{i}].name"] = "Name is required.";
+        }
+
         return errors.Count == 0 ? null : errors;
     }
 }

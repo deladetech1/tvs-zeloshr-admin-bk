@@ -33,4 +33,20 @@ public sealed class EmployeeSubResourceUpsertRulesTests
         errors.Should().NotBeNull();
         errors!.Should().ContainKey("education[1].id");
     }
+
+    [Fact]
+    public void ValidateDuplicateIds_certification_rejects_repeated_id()
+    {
+        var certId = Guid.Parse("66666666-6666-6666-6666-666666666601");
+        var items = new[]
+        {
+            new EmployeeCertificationUpsertDto(certId, "AWS SA", null, null, null, null),
+            new EmployeeCertificationUpsertDto(certId, "Azure Admin", null, null, null, null),
+        };
+
+        var errors = EmployeeSubResourceUpsertRules.ValidateDuplicateIds(items);
+
+        errors.Should().NotBeNull();
+        errors!.Should().ContainKey("certifications[1].id");
+    }
 }

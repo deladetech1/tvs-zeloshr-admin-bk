@@ -49,7 +49,7 @@ public sealed record EmployeeCertificationWriteDto(
     string? CredentialUrl,
     Dictionary<string, string?>? CustomFields = null);
 
-/// <summary>Include <c>id</c> from GET to update; omit only for a new row. Use <c>sync_certifications: true</c> on PUT for full-array replace.</summary>
+/// <summary>Include <c>id</c> from GET to update; omit to add. Use <c>sync_certifications: true</c> on PUT for full-array replace.</summary>
 public sealed record EmployeeCertificationUpsertDto(
     Guid? Id,
     string Name,
