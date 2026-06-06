@@ -59,8 +59,8 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
         {
             nameof(EmployeeEducationUpsertDto) => SwaggerExamples.EducationEntry(withId: true),
             nameof(EmployeeCertificationUpsertDto) => SwaggerExamples.CertificationEntry(withId: true),
-            nameof(EmployeeEducationDto) => SwaggerExamples.EducationEntry(withId: true, forRead: true),
-            nameof(EmployeeCertificationDto) => SwaggerExamples.CertificationEntry(withId: true, forRead: true),
+            nameof(EmployeeEducationDto) => SwaggerExamples.EducationEntry(withId: true),
+            nameof(EmployeeCertificationDto) => SwaggerExamples.CertificationEntry(withId: true),
             nameof(CreateEmployeeAggregateRequest) => SwaggerExamples.CreateEmployeeFinalised(),
             nameof(UpdateEmployeeAggregateRequest) => SwaggerExamples.UpdateEmployeeEducationCertUpsert(),
             nameof(CreateCustomFieldDefinitionDto) => SwaggerExamples.CreateCustomFieldAddBody(),
@@ -86,7 +86,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(CreateEmployeeAggregateRequest) => AppendDescription(schema.Description,
                 "One-shot employee create. See operation examples (finalised vs draft). Upload files first via POST /api/v1/file/post/multiple."),
             nameof(UpdateEmployeeAggregateRequest) => AppendDescription(schema.Description,
-                "Partial update — only include sections to change. education[]/certifications[] write shape: id to update, omit id to add, no employee_id. sync_* + full array replaces section."),
+                "Partial update — only include sections to change. education[]/certifications[]: id to update, omit id to add. sync_* + full array replaces section."),
             nameof(EmployeeDirectorySummaryDto) => AppendDescription(schema.Description,
                 "Directory KPI cards: total headcount, active, on probation, on contract."),
             nameof(CreateCustomFieldDefinitionDto) => AppendDescription(schema.Description,
@@ -96,13 +96,13 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(EmployeeAggregateCompensationDto) => AppendDescription(schema.Description,
                 $"currency_id from GET /api/v1/currencies/list. pay_frequency: {SwaggerExampleHints.PayFrequency}."),
             nameof(EmployeeEducationUpsertDto) => AppendDescription(schema.Description,
-                "Write shape: omit employee_id. Include id from GET to update; omit to add. institution is required."),
+                "Include id from GET to update; omit to add. institution is required."),
             nameof(EmployeeCertificationUpsertDto) => AppendDescription(schema.Description,
-                "Write shape: omit employee_id. Include id from GET to update; omit to add. name is required."),
+                "Include id from GET to update; omit to add. name is required."),
             nameof(EmployeeEducationDto) => AppendDescription(schema.Description,
-                "Read shape on GET /employees/get: includes id and employee_id on each array item."),
+                "Read shape on GET /employees/get data.education[] (employee scoped by query ?employee_id=)."),
             nameof(EmployeeCertificationDto) => AppendDescription(schema.Description,
-                "Read shape on GET /employees/get: includes id and employee_id on each array item."),
+                "Read shape on GET /employees/get data.certifications[] (employee scoped by query ?employee_id=)."),
             nameof(EmployeeAggregateReadDto) => AppendDescription(schema.Description,
                 "Read-only employee aggregate. documents[] on read: MyStoreGuard DocumentReadDto (doc_id, name, presigned_url, description). Write via document_ids string array."),
             nameof(DocumentReadDto) => AppendDescription(schema.Description,
@@ -399,12 +399,12 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 case nameof(UpdateEmployeeAggregateRequest.Education):
                     schema.Example = new JsonArray(SwaggerExamples.EducationEntry(withId: true));
                     schema.Description = AppendDescription(schema.Description,
-                        "Write shape: omit employee_id. Include id from GET to update; omit id to add.");
+                        "Include id from GET to update; omit id to add.");
                     return;
                 case nameof(UpdateEmployeeAggregateRequest.Certifications):
                     schema.Example = new JsonArray(SwaggerExamples.CertificationEntry(withId: true));
                     schema.Description = AppendDescription(schema.Description,
-                        "Write shape: omit employee_id. Include id from GET to update; omit id to add.");
+                        "Include id from GET to update; omit id to add.");
                     return;
                 case nameof(UpdateEmployeeAggregateRequest.SyncEducation):
                     schema.Example = JsonValue.Create(false);

@@ -57,7 +57,7 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
                     "Bulk edit — education + certifications with id (sync false)",
                     """
                     Default sync=false: patch mode. Only rows in the body are upserted; all other rows stay.
-                    Round-trip id from GET to update; omit id to add. Do not send employee_id on write.
+                    Round-trip id from GET to update; omit id to add.
                     """),
                 ["patch_one_certification"] = Example(
                     SwaggerExamples.UpdateEmployeePatchOneCertification(),

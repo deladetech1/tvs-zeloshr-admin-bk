@@ -85,7 +85,7 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
                 • sync true: REPLACE — array is the full desired set; existing rows not listed are deleted.
 
                 delete_education_ids / delete_certification_ids remove rows by UUID without sending arrays.
-                Write shape: include id from GET to update; omit id to add; do not send employee_id.
+                Include id from GET on education/certification items to update; omit id to add.
                 """);
             return;
         }

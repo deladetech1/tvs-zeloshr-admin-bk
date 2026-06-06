@@ -746,7 +746,7 @@ internal static class SwaggerExamples
         },
     };
 
-    /// <summary>Bulk edit education/certification rows using ids from GET (write shape — no employee_id).</summary>
+    /// <summary>Bulk edit education/certification rows using ids from GET.</summary>
     internal static JsonObject UpdateEmployeeEducationCertUpsert() => new()
     {
         ["education"] = new JsonArray(
@@ -873,18 +873,16 @@ internal static class SwaggerExamples
                 ["employment"] = EmploymentSection(withNames: true),
                 ["compensation"] = CompensationReadSection(),
                 ["education"] = new JsonArray(
-                    EducationEntry(withId: true, forRead: true),
+                    EducationEntry(withId: true),
                     EducationEntry(
                         withId: true,
-                        forRead: true,
                         id: Guid.Parse("55555555-5555-5555-5555-555555555502"),
                         degree: "MSc",
                         fieldOfStudy: "Software Engineering")),
                 ["certifications"] = new JsonArray(
-                    CertificationEntry(withId: true, forRead: true),
+                    CertificationEntry(withId: true),
                     CertificationEntry(
                         withId: true,
-                        forRead: true,
                         id: Guid.Parse("66666666-6666-6666-6666-666666666602"),
                         name: "Masters in react fundamentals",
                         credentialUrl: "https://udemy.com/certificate/3424-3424")),
@@ -993,7 +991,6 @@ internal static class SwaggerExamples
 
     internal static JsonObject EducationEntry(
         bool withId = false,
-        bool forRead = false,
         Guid? id = null,
         string? degree = null,
         string? fieldOfStudy = null)
@@ -1012,15 +1009,11 @@ internal static class SwaggerExamples
         if (withId)
             obj["id"] = (id ?? Guid.Parse("55555555-5555-5555-5555-555555555501")).ToString();
 
-        if (forRead)
-            obj["employee_id"] = SampleEmployeeId.ToString();
-
         return obj;
     }
 
     internal static JsonObject CertificationEntry(
         bool withId = false,
-        bool forRead = false,
         Guid? id = null,
         string? name = null,
         string? issuingBody = null,
@@ -1040,14 +1033,11 @@ internal static class SwaggerExamples
 
         if (expiryDate is not null)
             obj["expiry_date"] = expiryDate;
-        else if (!forRead && !omitExpiryDate)
+        else if (!omitExpiryDate)
             obj["expiry_date"] = "2026-03-15";
 
         if (withId)
             obj["id"] = (id ?? Guid.Parse("66666666-6666-6666-6666-666666666601")).ToString();
-
-        if (forRead)
-            obj["employee_id"] = SampleEmployeeId.ToString();
 
         return obj;
     }

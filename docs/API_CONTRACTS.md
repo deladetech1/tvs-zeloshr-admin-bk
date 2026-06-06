@@ -142,12 +142,11 @@ Send **only** sections/fields you are changing. At least one top-level field or 
 
 Both stay **arrays of sub-records** on GET and PUT. Identity/employment/compensation stay single objects.
 
-**GET** (`/employees/get`) — each array item includes `id`, `employee_id`, row fields, and `custom_fields`:
+**GET** (`/employees/get`) — each array item includes `id`, row fields, and `custom_fields` (employee is scoped by `?employee_id=`):
 
 ```json
 "education": [{
   "id": "55555555-5555-5555-5555-555555555501",
-  "employee_id": "3804deee-d6ee-4b05-9efc-6e8ccf3b5ae3",
   "institution": "University of Ghana",
   "degree": "BSc",
   "field_of_study": "Computer Science",
@@ -158,7 +157,6 @@ Both stay **arrays of sub-records** on GET and PUT. Identity/employment/compensa
 }],
 "certifications": [{
   "id": "66666666-6666-6666-6666-666666666601",
-  "employee_id": "3804deee-d6ee-4b05-9efc-6e8ccf3b5ae3",
   "name": "Masters in react",
   "issuing_body": "Udemy",
   "issue_date": "2026-05-31",
@@ -167,24 +165,22 @@ Both stay **arrays of sub-records** on GET and PUT. Identity/employment/compensa
 }]
 ```
 
-**PUT** — same row fields as GET, but **omit `employee_id`** (from `?employee_id=` query). Include `id` from GET to update; omit `id` to add.
+**PUT** — same row fields as GET. Include `id` from GET to update; omit `id` to add.
 
 | Item field | Education | Certifications |
 |------------|-----------|----------------|
 | `id` | From GET — include to **update**; omit to **add** | Same |
-| `employee_id` | **read only** — do not send on PUT | Same |
 | Required field | `institution` | `name` |
 | Remove row | `delete_education_ids` | `delete_certification_ids` |
 | Replace section | `sync_education: true` + full array | `sync_certifications: true` + full array |
 
-**Bulk edit:** send only the rows you changed, each with `id` + full row from GET (without `employee_id`).
+**Bulk edit:** send only the rows you changed, each with `id` + full row from GET.
 
 #### `education[]` item fields
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
 | `id` | uuid | update only | Omit on add |
-| `employee_id` | uuid | read only | Returned on GET only |
 | `institution` | string | **yes** | |
 | `degree` | string | no | |
 | `field_of_study` | string | no | |
@@ -198,7 +194,6 @@ Both stay **arrays of sub-records** on GET and PUT. Identity/employment/compensa
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
 | `id` | uuid | update only | Omit on add |
-| `employee_id` | uuid | read only | Returned on GET only |
 | `name` | string | **yes** | Certification title |
 | `issuing_body` | string | no | |
 | `issue_date` | date | no | `YYYY-MM-DD` |
@@ -206,7 +201,7 @@ Both stay **arrays of sub-records** on GET and PUT. Identity/employment/compensa
 | `credential_url` | string | no | Verification link |
 | `custom_fields` | object | no | Section `employee-directory-certification` |
 
-**Example — update one certification in bulk save (no `employee_id`):**
+**Example — update one certification in bulk save:**
 ```json
 {
   "certifications": [{

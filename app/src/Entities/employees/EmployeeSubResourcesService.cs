@@ -232,10 +232,10 @@ public sealed class EmployeeSubResourcesService
     }
 
     private static EmployeeEducationDto ToEducationDto(EmployeeEducationEntity e) => new(
-        e.Id, e.EmployeeId, e.Institution, e.Degree, e.FieldOfStudy, e.StartDate, e.EndDate, e.IsCurrent);
+        e.Id, e.Institution, e.Degree, e.FieldOfStudy, e.StartDate, e.EndDate, e.IsCurrent);
 
     private static EmployeeCertificationDto ToCertificationDto(EmployeeCertificationEntity c) => new(
-        c.Id, c.EmployeeId, c.Name, c.IssuingBody, c.IssueDate, c.ExpiryDate, c.CredentialUrl);
+        c.Id, c.Name, c.IssuingBody, c.IssueDate, c.ExpiryDate, c.CredentialUrl);
 
     private static EmployeeWizardDocumentDto ToDocumentDto(EmployeeDocumentEntity d) => new(
         d.Id, d.EmployeeId, d.Category, d.FileName, d.FileSizeBytes, d.BlobUrl, d.ContentType, d.UploadedAt);

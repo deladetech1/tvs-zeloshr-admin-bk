@@ -1,9 +1,8 @@
 namespace ZelosHR.Api.Entities.Employees;
 
-/// <summary>Education row on <c>GET /employees/get</c> (<c>id</c>, <c>employee_id</c>, row fields, <c>custom_fields</c>).</summary>
+/// <summary>Education row on <c>GET /employees/get</c> (<c>id</c>, row fields, <c>custom_fields</c>).</summary>
 public sealed record EmployeeEducationDto(
     Guid Id,
-    Guid EmployeeId,
     string Institution,
     string? Degree,
     string? FieldOfStudy,
@@ -32,10 +31,9 @@ public sealed record EmployeeEducationUpsertDto(
     bool IsCurrent,
     Dictionary<string, string?>? CustomFields = null);
 
-/// <summary>Certification row on <c>GET /employees/get</c> (<c>id</c>, <c>employee_id</c>, row fields, <c>custom_fields</c>).</summary>
+/// <summary>Certification row on <c>GET /employees/get</c> (<c>id</c>, row fields, <c>custom_fields</c>).</summary>
 public sealed record EmployeeCertificationDto(
     Guid Id,
-    Guid EmployeeId,
     string Name,
     string? IssuingBody,
     DateOnly? IssueDate,
