@@ -787,8 +787,22 @@ internal static class SwaggerExamples
                 ["identity"] = IdentitySection(withCustomField: true, forRead: true),
                 ["employment"] = EmploymentSection(withNames: true),
                 ["compensation"] = CompensationReadSection(),
-                ["education"] = new JsonArray(EducationEntry(withId: true)),
-                ["certifications"] = new JsonArray(CertificationEntry(withId: true)),
+                ["education"] = new JsonArray(
+                    EducationEntry(withId: true, forRead: true),
+                    EducationEntry(
+                        withId: true,
+                        forRead: true,
+                        id: Guid.Parse("55555555-5555-5555-5555-555555555502"),
+                        degree: "MSc",
+                        fieldOfStudy: "Software Engineering")),
+                ["certifications"] = new JsonArray(
+                    CertificationEntry(withId: true, forRead: true),
+                    CertificationEntry(
+                        withId: true,
+                        forRead: true,
+                        id: Guid.Parse("66666666-6666-6666-6666-666666666602"),
+                        name: "Masters in react fundamentals",
+                        credentialUrl: "https://udemy.com/certificate/3424-3424")),
                 ["documents"] = EmployeeDocumentsArray(),
             },
         };
@@ -892,13 +906,18 @@ internal static class SwaggerExamples
         ["custom_fields"] = CustomFieldsForSection(EmployeeCustomFieldSections.Compensation),
     };
 
-    internal static JsonObject EducationEntry(bool withId = false)
+    internal static JsonObject EducationEntry(
+        bool withId = false,
+        bool forRead = false,
+        Guid? id = null,
+        string? degree = null,
+        string? fieldOfStudy = null)
     {
         var obj = new JsonObject
         {
             ["institution"] = "University of Ghana",
-            ["degree"] = "BSc",
-            ["field_of_study"] = "Computer Science",
+            ["degree"] = degree ?? "BSc",
+            ["field_of_study"] = fieldOfStudy ?? "Computer Science",
             ["start_date"] = "2008-09-01",
             ["end_date"] = "2012-06-30",
             ["is_current"] = false,
@@ -906,25 +925,43 @@ internal static class SwaggerExamples
         };
 
         if (withId)
-            obj["id"] = Guid.Parse("55555555-5555-5555-5555-555555555501").ToString();
+            obj["id"] = (id ?? Guid.Parse("55555555-5555-5555-5555-555555555501")).ToString();
+
+        if (forRead)
+            obj["employee_id"] = SampleEmployeeId.ToString();
 
         return obj;
     }
 
-    internal static JsonObject CertificationEntry(bool withId = false)
+    internal static JsonObject CertificationEntry(
+        bool withId = false,
+        bool forRead = false,
+        Guid? id = null,
+        string? name = null,
+        string? issuingBody = null,
+        string? issueDate = null,
+        string? expiryDate = null,
+        string? credentialUrl = null)
     {
         var obj = new JsonObject
         {
-            ["name"] = "AWS Solutions Architect",
-            ["issuing_body"] = "Amazon Web Services",
-            ["issue_date"] = "2023-03-15",
-            ["expiry_date"] = "2026-03-15",
-            ["credential_url"] = "https://aws.amazon.com/verification/example-cert",
+            ["name"] = name ?? "Masters in react",
+            ["issuing_body"] = issuingBody ?? "Udemy",
+            ["issue_date"] = issueDate ?? "2026-05-31",
+            ["credential_url"] = credentialUrl ?? "https://udemy.com/certificate/3424-3424",
             ["custom_fields"] = EmptyCustomFields(EmployeeCustomFieldSections.Certification),
         };
 
+        if (expiryDate is not null)
+            obj["expiry_date"] = expiryDate;
+        else if (!forRead)
+            obj["expiry_date"] = "2026-03-15";
+
         if (withId)
-            obj["id"] = Guid.Parse("66666666-6666-6666-6666-666666666601").ToString();
+            obj["id"] = (id ?? Guid.Parse("66666666-6666-6666-6666-666666666601")).ToString();
+
+        if (forRead)
+            obj["employee_id"] = SampleEmployeeId.ToString();
 
         return obj;
     }
