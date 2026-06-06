@@ -7,7 +7,7 @@ using ZelosHR.Api.Shared.Tenant;
 namespace ZelosHR.Api.Entities.LifecycleEvents;
 
 [ApiController]
-[ApiExplorerSettings(GroupName = SwaggerGroups.LifecycleEvents, IgnoreApi = true)]
+[ApiExplorerSettings(GroupName = SwaggerGroups.LifecycleEvents)]
 [Route("api/v1/lifecycle-events")]
 [Produces("application/json")]
 public class LifecycleEventsController : ControllerBase

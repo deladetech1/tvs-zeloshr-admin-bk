@@ -27,6 +27,7 @@ source "${ROOT}/scripts/local-dev/live-session-auth.sh"
 BASE="${ZELOSHR_API_BASE:-https://zeloshr.app.backend.dev.trovesuite.com}"
 TS="$(date +%s)"
 TAG="live-${TS}"
+DUE_DATE="$(python3 -c "from datetime import date, timedelta; print((date.today()+timedelta(days=30)).isoformat())")"
 
 ensure_live_session_auth || exit 1
 TOKEN="${TROVE_BEARER_TOKEN}"
@@ -174,6 +175,8 @@ read_paths=(
   "/api/v1/employees/directory/summary"
   "/api/v1/employees/list?page=1&size=5"
   "/api/v1/employees/import/search?query=a"
+  "/api/v1/lifecycle-events/statistics"
+  "/api/v1/lifecycle-events/list?page=1&size=5"
 )
 for path in "${read_paths[@]}"; do
   api_get "$path" || true
@@ -274,6 +277,29 @@ EOF
   api_put "/api/v1/employees/update?employee_id=${EMP_ID}" "$UPDATE_BODY" || true
 fi
 
+echo "=== Lifecycle events (POST / GET / PUT / DELETE) ==="
+LC_ID=""
+if [[ -n "$EMP_ID" ]]; then
+  LC_BODY="$(cat <<EOF
+{
+  "employee_id": "${EMP_ID}",
+  "event_type": "Probation review ${TAG}",
+  "due_date": "${DUE_DATE}",
+  "status": "Pending",
+  "urgency": "Upcoming"
+}
+EOF
+)"
+  if api_post "/api/v1/lifecycle-events/add" "$LC_BODY"; then
+    LC_ID="$(json_path "$LAST_JSON" "data.lifecycle_event_id" 2>/dev/null || true)"
+    [[ -n "$LC_ID" ]] && api_get "/api/v1/lifecycle-events/get?lifecycle_event_id=${LC_ID}" || true
+    [[ -n "$LC_ID" ]] && api_put "/api/v1/lifecycle-events/update?lifecycle_event_id=${LC_ID}" \
+      '{"status":"Awaiting Manager","urgency":"Critical"}' || true
+  fi
+else
+  record_skip POST "/api/v1/lifecycle-events/add" "No employee_id from prior step."
+fi
+
 echo "=== File management (POST multipart / GET / PUT / DELETE) ==="
 TMPFILE="$(mktemp)"
 echo "Live test upload ${TAG}" >"$TMPFILE"
@@ -314,17 +340,32 @@ if [[ "$LAST_CODE" =~ ^2 ]]; then
     else
       record FAIL PUT "/api/v1/file/put?document_id=${DOC_ID}"
     fi
+    if [[ -n "$DOC_ID" && -n "$EMP_ID" ]]; then
+      echo "=== Employee documents (attach + read documents[]) ==="
+      api_put "/api/v1/employees/update?employee_id=${EMP_ID}" \
+        "$(printf '{"document_ids":["%s"]}' "$DOC_ID")" || true
+      if api_get "/api/v1/employees/get?employee_id=${EMP_ID}"; then
+        DOC_COUNT="$(json_path "$LAST_JSON" "data.documents.0.doc_id" 2>/dev/null || true)"
+        if [[ -n "$DOC_COUNT" ]]; then
+          echo "  employee documents[0].doc_id: ${DOC_COUNT}"
+        else
+          LEGACY_ID="$(json_path "$LAST_JSON" "data.documents.0.id" 2>/dev/null || true)"
+          [[ -n "$LEGACY_ID" ]] && echo "  employee documents[0].id (legacy): ${LEGACY_ID}"
+        fi
+      fi
+    fi
   fi
 else
   if echo "$LAST_JSON" | grep -q "DefaultAzureCredential"; then
-    record_skip POST "/api/v1/file/post/multiple?blob_paths=…" "Azure Storage credential not available on dev CA."
+    record_skip POST "/api/v1/file/post/multiple" "Azure Storage credential not available on dev CA."
   else
-    record FAIL POST "/api/v1/file/post/multiple?blob_paths=…"
+    record FAIL POST "/api/v1/file/post/multiple"
   fi
   echo ""
 fi
 
 echo "=== Cleanup (DELETE / archive) ==="
+[[ -n "$LC_ID" ]] && api_delete "/api/v1/lifecycle-events/delete?lifecycle_event_id=${LC_ID}" || true
 [[ -n "$DOC_ID" ]] && api_delete "/api/v1/file/delete?document_id=${DOC_ID}" || true
 [[ -n "$EMP_ID" ]] && api_delete "/api/v1/employees/delete?employee_id=${EMP_ID}" || true
 [[ -n "$CF_ID" ]] && api_delete "/api/v1/custom-fields/delete?custom_field_id=${CF_ID}" || true

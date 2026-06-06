@@ -79,7 +79,7 @@ public static class SwaggerConfiguration
 
                     ### Documented modules
 
-                    **Employees** · **Currencies** · **Custom Fields** · **File Management** · **Organisation** (org chart, departments, branches)
+                    **Employees** · **Currencies** · **Custom Fields** · **File Management** · **Organisation** (org chart, departments, branches) · **Lifecycle Events**
 
                     Conformance: `docs/MYSTOREGUARD_API_CONFORMANCE.md` · Navigation: `GET /api/v1/navigation`
                     """,

@@ -11,6 +11,7 @@ public static class SwaggerGroups
         CustomFields,
         FileManagement,
         Organisation,
+        LifecycleEvents,
     };
 
     public static bool IsVisibleInSwagger(string? groupName) =>
