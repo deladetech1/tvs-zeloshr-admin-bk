@@ -120,10 +120,12 @@ public class EmployeeRegistrationTests
             .Returns(2L, 3L);
         var collision = new DbUpdateException(
             "duplicate",
-            new PostgresException("duplicate", severity: default, invariantSeverity: default, sqlState: PostgresErrorCodes.UniqueViolation)
-            {
-                ConstraintName = "ix_zhr_employees_tenant_id_employee_code",
-            });
+            new PostgresException(
+                "duplicate key value violates unique constraint",
+                severity: "ERROR",
+                invariantSeverity: "ERROR",
+                sqlState: PostgresErrorCodes.UniqueViolation,
+                constraintName: "ix_zhr_employees_tenant_id_employee_code"));
         _employees.AddAsync(Arg.Any<EmployeeEntity>(), Arg.Any<CancellationToken>())
             .Returns(
                 _ => Task.FromException<EmployeeEntity>(collision),
