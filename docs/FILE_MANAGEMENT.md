@@ -105,16 +105,17 @@ When **omitted or empty**, the server auto-generates paths:
 
 Container name is server config (**`zeloshr`**) — clients do not send it.
 
-When **provided**, comma-separated paths inside that container:
+When **provided**:
 
-| Paths sent | Files uploaded | Behaviour |
-|------------|----------------|-----------|
-| *(omit)* | N | Auto-generate N paths |
-| 1 | N | Same path used for every file |
-| N | N | Path *i* → file *i* |
-| anything else | — | **400** `field_errors.blob_paths` |
+| Files | `blob_paths` format |
+|-------|---------------------|
+| 1 | **Entire query value** is one path — commas in filenames (e.g. `May 23, 2026`) are allowed |
+| N (same path) | One path string — applied to every file |
+| N (distinct paths) | **N comma-separated paths** — each path must not contain commas |
 
-**Common 400 cause:** sending two comma-separated paths (e.g. from an old Swagger example) while uploading **one** file. Fix: **remove `blob_paths` from the query string**.
+**Common 400 causes:**
+- Two Swagger example paths while uploading **one** file → omit `blob_paths` or send one path only
+- **Multi-file** upload with a comma inside a filename when using custom paths → omit `blob_paths` and auto-generate, or rename the file
 
 Values `undefined` and `null` (as strings) are treated as omitted.
 

@@ -26,11 +26,10 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
                 Auto path pattern:
                 `{tenant_id}/{org_id}/{bus_id}/employees/documents/{unique}-{filename}`
 
-                Or supply paths explicitly (comma-separated, no spaces required):
-                - **One path** → same path for every uploaded file
-                - **N paths** → must equal the number of `files` in the multipart body
-
-                Do not copy the two-path Swagger sample when uploading a single file.
+                Or supply paths explicitly (comma-separated only when uploading **multiple** files):
+                - **One file** → entire `blob_paths` value is one path (commas in filenames are OK)
+                - **Multiple files** → one comma-separated path per file (paths must not contain commas)
+                - **One path, multiple files** → same path reused for every file
                 Storage account is server config — clients send paths only, not container name.
                 """;
             return;

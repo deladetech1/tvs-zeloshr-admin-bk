@@ -17,9 +17,25 @@ public sealed class FileManagementBlobPathTests
     }
 
     [Fact]
-    public void ShouldAutoGenerateBlobPaths_false_when_explicit_path()
+    public void ResolveExplicitBlobPaths_single_file_keeps_commas_in_path()
     {
-        FileManagementService.ShouldAutoGenerateBlobPaths("tenant/org/bus/employees/documents/a-file.pdf")
-            .Should().BeFalse();
+        var path =
+            "tnt_x/org_y/bus_z/employees/ChatGPT Image May 23, 2026 at 11_04_44 PM.png";
+        FileManagementService.ResolveExplicitBlobPaths(path, fileCount: 1)
+            .Should().Equal([path]);
+    }
+
+    [Fact]
+    public void ResolveExplicitBlobPaths_multi_file_splits_on_comma()
+    {
+        FileManagementService.ResolveExplicitBlobPaths("path/a.pdf,path/b.pdf", fileCount: 2)
+            .Should().Equal(["path/a.pdf", "path/b.pdf"]);
+    }
+
+    [Fact]
+    public void ResolveExplicitBlobPaths_multi_file_rejects_wrong_count()
+    {
+        FileManagementService.ResolveExplicitBlobPaths("only-one.pdf", fileCount: 2)
+            .Should().BeNull();
     }
 }

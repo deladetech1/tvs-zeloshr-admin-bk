@@ -52,16 +52,17 @@ public sealed class FileManagementService
         }
         else
         {
-            paths = blobPaths.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-            if (paths.Length != 1 && paths.Length != files.Count)
+            paths = ResolveExplicitBlobPaths(blobPaths, files.Count);
+            if (paths is null)
             {
+                var splitCount = blobPaths.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Length;
                 return Respons<IReadOnlyList<FileUploadMultipleReadDto>>.ValidationError(
                     new Dictionary<string, string>
                     {
                         ["blob_paths"] =
-                            $"You sent {paths.Length} blob path(s) for {files.Count} file(s). "
-                            + "Omit blob_paths to auto-generate under {tenant}/{org}/{bus}/employees/documents/, "
-                            + "send one path for all files, or send exactly one path per file.",
+                            $"You sent {splitCount} blob path segment(s) for {files.Count} file(s). "
+                            + "Omit blob_paths to auto-generate, send one path for all files, or send exactly one path per file. "
+                            + "For a single file, the path may contain commas (e.g. in the filename) — do not split manually.",
                     });
             }
         }
@@ -137,6 +138,26 @@ public sealed class FileManagementService
         var trimmed = blobPaths.Trim();
         return trimmed.Equals("undefined", StringComparison.OrdinalIgnoreCase)
             || trimmed.Equals("null", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Parse explicit <c>blob_paths</c>. Single-file uploads use the whole string (commas allowed in filenames).
+    /// Multi-file uploads use comma-separated paths — one per file.
+    /// </summary>
+    internal static string[]? ResolveExplicitBlobPaths(string blobPaths, int fileCount)
+    {
+        if (fileCount <= 0)
+            return null;
+
+        var trimmed = blobPaths.Trim();
+        if (trimmed.Length == 0)
+            return null;
+
+        if (fileCount == 1)
+            return [trimmed];
+
+        var paths = trimmed.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        return paths.Length == fileCount ? paths : null;
     }
 
     public async Task<Respons<FileResponseReadDto>> UpdateFileAsync(
