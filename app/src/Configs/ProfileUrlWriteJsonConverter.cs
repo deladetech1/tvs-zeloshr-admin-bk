@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace ZelosHR.Api.Configs;
 
 /// <summary>
-/// Accepts a document id string or a read-shape object (<c>id</c> / <c>presigned_url</c>) on write.
+/// Accepts a document id string or a read-shape object (<c>doc_id</c>, <c>id</c>, or <c>presigned_url</c>) on write.
 /// </summary>
 public sealed class ProfileUrlWriteJsonConverter : JsonConverter<string?>
 {
@@ -20,6 +20,13 @@ public sealed class ProfileUrlWriteJsonConverter : JsonConverter<string?>
                 using (var doc = JsonDocument.ParseValue(ref reader))
                 {
                     var root = doc.RootElement;
+                    if (root.TryGetProperty("doc_id", out var docIdProp))
+                    {
+                        var docId = docIdProp.GetString();
+                        if (!string.IsNullOrWhiteSpace(docId))
+                            return docId.Trim();
+                    }
+
                     if (root.TryGetProperty("id", out var idProp))
                     {
                         var id = idProp.GetString();
@@ -38,7 +45,7 @@ public sealed class ProfileUrlWriteJsonConverter : JsonConverter<string?>
                 return null;
             default:
                 throw new JsonException(
-                    "profile_url must be a document id string, null, or an object with id / presigned_url.");
+                    "profile_url must be a document id string, null, or an object with doc_id / id / presigned_url.");
         }
     }
 

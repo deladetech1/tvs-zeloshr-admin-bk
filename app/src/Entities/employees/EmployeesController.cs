@@ -199,7 +199,7 @@ public class EmployeesController : ControllerBase
     /// Query param <c>employee_id</c> (UUID from <c>POST /add</c> or <c>GET /list</c>).
     /// Route: <c>GET /api/v1/employees/get?employee_id=</c>.
     /// Returns nested sections with <c>custom_fields</c>, joined currency metadata,
-    /// <c>document_ids</c> and <c>identity.profile_url</c> as objects (<c>id</c>, <c>presigned_url</c>, <c>description</c>).
+    /// <c>documents[]</c> and <c>identity.profile_url</c> as MyStoreGuard <c>DocumentReadDto</c> (<c>doc_id</c>, <c>name</c>, <c>presigned_url</c>, <c>description</c>).
     /// </remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("get")]

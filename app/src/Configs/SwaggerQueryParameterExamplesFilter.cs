@@ -19,17 +19,19 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
 
         if (name.Equals("blob_paths", StringComparison.OrdinalIgnoreCase))
         {
-            schema.Example = $"{SwaggerExamples.SampleBlobPathMulti1},{SwaggerExamples.SampleBlobPathMulti2}";
+            parameter.Required = false;
+            schema.Example = null;
             parameter.Description = """
-                Optional comma-separated blob path(s) inside the **zeloshr** container.
+                **Optional — leave empty to auto-generate** blob path(s) inside the **zeloshr** container.
 
-                **Omit** to auto-generate:
+                Auto path pattern:
                 `{tenant_id}/{org_id}/{bus_id}/employees/documents/{unique}-{filename}`
 
-                Or supply paths explicitly:
-                - One path → applied to every uploaded file
-                - N paths → must equal number of files (one path per file)
+                Or supply paths explicitly (comma-separated, no spaces required):
+                - **One path** → same path for every uploaded file
+                - **N paths** → must equal the number of `files` in the multipart body
 
+                Do not copy the two-path Swagger sample when uploading a single file.
                 Storage account is server config — clients send paths only, not container name.
                 """;
             return;
@@ -81,7 +83,7 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
 
                 Sources:
                 - `POST /file/post/multiple` → `data[].id`
-                - Employee GET → `document_ids[].id` from `GET /employees/get?employee_id=`
+                - Employee GET → `documents[].doc_id` from `GET /employees/get?employee_id=`
 
                 Returns presigned download URLs valid for **24 hours** (includes `file_name` on this endpoint).
 

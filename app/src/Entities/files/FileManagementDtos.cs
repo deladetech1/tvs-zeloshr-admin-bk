@@ -7,6 +7,24 @@ public sealed class FileUploadMultipleReadDto
     public required string Id { get; init; }
 }
 
+/// <summary>
+/// Embedded document on entity read (MyStoreGuard <c>DocumentReadDto</c> — e.g. product or employee <c>documents[]</c>).
+/// </summary>
+public sealed class DocumentReadDto
+{
+    /// <summary>Document registry ID (<c>hr_document_paths.id</c>).</summary>
+    public required string DocId { get; init; }
+
+    /// <summary>Optional label from upload <c>descriptions</c> or file update.</summary>
+    public string? Description { get; init; }
+
+    /// <summary>Original filename from multipart upload.</summary>
+    public string? Name { get; init; }
+
+    /// <summary>Azure Blob presigned URL (24h expiry).</summary>
+    public required string PresignedUrl { get; init; }
+}
+
 /// <summary>Document metadata + time-limited download URL from <c>GET /api/v1/file/list</c> or <c>PUT /file/put</c>.</summary>
 public sealed class FileResponseReadDto
 {

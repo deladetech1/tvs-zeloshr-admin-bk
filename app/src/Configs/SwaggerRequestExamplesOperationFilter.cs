@@ -33,7 +33,7 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
                 ["finalised_full_profile"] = Example(
                     SwaggerExamples.CreateEmployeeFinalised(),
                     "Finalised — full profile",
-                    "Creates employee and links cp_users when work_email is set. Attach files via document_ids (from POST /file/post/multiple). Read response returns document_ids objects with presigned URLs."),
+                    "Creates employee and links cp_users when work_email is set. Attach files via document_ids (from POST /file/post/multiple). Read response returns documents[] (DocumentReadDto with presigned URLs)."),
                 ["draft_minimal"] = Example(
                     SwaggerExamples.CreateEmployeeDraft(),
                     "Draft — minimal",

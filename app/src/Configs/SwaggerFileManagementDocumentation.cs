@@ -76,7 +76,7 @@ public sealed class SwaggerFileManagementOperationFilter : IOperationFilter
         {
             operation.Summary = "List documents with presigned URLs";
             operation.Description =
-                "Required query `document_ids` (comma-separated). Returns `id`, `presigned_url`, `description`, and `file_name` per ID (24h expiry). Employee GET returns the same fields (without `file_name`) under `document_ids`.";
+                "Required query `document_ids` (comma-separated). Returns `id`, `presigned_url`, `description`, and `file_name` per ID (24h expiry). Employee GET returns MyStoreGuard `DocumentReadDto` under `documents[]` (`doc_id`, `name`, …) and `identity.profile_url`.";
             SetJsonResponseExample(operation, SwaggerExamples.FileListResponse(), "list_documents");
         }
     }

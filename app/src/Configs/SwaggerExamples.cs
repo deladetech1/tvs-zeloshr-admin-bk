@@ -37,28 +37,33 @@ internal static class SwaggerExamples
         new JsonObject { ["id"] = SampleDocumentId2 }));
 
     internal static JsonObject FileListResponse() => EnvelopeOk(new JsonArray(
-        EmployeeDocumentItem(SampleDocumentId1, "Employment contract", "contract.pdf"),
-        EmployeeDocumentItem(SampleDocumentId2, "National ID scan", "national_id.jpg")));
+        FileResponseData(),
+        new JsonObject
+        {
+            ["id"] = SampleDocumentId2,
+            ["presigned_url"] = SamplePresignedUrl,
+            ["description"] = "National ID scan",
+            ["file_name"] = "national_id.jpg",
+        }));
 
     internal static JsonObject EmployeeDocumentItem(
-        string? id = null,
+        string? docId = null,
         string? description = null,
-        string? fileName = null)
+        string? name = null)
     {
         var item = new JsonObject
         {
-            ["id"] = id ?? SampleDocumentId1,
+            ["doc_id"] = docId ?? SampleDocumentId1,
             ["presigned_url"] = SamplePresignedUrl,
             ["description"] = description ?? "Employment contract",
+            ["name"] = name ?? "contract.pdf",
         };
-        if (fileName is not null)
-            item["file_name"] = fileName;
         return item;
     }
 
     internal static JsonArray EmployeeDocumentsArray() => new(
-        EmployeeDocumentItem(SampleDocumentId1, "Employment contract"),
-        EmployeeDocumentItem(SampleDocumentId2, "National ID scan"));
+        EmployeeDocumentItem(SampleDocumentId1, "Employment contract", "contract.pdf"),
+        EmployeeDocumentItem(SampleDocumentId2, "National ID scan", "national_id.jpg"));
 
     internal static JsonObject FileUpdateResponse() => EnvelopeOk(new JsonObject
     {
@@ -784,7 +789,7 @@ internal static class SwaggerExamples
                 ["compensation"] = CompensationReadSection(),
                 ["education"] = new JsonArray(EducationEntry(withId: true)),
                 ["certifications"] = new JsonArray(CertificationEntry(withId: true)),
-                ["document_ids"] = EmployeeDocumentsArray(),
+                ["documents"] = EmployeeDocumentsArray(),
             },
         };
         ApplyResponseEnvelopeHints(response);

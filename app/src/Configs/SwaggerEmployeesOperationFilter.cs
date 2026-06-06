@@ -21,7 +21,7 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
             AppendParameterDescription(operation, "employee_id",
                 "Required. Employee UUID from POST /employees/add or GET /employees/list → items[].employee_id.");
             operation.Description = AppendDescription(operation.Description,
-                "Response `document_ids` and `identity.profile_url`: each includes `id`, `presigned_url` (~24h), and `description`. "
+                "Response `documents[]` and `identity.profile_url`: MyStoreGuard DocumentReadDto (`doc_id`, `name`, `presigned_url`, `description`). "
                 + "On update send document id strings (or round-trip the read objects).");
             return;
         }

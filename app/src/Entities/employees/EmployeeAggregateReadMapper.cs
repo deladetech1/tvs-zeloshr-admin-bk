@@ -1,3 +1,4 @@
+using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Persistence.Entities;
 
 namespace ZelosHR.Api.Entities.Employees;
@@ -7,9 +8,9 @@ internal static class EmployeeAggregateReadMapper
     internal static Dictionary<string, string?>? CustomFieldsOrNull(Dictionary<string, string?>? fields) =>
         fields is { Count: > 0 } ? fields : null;
 
-    internal static IReadOnlyList<EmployeeDocumentReadDto>? DocumentIdsOrNull(
-        IReadOnlyList<EmployeeDocumentReadDto>? documentIds) =>
-        documentIds is { Count: > 0 } ? documentIds : null;
+    internal static IReadOnlyList<DocumentReadDto>? DocumentsOrNull(
+        IReadOnlyList<DocumentReadDto>? documents) =>
+        documents is { Count: > 0 } ? documents : null;
 
     internal static bool HasEmployment(EmployeeEntity entity, Dictionary<string, string?>? customFields) =>
         !string.IsNullOrWhiteSpace(entity.JobTitle)
@@ -42,7 +43,7 @@ internal static class EmployeeAggregateReadMapper
         EmployeeEntity entity,
         CpUserDto? cp,
         string? workEmail,
-        EmployeeDocumentReadDto? profileUrl,
+        DocumentReadDto? profileUrl,
         Dictionary<string, string?>? customFields) =>
         new()
         {

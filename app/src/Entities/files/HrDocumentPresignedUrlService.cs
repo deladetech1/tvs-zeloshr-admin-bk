@@ -1,4 +1,3 @@
-using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Persistence.Repositories;
 using ZelosHR.Api.Shared.Abstractions;
 
@@ -231,8 +230,17 @@ public sealed class HrDocumentPresignedUrlService
         return items;
     }
 
-    /// <summary>Resolve one stored registry id (or legacy URL) to employee read document shape.</summary>
-    public async Task<EmployeeDocumentReadDto?> ResolveDocumentReadAsync(
+    internal static DocumentReadDto ToEmbeddedDocument(FileResponseReadDto file) =>
+        new()
+        {
+            DocId = file.Id,
+            PresignedUrl = file.PresignedUrl,
+            Description = file.Description,
+            Name = file.FileName,
+        };
+
+    /// <summary>Resolve one stored registry id (or legacy URL) to MyStoreGuard <c>DocumentReadDto</c>.</summary>
+    public async Task<DocumentReadDto?> ResolveDocumentReadAsync(
         string? storedReference,
         CancellationToken ct = default)
     {
@@ -242,28 +250,21 @@ public sealed class HrDocumentPresignedUrlService
         var trimmed = storedReference.Trim();
         if (IsLegacyHttpUrl(trimmed))
         {
-            return new EmployeeDocumentReadDto
+            return new DocumentReadDto
             {
-                Id = trimmed,
+                DocId = trimmed,
                 PresignedUrl = trimmed,
                 Description = null,
+                Name = null,
             };
         }
 
         var docs = await ResolveDocumentsAsync([trimmed], ct);
         var doc = docs.FirstOrDefault();
-        if (doc is null)
-            return null;
-
-        return new EmployeeDocumentReadDto
-        {
-            Id = doc.Id,
-            PresignedUrl = doc.PresignedUrl,
-            Description = doc.Description,
-        };
+        return doc is null ? null : ToEmbeddedDocument(doc);
     }
 
-    public async Task<IReadOnlyDictionary<string, EmployeeDocumentReadDto?>> ResolveDocumentReadsAsync(
+    public async Task<IReadOnlyDictionary<string, DocumentReadDto?>> ResolveDocumentReadsAsync(
         IEnumerable<string?> storedReferences,
         CancellationToken ct = default)
     {
@@ -273,7 +274,7 @@ public sealed class HrDocumentPresignedUrlService
             .Distinct(StringComparer.Ordinal)
             .ToList();
 
-        var result = new Dictionary<string, EmployeeDocumentReadDto?>(StringComparer.Ordinal);
+        var result = new Dictionary<string, DocumentReadDto?>(StringComparer.Ordinal);
         foreach (var reference in distinct)
             result[reference] = await ResolveDocumentReadAsync(reference, ct);
 

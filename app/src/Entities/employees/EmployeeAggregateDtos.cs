@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using ZelosHR.Api.Configs;
+using ZelosHR.Api.Entities.Files;
 
 namespace ZelosHR.Api.Entities.Employees;
 
@@ -38,7 +39,7 @@ public sealed class CreateEmployeeAggregateRequest
 
     /// <summary>
     /// Document IDs from <c>POST /api/v1/file/post/multiple</c> (upload first, then pass IDs here).
-    /// On read, <c>GET /employees/get</c> returns <c>document_ids</c> as objects with <c>id</c>, <c>presigned_url</c>, and <c>description</c>.
+    /// On read, <c>GET /employees/get</c> returns <c>documents[]</c> (MyStoreGuard <c>DocumentReadDto</c>: <c>doc_id</c>, <c>name</c>, <c>presigned_url</c>, <c>description</c>).
     /// </summary>
     public IReadOnlyList<string>? DocumentIds { get; init; }
 }
@@ -105,7 +106,7 @@ public sealed class EmployeeAggregateIdentityDto
     public string? ResidentialAddress { get; init; }
 
     /// <summary>
-    /// **Write:** document id string from file upload (or read object with <c>id</c> on round-trip update).
+    /// **Write:** document id string from file upload (or read object with <c>doc_id</c> / <c>id</c> on round-trip update).
     /// **Read:** see <see cref="EmployeeAggregateIdentityReadDto.ProfileUrl"/>.
     /// </summary>
     [JsonConverter(typeof(ProfileUrlWriteJsonConverter))]
@@ -139,8 +140,8 @@ public sealed class EmployeeAggregateIdentityReadDto
     public string? LinkedInUrl { get; init; }
     public string? ResidentialAddress { get; init; }
 
-    /// <summary>Profile photo: <c>id</c>, <c>presigned_url</c> (~24h), and <c>description</c>.</summary>
-    public EmployeeDocumentReadDto? ProfileUrl { get; init; }
+    /// <summary>Profile photo (<c>DocumentReadDto</c>): <c>doc_id</c>, <c>name</c>, <c>presigned_url</c> (~24h), <c>description</c>.</summary>
+    public DocumentReadDto? ProfileUrl { get; init; }
 
     public Dictionary<string, string?>? CustomFields { get; init; }
 }
@@ -210,23 +211,10 @@ public sealed class EmployeeAggregateReadDto
     public IReadOnlyList<EmployeeCertificationDto>? Certifications { get; init; }
 
     /// <summary>
-    /// Attached files. **Read:** each item has <c>id</c>, <c>presigned_url</c> (~24h), and <c>description</c>.
-    /// **Write** (create/update): pass registry ID strings from <c>POST /file/post/multiple</c>.
+    /// Attached files. **Read:** MyStoreGuard <c>DocumentReadDto</c> per item (<c>doc_id</c>, <c>name</c>, <c>presigned_url</c>, <c>description</c>).
+    /// **Write** (create/update): pass registry ID strings in <c>document_ids</c> from <c>POST /file/post/multiple</c>.
     /// </summary>
-    public IReadOnlyList<EmployeeDocumentReadDto>? DocumentIds { get; init; }
-}
-
-/// <summary>Employee attachment on read — id, presigned URL (~24h), and description.</summary>
-public sealed class EmployeeDocumentReadDto
-{
-    /// <summary>Document registry ID (<c>hr_document_paths.id</c>).</summary>
-    public required string Id { get; init; }
-
-    /// <summary>Azure Blob presigned URL (24h expiry).</summary>
-    public required string PresignedUrl { get; init; }
-
-    /// <summary>Optional label from upload <c>descriptions</c> or file update.</summary>
-    public string? Description { get; init; }
+    public IReadOnlyList<DocumentReadDto>? Documents { get; init; }
 }
 
 public sealed class EmployeeAggregateEmploymentReadDto : EmployeeAggregateEmploymentDto
@@ -295,5 +283,5 @@ public sealed class EmployeeListItemDto
 
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.EmploymentTypes))]
     public string? EmploymentType { get; init; }
-    public EmployeeDocumentReadDto? ProfileUrl { get; init; }
+    public DocumentReadDto? ProfileUrl { get; init; }
 }

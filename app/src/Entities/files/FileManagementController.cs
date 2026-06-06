@@ -26,11 +26,30 @@ public class FileManagementController : ControllerBase
     public async Task<ActionResult<Respons<IReadOnlyList<FileUploadMultipleReadDto>>>> UploadMultiple(
         [FromQuery] string? blob_paths,
         [FromQuery] string? descriptions,
-        [FromForm(Name = "files")] IReadOnlyList<IFormFile> files,
+        [FromForm(Name = "files")] IReadOnlyList<IFormFile>? files,
         CancellationToken ct)
     {
-        var result = await _files.UploadMultipleAsync(files, blob_paths ?? string.Empty, descriptions, ct);
+        var uploadFiles = ResolveUploadFiles(files, Request);
+        var result = await _files.UploadMultipleAsync(uploadFiles, blob_paths ?? string.Empty, descriptions, ct);
         return StatusCode(result.StatusCode, result);
+    }
+
+    internal static IReadOnlyList<IFormFile> ResolveUploadFiles(IReadOnlyList<IFormFile>? files, HttpRequest request)
+    {
+        if (files is { Count: > 0 })
+            return files;
+
+        var bound = request.Form.Files.GetFiles("files");
+        if (bound.Count > 0)
+            return bound;
+
+        bound = request.Form.Files.GetFiles("files[]");
+        if (bound.Count > 0)
+            return bound;
+
+        return request.Form.Files.Count > 0
+            ? request.Form.Files.ToList()
+            : [];
     }
 
     /// <summary>Replace an uploaded file (same registry ID).</summary>

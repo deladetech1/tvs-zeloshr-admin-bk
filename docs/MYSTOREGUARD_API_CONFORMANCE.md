@@ -27,7 +27,10 @@ Goal: **any client that already integrates Mystoreguard can integrate ZelosHR wi
 | DTO names in OpenAPI | `{Action}{Resource}ControllerWriteDto` | Mixed (`EmployeeDetailDto`, `CreateEmployeeAggregateRequest`, …) | Planned |
 | HTTP status on create | Usually `200` | Mix of `200` / `201` | Acceptable variance |
 | OpenAPI version | 3.1 | 3.0.3 (compat middleware for UI tools) | Documented in `SWAGGER.md` |
-| Module tags | `Expenses`, `Product Metadata`, … | `Employees`, `Organisation`, … | Done |
+| Embedded documents (read) | `documents[]` → `DocumentReadDto` (`doc_id`, `name`, `presigned_url`, `description`) | Employee GET `documents[]` + `identity.profile_url` | Done |
+| Document IDs (write) | `document_ids` string array | Employee create/update `document_ids` | Done |
+| File list response | `FileResponseControllerReadDto` (`id`, `file_name`, …) | `GET /file/list` | Done |
+| Product metadata (read) | `metadata[]` → `MetadataReadDto` | N/A (employees have no tag/category metadata) | N/A |
 
 ---
 

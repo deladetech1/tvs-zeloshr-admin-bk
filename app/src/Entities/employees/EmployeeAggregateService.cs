@@ -491,12 +491,7 @@ public sealed class EmployeeAggregateService
             : null;
         var documentIds = entity.DocumentIds.Count > 0
             ? (await _profileUrls.ResolveDocumentsAsync(entity.DocumentIds, ct))
-                .Select(d => new EmployeeDocumentReadDto
-                {
-                    Id = d.Id,
-                    PresignedUrl = d.PresignedUrl,
-                    Description = d.Description,
-                })
+                .Select(HrDocumentPresignedUrlService.ToEmbeddedDocument)
                 .ToList()
             : null;
 
@@ -543,7 +538,7 @@ public sealed class EmployeeAggregateService
                     CustomFields = EmployeeAggregateReadMapper.CustomFieldsOrNull(sections.Certification),
                 })
                 .ToList(),
-            DocumentIds = EmployeeAggregateReadMapper.DocumentIdsOrNull(documentIds),
+            Documents = EmployeeAggregateReadMapper.DocumentsOrNull(documentIds),
         };
 
         return Respons<EmployeeAggregateReadDto>.Ok(read);

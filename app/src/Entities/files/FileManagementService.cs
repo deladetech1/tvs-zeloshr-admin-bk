@@ -43,7 +43,7 @@ public sealed class FileManagementService
         }
 
         string[] paths;
-        if (string.IsNullOrWhiteSpace(blobPaths))
+        if (ShouldAutoGenerateBlobPaths(blobPaths))
         {
             paths = files
                 .Select(f => EmployeeBlobPathBuilder.BuildDocumentPath(
@@ -58,7 +58,10 @@ public sealed class FileManagementService
                 return Respons<IReadOnlyList<FileUploadMultipleReadDto>>.ValidationError(
                     new Dictionary<string, string>
                     {
-                        ["blob_paths"] = "Provide one path for all files, one path per file, or omit to auto-generate under {tenant}/{org}/{bus}/employees/documents/.",
+                        ["blob_paths"] =
+                            $"You sent {paths.Length} blob path(s) for {files.Count} file(s). "
+                            + "Omit blob_paths to auto-generate under {tenant}/{org}/{bus}/employees/documents/, "
+                            + "send one path for all files, or send exactly one path per file.",
                     });
             }
         }
@@ -124,6 +127,16 @@ public sealed class FileManagementService
         }
 
         return Respons<IReadOnlyList<FileUploadMultipleReadDto>>.Ok(uploaded);
+    }
+
+    internal static bool ShouldAutoGenerateBlobPaths(string? blobPaths)
+    {
+        if (string.IsNullOrWhiteSpace(blobPaths))
+            return true;
+
+        var trimmed = blobPaths.Trim();
+        return trimmed.Equals("undefined", StringComparison.OrdinalIgnoreCase)
+            || trimmed.Equals("null", StringComparison.OrdinalIgnoreCase);
     }
 
     public async Task<Respons<FileResponseReadDto>> UpdateFileAsync(

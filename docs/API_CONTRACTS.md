@@ -120,10 +120,12 @@ Send **only** sections/fields you are changing. At least one top-level field or 
 | `phone` | **yes** (create) | string | Contact number, e.g. `+233201234567` |
 | `linkedin_url` | no | string | |
 | `residential_address` | no | string | |
-| `profile_url` | no | string | **Write:** document id from `POST /api/v1/file/post/multiple`. **Read:** presigned HTTPS URL (~24h). Stored on `cp_users.profile_pic` when linked. Pass `""` on update to clear. |
+| `profile_url` | no | string (write) / object (read) | **Write:** document id from `POST /api/v1/file/post/multiple`. **Read:** MyStoreGuard `DocumentReadDto` (`doc_id`, `name`, `presigned_url`, `description`). Stored on `cp_users.profile_pic` when linked. Pass `""` on update to clear. |
 | `custom_fields` | no | object | Tenant-defined values; keys = admin `field_key` for section `employee-directory-identity` |
 
-**Profile photo (MyStoreGuard pattern):** upload via `POST /api/v1/file/post/multiple`, then set `identity.profile_url` to the returned document id. Responses resolve it to a presigned URL. Direct blob HTTPS URLs are rejected on write. Legacy rows that already store a full URL still return that URL on read.
+**Profile photo (MyStoreGuard pattern):** upload via `POST /api/v1/file/post/multiple`, then set `identity.profile_url` to the returned document id. On read, GET returns `DocumentReadDto` (same shape as product `documents[]`). Direct blob HTTPS URLs are rejected on write. Legacy rows that already store a full URL still return that URL on read.
+
+**Attachments on read:** `GET /employees/get` returns `documents[]` (not `document_ids`) — each item is `DocumentReadDto`: `doc_id`, `name`, `presigned_url`, `description`. **Write** still uses `document_ids` string array (same as MyStoreGuard products).
 
 **Government ID (frontend):** `id_type` + `id_number` + optional `id_issue_date` / `id_expiry_date`. Example:
 

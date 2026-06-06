@@ -62,7 +62,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(CreateCustomFieldDefinitionDto) => SwaggerExamples.CreateCustomFieldAddBody(),
             nameof(ImportEmployeesRequest) => SwaggerExamples.ImportEmployeesRequestBody(),
             nameof(EmployeeAggregateReadDto) => SwaggerExamples.EmployeeAggregateReadData(),
-            nameof(EmployeeDocumentReadDto) => SwaggerExamples.EmployeeDocumentItem(),
+            nameof(DocumentReadDto) => SwaggerExamples.EmployeeDocumentItem(),
             nameof(EmployeeDirectorySummaryDto) => SwaggerExamples.EmployeeDirectorySummaryData(),
             nameof(GetCurrencySimpleReadDto) => SwaggerExamples.CurrencyItem(),
             nameof(FileDeleteReadDto) => SwaggerExamples.FileDeleteData(),
@@ -92,9 +92,9 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(EmployeeAggregateCompensationDto) => AppendDescription(schema.Description,
                 $"currency_id from GET /api/v1/currencies/list. pay_frequency: {SwaggerExampleHints.PayFrequency}."),
             nameof(EmployeeAggregateReadDto) => AppendDescription(schema.Description,
-                "Read-only employee aggregate. document_ids[] on read: id, presigned_url (~24h), description per attachment."),
-            nameof(EmployeeDocumentReadDto) => AppendDescription(schema.Description,
-                "Employee attachment on read. Write via document_ids (registry IDs from POST /file/post/multiple)."),
+                "Read-only employee aggregate. documents[] on read: MyStoreGuard DocumentReadDto (doc_id, name, presigned_url, description). Write via document_ids string array."),
+            nameof(DocumentReadDto) => AppendDescription(schema.Description,
+                "MyStoreGuard embedded document on entity read. Write via document_ids (registry IDs from POST /file/post/multiple)."),
             nameof(FileUploadMultipleReadDto) => AppendDescription(schema.Description,
                 "Registry ID from upload. Attach on employee create/update as document_ids string."),
             nameof(FileResponseReadDto) => AppendDescription(schema.Description,
@@ -188,16 +188,22 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             {
                 schema.Example = JsonValue.Create(SwaggerExamples.SampleDocumentId1);
                 schema.Description = AppendDescription(schema.Description,
-                    "Write: document id string from POST /file/post/multiple. Read (GET): object with id, presigned_url, description.");
+                    "Write: document id string from POST /file/post/multiple. Read (GET): DocumentReadDto with doc_id, name, presigned_url, description.");
                 return;
             }
+        }
+
+        if (name.Equals("DocId", StringComparison.OrdinalIgnoreCase)
+            && property.DeclaringType == typeof(DocumentReadDto))
+        {
+            schema.Example = JsonValue.Create(SwaggerExamples.SampleDocumentId1);
+            return;
         }
 
         if (name.Equals("Id", StringComparison.OrdinalIgnoreCase)
             && property.DeclaringType is { } declaring
             && (declaring == typeof(FileUploadMultipleReadDto)
-                || declaring == typeof(FileResponseReadDto)
-                || declaring == typeof(EmployeeDocumentReadDto)))
+                || declaring == typeof(FileResponseReadDto)))
         {
             schema.Example = JsonValue.Create(SwaggerExamples.SampleDocumentId1);
             return;
@@ -338,16 +344,17 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             return;
         }
 
+        if (name.Equals("Documents", StringComparison.OrdinalIgnoreCase)
+            && property.DeclaringType == typeof(EmployeeAggregateReadDto))
+        {
+            schema.Example = SwaggerExamples.EmployeeDocumentsArray();
+            schema.Description = AppendDescription(schema.Description,
+                "Read only. MyStoreGuard DocumentReadDto per item (doc_id, name, presigned_url, description). On create/update send string IDs in document_ids.");
+            return;
+        }
+
         if (name.Equals("DocumentIds", StringComparison.OrdinalIgnoreCase))
         {
-            if (property.DeclaringType == typeof(EmployeeAggregateReadDto))
-            {
-                schema.Example = SwaggerExamples.EmployeeDocumentsArray();
-                schema.Description = AppendDescription(schema.Description,
-                    "Read only. Each item: id, presigned_url (~24h), description. On create/update send string IDs from POST /file/post/multiple.");
-                return;
-            }
-
             if (property.DeclaringType == typeof(CreateEmployeeAggregateRequest)
                 || property.DeclaringType == typeof(UpdateEmployeeAggregateRequest))
             {
