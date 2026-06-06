@@ -19,7 +19,6 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
 
         if (name.Equals("blob_paths", StringComparison.OrdinalIgnoreCase))
         {
-            parameter.Required = false;
             schema.Example = null;
             parameter.Description = """
                 **Optional — leave empty to auto-generate** blob path(s) inside the **zeloshr** container.
