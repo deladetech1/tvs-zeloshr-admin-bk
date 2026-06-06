@@ -42,7 +42,7 @@ public class EmployeesController : ControllerBase
     }
 
     /// <summary>
-    /// Create employee in one request (identity, employment, compensation, education[], certifications[], custom fields, document_ids).
+    /// Create employee in one request (identity, employment, compensation, education, certifications[], custom fields, document_ids).
     /// </summary>
     /// <remarks>
     /// **Required on create:** `identity.full_name`, `identity.phone`. All other body fields are optional.
@@ -72,6 +72,7 @@ public class EmployeesController : ControllerBase
     /// <summary>
     /// Update employee — same aggregate shape as <c>POST /add</c> (partial or full).
     /// Pass <c>employee_id</c> on the query string. Set <c>status</c> to <c>finalised</c> to complete a draft.
+    /// Education is a single object (like employment) — send only fields to change on PUT.
     /// </summary>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpPut("update")]

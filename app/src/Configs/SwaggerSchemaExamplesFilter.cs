@@ -57,6 +57,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
 
         schema.Example = context.Type.Name switch
         {
+            nameof(EmployeeAggregateEducationDto) => SwaggerExamples.EducationSection(),
             nameof(CreateEmployeeAggregateRequest) => SwaggerExamples.CreateEmployeeFinalised(),
             nameof(UpdateEmployeeAggregateRequest) => SwaggerExamples.UpdateEmployeeFull(),
             nameof(CreateCustomFieldDefinitionDto) => SwaggerExamples.CreateCustomFieldAddBody(),
@@ -91,6 +92,8 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 "Tenant currency from core_platform.cp_currencies. List via GET /api/v1/currencies/list."),
             nameof(EmployeeAggregateCompensationDto) => AppendDescription(schema.Description,
                 $"currency_id from GET /api/v1/currencies/list. pay_frequency: {SwaggerExampleHints.PayFrequency}."),
+            nameof(EmployeeAggregateEducationDto) => AppendDescription(schema.Description,
+                "Single education block (not an array). Partial PUT like employment — institution required when first adding the section."),
             nameof(EmployeeAggregateReadDto) => AppendDescription(schema.Description,
                 "Read-only employee aggregate. documents[] on read: MyStoreGuard DocumentReadDto (doc_id, name, presigned_url, description). Write via document_ids string array."),
             nameof(DocumentReadDto) => AppendDescription(schema.Description,
@@ -252,6 +255,15 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 return;
             case nameof(EmployeeAggregateCompensationDto.GrossSalary):
                 schema.Example = JsonValue.Create(8500.00m);
+                return;
+            case nameof(EmployeeAggregateEducationDto.Institution):
+                schema.Example = JsonValue.Create("University of Ghana");
+                return;
+            case nameof(EmployeeAggregateEducationDto.Degree):
+                schema.Example = JsonValue.Create("BSc Computer Science");
+                return;
+            case nameof(EmployeeAggregateEducationDto.FieldOfStudy):
+                schema.Example = JsonValue.Create("Computer Science");
                 return;
             case nameof(FileResponseReadDto.PresignedUrl):
                 schema.Example = JsonValue.Create(SwaggerExamples.SamplePresignedUrl);

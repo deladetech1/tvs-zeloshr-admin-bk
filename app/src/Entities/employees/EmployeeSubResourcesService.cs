@@ -95,6 +95,50 @@ public sealed class EmployeeSubResourcesService
         return Respons<EmployeeEducationDto>.Ok(ToEducationDto(existing));
     }
 
+    /// <summary>Single education row per employee — partial patch merged with existing; duplicate rows removed.</summary>
+    public async Task<Respons<EmployeeEducationDto>> UpsertSingleEducationAsync(
+        Guid employeeId, EmployeeAggregateEducationDto patch, CancellationToken ct = default)
+    {
+        var listed = await ListEducationAsync(employeeId, ct);
+        if (!listed.Success)
+            return Respons<EmployeeEducationDto>.Fail(
+                listed.Error ?? listed.Detail ?? "Employee not found.",
+                statusCode: listed.StatusCode);
+
+        var rows = listed.Data ?? Array.Empty<EmployeeEducationDto>();
+        var primary = rows.FirstOrDefault();
+
+        if (primary is null && string.IsNullOrWhiteSpace(patch.Institution))
+        {
+            return Respons<EmployeeEducationDto>.ValidationError(new Dictionary<string, string>
+            {
+                ["education.institution"] = "Institution is required.",
+            });
+        }
+
+        var write = EmployeeEducationSection.ToWrite(patch, primary);
+
+        if (primary is null)
+            return await AddEducationAsync(employeeId, write, ct);
+
+        var updated = await UpdateEducationAsync(employeeId, primary.Id, write, ct);
+        if (!updated.Success)
+            return updated;
+
+        foreach (var extra in rows.Skip(1))
+        {
+            var deleted = await DeleteEducationAsync(employeeId, extra.Id, ct);
+            if (!deleted.Success)
+            {
+                return Respons<EmployeeEducationDto>.Fail(
+                    deleted.Error ?? deleted.Detail ?? "Could not consolidate duplicate education rows.",
+                    statusCode: deleted.StatusCode);
+            }
+        }
+
+        return updated;
+    }
+
     public async Task<Respons<object>> DeleteEducationAsync(
         Guid employeeId, Guid educationId, CancellationToken ct = default)
     {

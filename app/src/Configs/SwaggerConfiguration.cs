@@ -107,6 +107,7 @@ public static class SwaggerConfiguration
 
             options.SchemaFilter<SwaggerEnvelopeSchemaFilter>();
             options.SchemaFilter<SwaggerAllowedValuesSchemaFilter>();
+            options.SchemaFilter<SwaggerRequiredSchemaFilter>();
             options.SchemaFilter<SwaggerSchemaExamplesFilter>();
             options.ParameterFilter<SwaggerAllowedValuesParameterFilter>();
             options.ParameterFilter<SwaggerQueryParameterExamplesFilter>();

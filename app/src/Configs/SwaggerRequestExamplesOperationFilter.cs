@@ -52,7 +52,8 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
                     """
                     Same aggregate shape as POST /add. Pass employee_id on the query string.
                     Send the complete profile or only the sections/fields you want to change.
-                    education[] / certifications[]: include id from GET to update existing rows.
+                    education: single object (like employment) — partial fields on PUT; institution required when first adding the section.
+                    sync_certifications: true + full certifications array = replace that section.
                     Omit education/certifications entirely unless changing those sections.
                     document_ids appends; delete_document_ids removes registry IDs.
                     """),

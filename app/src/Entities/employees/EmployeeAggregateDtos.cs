@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Files;
@@ -34,7 +35,11 @@ public sealed class CreateEmployeeAggregateRequest
     public EmployeeAggregateIdentityDto Identity { get; init; } = new();
     public EmployeeAggregateEmploymentDto? Employment { get; init; }
     public EmployeeAggregateCompensationDto? Compensation { get; init; }
-    public IReadOnlyList<EmployeeEducationWriteDto> Education { get; init; } = [];
+
+    /// <summary>Single education block (not a list). <c>institution</c> required when this section is sent.</summary>
+    [JsonConverter(typeof(EducationSectionJsonConverter))]
+    public EmployeeAggregateEducationDto? Education { get; init; }
+
     public IReadOnlyList<EmployeeCertificationWriteDto> Certifications { get; init; } = [];
 
     /// <summary>
@@ -48,9 +53,8 @@ public sealed class CreateEmployeeAggregateRequest
 /// <remarks>
 /// Pass <c>employee_id</c> on the query string (UUID from <c>GET /employees/get?employee_id=</c>).
 /// Same aggregate shape as <c>POST /add</c> — send the full profile or only fields to change.
+/// <c>education</c> is a **single object** (like <c>employment</c>) — partial fields only; no row <c>id</c>.
 /// <c>document_ids</c> appends file-registry IDs; <c>delete_document_ids</c> removes them.
-/// Education/certification array items: include <c>id</c> from GET to update; omit <c>id</c> only to add new rows.
-/// If <c>id</c> is omitted but row content matches existing record(s), the first match is updated and duplicates are removed.
 /// </remarks>
 public sealed class UpdateEmployeeAggregateRequest
 {
@@ -65,9 +69,17 @@ public sealed class UpdateEmployeeAggregateRequest
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.LifecycleStatesForUpdate))]
     public string? LifecycleState { get; init; }
 
-    public IReadOnlyList<EmployeeEducationUpsertDto>? Education { get; init; }
+    /// <inheritdoc cref="CreateEmployeeAggregateRequest.Education"/>
+    [JsonConverter(typeof(EducationSectionJsonConverter))]
+    public EmployeeAggregateEducationDto? Education { get; init; }
+
     public IReadOnlyList<EmployeeCertificationUpsertDto>? Certifications { get; init; }
-    public IReadOnlyList<Guid>? DeleteEducationIds { get; init; }
+
+    /// <summary>
+    /// When <c>true</c> and <c>certifications</c> is sent (including <c>[]</c>), the array is the full desired set.
+    /// </summary>
+    public bool SyncCertifications { get; init; }
+
     public IReadOnlyList<Guid>? DeleteCertificationIds { get; init; }
 
     /// <inheritdoc cref="CreateEmployeeAggregateRequest.DocumentIds"/>
@@ -77,9 +89,26 @@ public sealed class UpdateEmployeeAggregateRequest
     public IReadOnlyList<string>? DeleteDocumentIds { get; init; }
 }
 
+/// <summary>Education section — one block per employee (same partial PUT semantics as employment).</summary>
+public sealed class EmployeeAggregateEducationDto
+{
+    /// <summary>School or university. Required when first sending the <c>education</c> section on create.</summary>
+    public string? Institution { get; init; }
+
+    public string? Degree { get; init; }
+    public string? FieldOfStudy { get; init; }
+    public DateOnly? StartDate { get; init; }
+    public DateOnly? EndDate { get; init; }
+    public bool? IsCurrent { get; init; }
+
+    /// <summary>Custom field values for <c>section_name = employee-directory-education</c>.</summary>
+    public Dictionary<string, string?>? CustomFields { get; init; }
+}
+
 public sealed class EmployeeAggregateIdentityDto
 {
     /// <summary>Display name. Required on create.</summary>
+    [Required]
     public string FullName { get; init; } = string.Empty;
 
     public DateOnly? DateOfBirth { get; init; }
@@ -101,6 +130,7 @@ public sealed class EmployeeAggregateIdentityDto
     public string? WorkEmail { get; init; }
 
     /// <summary>Contact number. Required on create (<c>POST /add</c>).</summary>
+    [Required]
     public string? Phone { get; init; }
     public string? LinkedInUrl { get; init; }
     public string? ResidentialAddress { get; init; }
@@ -207,7 +237,7 @@ public sealed class EmployeeAggregateReadDto
     public EmployeeAggregateIdentityReadDto Identity { get; init; } = new();
     public EmployeeAggregateEmploymentReadDto? Employment { get; init; }
     public EmployeeAggregateCompensationReadDto? Compensation { get; init; }
-    public IReadOnlyList<EmployeeEducationDto>? Education { get; init; }
+    public EmployeeAggregateEducationDto? Education { get; init; }
     public IReadOnlyList<EmployeeCertificationDto>? Certifications { get; init; }
 
     /// <summary>

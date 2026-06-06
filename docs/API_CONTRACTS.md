@@ -81,8 +81,9 @@ Send **only** sections/fields you are changing. At least one top-level field or 
 | `status` | Set to `finalised` to complete a draft (same rules as finalise above). |
 | `identity`, `employment`, `compensation` | Partial objects — omitted keys are left unchanged. Include `identity.profile_url` to set or clear photo. |
 | `lifecycle_state` | Update only. |
-| `education` / `certifications` | Include `id` to update row; omit `id` to add. |
-| `delete_education_ids` / `delete_certification_ids` | UUID arrays. |
+| `education` | object | optional | Single block (like `employment`) — partial PUT; `institution` required when first adding |
+| `certifications` | array | optional | Certifications list (array) |
+| `sync_certifications` | no | optional | Default `false`. `true` + `certifications` = full replace |
 | `document_ids` / `delete_document_ids` | Append or remove file-registry IDs. |
 
 #### Top-level body fields
@@ -94,10 +95,10 @@ Send **only** sections/fields you are changing. At least one top-level field or 
 | `employment` | optional | optional | Job, dept, branch, manager, etc. |
 | `compensation` | optional | optional | Salary, SSNIT, TIN, bank |
 | `lifecycle_state` | no | optional | e.g. `pre_hire`, `active`, `terminated` |
-| `education` | array | optional | Items: include `id` to update, omit to add |
-| `certifications` | array | optional | Same as education |
+| `education` | object | optional | Single object — same partial PUT as `employment` |
+| `certifications` | array | optional | See **Certifications** |
+| `sync_certifications` | no | optional | Default `false`. `true` + `certifications` = full replace |
 | `document_ids` | optional | optional | File-registry IDs (not profile photo) |
-| `delete_education_ids` | no | optional | UUID[] |
 | `delete_certification_ids` | no | optional | UUID[] |
 | `delete_document_ids` | no | optional | UUID[] |
 
@@ -136,17 +137,34 @@ Send **only** sections/fields you are changing. At least one top-level field or 
 "id_expiry_date": "2030-05-14"
 ```
 
-### `education[]` items
+### `education` (single object — like `employment`)
 
-| Field | Type | Notes |
-|-------|------|--------|
-| `id` | uuid | Update only — omit on create |
-| `institution` | string | Required |
-| `degree` | string | |
-| `field_of_study` | string | |
-| `start_date` | date | `YYYY-MM-DD` (not year integer) |
-| `end_date` | date | `YYYY-MM-DD` |
-| `is_current` | boolean | |
+Partial PUT: send only fields to change. No row `id` — one education block per employee.
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `institution` | **yes** (when first adding section) | School / university |
+| `degree` | no | |
+| `field_of_study` | no | |
+| `start_date` | no | `YYYY-MM-DD` |
+| `end_date` | no | `YYYY-MM-DD` |
+| `is_current` | no | boolean |
+| `custom_fields` | no | Section `employee-directory-education` |
+
+**Bulk edit example:**
+
+```json
+{
+  "employment": { "job_title": "Engineer" },
+  "education": { "degree": "Master's Degree" }
+}
+```
+
+Legacy duplicate rows are consolidated on save (one row kept).
+
+### `certifications[]`
+
+Certifications remain a list. Include `id` from GET to update; omit to add; use `delete_certification_ids` or `sync_certifications: true` for removals.
 
 See [FILE_MANAGEMENT.md](FILE_MANAGEMENT.md) for uploads (`POST /file/post/multiple`), attachments (`document_ids` / `documents[]`), and profile photos (`identity.profile_url`).
 

@@ -20,17 +20,6 @@ public sealed record EmployeeEducationWriteDto(
     bool IsCurrent,
     Dictionary<string, string?>? CustomFields = null);
 
-/// <summary>Include <c>id</c> to update an existing row; omit to create.</summary>
-public sealed record EmployeeEducationUpsertDto(
-    Guid? Id,
-    string Institution,
-    string? Degree,
-    string? FieldOfStudy,
-    DateOnly? StartDate,
-    DateOnly? EndDate,
-    bool IsCurrent,
-    Dictionary<string, string?>? CustomFields = null);
-
 public sealed record EmployeeCertificationDto(
     Guid Id,
     Guid EmployeeId,
@@ -49,7 +38,7 @@ public sealed record EmployeeCertificationWriteDto(
     string? CredentialUrl,
     Dictionary<string, string?>? CustomFields = null);
 
-/// <summary>Include <c>id</c> to update an existing row; omit to create.</summary>
+/// <summary>Include <c>id</c> from GET to update; omit only for a new row. Use <c>sync_certifications: true</c> on PUT for full-array replace.</summary>
 public sealed record EmployeeCertificationUpsertDto(
     Guid? Id,
     string Name,
