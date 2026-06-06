@@ -17,9 +17,14 @@ public sealed record CpUserCheckResult(
     string? FullName,
     bool CanImport);
 
+public sealed record CpUserEmailOwner(string TenantId, string UserId);
+
 public interface ICpUserRepository
 {
     Task<CpUserDto?> FindByEmailAsync(string email, string tenantId, CancellationToken ct = default);
+
+    /// <summary>Resolves platform user id + tenant for an email (cp_users.email is globally unique).</summary>
+    Task<CpUserEmailOwner?> FindEmailOwnerAsync(string email, CancellationToken ct = default);
     Task<CpUserDto?> GetByIdAsync(string userId, string tenantId, CancellationToken ct = default);
     Task<IReadOnlyDictionary<string, CpUserDto>> GetByIdsAsync(
         IEnumerable<string> userIds, string tenantId, CancellationToken ct = default);

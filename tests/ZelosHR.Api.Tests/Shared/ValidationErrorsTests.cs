@@ -29,7 +29,7 @@ public class ValidationErrorsTests
     }
 
     [Fact]
-    public void BuildSummary_MultipleFields_ListsFieldNames()
+    public void BuildSummary_MultipleFields_UsesHumanMessages()
     {
         var errors = new Dictionary<string, string>
         {
@@ -39,9 +39,31 @@ public class ValidationErrorsTests
 
         var summary = ValidationErrors.BuildSummary(errors);
 
-        Assert.Contains("2 validation errors", summary);
-        Assert.Contains("identity.full_name", summary);
-        Assert.Contains("status", summary);
+        Assert.Equal("Full name is required. Status must be 'draft' or 'finalised'.", summary);
+    }
+
+    [Fact]
+    public void HumanizeMessage_GuidField_UsesBranchHint()
+    {
+        var message = ValidationErrors.HumanizeMessage(
+            "employment.branch_id",
+            "The JSON value could not be converted to System.Nullable`1[System.Guid].");
+
+        Assert.Contains("branch list", message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("UUID", message);
+    }
+
+    [Fact]
+    public void FromModelState_PrunesRedundantRequestWhenFieldSpecificErrorsExist()
+    {
+        var modelState = new ModelStateDictionary();
+        modelState.AddModelError("$", "The request field is required.");
+        modelState.AddModelError("employment.branch_id", "The JSON value could not be converted to System.Guid.");
+
+        var errors = ValidationErrors.FromModelState(modelState);
+
+        Assert.False(errors.ContainsKey("request"));
+        Assert.True(errors.ContainsKey("employment.branch_id"));
     }
 
     [Fact]

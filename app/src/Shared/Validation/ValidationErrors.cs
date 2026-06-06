@@ -11,6 +11,20 @@ public static partial class ValidationErrors
 {
     private static readonly JsonNamingPolicy SnakeCase = JsonNamingPolicy.SnakeCaseLower;
 
+    private static readonly Dictionary<string, string> GuidFieldHints = new(StringComparer.Ordinal)
+    {
+        ["employment.branch_id"] =
+            "Branch must be selected from your branch list (UUID). If none applies, remove branch_id from the request.",
+        ["employment.department_id"] =
+            "Department must be selected from your department list (UUID).",
+        ["employment.reports_to_id"] =
+            "Reports-to must be an existing employee id (UUID).",
+        ["employment.dotted_line_manager_id"] =
+            "Dotted-line manager must be an existing employee id (UUID).",
+        ["compensation.currency_id"] =
+            "Currency must be selected from GET /api/v1/currencies/list (use the id field, not a code).",
+    };
+
     public static Dictionary<string, string> FromModelState(ModelStateDictionary modelState)
     {
         var errors = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -27,7 +41,7 @@ public static partial class ValidationErrors
                 errors[field] = message;
         }
 
-        return errors;
+        return PruneRedundantRequestError(errors);
     }
 
     public static Dictionary<string, string> NormalizeKeys(IReadOnlyDictionary<string, string> fieldErrors)
@@ -38,43 +52,54 @@ public static partial class ValidationErrors
         {
             var field = NormalizeFieldPath(key);
             normalized[field] = string.IsNullOrWhiteSpace(message)
-                ? $"Invalid value for '{field}'."
+                ? DefaultInvalidMessage(field)
                 : message.TrimEnd('.') + ".";
         }
 
-        return normalized;
+        return PruneRedundantRequestError(normalized);
     }
 
     /// <summary>Human-readable summary for <c>detail</c> / <c>error</c> on validation responses.</summary>
     public static string BuildSummary(IReadOnlyDictionary<string, string> fieldErrors)
     {
         if (fieldErrors.Count == 0)
-            return "Validation failed.";
+            return "Some fields are invalid. Check field_errors and try again.";
 
-        if (fieldErrors.Count == 1)
-            return fieldErrors.Values.First();
+        var messages = fieldErrors.Values
+            .Where(m => !string.IsNullOrWhiteSpace(m))
+            .Select(m => m.TrimEnd('.') + ".")
+            .ToList();
 
-        var fields = string.Join(", ", fieldErrors.Keys.Take(5));
-        var suffix = fieldErrors.Count > 5 ? $" (+{fieldErrors.Count - 5} more)" : string.Empty;
-        return $"Fix {fieldErrors.Count} validation errors: {fields}{suffix}.";
+        if (messages.Count == 1)
+            return messages[0];
+
+        if (messages.Count == 2)
+            return $"{messages[0]} {messages[1]}";
+
+        return $"{messages[0]} {messages[1]} (+{messages.Count - 2} more — see field_errors).";
     }
 
     public static string HumanizeMessage(string field, string? message)
     {
         if (string.IsNullOrWhiteSpace(message))
-            return $"Invalid value for '{field}'.";
+            return DefaultInvalidMessage(field);
 
         var trimmed = message.Trim();
 
         if (IsJsonSyntaxError(trimmed))
-            return "Request body is not valid JSON. Send snake_case JSON matching the endpoint schema.";
+            return "The request body is not valid JSON. Use snake_case property names (for example identity.full_name).";
 
-        if (trimmed.Contains("could not be converted", StringComparison.OrdinalIgnoreCase)
-            || trimmed.Contains("is an invalid start", StringComparison.OrdinalIgnoreCase))
+        if (IsTypeConversionError(trimmed))
         {
-            return string.IsNullOrWhiteSpace(field) || field == "request"
-                ? "Request body has invalid field types or formats."
-                : $"Invalid type or format for '{field}'.";
+            if (GuidFieldHints.TryGetValue(field, out var hint))
+                return hint;
+
+            if (field.EndsWith("_id", StringComparison.Ordinal) && field.Contains('.'))
+                return $"{FormatFieldLabel(field)} must be a valid UUID, or omitted if optional.";
+
+            return field is "request" or ""
+                ? "The request body has one or more fields with the wrong type. See field_errors for details."
+                : DefaultInvalidMessage(field);
         }
 
         var requiredField = RequiredFieldPattern().Match(trimmed);
@@ -90,6 +115,10 @@ public static partial class ValidationErrors
             var inner = trimmed["A value for the '".Length..^"' property was not provided.".Length];
             return $"{FormatFieldLabel(inner)} is required.";
         }
+
+        if (trimmed.Equals("The request field is required.", StringComparison.OrdinalIgnoreCase)
+            || trimmed.Contains("request body is required", StringComparison.OrdinalIgnoreCase))
+            return "Send a JSON request body.";
 
         return trimmed.TrimEnd('.') + ".";
     }
@@ -112,32 +141,56 @@ public static partial class ValidationErrors
         return string.Join('.', segments.Select(NormalizeSegment));
     }
 
-    private static string NormalizeSegment(string segment)
-    {
-        if (segment.Contains('[', StringComparison.Ordinal))
-            return segment;
-
-        return SnakeCase.ConvertName(segment);
-    }
-
     private static string FormatFieldLabel(string raw)
     {
         var normalized = NormalizeFieldPath(raw).Replace('_', ' ');
-        if (string.IsNullOrWhiteSpace(normalized))
-            return "Field";
+        if (string.IsNullOrWhiteSpace(normalized) || normalized == "request")
+            return "Request body";
 
         return char.ToUpperInvariant(normalized[0]) + normalized[1..];
     }
+
+    private static string DefaultInvalidMessage(string field) =>
+        field is "request" or ""
+            ? "The request body is invalid. Check field_errors for details."
+            : $"{FormatFieldLabel(field)} is invalid.";
+
+    private static bool IsTypeConversionError(string message) =>
+        message.Contains("could not be converted", StringComparison.OrdinalIgnoreCase)
+        || message.Contains("is an invalid start", StringComparison.OrdinalIgnoreCase)
+        || message.Contains("is not a valid GUID", StringComparison.OrdinalIgnoreCase)
+        || message.Contains("is not a valid DateTime", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsJsonSyntaxError(string message) =>
         message.Contains("invalid JSON", StringComparison.OrdinalIgnoreCase)
         || message.Contains("'/' is an invalid start", StringComparison.OrdinalIgnoreCase)
         || message.Contains("Expected start of a property name", StringComparison.OrdinalIgnoreCase);
 
+    private static Dictionary<string, string> PruneRedundantRequestError(Dictionary<string, string> errors)
+    {
+        if (errors.Count <= 1 || !errors.TryGetValue("request", out var requestMessage))
+            return errors;
+
+        var hasSpecificFields = errors.Keys.Any(k => !string.Equals(k, "request", StringComparison.Ordinal));
+        if (!hasSpecificFields)
+            return errors;
+
+        var isRedundant = requestMessage.Contains("invalid", StringComparison.OrdinalIgnoreCase)
+            || requestMessage.Contains("required", StringComparison.OrdinalIgnoreCase)
+            || requestMessage.Contains("wrong type", StringComparison.OrdinalIgnoreCase);
+
+        if (!isRedundant)
+            return errors;
+
+        var pruned = new Dictionary<string, string>(errors, StringComparer.Ordinal);
+        pruned.Remove("request");
+        return pruned;
+    }
+
     public static Dictionary<string, string> RequiredQueryParam(string paramName) =>
         new(StringComparer.Ordinal)
         {
-            [NormalizeFieldPath(paramName)] = $"{NormalizeFieldPath(paramName)} query parameter is required.",
+            [NormalizeFieldPath(paramName)] = $"{FormatFieldLabel(paramName)} is required in the query string.",
         };
 
     public static Dictionary<string, string> EmptyUpdateRequest() =>

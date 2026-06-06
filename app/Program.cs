@@ -31,26 +31,11 @@ builder.Services.AddScoped<IEmployeesService>(sp => sp.GetRequiredService<Employ
 builder.Services.AddScoped<IEmployeeLookup>(sp => sp.GetRequiredService<EmployeesService>());
 
 builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.PropertyNamingPolicy = PlatformJson.SerializerOptions.PropertyNamingPolicy;
-        options.JsonSerializerOptions.DictionaryKeyPolicy = PlatformJson.SerializerOptions.DictionaryKeyPolicy;
-        options.JsonSerializerOptions.PropertyNameCaseInsensitive =
-            PlatformJson.SerializerOptions.PropertyNameCaseInsensitive;
-        options.JsonSerializerOptions.DefaultIgnoreCondition =
-            PlatformJson.SerializerOptions.DefaultIgnoreCondition;
-    });
+    .AddJsonOptions(options => PlatformJson.Configure(options.JsonSerializerOptions));
 builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(
     ApiBehaviorConfiguration.ConfigureInvalidModelStateResponse);
 builder.Services.ConfigureHttpJsonOptions(options =>
-{
-    options.SerializerOptions.PropertyNamingPolicy = PlatformJson.SerializerOptions.PropertyNamingPolicy;
-    options.SerializerOptions.DictionaryKeyPolicy = PlatformJson.SerializerOptions.DictionaryKeyPolicy;
-    options.SerializerOptions.PropertyNameCaseInsensitive =
-        PlatformJson.SerializerOptions.PropertyNameCaseInsensitive;
-    options.SerializerOptions.DefaultIgnoreCondition =
-        PlatformJson.SerializerOptions.DefaultIgnoreCondition;
-});
+    PlatformJson.Configure(options.SerializerOptions));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddZelosHrSwagger(builder.Configuration);
 

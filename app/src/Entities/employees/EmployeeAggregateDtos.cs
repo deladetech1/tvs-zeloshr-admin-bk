@@ -171,14 +171,14 @@ public sealed class EmployeeAggregateReadDto
     public EmployeeAggregateIdentityDto Identity { get; init; } = new();
     public EmployeeAggregateEmploymentReadDto? Employment { get; init; }
     public EmployeeAggregateCompensationReadDto? Compensation { get; init; }
-    public IReadOnlyList<EmployeeEducationDto> Education { get; init; } = [];
-    public IReadOnlyList<EmployeeCertificationDto> Certifications { get; init; } = [];
+    public IReadOnlyList<EmployeeEducationDto>? Education { get; init; }
+    public IReadOnlyList<EmployeeCertificationDto>? Certifications { get; init; }
 
     /// <summary>
     /// File-registry document IDs (<c>human_resource.hr_document_paths.id</c>).
     /// Upload first via <c>POST /api/v1/file/post/multiple</c>; resolve URLs via <c>GET /api/v1/file/list</c>.
     /// </summary>
-    public IReadOnlyList<string> DocumentIds { get; init; } = [];
+    public IReadOnlyList<string>? DocumentIds { get; init; }
 }
 
 public sealed class EmployeeAggregateEmploymentReadDto : EmployeeAggregateEmploymentDto
@@ -243,7 +243,7 @@ public sealed class EmployeeListItemDto
     public required string LifecycleState { get; init; }
 
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.EmploymentStatuses))]
-    public required string EmploymentStatus { get; init; }
+    public string? EmploymentStatus { get; init; }
 
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.EmploymentTypes))]
     public string? EmploymentType { get; init; }

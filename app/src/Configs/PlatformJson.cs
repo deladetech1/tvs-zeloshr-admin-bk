@@ -19,6 +19,17 @@ public static class PlatformJson
             PropertyNameCaseInsensitive = true,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         };
+        options.Converters.Add(new NullableGuidJsonConverter());
         return options;
+    }
+
+    public static void Configure(JsonSerializerOptions options)
+    {
+        options.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
+        options.DictionaryKeyPolicy = JsonNamingPolicy.SnakeCaseLower;
+        options.PropertyNameCaseInsensitive = true;
+        options.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+        if (!options.Converters.Any(c => c is NullableGuidJsonConverter))
+            options.Converters.Add(new NullableGuidJsonConverter());
     }
 }

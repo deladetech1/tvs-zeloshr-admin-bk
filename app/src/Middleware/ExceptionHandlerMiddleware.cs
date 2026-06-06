@@ -1,6 +1,7 @@
 using System.Text.Json;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Shared;
+using ZelosHR.Api.Shared.Validation;
 
 namespace ZelosHR.Api.Middleware;
 
@@ -37,6 +38,25 @@ public class ExceptionHandlerMiddleware
         {
             _logger.LogInformation(ex, "Not found");
             await WriteResponsAsync(context, Respons<object>.NotFound(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogInformation(ex, "Invalid operation");
+            if (ex.Message.Contains("Platform user already exists", StringComparison.OrdinalIgnoreCase)
+                || ex.Message.Contains("Platform user not found", StringComparison.OrdinalIgnoreCase))
+            {
+                await WriteResponsAsync(context, Respons<object>.ValidationError(
+                    new Dictionary<string, string>
+                    {
+                        ["identity.work_email"] = EmployeeErrorMessages.WorkEmailAlreadyRegistered,
+                    }));
+                return;
+            }
+
+            await WriteResponsAsync(context, Respons<object>.ValidationError(new Dictionary<string, string>
+            {
+                ["request"] = ex.Message.TrimEnd('.') + ".",
+            }));
         }
         catch (ArgumentException ex)
         {

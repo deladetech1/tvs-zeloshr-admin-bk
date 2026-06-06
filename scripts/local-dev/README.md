@@ -13,7 +13,9 @@ Secrets stay in **gitignored** files — never commit `live-session.env`, `live-
 
 ```bash
 cp scripts/local-dev/live-session.example.env scripts/local-dev/live-session.env
-# Paste Bearer token + org/bus/loc after Trove login
+# After Trove login: copy Bearer + org/bus/loc from DevTools → Network → any
+# request to zeloshr.app.backend.dev.trovesuite.com (not the Next.js frontend host)
+./scripts/local-dev/refresh-live-session.sh 'eyJhbG...'
 
 ./scripts/local-dev/smoke-dev.sh smoke
 ./scripts/local-dev/smoke-dev.sh get /api/v1/custom-fields/statistics

@@ -5,6 +5,7 @@ using ZelosHR.Api.Persistence.Entities;
 using ZelosHR.Api.Shared.Abstractions;
 using ZelosHR.Api.Shared.Formatting;
 using ZelosHR.Api.Shared.Infrastructure;
+using ZelosHR.Api.Shared.Validation;
 
 namespace ZelosHR.Api.Entities.Employees;
 
@@ -97,17 +98,17 @@ public sealed class EmployeeRegistrationService
             LifecycleState = EmployeeLifecycleStates.Draft,
             LifecycleStatus = "draft",
             IsDraft = true,
-            EmploymentStatus = EmploymentStatusValues.Draft,
+            ContractType = null,
             CreatedAt = now,
             UpdatedAt = now,
             CreatedBy = _currentUser.UserId?.ToString(),
         };
 
-        const int maxAttempts = 3;
+        const int maxAttempts = EmployeeCodeAllocation.MaxAttempts;
+        var startSeq = await _employees.GetNextEmployeeSequenceAsync(_tenant.TenantId, _tenant.OrgId, ct);
         for (var attempt = 0; attempt < maxAttempts; attempt++)
         {
-            var seq = await _employees.GetNextEmployeeSequenceAsync(_tenant.TenantId, _tenant.OrgId, ct);
-            entity.EmployeeCode = $"ZEL-{seq:D4}";
+            entity.EmployeeCode = EmployeeCodeAllocation.Format(startSeq, attempt);
 
             try
             {
@@ -119,13 +120,13 @@ public sealed class EmployeeRegistrationService
                 if (attempt == maxAttempts - 1)
                 {
                     return Respons<EmployeeRegistrationReadDto>.Fail(
-                        "Could not allocate a unique employee code. Please retry.", statusCode: 409);
+                        EmployeeErrorMessages.EmployeeCodeAllocationFailed, statusCode: 409);
                 }
             }
         }
 
         return Respons<EmployeeRegistrationReadDto>.Fail(
-            "Could not allocate a unique employee code. Please retry.", statusCode: 409);
+            EmployeeErrorMessages.EmployeeCodeAllocationFailed, statusCode: 409);
     }
 
     public Task<Respons<EmployeeRegistrationReadDto>> ImportAsync(string userId, CancellationToken ct = default) =>
@@ -293,9 +294,11 @@ public sealed class EmployeeRegistrationService
         {
             if (await _cpUsers.IsLinkedToEmployeeAsync(existing.Id, _tenant.TenantId, ct))
             {
-                return Respons<EmployeeRegistrationReadDto>.Fail(
-                    "Platform user for this email is already linked to another employee.",
-                    statusCode: StatusCodes.Status409Conflict);
+                return Respons<EmployeeRegistrationReadDto>.ValidationError(
+                    new Dictionary<string, string>
+                    {
+                        ["identity.work_email"] = EmployeeErrorMessages.WorkEmailLinkedToAnotherEmployee,
+                    });
             }
 
             e.UserId = existing.Id;
@@ -306,15 +309,28 @@ public sealed class EmployeeRegistrationService
         }
         else
         {
+            if (await _cpUsers.FindEmailOwnerAsync(identity.Email, ct) is not null)
+            {
+                return Respons<EmployeeRegistrationReadDto>.ValidationError(
+                    new Dictionary<string, string>
+                    {
+                        ["identity.work_email"] = EmployeeErrorMessages.WorkEmailUsedByAnotherOrganisation,
+                    });
+            }
+
             try
             {
                 var provisioned = await _cpUsers.ProvisionEmployeeUserAsync(
                     ToProvisionRequest(identity, createdBy), ct);
                 e.UserId = provisioned.Id;
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException)
             {
-                return Respons<EmployeeRegistrationReadDto>.Fail(ex.Message, statusCode: 409);
+                return Respons<EmployeeRegistrationReadDto>.ValidationError(
+                    new Dictionary<string, string>
+                    {
+                        ["identity.work_email"] = EmployeeErrorMessages.WorkEmailAlreadyRegistered,
+                    });
             }
         }
 
@@ -354,9 +370,11 @@ public sealed class EmployeeRegistrationService
         {
             if (await _cpUsers.IsLinkedToEmployeeAsync(existing.Id, _tenant.TenantId, ct))
             {
-                return (null, Respons<EmployeeRegistrationReadDto>.Fail(
-                    "Platform user for this email is already linked to another employee.",
-                    statusCode: StatusCodes.Status409Conflict));
+                return (null, Respons<EmployeeRegistrationReadDto>.ValidationError(
+                    new Dictionary<string, string>
+                    {
+                        ["identity.work_email"] = EmployeeErrorMessages.WorkEmailLinkedToAnotherEmployee,
+                    }));
             }
 
             await _cpUsers.UpdateIdentityAsync(existing.Id, _tenant.TenantId, identity, ct);
@@ -372,9 +390,13 @@ public sealed class EmployeeRegistrationService
                 ToProvisionRequest(identity, createdBy), ct);
             return (provisioned.Id, null);
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException)
         {
-            return (null, Respons<EmployeeRegistrationReadDto>.Fail(ex.Message, statusCode: 409));
+            return (null, Respons<EmployeeRegistrationReadDto>.ValidationError(
+                new Dictionary<string, string>
+                {
+                    ["identity.work_email"] = EmployeeErrorMessages.WorkEmailAlreadyRegistered,
+                }));
         }
     }
 

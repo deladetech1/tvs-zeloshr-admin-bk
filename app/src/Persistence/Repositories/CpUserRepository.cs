@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Persistence.Entities;
 using ZelosHR.Api.Shared.Constants;
+using ZelosHR.Api.Shared.Infrastructure;
 using ZelosHR.Api.Shared.Tenant;
 
 namespace ZelosHR.Api.Persistence.Repositories;
@@ -18,6 +19,16 @@ public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
             .Where(u => u.TenantId == tenantId && u.Email.ToLower() == normalized)
             .FirstOrDefaultAsync(ct);
         return row is null ? null : ToDto(row);
+    }
+
+    public async Task<CpUserEmailOwner?> FindEmailOwnerAsync(string email, CancellationToken ct = default)
+    {
+        var normalized = email.Trim().ToLowerInvariant();
+        var row = await db.CpUsers.AsNoTracking()
+            .Where(u => u.Email.ToLower() == normalized)
+            .Select(u => new { u.TenantId, u.Id })
+            .FirstOrDefaultAsync(ct);
+        return row is null ? null : new CpUserEmailOwner(row.TenantId, row.Id);
     }
 
     public async Task<CpUserDto?> GetByIdAsync(string userId, string tenantId, CancellationToken ct = default)
@@ -67,18 +78,33 @@ public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
         if (existing is not null)
             throw new InvalidOperationException($"Platform user already exists for email {email}.");
 
+        if (await FindEmailOwnerAsync(email, ct) is not null)
+            throw new InvalidOperationException($"Platform user already exists for email {email}.");
+
         var userId = Guid.NewGuid().ToString();
         var now = DateTimeOffset.UtcNow;
         var contact = string.IsNullOrWhiteSpace(request.Contact)
             ? "+233000000000"
             : request.Contact.Trim();
 
+        async Task PersistAsync()
+        {
+            try
+            {
+                await PersistProvisionAsync(request, userId, email, contact, now, ct);
+            }
+            catch (DbUpdateException ex) when (PostgresUniqueViolation.IsCpUserEmail(ex))
+            {
+                throw new InvalidOperationException($"Platform user already exists for email {email}.");
+            }
+        }
+
         if (db.Database.CurrentTransaction is null)
         {
             await using var tx = await db.Database.BeginTransactionAsync(ct);
             try
             {
-                await PersistProvisionAsync(request, userId, email, contact, now, ct);
+                await PersistAsync();
                 await tx.CommitAsync(ct);
             }
             catch
@@ -89,7 +115,7 @@ public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
         }
         else
         {
-            await PersistProvisionAsync(request, userId, email, contact, now, ct);
+            await PersistAsync();
         }
 
         return new CpUserDto(

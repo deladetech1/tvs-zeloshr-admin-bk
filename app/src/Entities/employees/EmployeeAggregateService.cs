@@ -458,9 +458,11 @@ public sealed class EmployeeAggregateService
         var workEmail = EmployeeIdentityResolver.ResolveWorkEmail(entity, cp);
         var profilePhoto = EmployeeIdentityResolver.ResolveProfilePhoto(entity, cp);
 
-        var educationItems = education.Success && education.Data is not null ? education.Data : [];
-        var certificationItems = certifications.Success && certifications.Data is not null ? certifications.Data : [];
-        var documentIds = entity.DocumentIds.Count > 0 ? entity.DocumentIds : [];
+        var educationItems = education.Success && education.Data is { Count: > 0 } data ? data : null;
+        var certificationItems = certifications.Success && certifications.Data is { Count: > 0 } certData
+            ? certData
+            : null;
+        var documentIds = EmployeeAggregateReadMapper.DocumentIdsOrNull(entity.DocumentIds);
 
         CpCurrencyDto? currency = null;
         if (!string.IsNullOrWhiteSpace(entity.CurrencyId))
@@ -495,45 +497,26 @@ public sealed class EmployeeAggregateService
                 LinkedInUrl = entity.LinkedInUrl,
                 ResidentialAddress = entity.ResidentialAddress ?? cp?.Address,
                 ProfileUrl = profilePhoto,
-                CustomFields = sections.Identity,
+                CustomFields = EmployeeAggregateReadMapper.CustomFieldsOrNull(sections.Identity),
             },
-            Employment = new EmployeeAggregateEmploymentReadDto
-            {
-                JobTitle = entity.JobTitle,
-                DepartmentId = entity.DepartmentId,
-                BranchId = entity.BranchId,
-                DepartmentName = entity.Department?.Name,
-                BranchName = entity.Branch?.Name,
-                EmploymentType = entity.EmploymentType,
-                EmploymentStatus = entity.EmploymentStatus,
-                ContractType = entity.ContractType,
-                WorkArrangement = entity.WorkArrangement,
-                WorkLocation = entity.WorkLocation,
-                PayGrade = entity.PayGrade,
-                StartDate = entity.StartDate ?? entity.EmploymentStartDate,
-                ProbationEndDate = entity.ProbationEndDate,
-                WorkingHours = entity.WorkingHours,
-                NoticePeriod = entity.NoticePeriod,
-                ReportsToId = entity.ReportsToId,
-                DottedLineManagerId = entity.DottedLineManagerId,
-                CustomFields = sections.Employment,
-            },
-            Compensation = new EmployeeAggregateCompensationReadDto
-            {
-                GrossSalary = entity.GrossSalary,
-                PayFrequency = entity.PayFrequency,
-                CurrencyId = entity.CurrencyId,
-                CurrencyCode = currency?.Code,
-                CurrencyName = currency?.Name,
-                CurrencySymbol = currency?.Symbol,
-                AnnualizedCost = entity.AnnualizedCost,
-                CustomFields = sections.Compensation,
-            },
-            Education = educationItems
-                .Select(e => e with { CustomFields = sections.Education })
+            Employment = EmployeeAggregateReadMapper.BuildEmployment(entity, sections.Employment),
+            Compensation = EmployeeAggregateReadMapper.BuildCompensation(
+                entity,
+                sections.Compensation,
+                currency?.Code,
+                currency?.Name,
+                currency?.Symbol),
+            Education = educationItems?
+                .Select(e => e with
+                {
+                    CustomFields = EmployeeAggregateReadMapper.CustomFieldsOrNull(sections.Education),
+                })
                 .ToList(),
-            Certifications = certificationItems
-                .Select(c => c with { CustomFields = sections.Certification })
+            Certifications = certificationItems?
+                .Select(c => c with
+                {
+                    CustomFields = EmployeeAggregateReadMapper.CustomFieldsOrNull(sections.Certification),
+                })
                 .ToList(),
             DocumentIds = documentIds,
         };

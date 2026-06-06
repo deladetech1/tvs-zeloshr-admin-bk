@@ -33,9 +33,9 @@ public sealed class EmployeeEntity
     public string? State { get; set; }
     public string? ProfilePhotoUrl { get; set; }
 
-    public string LifecycleState { get; set; } = EmployeeLifecycleStates.PreHire;
-    public string LifecycleStatus { get; set; } = "draft";
-    public bool IsDraft { get; set; } = true;
+    public string LifecycleState { get; set; } = default!;
+    public string LifecycleStatus { get; set; } = default!;
+    public bool IsDraft { get; set; }
 
     public string? JobTitle { get; set; }
     public Guid? DepartmentId { get; set; }
@@ -52,8 +52,8 @@ public sealed class EmployeeEntity
     public EmployeeEntity? ReportsTo { get; set; }
     public Guid? DottedLineManagerId { get; set; }
     public EmployeeEntity? DottedLineManager { get; set; }
-    public string EmploymentStatus { get; set; } = EmploymentStatusValues.Active;
-    public string? ContractType { get; set; } = "Permanent";
+    public string? EmploymentStatus { get; set; }
+    public string? ContractType { get; set; }
     public DateOnly? ProbationEndDate { get; set; }
     public DateOnly? EmploymentStartDate { get; set; }
     public DateOnly? StartDate { get; set; }

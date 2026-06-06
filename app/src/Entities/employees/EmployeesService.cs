@@ -7,6 +7,7 @@ using ZelosHR.Api.Persistence.Entities;
 using ZelosHR.Api.Shared.Abstractions;
 using ZelosHR.Api.Shared.Formatting;
 using ZelosHR.Api.Shared.Infrastructure;
+using ZelosHR.Api.Shared.Validation;
 
 namespace ZelosHR.Api.Entities.Employees;
 
@@ -54,11 +55,11 @@ public partial class EmployeesService : IEmployeesService, IEmployeeLookup
 
         var entity = data.ToEntity(tenantId, orgId, employeeCode: string.Empty);
 
-        const int maxAttempts = 3;
+        const int maxAttempts = EmployeeCodeAllocation.MaxAttempts;
+        var startSeq = await _employees.GetNextEmployeeSequenceAsync(tenantId, orgId, ct);
         for (var attempt = 0; attempt < maxAttempts; attempt++)
         {
-            var seq = await _employees.GetNextEmployeeSequenceAsync(tenantId, orgId, ct);
-            var employeeCode = $"ZEL-{seq:D4}";
+            var employeeCode = EmployeeCodeAllocation.Format(startSeq, attempt);
             entity.EmployeeCode = employeeCode;
 
             try
@@ -91,13 +92,13 @@ public partial class EmployeesService : IEmployeesService, IEmployeeLookup
                 {
                     _logger.LogWarning(ex, "Duplicate employee code on create after {Attempts} attempts", maxAttempts);
                     return Respons<CreateEmployeeServiceReadDto>.Fail(
-                        "Could not allocate a unique employee code. Please retry.", statusCode: 409);
+                        EmployeeErrorMessages.EmployeeCodeAllocationFailed, statusCode: 409);
                 }
             }
         }
 
         return Respons<CreateEmployeeServiceReadDto>.Fail(
-            "Could not allocate a unique employee code. Please retry.", statusCode: 409);
+            EmployeeErrorMessages.EmployeeCodeAllocationFailed, statusCode: 409);
     }
 
     public async Task<Respons<GetEmployeesServiceReadDto>> ListEmployeesAsync(

@@ -14,4 +14,9 @@ internal static class PostgresUniqueViolation
         ex.InnerException is PostgresException pg
         && pg.SqlState == PostgresErrorCodes.UniqueViolation
         && pg.ConstraintName?.Contains("ghana_card", StringComparison.OrdinalIgnoreCase) == true;
+
+    internal static bool IsCpUserEmail(DbUpdateException ex) =>
+        ex.InnerException is PostgresException pg
+        && pg.SqlState == PostgresErrorCodes.UniqueViolation
+        && pg.ConstraintName?.Contains("email", StringComparison.OrdinalIgnoreCase) == true;
 }
