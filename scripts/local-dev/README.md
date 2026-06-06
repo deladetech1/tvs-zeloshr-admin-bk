@@ -33,6 +33,15 @@ cp scripts/local-dev/live-session.example.env scripts/local-dev/live-session.env
 ./scripts/local-dev/test-live-all.sh
 ```
 
+Failures print **`detail`** and **`field_errors`** (not raw JSON blobs).
+
+After a deploy, run locally (JWT refresh + regression + live smoke):
+
+```bash
+./scripts/local-dev/refresh-live-session.sh --mint   # or paste token once
+./scripts/local-dev/post-deploy-verify.sh
+```
+
 After JWT secret rotation, **log in again** and refresh `TROVE_BEARER_TOKEN`. Ensure `TROVE_TENANT_ID` matches the JWT claim exactly (a typo causes `403 Invalid platform context` even when org/bus/loc look correct).
 
 ### B — Local API using dev Postgres (same DB as Azure)

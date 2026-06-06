@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using Trovesuite.Package.Auth;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Shared;
+using ZelosHR.Api.Shared.Extensions;
 using ZelosHR.Api.Shared.Tenant;
 
 namespace ZelosHR.Api.Middleware;
@@ -78,10 +79,14 @@ public class TrovesuiteAuthMiddleware
                     "Authentication failed on {Method} {Path}: {Error}",
                     context.Request.Method,
                     context.Request.Path,
-                    result.Error);
-                context.Response.StatusCode = result.StatusCode > 0 ? result.StatusCode : StatusCodes.Status401Unauthorized;
-                context.Response.ContentType = "application/json";
-                await context.Response.WriteAsync(JsonSerializer.Serialize(result, PlatformJson.SerializerOptions));
+                    result.Error ?? result.Detail);
+                var response = TrovesuiteServiceResponses.FromServiceFailure(
+                    result.Success,
+                    result.StatusCode,
+                    result.Error,
+                    result.Detail,
+                    "Could not validate credentials.");
+                await WriteResponsAsync(context, response);
                 return;
             }
 
@@ -109,6 +114,19 @@ public class TrovesuiteAuthMiddleware
         }
     }
 
+    private static Task WriteForbiddenAsync(HttpContext context, string message) =>
+        WriteResponsAsync(context, Respons<object>.Forbidden(message));
+
+    private static Task WriteUnauthorizedAsync(HttpContext context, Dictionary<string, string> fieldErrors)
+    {
+        var response = Respons<object>.ValidationError(fieldErrors);
+        response.StatusCode = StatusCodes.Status401Unauthorized;
+        return WriteResponsAsync(context, response);
+    }
+
+    private static Task WriteServiceUnavailableAsync(HttpContext context, string message) =>
+        WriteResponsAsync(context, Respons<object>.Fail(message, statusCode: StatusCodes.Status503ServiceUnavailable));
+
     private static bool IsAnonymous(PathString path)
     {
         foreach (var prefix in AnonymousPrefixes)
@@ -120,28 +138,10 @@ public class TrovesuiteAuthMiddleware
         return false;
     }
 
-    private static Task WriteForbiddenAsync(HttpContext context, string message)
+    private static Task WriteResponsAsync(HttpContext context, Respons<object> body)
     {
-        var response = Respons<object>.Forbidden(message);
-        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        context.Response.StatusCode = body.StatusCode;
         context.Response.ContentType = "application/json";
-        return context.Response.WriteAsync(JsonSerializer.Serialize(response, PlatformJson.SerializerOptions));
-    }
-
-    private static Task WriteUnauthorizedAsync(HttpContext context, Dictionary<string, string> fieldErrors)
-    {
-        var response = Respons<object>.ValidationError(fieldErrors);
-        response.StatusCode = StatusCodes.Status401Unauthorized;
-        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-        context.Response.ContentType = "application/json";
-        return context.Response.WriteAsync(JsonSerializer.Serialize(response, PlatformJson.SerializerOptions));
-    }
-
-    private static Task WriteServiceUnavailableAsync(HttpContext context, string message)
-    {
-        var response = Respons<object>.Fail(message, statusCode: StatusCodes.Status503ServiceUnavailable);
-        context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-        context.Response.ContentType = "application/json";
-        return context.Response.WriteAsync(JsonSerializer.Serialize(response, PlatformJson.SerializerOptions));
+        return context.Response.WriteAsync(JsonSerializer.Serialize(body, PlatformJson.SerializerOptions));
     }
 }

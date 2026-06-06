@@ -11,6 +11,7 @@ public sealed class DepartmentEntity
     public Guid? HeadOfDepartmentId { get; set; }
     public EmployeeEntity? HeadOfDepartment { get; set; }
     public bool IsArchived { get; set; }
+    public string CustomFieldsData { get; set; } = "{}";
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 }

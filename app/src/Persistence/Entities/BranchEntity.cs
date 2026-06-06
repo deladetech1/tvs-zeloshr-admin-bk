@@ -10,6 +10,7 @@ public sealed class BranchEntity
     public string? Region { get; set; }
     public string? CountryCode { get; set; }
     public bool IsArchived { get; set; }
+    public string CustomFieldsData { get; set; } = "{}";
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 }

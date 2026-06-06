@@ -49,10 +49,35 @@ Same names as Core Platform if both backends share one Trovesuite subscription.
 
 ## Path filters
 
-- **API image** rebuilds on `app/**`, `nuget.config`, or workflow changes.
+- **API image** rebuilds on `app/**`, `scripts/ci/**`, `nuget.config`, or workflow changes.
 - **Functions** deploy only on `func/**` changes (workflow edits alone do **not** trigger Functions).
 - **`workflow_dispatch`**: choose **Deploy Container App** and/or **Deploy Functions** (Functions default off).
 - If the Function App does not exist in Azure (`trovesuite-dev-zeloshr-func` / `trovesuite-prod-zeloshr-func`), the workflow **skips** Functions deploy with a warning instead of failing.
+
+## Post-deploy verification
+
+After a successful Container App deploy, CI runs **regression tests only** (Docker Compose — no Trove JWT needed):
+
+| Where | What |
+|-------|------|
+| **CI** (`build-and-deploy.yml`) | `./scripts/ci/regression-test.sh` |
+| **Local** (after deploy) | `./scripts/local-dev/post-deploy-verify.sh` |
+
+Live smoke needs a Trove Bearer token that expires — **not stored in GitHub**. Run locally:
+
+```bash
+# Once per session (or when token expires) — paste from browser DevTools:
+./scripts/local-dev/refresh-live-session.sh 'eyJhbG...'
+
+# Or auto-mint when .jwt-secret.local matches dev Container App SECRET_KEY:
+./scripts/local-dev/refresh-live-session.sh --mint
+
+# After deploy — regression + live smoke (quick)
+./scripts/local-dev/post-deploy-verify.sh
+
+# Full live suite (GET + POST + PUT + DELETE with cleanup)
+./scripts/local-dev/post-deploy-verify.sh --full
+```
 
 ## Local parity with CI
 

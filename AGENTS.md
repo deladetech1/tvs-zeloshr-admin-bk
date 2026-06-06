@@ -52,7 +52,9 @@ tvs-sqlscript/src/Trovesuite.Database.HumanResource/
 ├── Configurations/        # Fluent API
 ├── Migrations/            # EF Core migrations (source of truth for DDL)
 │   ├── 20260516195150_Initial.cs
-│   └── 20260520095923_ZelosHrAppTables.cs
+│   ├── 20260520095923_ZelosHrAppTables.cs
+│   ├── 20260605120000_ScopeZhrEmployeeCodeUniqueByTenant.cs
+│   └── 20260606130000_AddZhrBranchLocationFields.cs
 ├── Seeds/                 # RBAC reference data (EF seeder)
 └── HumanResourceModule.cs
 ```

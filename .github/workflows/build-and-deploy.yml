@@ -8,6 +8,7 @@ on:
     paths:
       - "app/**"
       - "func/**"
+      - "scripts/ci/**"
       - "nuget.config"
       - ".github/workflows/build-and-deploy.yml"
   workflow_dispatch:
@@ -52,6 +53,7 @@ jobs:
           filters: |
             app:
               - 'app/**'
+              - 'scripts/ci/**'
               - 'nuget.config'
               - '.github/workflows/build-and-deploy.yml'
             func:
@@ -230,6 +232,28 @@ jobs:
             --name "${{ steps.env.outputs.container_app_name }}" \
             --resource-group "${{ steps.env.outputs.resource_group }}" \
             --image "${{ steps.build.outputs.image }}"
+
+    outputs:
+      container_app_deployed: ${{ steps.containerapp.outputs.exists == 'true' }}
+      deploy_env: ${{ steps.env.outputs.env }}
+
+  post-deploy-regression:
+    name: Post-deploy regression tests
+    needs: build-and-deploy-app
+    if: needs.build-and-deploy-app.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Run regression suite (Docker Compose)
+        env:
+          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+        run: |
+          chmod +x scripts/ci/regression-test.sh scripts/compose.sh scripts/compose/*.sh
+          ./scripts/ci/regression-test.sh
 
   deploy-functions:
     name: Deploy Azure Functions

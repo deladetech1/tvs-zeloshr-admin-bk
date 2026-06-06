@@ -7,6 +7,8 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 ENV_FILE="${ROOT}/scripts/local-dev/live-session.env"
 JWT_FILE="${ROOT}/scripts/local-dev/.jwt-secret.local"
 SAVED_PATH="${PATH:-/usr/bin:/bin:/usr/local/bin:/opt/anaconda3/bin}"
+# shellcheck source=scripts/ci/api-response-format.sh
+source "${ROOT}/scripts/ci/api-response-format.sh"
 
 if [[ ! -f "${ENV_FILE}" ]]; then
   echo "Missing ${ENV_FILE}" >&2
@@ -17,79 +19,17 @@ fi
 set -a && source "${ENV_FILE}" && set +a
 [[ -f "${JWT_FILE}" ]] && set -a && source "${JWT_FILE}" && set +a
 export PATH="${SAVED_PATH}"
+export LIVE_SESSION_JWT_FILE="${JWT_FILE}"
+
+# shellcheck source=scripts/local-dev/live-session-auth.sh
+source "${ROOT}/scripts/local-dev/live-session-auth.sh"
 
 BASE="${ZELOSHR_API_BASE:-https://zeloshr.app.backend.dev.trovesuite.com}"
 TS="$(date +%s)"
 TAG="live-${TS}"
 
-if [[ -z "${TROVE_BEARER_TOKEN:-}" ]]; then
-  echo "TROVE_BEARER_TOKEN is empty" >&2
-  exit 1
-fi
-
+ensure_live_session_auth || exit 1
 TOKEN="${TROVE_BEARER_TOKEN}"
-MINTED_TOKEN=""
-if [[ -f "${JWT_FILE}" && -n "${TROVESUITE_JWT_SECRET:-}" ]]; then
-  MINTED_TOKEN="$(python3 - <<'PY'
-import os, json, base64, time
-import jwt
-
-old = os.environ["TROVE_BEARER_TOKEN"]
-part = old.split(".")[1]
-payload = json.loads(base64.urlsafe_b64decode(part + "=" * (-len(part) % 4)))
-secret = os.environ["TROVESUITE_JWT_SECRET"]
-claims = {k: v for k, v in payload.items() if k not in ("exp", "iat", "nbf")}
-now = int(time.time())
-claims["iat"] = now
-claims["exp"] = now + 7200
-print(jwt.encode(claims, secret, algorithm="HS256"))
-PY
-)"
-  TOKEN="${MINTED_TOKEN}"
-  echo "Using refreshed JWT (minted from .jwt-secret.local)"
-else
-  echo "Using TROVE_BEARER_TOKEN from live-session.env (refresh if expired)"
-fi
-
-auth_probe() {
-  local token="$1"
-  curl -sS -o /dev/null -w "%{http_code}" \
-    -H "app-id: ${TROVE_APP_ID:-app-hr}" \
-    -H "authorization: Bearer ${token}" \
-    -H "bus-id: ${TROVE_BUS_ID}" \
-    -H "loc-id: ${TROVE_LOC_ID}" \
-    -H "org-id: ${TROVE_ORG_ID}" \
-    "${BASE}/api/v1/health"
-}
-
-AUTH_CODE="$(auth_probe "${TOKEN}")"
-if [[ ! "${AUTH_CODE}" =~ ^2 ]]; then
-  if [[ -n "${MINTED_TOKEN}" && "${TOKEN}" != "${TROVE_BEARER_TOKEN}" ]]; then
-    FALLBACK_CODE="$(auth_probe "${TROVE_BEARER_TOKEN}")"
-    if [[ "${FALLBACK_CODE}" =~ ^2 ]]; then
-      echo "Minted JWT rejected (HTTP ${AUTH_CODE}); falling back to TROVE_BEARER_TOKEN from live-session.env"
-      TOKEN="${TROVE_BEARER_TOKEN}"
-      AUTH_CODE="${FALLBACK_CODE}"
-    fi
-  fi
-fi
-
-if [[ ! "${AUTH_CODE}" =~ ^2 ]]; then
-  cat >&2 <<EOF
-Auth failed (HTTP ${AUTH_CODE}) on GET /api/v1/health — credentials are stale or invalid.
-
-Fix:
-  1. Log in to dev Trove (browser) and open DevTools → Network → any API call.
-  2. Copy the Bearer token (no "Bearer " prefix) into scripts/local-dev/live-session.env:
-       TROVE_BEARER_TOKEN=...
-       TROVE_ORG_ID / TROVE_BUS_ID / TROVE_LOC_ID (must match the session)
-  3. If you use .jwt-secret.local for auto-refresh, update TROVESUITE_JWT_SECRET to match
-     the dev Container App SECRET_KEY (jwt-secret-key) after platform rotation.
-
-See scripts/local-dev/README.md
-EOF
-  exit 1
-fi
 
 FAIL=0
 LAST_JSON=""
@@ -131,9 +71,13 @@ record() {
   mark="$1"
   method="$2"
   path="$3"
-  local preview
-  preview="$(echo "$LAST_JSON" | head -c 700)"
-  printf "[%s] HTTP %s %s %s\n%s\n\n" "$mark" "$LAST_CODE" "$method" "$path" "$preview"
+  local summary
+  summary="$(format_api_response "$LAST_JSON")"
+  printf "[%s] HTTP %s %s %s\n" "$mark" "$LAST_CODE" "$method" "$path"
+  if [[ -n "$summary" ]]; then
+    printf "  %s\n" "$summary"
+  fi
+  printf "\n"
   [[ "$mark" == "FAIL" ]] && FAIL=$((FAIL + 1))
   [[ "$mark" == "SKIP" ]] && true
 }
@@ -231,11 +175,11 @@ if api_post "/api/v1/org-structure/departments/add" "$DEPT_BODY"; then
   fi
 fi
 
-BRANCH_BODY="$(printf '{"name":"Branch %s"}' "$TAG")"
+BRANCH_BODY="$(printf '{"name":"Branch %s","city":"Accra","region":"Greater Accra","country_code":"GH"}' "$TAG")"
 if api_post "/api/v1/org-structure/branches/add" "$BRANCH_BODY"; then
   BRANCH_ID="$(json_path "$LAST_JSON" "data.branch_id")"
   api_put "/api/v1/org-structure/branches/update?branch_id=${BRANCH_ID}" \
-    "$(printf '{"name":"Branch %s HQ"}' "$TAG")" || true
+    "$(printf '{"name":"Branch %s HQ","city":"Tema","region":"Greater Accra","country_code":"GH"}' "$TAG")" || true
 fi
 
 echo "=== Custom fields (POST / GET / PUT / DELETE) ==="
@@ -274,6 +218,7 @@ EMP_BODY="$(cat <<EOF
   "status": "draft",
   "identity": {
     "full_name": "Live Test ${TAG}",
+    "phone": "+233201234567",
     "personal_email": "${EMP_EMAIL}"
   }
 }

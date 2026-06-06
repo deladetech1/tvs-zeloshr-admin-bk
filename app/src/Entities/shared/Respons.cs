@@ -37,12 +37,11 @@ public class Respons<T>
             Detail = detail,
             Success = false,
             StatusCode = statusCode,
-            Error = detail,
             FieldErrors = normalized,
         };
     }
 
-    public static Respons<T> Ok(T data, string detail = "Success", int statusCode = 200, PaginationMeta? pagination = null) =>
+    public static Respons<T> Ok(T data, string? detail = null, int statusCode = 200, PaginationMeta? pagination = null) =>
         new()
         {
             Detail = detail,
@@ -52,14 +51,19 @@ public class Respons<T>
             Pagination = pagination,
         };
 
-    public static Respons<T> Fail(string error, int statusCode = 400, string? detail = null) =>
-        new()
+    public static Respons<T> Fail(string error, int statusCode = 400, string? detail = null)
+    {
+        var message = detail ?? error;
+        return new()
         {
-            Detail = detail ?? error,
+            Detail = message,
             Success = false,
             StatusCode = statusCode,
-            Error = error,
+            Error = string.Equals(detail, error, StringComparison.Ordinal) || detail is null
+                ? null
+                : error,
         };
+    }
 
     public static Respons<T> NotFound(string message = "Not found") =>
         Fail(message, statusCode: 404, detail: message);

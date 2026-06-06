@@ -34,6 +34,25 @@ public class ResponsSerializationTests
 
         root.GetProperty("detail").GetString()
             .Should().Be("Could not allocate a unique employee code.");
+        root.TryGetProperty("error", out var errorProp).Should().BeFalse();
         root.TryGetProperty("message", out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public void ValidationErrorEnvelope_OmitsRedundantErrorField()
+    {
+        var body = Respons<object>.ValidationError(new Dictionary<string, string>
+        {
+            ["name"] = "Department name is required.",
+        });
+
+        var json = JsonSerializer.Serialize(body, PlatformJson.SerializerOptions);
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        root.GetProperty("detail").GetString().Should().Be("Department name is required.");
+        root.TryGetProperty("error", out _).Should().BeFalse();
+        root.GetProperty("field_errors").GetProperty("name").GetString()
+            .Should().Be("Department name is required.");
     }
 }

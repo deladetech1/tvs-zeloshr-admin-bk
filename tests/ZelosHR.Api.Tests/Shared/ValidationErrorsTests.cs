@@ -80,6 +80,7 @@ public class ValidationErrorsTests
             new Dictionary<string, string> { ["identity.full_name"] = "Full name is required." });
 
         Assert.Equal("Full name is required.", response.Detail);
+        Assert.Null(response.Error);
         Assert.Equal("identity.full_name", response.FieldErrors!.Keys.First());
     }
 }

@@ -124,6 +124,8 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
         {
             b.ToTable("zhr_departments");
             b.HasKey(x => x.Id);
+            b.Property(x => x.CustomFieldsData).HasColumnType("jsonb").HasDefaultValue("{}").IsRequired();
+            b.HasIndex(x => new { x.TenantId, x.OrgId, x.Name }).IsUnique();
             b.HasOne(x => x.ParentDepartment)
                 .WithMany()
                 .HasForeignKey(x => x.ParentDepartmentId)
@@ -138,6 +140,14 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
         {
             b.ToTable("zhr_branches");
             b.HasKey(x => x.Id);
+            b.Property(x => x.TenantId).HasMaxLength(128).IsRequired();
+            b.Property(x => x.OrgId).HasMaxLength(128).IsRequired();
+            b.Property(x => x.Name).HasMaxLength(150).IsRequired();
+            b.Property(x => x.City).HasMaxLength(100);
+            b.Property(x => x.Region).HasMaxLength(100);
+            b.Property(x => x.CountryCode).HasMaxLength(2);
+            b.Property(x => x.CustomFieldsData).HasColumnType("jsonb").HasDefaultValue("{}").IsRequired();
+            b.HasIndex(x => new { x.TenantId, x.OrgId, x.Name }).IsUnique();
         });
 
         modelBuilder.Entity<AuditLogEntity>(b => { b.ToTable("zhr_audit_logs"); b.HasKey(x => x.Id); });
