@@ -141,6 +141,14 @@ public static partial class ValidationErrors
         return string.Join('.', segments.Select(NormalizeSegment));
     }
 
+    private static string NormalizeSegment(string segment)
+    {
+        if (segment.Contains('[', StringComparison.Ordinal))
+            return segment;
+
+        return SnakeCase.ConvertName(segment);
+    }
+
     private static string FormatFieldLabel(string raw)
     {
         var normalized = NormalizeFieldPath(raw).Replace('_', ' ');
