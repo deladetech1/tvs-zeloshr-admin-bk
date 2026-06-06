@@ -243,17 +243,6 @@ public sealed class EmployeeAggregateService
 
             if (request.Employment is not null)
             {
-                var current = await _employees.GetByIdScopedAsync(
-                    employeeId, _tenant.TenantId, _tenant.OrgId, ct);
-                var branchRule = WorkArrangementRules.ValidateBranchForArrangement(
-                    request.Employment.WorkArrangement ?? current?.WorkArrangement,
-                    request.Employment.BranchId ?? current?.BranchId);
-                if (branchRule is not null)
-                {
-                    await transaction.RollbackAsync(ct);
-                    return Respons<EmployeeAggregateReadDto>.ValidationError(branchRule);
-                }
-
                 if (request.Employment.DepartmentId is { } deptId
                     && !await _departments.ExistsActiveScopedAsync(deptId, _tenant.TenantId, _tenant.OrgId, ct))
                 {

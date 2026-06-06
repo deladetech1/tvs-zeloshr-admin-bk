@@ -330,6 +330,62 @@ public class EmployeeRegistrationTests
     }
 
     [Fact]
+    public async Task FinaliseEmployee_WithoutDepartment_Succeeds()
+    {
+        var id = Guid.NewGuid();
+        var entity = new EmployeeEntity
+        {
+            Id = id,
+            TenantId = TestDefaults.TenantId,
+            OrgId = TestDefaults.OrgId,
+            FullName = "Ada",
+            JobTitle = "Engineer",
+            UserId = "u-existing",
+            IsDraft = true,
+        };
+        _employees.GetByIdScopedForUpdateAsync(id, TestDefaults.TenantId, TestDefaults.OrgId, Arg.Any<CancellationToken>())
+            .Returns(entity);
+        _cpUsers.IsLinkedToEmployeeAsync("u-existing", TestDefaults.TenantId, Arg.Any<CancellationToken>())
+            .Returns(false);
+        _cpUsers.EnsureHrMembershipAsync("u-existing", TestDefaults.TenantId, Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        _cpUsers.UpdateIdentityAsync("u-existing", TestDefaults.TenantId, Arg.Any<CpUserIdentityData>(), Arg.Any<CancellationToken>())
+            .Returns(new CpUserDto("u-existing", "Ada", "ada@test.com", null, true));
+        _cpUsers.EnsureUserLocationAsync(
+            "u-existing", TestDefaults.TenantId, TestDefaults.OrgId, TestDefaults.BusId, TestDefaults.LocId, Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+
+        var result = await _sut.FinaliseAsync(id);
+
+        result.Success.Should().BeTrue();
+        entity.DepartmentId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task FinaliseEmployee_OnSiteWithoutBranch_ReturnsValidationError()
+    {
+        var id = Guid.NewGuid();
+        var entity = new EmployeeEntity
+        {
+            Id = id,
+            TenantId = TestDefaults.TenantId,
+            OrgId = TestDefaults.OrgId,
+            FullName = "Ada",
+            JobTitle = "Engineer",
+            WorkArrangement = "on_site",
+            UserId = "u-existing",
+            IsDraft = true,
+        };
+        _employees.GetByIdScopedForUpdateAsync(id, TestDefaults.TenantId, TestDefaults.OrgId, Arg.Any<CancellationToken>())
+            .Returns(entity);
+
+        var result = await _sut.FinaliseAsync(id);
+
+        result.Success.Should().BeFalse();
+        result.FieldErrors.Should().ContainKey("employment.branch_id");
+    }
+
+    [Fact]
     public async Task UpdatePersonalContact_WithWorkEmail_ProvisionsCpUser_AndClearsIdentityOnEmployee()
     {
         var id = Guid.NewGuid();

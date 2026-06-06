@@ -241,13 +241,14 @@ public sealed class EmployeeRegistrationService
         var displayName = await ResolveDraftDisplayNameAsync(e, ct);
         if (string.IsNullOrWhiteSpace(displayName))
             return Respons<EmployeeRegistrationReadDto>.ValidationError(
-                new Dictionary<string, string> { ["fullName"] = "Full name is required." });
+                new Dictionary<string, string> { ["identity.full_name"] = "Full name is required." });
         if (string.IsNullOrWhiteSpace(e.JobTitle))
             return Respons<EmployeeRegistrationReadDto>.ValidationError(
-                new Dictionary<string, string> { ["jobTitle"] = "Job title is required." });
-        if (e.DepartmentId is null)
-            return Respons<EmployeeRegistrationReadDto>.ValidationError(
-                new Dictionary<string, string> { ["departmentId"] = "Department is required." });
+                new Dictionary<string, string> { ["employment.job_title"] = "Job title is required." });
+
+        var branchRule = WorkArrangementRules.ValidateBranchForArrangement(e.WorkArrangement, e.BranchId);
+        if (branchRule is not null)
+            return Respons<EmployeeRegistrationReadDto>.ValidationError(branchRule);
 
         var userLink = await ResolvePlatformUserForFinaliseAsync(e, displayName, ct);
         if (userLink.Error is not null)

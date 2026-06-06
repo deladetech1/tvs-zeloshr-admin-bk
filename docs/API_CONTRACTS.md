@@ -52,8 +52,10 @@ Link existing platform user: `POST /import` (separate from `POST /add`). Wizard:
 |-------|----------------------|
 | `identity.full_name` | yes |
 | `employment.job_title` | yes |
-| `employment.department_id` | yes |
 | `identity.work_email` | yes (creates/links `cp_users`) |
+
+`employment.department_id` and `employment.branch_id` are **optional**. When provided, the ID must exist in org structure.
+If `work_arrangement` is `on_site` or `field`, `branch_id` is required **on finalise** (not on draft save).
 
 #### Required vs optional — update (`PUT /update`)
 
