@@ -48,7 +48,7 @@ public sealed class SwaggerRequiredSchemaFilter : ISchemaFilter
             required.Add("phone");
         }
 
-        if (type == typeof(EmployeeAggregateEducationDto))
+        if (type == typeof(EmployeeEducationUpsertDto))
         {
             required.Add("institution");
         }

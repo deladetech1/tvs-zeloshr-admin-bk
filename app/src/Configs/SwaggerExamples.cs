@@ -700,7 +700,7 @@ internal static class SwaggerExamples
         ["identity"] = IdentitySection(withCustomField: true, optionHints: true),
         ["employment"] = EmploymentSection(optionHints: true),
         ["compensation"] = CompensationSection(withCustomField: true),
-        ["education"] = EducationSection(),
+        ["education"] = new JsonArray(EducationEntry()),
         ["certifications"] = new JsonArray(CertificationEntry()),
         ["document_ids"] = new JsonArray(SampleDocumentId1, SampleDocumentId2),
     };
@@ -721,7 +721,7 @@ internal static class SwaggerExamples
     internal static JsonObject UpdateEmployeeFull()
     {
         var update = CreateEmployeeFinalised();
-        update["education"] = EducationSection();
+        update["education"] = new JsonArray(EducationEntry(withId: true));
         update["certifications"] = new JsonArray(CertificationEntry(withId: true));
         return update;
     }
@@ -787,7 +787,7 @@ internal static class SwaggerExamples
                 ["identity"] = IdentitySection(withCustomField: true, forRead: true),
                 ["employment"] = EmploymentSection(withNames: true),
                 ["compensation"] = CompensationReadSection(),
-                ["education"] = EducationSection(),
+                ["education"] = new JsonArray(EducationEntry(withId: true)),
                 ["certifications"] = new JsonArray(CertificationEntry(withId: true)),
                 ["documents"] = EmployeeDocumentsArray(),
             },
@@ -892,16 +892,24 @@ internal static class SwaggerExamples
         ["custom_fields"] = CustomFieldsForSection(EmployeeCustomFieldSections.Compensation),
     };
 
-    internal static JsonObject EducationSection() => new()
+    internal static JsonObject EducationEntry(bool withId = false)
     {
-        ["institution"] = "University of Ghana",
-        ["degree"] = "BSc",
-        ["field_of_study"] = "Computer Science",
-        ["start_date"] = "2008-09-01",
-        ["end_date"] = "2012-06-30",
-        ["is_current"] = false,
-        ["custom_fields"] = EmptyCustomFields(EmployeeCustomFieldSections.Education),
-    };
+        var obj = new JsonObject
+        {
+            ["institution"] = "University of Ghana",
+            ["degree"] = "BSc",
+            ["field_of_study"] = "Computer Science",
+            ["start_date"] = "2008-09-01",
+            ["end_date"] = "2012-06-30",
+            ["is_current"] = false,
+            ["custom_fields"] = EmptyCustomFields(EmployeeCustomFieldSections.Education),
+        };
+
+        if (withId)
+            obj["id"] = Guid.Parse("55555555-5555-5555-5555-555555555501").ToString();
+
+        return obj;
+    }
 
     private static JsonObject CertificationEntry(bool withId = false)
     {

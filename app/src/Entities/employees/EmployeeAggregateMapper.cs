@@ -75,6 +75,9 @@ internal static class EmployeeAggregateMapper
             CurrencyId = update.Compensation?.CurrencyId,
         };
 
+    public static EmployeeEducationWriteDto ToEducationWrite(EmployeeEducationUpsertDto dto) =>
+        new(dto.Institution, dto.Degree, dto.FieldOfStudy, dto.StartDate, dto.EndDate, dto.IsCurrent, dto.CustomFields);
+
     public static EmployeeCertificationWriteDto ToCertificationWrite(EmployeeCertificationUpsertDto dto) =>
         new(dto.Name, dto.IssuingBody, dto.IssueDate, dto.ExpiryDate, dto.CredentialUrl, dto.CustomFields);
 

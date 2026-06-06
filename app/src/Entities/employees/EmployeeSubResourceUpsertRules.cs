@@ -1,9 +1,27 @@
 namespace ZelosHR.Api.Entities.Employees;
 
-/// <summary>Id-based upsert rules for certification rows on <c>PUT /employees/update</c>.</summary>
+/// <summary>Id-based upsert rules for education/certification rows on <c>PUT /employees/update</c>.</summary>
 internal static class EmployeeSubResourceUpsertRules
 {
     internal static bool HasPersistedId(Guid? id) => id is { } value && value != Guid.Empty;
+
+    internal static Dictionary<string, string>? ValidateDuplicateIds(
+        IReadOnlyList<EmployeeEducationUpsertDto> items)
+    {
+        var errors = new Dictionary<string, string>(StringComparer.Ordinal);
+        var seen = new HashSet<Guid>();
+        for (var i = 0; i < items.Count; i++)
+        {
+            if (!HasPersistedId(items[i].Id))
+                continue;
+
+            var id = items[i].Id!.Value;
+            if (!seen.Add(id))
+                errors[$"education[{i}].id"] = "Duplicate education id in the same request.";
+        }
+
+        return errors.Count > 0 ? errors : null;
+    }
 
     internal static Dictionary<string, string>? ValidateDuplicateIds(
         IReadOnlyList<EmployeeCertificationUpsertDto> items)

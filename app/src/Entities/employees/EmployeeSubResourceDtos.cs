@@ -20,6 +20,17 @@ public sealed record EmployeeEducationWriteDto(
     bool IsCurrent,
     Dictionary<string, string?>? CustomFields = null);
 
+/// <summary>Include <c>id</c> from GET to update; omit to add. Use <c>sync_education: true</c> on PUT for full-array replace.</summary>
+public sealed record EmployeeEducationUpsertDto(
+    Guid? Id,
+    string Institution,
+    string? Degree,
+    string? FieldOfStudy,
+    DateOnly? StartDate,
+    DateOnly? EndDate,
+    bool IsCurrent,
+    Dictionary<string, string?>? CustomFields = null);
+
 public sealed record EmployeeCertificationDto(
     Guid Id,
     Guid EmployeeId,

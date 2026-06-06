@@ -14,6 +14,7 @@ namespace ZelosHR.Api.Entities.Employees;
 
 public sealed class EmployeeAggregateService
 {
+    private const int MaxEducation = 20;
     private const int MaxCertifications = 50;
 
     private readonly ZelosHrDbContext _db;
@@ -146,20 +147,18 @@ public sealed class EmployeeAggregateService
                     request.Identity.CustomFields,
                     request.Employment?.CustomFields,
                     request.Compensation?.CustomFields,
-                    request.Education?.CustomFields is not null
-                        ? [request.Education.CustomFields]
-                        : [],
+                    request.Education.Select(e => e.CustomFields),
                     request.Certifications.Select(c => c.CustomFields),
                     ct);
             }
 
-            if (request.Education is not null)
+            foreach (var edu in request.Education)
             {
-                var added = await _subResources.UpsertSingleEducationAsync(employeeId, request.Education, ct);
+                var added = await _subResources.AddEducationAsync(employeeId, edu, ct);
                 if (!added.Success)
                 {
                     await transaction.RollbackAsync(ct);
-                    return MapEducationError<EmployeeAggregateReadDto>(added);
+                    return MapError<EmployeeAggregateReadDto>(added);
                 }
             }
 
@@ -326,20 +325,76 @@ public sealed class EmployeeAggregateService
                     request.Identity?.CustomFields,
                     request.Employment?.CustomFields,
                     request.Compensation?.CustomFields,
-                    request.Education?.CustomFields is not null
-                        ? [request.Education.CustomFields]
-                        : [],
+                    request.Education?.Select(e => e.CustomFields) ?? [],
                     request.Certifications?.Select(c => c.CustomFields) ?? [],
                     ct);
             }
 
+            if (request.DeleteEducationIds is { Count: > 0 })
+            {
+                foreach (var educationId in request.DeleteEducationIds)
+                {
+                    var deleted = await _subResources.DeleteEducationAsync(employeeId, educationId, ct);
+                    if (!deleted.Success)
+                    {
+                        await transaction.RollbackAsync(ct);
+                        return Respons<EmployeeAggregateReadDto>.Fail(
+                            deleted.Error ?? deleted.Detail ?? "Could not delete education record.",
+                            statusCode: deleted.StatusCode);
+                    }
+                }
+            }
+
             if (request.Education is not null)
             {
-                var result = await _subResources.UpsertSingleEducationAsync(employeeId, request.Education, ct);
-                if (!result.Success)
+                var educationDupErrors = request.Education.Count > 0
+                    ? EmployeeSubResourceUpsertRules.ValidateDuplicateIds(request.Education)
+                    : null;
+                if (educationDupErrors is not null)
                 {
                     await transaction.RollbackAsync(ct);
-                    return MapEducationError<EmployeeAggregateReadDto>(result);
+                    return Respons<EmployeeAggregateReadDto>.ValidationError(educationDupErrors);
+                }
+
+                var existingEducation = await _subResources.ListEducationAsync(employeeId, ct);
+                var existingEducationRows = existingEducation.Success && existingEducation.Data is not null
+                    ? existingEducation.Data
+                    : Array.Empty<EmployeeEducationDto>();
+                var preservedEducationIds = new HashSet<Guid>();
+
+                for (var i = 0; i < request.Education.Count; i++)
+                {
+                    var edu = request.Education[i];
+                    var write = EmployeeAggregateMapper.ToEducationWrite(edu);
+                    var result = EmployeeSubResourceUpsertRules.HasPersistedId(edu.Id)
+                        ? await _subResources.UpdateEducationAsync(employeeId, edu.Id!.Value, write, ct)
+                        : await _subResources.AddEducationAsync(employeeId, write, ct);
+                    if (!result.Success)
+                    {
+                        await transaction.RollbackAsync(ct);
+                        return MapEducationError<EmployeeAggregateReadDto>(result, i);
+                    }
+
+                    if (result.Data is not null)
+                        preservedEducationIds.Add(result.Data.Id);
+                }
+
+                if (request.SyncEducation)
+                {
+                    foreach (var row in existingEducationRows)
+                    {
+                        if (preservedEducationIds.Contains(row.Id))
+                            continue;
+
+                        var deleted = await _subResources.DeleteEducationAsync(employeeId, row.Id, ct);
+                        if (!deleted.Success)
+                        {
+                            await transaction.RollbackAsync(ct);
+                            return Respons<EmployeeAggregateReadDto>.Fail(
+                                deleted.Error ?? deleted.Detail ?? "Could not remove education record during sync.",
+                                statusCode: deleted.StatusCode);
+                        }
+                    }
                 }
             }
 
@@ -523,9 +578,12 @@ public sealed class EmployeeAggregateService
                 currency?.Code,
                 currency?.Name,
                 currency?.Symbol),
-            Education = educationItems is { Count: > 0 }
-                ? EmployeeEducationSection.FromRead(educationItems[0], sections.Education)
-                : null,
+            Education = educationItems?
+                .Select(e => e with
+                {
+                    CustomFields = EmployeeAggregateReadMapper.CustomFieldsOrNull(sections.Education),
+                })
+                .ToList(),
             Certifications = certificationItems?
                 .Select(c => c with
                 {
@@ -599,6 +657,7 @@ public sealed class EmployeeAggregateService
         || !string.IsNullOrWhiteSpace(request.LifecycleState)
         || request.Education is not null
         || request.Certifications is not null
+        || request.DeleteEducationIds is { Count: > 0 }
         || request.DeleteCertificationIds is { Count: > 0 }
         || request.DeleteDocumentIds is { Count: > 0 }
         || request.DocumentIds is { Count: > 0 }
@@ -608,14 +667,14 @@ public sealed class EmployeeAggregateService
         HasCustomFields(request.Identity.CustomFields)
         || HasCustomFields(request.Employment?.CustomFields)
         || HasCustomFields(request.Compensation?.CustomFields)
-        || HasCustomFields(request.Education?.CustomFields)
+        || request.Education.Any(e => HasCustomFields(e.CustomFields))
         || request.Certifications.Any(c => HasCustomFields(c.CustomFields));
 
     private static bool HasSectionCustomFields(UpdateEmployeeAggregateRequest request) =>
         HasCustomFields(request.Identity?.CustomFields)
         || HasCustomFields(request.Employment?.CustomFields)
         || HasCustomFields(request.Compensation?.CustomFields)
-        || HasCustomFields(request.Education?.CustomFields)
+        || request.Education?.Any(e => HasCustomFields(e.CustomFields)) == true
         || request.Certifications?.Any(c => HasCustomFields(c.CustomFields)) == true;
 
     private static bool HasCustomFields(Dictionary<string, string?>? fields) => fields is { Count: > 0 };
@@ -706,6 +765,9 @@ public sealed class EmployeeAggregateService
             errors["status"] = "Status must be 'draft' or 'finalised'.";
         }
 
+        if (request.Education is { Count: > MaxEducation })
+            errors["education"] = $"At most {MaxEducation} education records allowed per request.";
+
         if (request.Certifications is { Count: > MaxCertifications })
             errors["certifications"] = $"At most {MaxCertifications} certification records allowed per request.";
 
@@ -722,8 +784,18 @@ public sealed class EmployeeAggregateService
         return Fail<T>(source.StatusCode, source.Error, source.Detail);
     }
 
-    private static Respons<T> MapEducationError<T>(Respons<EmployeeEducationDto> source)
+    private static Respons<T> MapEducationError<T>(Respons<EmployeeEducationDto> source, int index)
     {
+        if (source.StatusCode == 404)
+        {
+            return Respons<T>.ValidationError(
+                new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    [$"education[{index}].id"] = "Education record not found for this employee.",
+                },
+                source.Error ?? source.Detail);
+        }
+
         if (source.FieldErrors is { Count: > 0 })
             return Respons<T>.ValidationError(
                 new Dictionary<string, string>(source.FieldErrors),

@@ -57,7 +57,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
 
         schema.Example = context.Type.Name switch
         {
-            nameof(EmployeeAggregateEducationDto) => SwaggerExamples.EducationSection(),
+            nameof(EmployeeEducationUpsertDto) => SwaggerExamples.EducationEntry(withId: true),
             nameof(CreateEmployeeAggregateRequest) => SwaggerExamples.CreateEmployeeFinalised(),
             nameof(UpdateEmployeeAggregateRequest) => SwaggerExamples.UpdateEmployeeFull(),
             nameof(CreateCustomFieldDefinitionDto) => SwaggerExamples.CreateCustomFieldAddBody(),
@@ -92,8 +92,8 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 "Tenant currency from core_platform.cp_currencies. List via GET /api/v1/currencies/list."),
             nameof(EmployeeAggregateCompensationDto) => AppendDescription(schema.Description,
                 $"currency_id from GET /api/v1/currencies/list. pay_frequency: {SwaggerExampleHints.PayFrequency}."),
-            nameof(EmployeeAggregateEducationDto) => AppendDescription(schema.Description,
-                "Single education block (not an array). Partial PUT like employment — institution required when first adding the section."),
+            nameof(EmployeeEducationUpsertDto) => AppendDescription(schema.Description,
+                "Include id from GET to update; omit to add. institution is required."),
             nameof(EmployeeAggregateReadDto) => AppendDescription(schema.Description,
                 "Read-only employee aggregate. documents[] on read: MyStoreGuard DocumentReadDto (doc_id, name, presigned_url, description). Write via document_ids string array."),
             nameof(DocumentReadDto) => AppendDescription(schema.Description,
@@ -256,13 +256,16 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             case nameof(EmployeeAggregateCompensationDto.GrossSalary):
                 schema.Example = JsonValue.Create(8500.00m);
                 return;
-            case nameof(EmployeeAggregateEducationDto.Institution):
+            case nameof(EmployeeEducationUpsertDto.Institution):
+            case "Institution" when property.DeclaringType == typeof(EmployeeEducationWriteDto):
                 schema.Example = JsonValue.Create("University of Ghana");
                 return;
-            case nameof(EmployeeAggregateEducationDto.Degree):
+            case nameof(EmployeeEducationUpsertDto.Degree):
+            case "Degree" when property.DeclaringType == typeof(EmployeeEducationWriteDto):
                 schema.Example = JsonValue.Create("BSc Computer Science");
                 return;
-            case nameof(EmployeeAggregateEducationDto.FieldOfStudy):
+            case nameof(EmployeeEducationUpsertDto.FieldOfStudy):
+            case "FieldOfStudy" when property.DeclaringType == typeof(EmployeeEducationWriteDto):
                 schema.Example = JsonValue.Create("Computer Science");
                 return;
             case nameof(FileResponseReadDto.PresignedUrl):
