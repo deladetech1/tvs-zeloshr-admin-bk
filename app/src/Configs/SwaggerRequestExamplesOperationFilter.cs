@@ -54,11 +54,32 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
                     """),
                 ["education_cert_upsert"] = Example(
                     SwaggerExamples.UpdateEmployeeEducationCertUpsert(),
-                    "Bulk edit — education + certifications with id",
+                    "Bulk edit — education + certifications with id (sync false)",
                     """
-                    Round-trip id from GET on each array item to update; omit id to add.
-                    Do not send employee_id on write (query ?employee_id= scopes the employee).
-                    Omit education/certifications entirely when those sections are unchanged.
+                    Default sync=false: patch mode. Only rows in the body are upserted; all other rows stay.
+                    Round-trip id from GET to update; omit id to add. Do not send employee_id on write.
+                    """),
+                ["patch_one_certification"] = Example(
+                    SwaggerExamples.UpdateEmployeePatchOneCertification(),
+                    "Patch one certification (sync false)",
+                    """
+                    Employee has 2+ certifications. Send one item with id — only that row updates; others unchanged.
+                    sync_certifications omitted or false.
+                    """),
+                ["sync_replace_certifications"] = Example(
+                    SwaggerExamples.UpdateEmployeeSyncCertificationsReplace(),
+                    "sync_certifications — replace full list",
+                    """
+                    sync_certifications: true means the certifications[] array IS the full desired set.
+                    Any existing certification not in the array is deleted. Use to collapse duplicates or reset the section.
+                    Send sync_certifications: true + certifications: [] to delete all certifications.
+                    """),
+                ["sync_replace_education"] = Example(
+                    SwaggerExamples.UpdateEmployeeSyncEducationReplace(),
+                    "sync_education — replace full list",
+                    """
+                    sync_education: true means the education[] array IS the full desired set.
+                    Any existing education row not in the array is deleted after upsert.
                     """),
                 ["add_sub_rows"] = Example(
                     SwaggerExamples.UpdateEmployeeAddSubRows(),
@@ -66,11 +87,10 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
                     "New rows: omit id on each item. institution (education) and name (certifications) are required."),
                 ["sync_and_delete"] = Example(
                     SwaggerExamples.UpdateEmployeeSyncAndDelete(),
-                    "Replace education / delete certifications",
+                    "sync_education + delete_certification_ids",
                     """
-                    sync_education: true + full education[] replaces the section (orphans deleted).
-                    delete_certification_ids removes specific rows without sending certifications[].
-                    sync_certifications works the same for certifications[].
+                    sync_education: true + full education[] replaces the education section.
+                    delete_certification_ids removes specific certification rows without sending certifications[].
                     """),
                 ["full_profile_update"] = Example(
                     SwaggerExamples.UpdateEmployeeFull(),

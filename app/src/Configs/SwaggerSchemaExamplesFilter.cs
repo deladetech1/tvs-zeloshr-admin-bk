@@ -409,12 +409,12 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 case nameof(UpdateEmployeeAggregateRequest.SyncEducation):
                     schema.Example = JsonValue.Create(false);
                     schema.Description = AppendDescription(schema.Description,
-                        "When true and education is sent, unlisted rows are deleted after upsert.");
+                        "false (default): patch education[] — upsert sent rows only. true + education[]: replace section; unlisted rows deleted.");
                     return;
                 case nameof(UpdateEmployeeAggregateRequest.SyncCertifications):
                     schema.Example = JsonValue.Create(false);
                     schema.Description = AppendDescription(schema.Description,
-                        "When true and certifications is sent (including []), array is the full desired set.");
+                        "false (default): patch certifications[] — upsert sent rows only. true + certifications[]: replace section; unlisted rows deleted.");
                     return;
                 case nameof(UpdateEmployeeAggregateRequest.DeleteEducationIds):
                     schema.Example = new JsonArray("55555555-5555-5555-5555-555555555502");

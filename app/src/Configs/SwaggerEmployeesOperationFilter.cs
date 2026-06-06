@@ -79,10 +79,13 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
             operation.Description = AppendDescription(operation.Description,
                 """
                 Partial aggregate update — send only changed sections.
-                education[] / certifications[] on write: include id from GET to update; omit id to add; do not send employee_id.
-                sync_education / sync_certifications: true + full array replaces that section.
-                delete_education_ids / delete_certification_ids remove rows by UUID.
-                Response matches GET /employees/get (documents[] and identity.profile_url as DocumentReadDto on read).
+
+                education[] / certifications[] — two modes:
+                • sync false (default): PATCH — send rows to add/update; rows you omit are unchanged.
+                • sync true: REPLACE — array is the full desired set; existing rows not listed are deleted.
+
+                delete_education_ids / delete_certification_ids remove rows by UUID without sending arrays.
+                Write shape: include id from GET to update; omit id to add; do not send employee_id.
                 """);
             return;
         }

@@ -47,9 +47,14 @@ public sealed class CreateEmployeeAggregateRequest
 /// <summary>Partial employee update — only include sections/fields to change.</summary>
 /// <remarks>
 /// Pass <c>employee_id</c> on the query string (UUID from <c>GET /employees/get?employee_id=</c>).
-/// <c>education[]</c> / <c>certifications[]</c>: include <c>id</c> from GET to update; omit <c>id</c> to add a row.
-/// Use <c>delete_education_ids</c> / <c>delete_certification_ids</c> to remove rows, or
-/// <c>sync_education</c> / <c>sync_certifications</c> with the full array to replace the section.
+///
+/// **education[] / certifications[] (default, sync false):** patch the list — include <c>id</c> from GET to update;
+/// omit <c>id</c> to add; rows you omit are **unchanged**.
+///
+/// **sync_education / sync_certifications (true):** replace the list — the array you send is the **full desired set**;
+/// any existing row not listed is **deleted**. Send <c>[]</c> with sync true to clear the section.
+///
+/// **delete_education_ids / delete_certification_ids:** remove specific rows by UUID without sending the array.
 /// </remarks>
 public sealed class UpdateEmployeeAggregateRequest
 {
@@ -67,10 +72,16 @@ public sealed class UpdateEmployeeAggregateRequest
     public IReadOnlyList<EmployeeEducationUpsertDto>? Education { get; init; }
     public IReadOnlyList<EmployeeCertificationUpsertDto>? Certifications { get; init; }
 
-    /// <summary>When <c>true</c> and <c>education</c> is sent, unlisted rows are deleted after upsert.</summary>
+    /// <summary>
+    /// Default <c>false</c>: patch <c>education[]</c> (upsert sent rows only; others unchanged).
+    /// <c>true</c> + <c>education[]</c>: replace section — array is the full desired set; unlisted rows deleted.
+    /// </summary>
     public bool SyncEducation { get; init; }
 
-    /// <summary>When <c>true</c> and <c>certifications</c> is sent (including <c>[]</c>), the array is the full desired set.</summary>
+    /// <summary>
+    /// Default <c>false</c>: patch <c>certifications[]</c> (upsert sent rows only; others unchanged).
+    /// <c>true</c> + <c>certifications[]</c> (including <c>[]</c>): replace section; unlisted rows deleted.
+    /// </summary>
     public bool SyncCertifications { get; init; }
 
     public IReadOnlyList<Guid>? DeleteEducationIds { get; init; }

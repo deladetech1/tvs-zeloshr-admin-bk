@@ -768,7 +768,41 @@ internal static class SwaggerExamples
         ["certifications"] = new JsonArray(CertificationEntry()),
     };
 
-    /// <summary>Replace education section or delete certification rows by id.</summary>
+    /// <summary>No sync — update one certification row; other rows stay untouched.</summary>
+    internal static JsonObject UpdateEmployeePatchOneCertification() => new()
+    {
+        ["certifications"] = new JsonArray(
+            CertificationEntry(
+                withId: true,
+                name: "Masters in react (updated)",
+                issuingBody: "Udemy",
+                issueDate: "2026-05-31",
+                credentialUrl: "https://udemy.com/certificate/3424-3424",
+                omitExpiryDate: true)),
+    };
+
+    /// <summary>sync_certifications true — keep only rows in the array; delete all others.</summary>
+    internal static JsonObject UpdateEmployeeSyncCertificationsReplace() => new()
+    {
+        ["sync_certifications"] = true,
+        ["certifications"] = new JsonArray(
+            CertificationEntry(
+                withId: true,
+                name: "Masters in react",
+                issuingBody: "Udemy",
+                issueDate: "2026-05-31",
+                credentialUrl: "https://udemy.com/certificate/3424-3424",
+                omitExpiryDate: true)),
+    };
+
+    /// <summary>sync_education true — replace entire education section.</summary>
+    internal static JsonObject UpdateEmployeeSyncEducationReplace() => new()
+    {
+        ["sync_education"] = true,
+        ["education"] = new JsonArray(EducationEntry(withId: true)),
+    };
+
+    /// <summary>Replace education / delete certification rows by id.</summary>
     internal static JsonObject UpdateEmployeeSyncAndDelete() => new()
     {
         ["sync_education"] = true,
