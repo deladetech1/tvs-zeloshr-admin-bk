@@ -46,16 +46,38 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
         {
             return new Dictionary<string, IOpenApiExample>
             {
+                ["partial_identity"] = Example(
+                    SwaggerExamples.UpdateEmployeePartialIdentity(),
+                    "Partial — identity only",
+                    """
+                    Send only the section/fields you change. identity fields are merged — you do not need full_name on every save unless changing it.
+                    """),
+                ["education_cert_upsert"] = Example(
+                    SwaggerExamples.UpdateEmployeeEducationCertUpsert(),
+                    "Bulk edit — education + certifications with id",
+                    """
+                    Round-trip id from GET on each array item to update; omit id to add.
+                    Do not send employee_id on write (query ?employee_id= scopes the employee).
+                    Omit education/certifications entirely when those sections are unchanged.
+                    """),
+                ["add_sub_rows"] = Example(
+                    SwaggerExamples.UpdateEmployeeAddSubRows(),
+                    "Add education/certification rows",
+                    "New rows: omit id on each item. institution (education) and name (certifications) are required."),
+                ["sync_and_delete"] = Example(
+                    SwaggerExamples.UpdateEmployeeSyncAndDelete(),
+                    "Replace education / delete certifications",
+                    """
+                    sync_education: true + full education[] replaces the section (orphans deleted).
+                    delete_certification_ids removes specific rows without sending certifications[].
+                    sync_certifications works the same for certifications[].
+                    """),
                 ["full_profile_update"] = Example(
                     SwaggerExamples.UpdateEmployeeFull(),
                     "Full profile update",
                     """
-                    Same aggregate shape as POST /add. Pass employee_id on the query string.
-                    Send the complete profile or only the sections/fields you want to change.
-                    education[] / certifications[]: include id from GET to update; omit id to add rows.
-                    sync_education / sync_certifications: true + full array = replace section.
-                    Omit education/certifications entirely unless changing those sections.
-                    document_ids appends; delete_document_ids removes registry IDs.
+                    All sections optional — send only what you need. Same row shapes as POST /add for education/certifications,
+                    but include id from GET on existing rows. document_ids appends; delete_document_ids removes registry IDs.
                     """),
             };
         }

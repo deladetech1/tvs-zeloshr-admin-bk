@@ -721,13 +721,64 @@ internal static class SwaggerExamples
     internal static JsonObject UpdateEmployeeFull()
     {
         var update = CreateEmployeeFinalised();
-        update["education"] = new JsonArray(EducationEntry(withId: true));
-        update["certifications"] = new JsonArray(CertificationEntry(withId: true));
+        update["education"] = new JsonArray(
+            EducationEntry(withId: true),
+            EducationEntry(
+                withId: true,
+                id: Guid.Parse("55555555-5555-5555-5555-555555555502"),
+                degree: "MSc",
+                fieldOfStudy: "Software Engineering"));
+        update["certifications"] = new JsonArray(
+            CertificationEntry(withId: true),
+            CertificationEntry(
+                withId: true,
+                id: Guid.Parse("66666666-6666-6666-6666-666666666602"),
+                name: "Masters in react fundamentals"));
         return update;
     }
 
-    /// <inheritdoc cref="UpdateEmployeeFull"/>
-    internal static JsonObject UpdateEmployeePartial() => UpdateEmployeeFull();
+    /// <summary>Partial update — one section only (typical bulk save).</summary>
+    internal static JsonObject UpdateEmployeePartialIdentity() => new()
+    {
+        ["identity"] = new JsonObject
+        {
+            ["phone"] = "+233201234567",
+        },
+    };
+
+    /// <summary>Bulk edit education/certification rows using ids from GET (write shape — no employee_id).</summary>
+    internal static JsonObject UpdateEmployeeEducationCertUpsert() => new()
+    {
+        ["education"] = new JsonArray(
+            EducationEntry(withId: true, degree: "MSc", fieldOfStudy: "Computer Science")),
+        ["certifications"] = new JsonArray(
+            CertificationEntry(
+                withId: true,
+                name: "Masters in react fundamentals",
+                issuingBody: "Udemy",
+                issueDate: "2026-05-31",
+                credentialUrl: "https://udemy.com/certificate/3424-3424",
+                omitExpiryDate: true)),
+    };
+
+    /// <summary>Add new education/certification rows (omit id).</summary>
+    internal static JsonObject UpdateEmployeeAddSubRows() => new()
+    {
+        ["education"] = new JsonArray(EducationEntry()),
+        ["certifications"] = new JsonArray(CertificationEntry()),
+    };
+
+    /// <summary>Replace education section or delete certification rows by id.</summary>
+    internal static JsonObject UpdateEmployeeSyncAndDelete() => new()
+    {
+        ["sync_education"] = true,
+        ["education"] = new JsonArray(EducationEntry(withId: true)),
+        ["delete_certification_ids"] = new JsonArray(
+            Guid.Parse("66666666-6666-6666-6666-666666666602").ToString()),
+    };
+
+    /// <inheritdoc cref="UpdateEmployeePartialIdentity"/>
+    internal static JsonObject UpdateEmployeePartial() => UpdateEmployeePartialIdentity();
 
     internal static JsonObject UpdateCustomFieldBody() => new()
     {
@@ -941,7 +992,8 @@ internal static class SwaggerExamples
         string? issuingBody = null,
         string? issueDate = null,
         string? expiryDate = null,
-        string? credentialUrl = null)
+        string? credentialUrl = null,
+        bool omitExpiryDate = false)
     {
         var obj = new JsonObject
         {
@@ -954,7 +1006,7 @@ internal static class SwaggerExamples
 
         if (expiryDate is not null)
             obj["expiry_date"] = expiryDate;
-        else if (!forRead)
+        else if (!forRead && !omitExpiryDate)
             obj["expiry_date"] = "2026-03-15";
 
         if (withId)

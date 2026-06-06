@@ -76,6 +76,14 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
             SetJsonResponseExample(operation, 404, SwaggerExamples.NotFoundEnvelopeForEmployee());
             AppendParameterDescription(operation, "employee_id",
                 "Required. Employee UUID from POST /employees/add or GET /employees/get?employee_id=.");
+            operation.Description = AppendDescription(operation.Description,
+                """
+                Partial aggregate update — send only changed sections.
+                education[] / certifications[] on write: include id from GET to update; omit id to add; do not send employee_id.
+                sync_education / sync_certifications: true + full array replaces that section.
+                delete_education_ids / delete_certification_ids remove rows by UUID.
+                Response matches GET /employees/get (documents[] and identity.profile_url as DocumentReadDto on read).
+                """);
             return;
         }
 

@@ -62,7 +62,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(EmployeeEducationDto) => SwaggerExamples.EducationEntry(withId: true, forRead: true),
             nameof(EmployeeCertificationDto) => SwaggerExamples.CertificationEntry(withId: true, forRead: true),
             nameof(CreateEmployeeAggregateRequest) => SwaggerExamples.CreateEmployeeFinalised(),
-            nameof(UpdateEmployeeAggregateRequest) => SwaggerExamples.UpdateEmployeeFull(),
+            nameof(UpdateEmployeeAggregateRequest) => SwaggerExamples.UpdateEmployeeEducationCertUpsert(),
             nameof(CreateCustomFieldDefinitionDto) => SwaggerExamples.CreateCustomFieldAddBody(),
             nameof(ImportEmployeesRequest) => SwaggerExamples.ImportEmployeesRequestBody(),
             nameof(EmployeeAggregateReadDto) => SwaggerExamples.EmployeeAggregateReadData(),
@@ -86,7 +86,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(CreateEmployeeAggregateRequest) => AppendDescription(schema.Description,
                 "One-shot employee create. See operation examples (finalised vs draft). Upload files first via POST /api/v1/file/post/multiple."),
             nameof(UpdateEmployeeAggregateRequest) => AppendDescription(schema.Description,
-                "Partial or full profile update — same shape as POST /add. Pass employee_id on the query string, not in the body."),
+                "Partial update — only include sections to change. education[]/certifications[] write shape: id to update, omit id to add, no employee_id. sync_* + full array replaces section."),
             nameof(EmployeeDirectorySummaryDto) => AppendDescription(schema.Description,
                 "Directory KPI cards: total headcount, active, on probation, on contract."),
             nameof(CreateCustomFieldDefinitionDto) => AppendDescription(schema.Description,
@@ -389,6 +389,43 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 schema.Description = AppendDescription(schema.Description,
                     "Append registry IDs from POST /file/post/multiple (string array on write).");
                 return;
+            }
+        }
+
+        if (property.DeclaringType == typeof(UpdateEmployeeAggregateRequest))
+        {
+            switch (name)
+            {
+                case nameof(UpdateEmployeeAggregateRequest.Education):
+                    schema.Example = new JsonArray(SwaggerExamples.EducationEntry(withId: true));
+                    schema.Description = AppendDescription(schema.Description,
+                        "Write shape: omit employee_id. Include id from GET to update; omit id to add.");
+                    return;
+                case nameof(UpdateEmployeeAggregateRequest.Certifications):
+                    schema.Example = new JsonArray(SwaggerExamples.CertificationEntry(withId: true));
+                    schema.Description = AppendDescription(schema.Description,
+                        "Write shape: omit employee_id. Include id from GET to update; omit id to add.");
+                    return;
+                case nameof(UpdateEmployeeAggregateRequest.SyncEducation):
+                    schema.Example = JsonValue.Create(false);
+                    schema.Description = AppendDescription(schema.Description,
+                        "When true and education is sent, unlisted rows are deleted after upsert.");
+                    return;
+                case nameof(UpdateEmployeeAggregateRequest.SyncCertifications):
+                    schema.Example = JsonValue.Create(false);
+                    schema.Description = AppendDescription(schema.Description,
+                        "When true and certifications is sent (including []), array is the full desired set.");
+                    return;
+                case nameof(UpdateEmployeeAggregateRequest.DeleteEducationIds):
+                    schema.Example = new JsonArray("55555555-5555-5555-5555-555555555502");
+                    schema.Description = AppendDescription(schema.Description,
+                        "Remove education rows by id without sending education[].");
+                    return;
+                case nameof(UpdateEmployeeAggregateRequest.DeleteCertificationIds):
+                    schema.Example = new JsonArray("66666666-6666-6666-6666-666666666602");
+                    schema.Description = AppendDescription(schema.Description,
+                        "Remove certification rows by id without sending certifications[].");
+                    return;
             }
         }
 
