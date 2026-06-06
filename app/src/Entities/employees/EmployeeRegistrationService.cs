@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Persistence.Entities;
@@ -85,12 +86,10 @@ public sealed class EmployeeRegistrationService
             draftDisplayName = fullName?.Trim() ?? string.Empty;
         }
 
-        var seq = await _employees.GetNextEmployeeSequenceAsync(_tenant.TenantId, _tenant.OrgId, ct);
         var now = DateTimeOffset.UtcNow;
         var entity = new EmployeeEntity
         {
             Id = Guid.NewGuid(),
-            EmployeeCode = $"ZEL-{seq:D4}",
             TenantId = _tenant.TenantId,
             OrgId = _tenant.OrgId,
             UserId = userId,
@@ -104,8 +103,29 @@ public sealed class EmployeeRegistrationService
             CreatedBy = _currentUser.UserId?.ToString(),
         };
 
-        await _employees.AddAsync(entity, ct);
-        return Respons<EmployeeRegistrationReadDto>.Ok(await ToReadDtoAsync(entity, ct));
+        const int maxAttempts = 3;
+        for (var attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            var seq = await _employees.GetNextEmployeeSequenceAsync(_tenant.TenantId, _tenant.OrgId, ct);
+            entity.EmployeeCode = $"ZEL-{seq:D4}";
+
+            try
+            {
+                await _employees.AddAsync(entity, ct);
+                return Respons<EmployeeRegistrationReadDto>.Ok(await ToReadDtoAsync(entity, ct));
+            }
+            catch (DbUpdateException ex) when (PostgresUniqueViolation.IsEmployeeCode(ex))
+            {
+                if (attempt == maxAttempts - 1)
+                {
+                    return Respons<EmployeeRegistrationReadDto>.Fail(
+                        "Could not allocate a unique employee code. Please retry.", statusCode: 409);
+                }
+            }
+        }
+
+        return Respons<EmployeeRegistrationReadDto>.Fail(
+            "Could not allocate a unique employee code. Please retry.", statusCode: 409);
     }
 
     public Task<Respons<EmployeeRegistrationReadDto>> ImportAsync(string userId, CancellationToken ct = default) =>

@@ -6,6 +6,7 @@ using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Persistence.Entities;
 using ZelosHR.Api.Shared.Abstractions;
 using ZelosHR.Api.Shared.Formatting;
+using ZelosHR.Api.Shared.Infrastructure;
 
 namespace ZelosHR.Api.Entities.Employees;
 
@@ -51,36 +52,52 @@ public partial class EmployeesService : IEmployeesService, IEmployeeLookup
         if (await _employees.ExistsByGhanaCardAsync(normalizedGhanaCard, tenantId, ct: ct))
             return Respons<CreateEmployeeServiceReadDto>.Fail(DuplicateGhanaCardMessage, statusCode: 409);
 
-        var seq = await _employees.GetNextEmployeeSequenceAsync(tenantId, orgId, ct);
-        var employeeCode = $"ZEL-{seq:D4}";
-        var entity = data.ToEntity(tenantId, orgId, employeeCode);
+        var entity = data.ToEntity(tenantId, orgId, employeeCode: string.Empty);
 
-        try
+        const int maxAttempts = 3;
+        for (var attempt = 0; attempt < maxAttempts; attempt++)
         {
-            await _employees.AddAsync(entity, ct);
+            var seq = await _employees.GetNextEmployeeSequenceAsync(tenantId, orgId, ct);
+            var employeeCode = $"ZEL-{seq:D4}";
+            entity.EmployeeCode = employeeCode;
+
+            try
+            {
+                await _employees.AddAsync(entity, ct);
+                _logger.LogInformation(
+                    "Created employee {EmployeeId} code={EmployeeCode} tenant={TenantId}",
+                    entity.Id,
+                    employeeCode,
+                    tenantId);
+
+                return Respons<CreateEmployeeServiceReadDto>.Ok(new CreateEmployeeServiceReadDto
+                {
+                    Id = entity.Id,
+                    EmployeeCode = employeeCode,
+                    FirstName = entity.FirstName,
+                    MiddleName = entity.MiddleName,
+                    LastName = entity.LastName,
+                    LifecycleState = entity.LifecycleState,
+                });
+            }
+            catch (DbUpdateException ex) when (PostgresUniqueViolation.IsGhanaCard(ex))
+            {
+                _logger.LogWarning(ex, "Duplicate Ghana Card on create");
+                return Respons<CreateEmployeeServiceReadDto>.Fail(DuplicateGhanaCardMessage, statusCode: 409);
+            }
+            catch (DbUpdateException ex) when (PostgresUniqueViolation.IsEmployeeCode(ex))
+            {
+                if (attempt == maxAttempts - 1)
+                {
+                    _logger.LogWarning(ex, "Duplicate employee code on create after {Attempts} attempts", maxAttempts);
+                    return Respons<CreateEmployeeServiceReadDto>.Fail(
+                        "Could not allocate a unique employee code. Please retry.", statusCode: 409);
+                }
+            }
         }
-        catch (DbUpdateException ex)
-            when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
-        {
-            _logger.LogWarning(ex, "Duplicate Ghana Card on create");
-            return Respons<CreateEmployeeServiceReadDto>.Fail(DuplicateGhanaCardMessage, statusCode: 409);
-        }
 
-        _logger.LogInformation(
-            "Created employee {EmployeeId} code={EmployeeCode} tenant={TenantId}",
-            entity.Id,
-            employeeCode,
-            tenantId);
-
-        return Respons<CreateEmployeeServiceReadDto>.Ok(new CreateEmployeeServiceReadDto
-        {
-            Id = entity.Id,
-            EmployeeCode = employeeCode,
-            FirstName = entity.FirstName,
-            MiddleName = entity.MiddleName,
-            LastName = entity.LastName,
-            LifecycleState = entity.LifecycleState,
-        });
+        return Respons<CreateEmployeeServiceReadDto>.Fail(
+            "Could not allocate a unique employee code. Please retry.", statusCode: 409);
     }
 
     public async Task<Respons<GetEmployeesServiceReadDto>> ListEmployeesAsync(

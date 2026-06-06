@@ -88,7 +88,7 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
         {
             b.ToTable("zhr_employees");
             b.HasKey(x => x.Id);
-            b.HasIndex(x => x.EmployeeCode).IsUnique();
+            b.HasIndex(x => new { x.TenantId, x.EmployeeCode }).IsUnique();
             b.HasIndex(x => new { x.TenantId, x.GhanaCardNumber })
                 .IsUnique()
                 .HasFilter("ghana_card_number IS NOT NULL AND ghana_card_number <> ''");

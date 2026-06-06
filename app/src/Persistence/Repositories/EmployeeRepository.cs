@@ -201,7 +201,7 @@ public sealed class EmployeeRepository(ZelosHrDbContext db) : IEmployeeRepositor
         string tenantId, string orgId, CancellationToken ct = default)
     {
         var codes = await db.Employees.AsNoTracking()
-            .Where(e => e.TenantId == tenantId && e.OrgId == orgId)
+            .Where(e => e.TenantId == tenantId)
             .Select(e => e.EmployeeCode)
             .ToListAsync(ct);
 

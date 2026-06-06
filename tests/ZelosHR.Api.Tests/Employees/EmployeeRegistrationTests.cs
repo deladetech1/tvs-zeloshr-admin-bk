@@ -1,5 +1,7 @@
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Npgsql;
 using NSubstitute;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Persistence.Entities;
@@ -108,6 +110,29 @@ public class EmployeeRegistrationTests
 
         result.Data!.EmployeeCode.Should().Be("ZEL-0289");
         saved!.EmployeeCode.Should().Be("ZEL-0289");
+    }
+
+    [Fact]
+    public async Task CreateDraft_WhenEmployeeCodeCollides_RetriesWithNextSequence()
+    {
+        _employees.GetNextEmployeeSequenceAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(2L, 3L);
+        var collision = new DbUpdateException(
+            "duplicate",
+            new PostgresException("duplicate", severity: default, invariantSeverity: default, sqlState: PostgresErrorCodes.UniqueViolation)
+            {
+                ConstraintName = "ix_zhr_employees_tenant_id_employee_code",
+            });
+        _employees.AddAsync(Arg.Any<EmployeeEntity>(), Arg.Any<CancellationToken>())
+            .Returns(
+                _ => Task.FromException<EmployeeEntity>(collision),
+                ci => Task.FromResult(ci.Arg<EmployeeEntity>()));
+
+        var result = await _sut.CreateDraftAsync("Test User", null);
+
+        result.Success.Should().BeTrue();
+        result.Data!.EmployeeCode.Should().Be("ZEL-0003");
+        await _employees.Received(2).AddAsync(Arg.Any<EmployeeEntity>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
