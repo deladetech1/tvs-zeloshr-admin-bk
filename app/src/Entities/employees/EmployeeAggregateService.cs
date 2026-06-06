@@ -347,10 +347,18 @@ public sealed class EmployeeAggregateService
 
             if (request.Education is { Count: > 0 })
             {
+                var existingEducation = await _subResources.ListEducationAsync(employeeId, ct);
+                var existingEducationRows = existingEducation.Success && existingEducation.Data is not null
+                    ? existingEducation.Data
+                    : Array.Empty<EmployeeEducationDto>();
+                var consumedEducationIds = new HashSet<Guid>();
+
                 foreach (var edu in request.Education)
                 {
                     var write = EmployeeAggregateMapper.ToEducationWrite(edu);
-                    var result = edu.Id is { } id
+                    var resolvedId = EmployeeSubResourceUpsertMatcher.ResolveEducationId(
+                        edu, existingEducationRows, consumedEducationIds);
+                    var result = resolvedId is { } id
                         ? await _subResources.UpdateEducationAsync(employeeId, id, write, ct)
                         : await _subResources.AddEducationAsync(employeeId, write, ct);
                     if (!result.Success)
@@ -358,6 +366,9 @@ public sealed class EmployeeAggregateService
                         await transaction.RollbackAsync(ct);
                         return MapError<EmployeeAggregateReadDto>(result);
                     }
+
+                    if (result.Data is not null)
+                        consumedEducationIds.Add(result.Data.Id);
                 }
             }
 
@@ -378,10 +389,18 @@ public sealed class EmployeeAggregateService
 
             if (request.Certifications is { Count: > 0 })
             {
+                var existingCertifications = await _subResources.ListCertificationsAsync(employeeId, ct);
+                var existingCertificationRows = existingCertifications.Success && existingCertifications.Data is not null
+                    ? existingCertifications.Data
+                    : Array.Empty<EmployeeCertificationDto>();
+                var consumedCertificationIds = new HashSet<Guid>();
+
                 foreach (var cert in request.Certifications)
                 {
                     var write = EmployeeAggregateMapper.ToCertificationWrite(cert);
-                    var result = cert.Id is { } id
+                    var resolvedId = EmployeeSubResourceUpsertMatcher.ResolveCertificationId(
+                        cert, existingCertificationRows, consumedCertificationIds);
+                    var result = resolvedId is { } id
                         ? await _subResources.UpdateCertificationAsync(employeeId, id, write, ct)
                         : await _subResources.AddCertificationAsync(employeeId, write, ct);
                     if (!result.Success)
@@ -389,6 +408,9 @@ public sealed class EmployeeAggregateService
                         await transaction.RollbackAsync(ct);
                         return MapError<EmployeeAggregateReadDto>(result);
                     }
+
+                    if (result.Data is not null)
+                        consumedCertificationIds.Add(result.Data.Id);
                 }
             }
 

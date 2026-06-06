@@ -716,6 +716,8 @@ internal static class SwaggerExamples
     internal static JsonObject UpdateEmployeeFull()
     {
         var update = CreateEmployeeFinalised();
+        update["education"] = new JsonArray(EducationEntry(withId: true));
+        update["certifications"] = new JsonArray(CertificationEntry(withId: true));
         return update;
     }
 
