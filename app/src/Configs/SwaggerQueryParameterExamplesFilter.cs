@@ -81,9 +81,9 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
 
                 Sources:
                 - `POST /file/post/multiple` → `data[].id`
-                - Employee record → `document_ids` array from `GET /employees/get?employee_id=`
+                - Employee GET → `documents[].id` from `GET /employees/get?employee_id=`
 
-                Returns presigned download URLs valid for **24 hours**.
+                Returns presigned download URLs valid for **24 hours** (includes `file_name` on this endpoint).
 
                 Example: `doc_contract_a1b2c3,doc_national_id_d4e5f6`
                 """;

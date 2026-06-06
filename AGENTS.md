@@ -96,7 +96,8 @@ See `tvs-sqlscript/README.md` for CI dispatch, rollback, and validate.
 5. Do **not** add demo tenant / employee inserts to tvs-sqlscript; test data is local-only (SQL/pgAdmin) or comes from the real environment.
 6. Open a PR in **tvs-sqlscript** targeting **`dev`**; link from the ZelosHR PR (also targeting **`dev`**) if both repos change.
 7. **Merge tvs-sqlscript `dev` first** — that push auto-deploys schema to **`saas-dev`**. Then merge ZelosHR `dev`.
-8. Verify locally:
+8. **Update Swagger in the same PR** — every API/DTO/route/workflow change must touch the matching files under `app/src/Configs/Swagger*.cs` and controller XML docs (see [docs/SWAGGER.md](docs/SWAGGER.md)). No exceptions.
+9. Verify locally:
 
    ```bash
    ./scripts/compose.sh migrate   # tvs-sqlscript deploy into compose Postgres
@@ -122,7 +123,7 @@ See `tvs-sqlscript/README.md` for CI dispatch, rollback, and validate.
 - [ ] Deploy tested (`deploy` — schema + reference seeds only)
 - [ ] ZelosHR API smoke-tested (Trove headers: `app-id`, `authorization`, `bus-id`, `loc-id`, `org-id`)
 - [ ] No new `.sql` files added under ZelosHR `app/src/Database/Migrations/`
-- [ ] **Swagger kept in sync:** `GET /api/v1/navigation` and `GET /swagger/v1/swagger.json` list the same routes (~55 paths); use `Swashbuckle.AspNetCore` 10.x on .NET 10; `ApiExplorerSettings(GroupName)` is the UI **tag** only (doc id stays `v1` via `DocInclusionPredicate`); add XML `<summary>` on new controllers (see [docs/SWAGGER.md](docs/SWAGGER.md))
+- [ ] **Swagger kept in sync (MUST):** same PR updates `SwaggerExamples`, `SwaggerSchemaExamplesFilter`, relevant `Swagger*OperationFilter` / `SwaggerQueryParameterExamplesFilter`, controller XML, and `SwaggerConfiguration` workflow text when request/response shapes, params, routes, or examples change; verify `/swagger` locally; `GET /api/v1/navigation` and `/swagger/v1/swagger.json` list the same routes (~55 paths); Swashbuckle.AspNetCore 10.x; see [docs/SWAGGER.md](docs/SWAGGER.md)
 
 ## Related docs
 

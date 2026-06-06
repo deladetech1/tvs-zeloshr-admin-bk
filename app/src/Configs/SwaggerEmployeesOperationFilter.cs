@@ -20,6 +20,8 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
             SetJsonResponseExample(operation, 404, SwaggerExamples.NotFoundEnvelopeForEmployee());
             AppendParameterDescription(operation, "employee_id",
                 "Required. Employee UUID from POST /employees/add or GET /employees/list → items[].employee_id.");
+            operation.Description = AppendDescription(operation.Description,
+                "Response `documents[]`: each attachment includes `id`, `presigned_url` (~24h), and `description`. Write attachments via `document_ids` on create/update.");
             return;
         }
 

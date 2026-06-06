@@ -38,6 +38,23 @@ Tenant scope is taken from the JWT claim `tenant_id` (read without DB validation
 | **Trove headers** | `app-id`, `bus-id`, `loc-id`, `org-id` on each operation (pre-filled for local demo) |
 | **Standard errors** | 400, 401, 404, 409, 500 |
 
+## Required on every API change (MUST)
+
+Any PR that changes request/response shapes, query params, routes, or workflows **must** update Swagger in the same commit. Do not merge API code without matching OpenAPI docs.
+
+| Touch point | File(s) |
+|-------------|---------|
+| New/changed DTO property | XML `<summary>` on the property; `SwaggerSchemaExamplesFilter` (type + property examples/descriptions) |
+| New/changed response envelope | `SwaggerExamples` (response JSON); matching `Swagger*OperationFilter` 200 example |
+| New/changed request body | `SwaggerExamples` + `SwaggerRequestExamplesOperationFilter` named examples |
+| New/changed query param | `SwaggerQueryParameterExamplesFilter`; `[SwaggerAllowedValues]` where enums apply |
+| New/changed route or workflow | `SwaggerConfiguration` intro text; controller XML `<remarks>`; group operation filter |
+| New controller / tag | `SwaggerGroups.VisibleInSwagger`; `ApiExplorerSettings(GroupName)`; tag document filter if needed |
+
+**Verify before merge:** `./scripts/compose.sh dev` → open `/swagger` → confirm Try it out examples match the code change; spot-check `/swagger/v1/swagger.json`.
+
+See also PR checklist in [AGENTS.md](../AGENTS.md).
+
 ## Try it out (local)
 
 1. Start API: `./scripts/compose.sh dev` (must run with `ASPNETCORE_ENVIRONMENT=Development`)

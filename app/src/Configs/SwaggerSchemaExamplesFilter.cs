@@ -62,6 +62,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(CreateCustomFieldDefinitionDto) => SwaggerExamples.CreateCustomFieldAddBody(),
             nameof(ImportEmployeesRequest) => SwaggerExamples.ImportEmployeesRequestBody(),
             nameof(EmployeeAggregateReadDto) => SwaggerExamples.EmployeeAggregateReadData(),
+            nameof(EmployeeDocumentReadDto) => SwaggerExamples.EmployeeDocumentItem(),
             nameof(EmployeeDirectorySummaryDto) => SwaggerExamples.EmployeeDirectorySummaryData(),
             nameof(GetCurrencySimpleReadDto) => SwaggerExamples.CurrencyItem(),
             nameof(FileDeleteReadDto) => SwaggerExamples.FileDeleteData(),
@@ -90,6 +91,10 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 "Tenant currency from core_platform.cp_currencies. List via GET /api/v1/currencies/list."),
             nameof(EmployeeAggregateCompensationDto) => AppendDescription(schema.Description,
                 $"currency_id from GET /api/v1/currencies/list. pay_frequency: {SwaggerExampleHints.PayFrequency}."),
+            nameof(EmployeeAggregateReadDto) => AppendDescription(schema.Description,
+                "Read-only employee aggregate. documents[] resolves stored attachments to id, presigned_url (~24h), and description."),
+            nameof(EmployeeDocumentReadDto) => AppendDescription(schema.Description,
+                "Employee attachment on read. Write via document_ids (registry IDs from POST /file/post/multiple)."),
             nameof(FileUploadMultipleReadDto) => AppendDescription(schema.Description,
                 "Registry ID from upload. Attach on employee create/update as document_ids string."),
             nameof(FileResponseReadDto) => AppendDescription(schema.Description,
@@ -169,7 +174,9 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
 
         if (name.Equals("Id", StringComparison.OrdinalIgnoreCase)
             && property.DeclaringType is { } declaring
-            && (declaring == typeof(FileUploadMultipleReadDto) || declaring == typeof(FileResponseReadDto)))
+            && (declaring == typeof(FileUploadMultipleReadDto)
+                || declaring == typeof(FileResponseReadDto)
+                || declaring == typeof(EmployeeDocumentReadDto)))
         {
             schema.Example = JsonValue.Create(SwaggerExamples.SampleDocumentId1);
             return;
@@ -307,6 +314,15 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
         if (IsGuid(type))
         {
             schema.Example = JsonValue.Create(ResolveGuidExample(name));
+            return;
+        }
+
+        if (name.Equals("Documents", StringComparison.OrdinalIgnoreCase)
+            && property.DeclaringType == typeof(EmployeeAggregateReadDto))
+        {
+            schema.Example = SwaggerExamples.EmployeeDocumentsArray();
+            schema.Description = AppendDescription(schema.Description,
+                "Read only. Each item: id, presigned_url (~24h), description. Attach files on write via document_ids.");
             return;
         }
 
