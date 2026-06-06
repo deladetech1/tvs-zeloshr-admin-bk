@@ -208,7 +208,13 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             case nameof(EmployeeAggregateIdentityDto.ProfileUrl):
                 schema.Example = JsonValue.Create(SwaggerExamples.SampleDocumentId1);
                 schema.Description = AppendDescription(schema.Description,
-                    "Write: document id from POST /file/post/multiple. Read (GET): presigned URL (~24h). Omit on update to keep photo; resending the GET URL is ignored.");
+                    "Write: document id string from POST /file/post/multiple. Read (GET): object with id, presigned_url, description.");
+                return;
+            case nameof(EmployeeAggregateIdentityReadDto.ProfileUrl):
+                schema.Example = SwaggerExamples.EmployeeDocumentItem(
+                    SwaggerExamples.SampleDocumentId1, "Employee profile photo");
+                schema.Description = AppendDescription(schema.Description,
+                    "Profile photo on read: id, presigned_url (~24h), description.");
                 return;
             case nameof(EmployeeAggregateIdentityDto.ResidentialAddress):
                 schema.Example = JsonValue.Create("12 Independence Ave, Accra");
@@ -299,6 +305,10 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 schema.Example = JsonValue.Create(SwaggerExampleHints.OrgNodeType);
                 schema.Description = AppendDescription(schema.Description,
                     $"Allowed: {SwaggerExampleHints.OrgNodeType}.");
+                return;
+            case nameof(EmployeeListItemDto.ProfileUrl):
+                schema.Example = SwaggerExamples.EmployeeDocumentItem(
+                    SwaggerExamples.SampleDocumentId1, "Employee profile photo");
                 return;
             case "EmployeeCount":
                 schema.Example = JsonValue.Create(24);

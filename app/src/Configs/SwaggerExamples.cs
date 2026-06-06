@@ -306,7 +306,7 @@ internal static class SwaggerExamples
             ["lifecycle_state"] = "active",
             ["employment_status"] = "Active",
             ["employment_type"] = "Full-time",
-            ["profile_url"] = SamplePresignedUrl,
+            ["profile_url"] = EmployeeDocumentItem(SampleDocumentId1, "Employee profile photo"),
         }),
     };
 
@@ -825,7 +825,9 @@ internal static class SwaggerExamples
         ["phone"] = "+233201234567",
         ["linked_in_url"] = "https://linkedin.com/in/adalovelace",
         ["residential_address"] = "12 Independence Ave, Accra",
-        ["profile_url"] = forRead ? SamplePresignedUrl : SampleDocumentId1,
+        ["profile_url"] = forRead
+            ? EmployeeDocumentItem(SampleDocumentId1, "Employee profile photo")
+            : SampleDocumentId1,
         ["custom_fields"] = withCustomField
             ? CustomFieldsForSection(EmployeeCustomFieldSections.Identity)
             : EmptyCustomFields(EmployeeCustomFieldSections.Identity),

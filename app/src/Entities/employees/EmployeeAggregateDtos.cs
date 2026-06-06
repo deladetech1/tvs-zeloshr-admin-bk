@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using ZelosHR.Api.Configs;
 
 namespace ZelosHR.Api.Entities.Employees;
@@ -103,12 +104,43 @@ public sealed class EmployeeAggregateIdentityDto
     public string? ResidentialAddress { get; init; }
 
     /// <summary>
-    /// **Write:** document id from file upload. **Read:** presigned URL (~24h).
-    /// Omit on update to leave unchanged; pass <c>""</c> to clear. Do not send the presigned URL back from GET.
+    /// **Write:** document id string from file upload (or read object with <c>id</c> on round-trip update).
+    /// **Read:** see <see cref="EmployeeAggregateIdentityReadDto.ProfileUrl"/>.
     /// </summary>
+    [JsonConverter(typeof(ProfileUrlWriteJsonConverter))]
     public string? ProfileUrl { get; init; }
 
     /// <summary>Custom field **values** for <c>section_name = employee-directory-identity</c>.</summary>
+    public Dictionary<string, string?>? CustomFields { get; init; }
+}
+
+/// <summary>Identity section on employee read — <c>profile_url</c> includes presigned URL metadata.</summary>
+public sealed class EmployeeAggregateIdentityReadDto
+{
+    public string FullName { get; init; } = string.Empty;
+    public DateOnly? DateOfBirth { get; init; }
+
+    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.Genders))]
+    public string? Gender { get; init; }
+
+    public string? Country { get; init; }
+
+    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.IdTypes),
+        Description = "Suggested values; free text is accepted.")]
+    public string? IdType { get; init; }
+
+    public DateOnly? IdIssueDate { get; init; }
+    public DateOnly? IdExpiryDate { get; init; }
+    public string? IdNumber { get; init; }
+    public string? PersonalEmail { get; init; }
+    public string? WorkEmail { get; init; }
+    public string? Phone { get; init; }
+    public string? LinkedInUrl { get; init; }
+    public string? ResidentialAddress { get; init; }
+
+    /// <summary>Profile photo: <c>id</c>, <c>presigned_url</c> (~24h), and <c>description</c>.</summary>
+    public EmployeeDocumentReadDto? ProfileUrl { get; init; }
+
     public Dictionary<string, string?>? CustomFields { get; init; }
 }
 
@@ -170,7 +202,7 @@ public sealed class EmployeeAggregateReadDto
 
     public bool IsDraft { get; init; }
     public string? UserId { get; init; }
-    public EmployeeAggregateIdentityDto Identity { get; init; } = new();
+    public EmployeeAggregateIdentityReadDto Identity { get; init; } = new();
     public EmployeeAggregateEmploymentReadDto? Employment { get; init; }
     public EmployeeAggregateCompensationReadDto? Compensation { get; init; }
     public IReadOnlyList<EmployeeEducationDto>? Education { get; init; }
@@ -262,5 +294,5 @@ public sealed class EmployeeListItemDto
 
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.EmploymentTypes))]
     public string? EmploymentType { get; init; }
-    public string? ProfileUrl { get; init; }
+    public EmployeeDocumentReadDto? ProfileUrl { get; init; }
 }

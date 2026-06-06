@@ -37,6 +37,35 @@ internal static class EmployeeAggregateReadMapper
         || entity.AnnualizedCost is not null
         || customFields is { Count: > 0 };
 
+    internal static EmployeeAggregateIdentityReadDto BuildIdentity(
+        string fullName,
+        EmployeeEntity entity,
+        CpUserDto? cp,
+        string? workEmail,
+        EmployeeDocumentReadDto? profileUrl,
+        Dictionary<string, string?>? customFields) =>
+        new()
+        {
+            FullName = fullName,
+            DateOfBirth = entity.DateOfBirth ?? ParseCpDob(cp?.Dob),
+            Gender = entity.Gender ?? cp?.Gender,
+            Country = entity.Nationality,
+            IdType = entity.NationalityIdType,
+            IdIssueDate = entity.IdIssueDate,
+            IdExpiryDate = entity.IdExpiryDate,
+            IdNumber = entity.IdNumber,
+            PersonalEmail = entity.PersonalEmail,
+            WorkEmail = workEmail,
+            Phone = entity.Phone ?? entity.PersonalPhone ?? cp?.Phone,
+            LinkedInUrl = entity.LinkedInUrl,
+            ResidentialAddress = entity.ResidentialAddress ?? cp?.Address,
+            ProfileUrl = profileUrl,
+            CustomFields = CustomFieldsOrNull(customFields),
+        };
+
+    private static DateOnly? ParseCpDob(string? dob) =>
+        DateOnly.TryParse(dob, out var parsed) ? parsed : null;
+
     internal static EmployeeAggregateEmploymentReadDto? BuildEmployment(
         EmployeeEntity entity,
         Dictionary<string, string?>? customFields)

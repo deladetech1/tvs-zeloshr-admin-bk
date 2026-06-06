@@ -461,7 +461,7 @@ public sealed class EmployeeAggregateService
         var fullName = EmployeeIdentityResolver.ResolveFullName(entity, cp);
         var workEmail = EmployeeIdentityResolver.ResolveWorkEmail(entity, cp);
         var storedProfileRef = EmployeeIdentityResolver.ResolveStoredProfileReference(entity, cp);
-        var profilePhoto = await _profileUrls.ResolveDisplayUrlAsync(storedProfileRef, ct);
+        var profileUrl = await _profileUrls.ResolveDocumentReadAsync(storedProfileRef, ct);
 
         var educationItems = education.Success && education.Data is { Count: > 0 } data ? data : null;
         var certificationItems = certifications.Success && certifications.Data is { Count: > 0 } certData
@@ -495,24 +495,13 @@ public sealed class EmployeeAggregateService
             Status = entity.IsDraft ? "draft" : entity.LifecycleStatus,
             IsDraft = entity.IsDraft,
             UserId = entity.UserId,
-            Identity = new EmployeeAggregateIdentityDto
-            {
-                FullName = fullName,
-                DateOfBirth = entity.DateOfBirth ?? ParseCpDob(cp?.Dob),
-                Gender = entity.Gender ?? cp?.Gender,
-                Country = entity.Nationality,
-                IdType = entity.NationalityIdType,
-                IdIssueDate = entity.IdIssueDate,
-                IdExpiryDate = entity.IdExpiryDate,
-                IdNumber = entity.IdNumber,
-                PersonalEmail = entity.PersonalEmail,
-                WorkEmail = workEmail,
-                Phone = entity.Phone ?? entity.PersonalPhone ?? cp?.Phone,
-                LinkedInUrl = entity.LinkedInUrl,
-                ResidentialAddress = entity.ResidentialAddress ?? cp?.Address,
-                ProfileUrl = profilePhoto,
-                CustomFields = EmployeeAggregateReadMapper.CustomFieldsOrNull(sections.Identity),
-            },
+            Identity = EmployeeAggregateReadMapper.BuildIdentity(
+                fullName,
+                entity,
+                cp,
+                workEmail,
+                profileUrl,
+                sections.Identity),
             Employment = EmployeeAggregateReadMapper.BuildEmployment(entity, sections.Employment),
             Compensation = EmployeeAggregateReadMapper.BuildCompensation(
                 entity,
@@ -555,7 +544,7 @@ public sealed class EmployeeAggregateService
                 return EmployeeIdentityResolver.ResolveStoredProfileReference(e, cp);
             })
             .ToList();
-        var profileUrlMap = await _profileUrls.ResolveDisplayUrlsAsync(storedProfileRefs, ct);
+        var profileUrlMap = await _profileUrls.ResolveDocumentReadsAsync(storedProfileRefs, ct);
 
         var items = rows.Select(e =>
         {
@@ -563,7 +552,7 @@ public sealed class EmployeeAggregateService
             var storedProfileRef = EmployeeIdentityResolver.ResolveStoredProfileReference(e, cp);
             var profileUrl = storedProfileRef is null
                 ? null
-                : profileUrlMap.GetValueOrDefault(storedProfileRef);
+                : profileUrlMap.GetValueOrDefault(storedProfileRef.Trim());
             return new EmployeeListItemDto
             {
                 EmployeeId = e.Id.ToString(),
@@ -746,7 +735,4 @@ public sealed class EmployeeAggregateService
 
     private static Respons<T> Fail<T>(int statusCode, string? error, string? detail) =>
         Respons<T>.Fail(error ?? detail ?? "Request failed.", statusCode: statusCode);
-
-    private static DateOnly? ParseCpDob(string? dob) =>
-        DateOnly.TryParse(dob, out var parsed) ? parsed : null;
 }

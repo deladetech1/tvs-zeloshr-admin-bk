@@ -198,8 +198,8 @@ public class EmployeesController : ControllerBase
     /// <remarks>
     /// Query param <c>employee_id</c> (UUID from <c>POST /add</c> or <c>GET /list</c>).
     /// Route: <c>GET /api/v1/employees/get?employee_id=</c>.
-    /// Returns nested sections with <c>custom_fields</c>, joined currency metadata, and
-    /// <c>document_ids</c> on read (<c>id</c>, <c>presigned_url</c>, <c>description</c> per item).
+    /// Returns nested sections with <c>custom_fields</c>, joined currency metadata,
+    /// <c>document_ids</c> and <c>identity.profile_url</c> as objects (<c>id</c>, <c>presigned_url</c>, <c>description</c>).
     /// </remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("get")]

@@ -1,3 +1,4 @@
+using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Persistence.Repositories;
 using ZelosHR.Api.Shared.Abstractions;
 
@@ -87,6 +88,12 @@ public sealed class HrDocumentPresignedUrlService
 
         if (!IsLegacyHttpUrl(trimmed))
         {
+            if (!string.IsNullOrWhiteSpace(currentStoredReference)
+                && string.Equals(trimmed, currentStoredReference.Trim(), StringComparison.Ordinal))
+            {
+                return new ProfileUrlWriteResolution(false, null, null);
+            }
+
             var validationError = await ValidateDocumentReferenceAsync(fieldPath, trimmed, ct);
             return validationError is null
                 ? new ProfileUrlWriteResolution(true, trimmed, null)
@@ -222,5 +229,54 @@ public sealed class HrDocumentPresignedUrlService
         }
 
         return items;
+    }
+
+    /// <summary>Resolve one stored registry id (or legacy URL) to employee read document shape.</summary>
+    public async Task<EmployeeDocumentReadDto?> ResolveDocumentReadAsync(
+        string? storedReference,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(storedReference))
+            return null;
+
+        var trimmed = storedReference.Trim();
+        if (IsLegacyHttpUrl(trimmed))
+        {
+            return new EmployeeDocumentReadDto
+            {
+                Id = trimmed,
+                PresignedUrl = trimmed,
+                Description = null,
+            };
+        }
+
+        var docs = await ResolveDocumentsAsync([trimmed], ct);
+        var doc = docs.FirstOrDefault();
+        if (doc is null)
+            return null;
+
+        return new EmployeeDocumentReadDto
+        {
+            Id = doc.Id,
+            PresignedUrl = doc.PresignedUrl,
+            Description = doc.Description,
+        };
+    }
+
+    public async Task<IReadOnlyDictionary<string, EmployeeDocumentReadDto?>> ResolveDocumentReadsAsync(
+        IEnumerable<string?> storedReferences,
+        CancellationToken ct = default)
+    {
+        var distinct = storedReferences
+            .Where(r => !string.IsNullOrWhiteSpace(r))
+            .Select(r => r!.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        var result = new Dictionary<string, EmployeeDocumentReadDto?>(StringComparer.Ordinal);
+        foreach (var reference in distinct)
+            result[reference] = await ResolveDocumentReadAsync(reference, ct);
+
+        return result;
     }
 }
