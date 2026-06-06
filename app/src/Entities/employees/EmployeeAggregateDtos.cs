@@ -128,7 +128,6 @@ public sealed class EmployeeAggregateIdentityDto
     public string? WorkEmail { get; init; }
 
     /// <summary>Contact number. Required on create (<c>POST /add</c>).</summary>
-    [Required]
     public string? Phone { get; init; }
     public string? LinkedInUrl { get; init; }
     public string? ResidentialAddress { get; init; }
