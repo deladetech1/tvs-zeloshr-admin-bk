@@ -94,10 +94,12 @@ Send **only** sections/fields you are changing. At least one top-level field or 
 | `employment` | optional | optional | Job, dept, branch, manager, etc. |
 | `compensation` | optional | optional | Salary, SSNIT, TIN, bank |
 | `lifecycle_state` | no | optional | e.g. `pre_hire`, `active`, `terminated` |
-| `education` | object | optional | Single object — same partial PUT as `employment` |
-| `certifications` | array | optional | See **Certifications** |
+| `education` | array | optional | Each item has `id` on read; include `id` on update |
+| `certifications` | array | optional | Same as education |
+| `sync_education` | no | optional | Default `false`. `true` + full `education` = replace |
 | `sync_certifications` | no | optional | Default `false`. `true` + `certifications` = full replace |
 | `document_ids` | optional | optional | File-registry IDs (not profile photo) |
+| `delete_education_ids` | no | optional | UUID[] |
 | `delete_certification_ids` | no | optional | UUID[] |
 | `delete_document_ids` | no | optional | UUID[] |
 
