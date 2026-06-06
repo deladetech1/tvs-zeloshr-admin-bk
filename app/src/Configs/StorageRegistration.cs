@@ -1,4 +1,3 @@
-using Azure.Identity;
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -23,7 +22,7 @@ public static class StorageRegistration
         if (!string.IsNullOrWhiteSpace(connectionString))
         {
             services.AddSingleton(_ => new BlobServiceClient(connectionString.Trim()));
-            services.AddScoped<IFileStorageService, AzureBlobStorageService>();
+            RegisterAzureBlobServices(services);
             return services;
         }
 
@@ -38,18 +37,20 @@ public static class StorageRegistration
             {
                 var logger = sp.GetRequiredService<ILoggerFactory>()
                     .CreateLogger(typeof(StorageRegistration));
+                var credential = AzureStorageConfiguration.CreateCredential(configuration);
                 logger.LogInformation(
                     "Azure Blob Storage: using DefaultAzureCredential against {BlobServiceUri}",
                     serviceUri);
-                return new BlobServiceClient(serviceUri, new DefaultAzureCredential());
+                return new BlobServiceClient(serviceUri, credential);
             });
-            services.AddScoped<IFileStorageService, AzureBlobStorageService>();
+            RegisterAzureBlobServices(services);
             return services;
         }
 
         if (environment.IsDevelopment())
         {
             services.AddScoped<IFileStorageService, LocalDevFileStorageService>();
+            services.AddScoped<IEmployeeDocumentBlobStorage, LocalDevEmployeeDocumentBlobStorage>();
             return services;
         }
 
@@ -57,6 +58,12 @@ public static class StorageRegistration
             "Azure Blob Storage is not configured. Set AzureStorage:ConnectionString (local) "
             + "or AzureStorage:AccountName / Trovesuite:AzureStorage:AccountName "
             + "(Container App managed identity + DefaultAzureCredential).");
+    }
+
+    private static void RegisterAzureBlobServices(IServiceCollection services)
+    {
+        services.AddScoped<IFileStorageService, AzureBlobStorageService>();
+        services.AddScoped<IEmployeeDocumentBlobStorage, EmployeeDocumentBlobStorage>();
     }
 
     private static string? ResolveAccountName(IConfiguration configuration)

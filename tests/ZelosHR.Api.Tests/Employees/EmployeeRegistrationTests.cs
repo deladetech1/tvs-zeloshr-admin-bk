@@ -4,7 +4,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Npgsql;
 using NSubstitute;
-using Trovesuite.Package.Storage;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Persistence.Entities;
@@ -19,7 +18,7 @@ public class EmployeeRegistrationTests
     private readonly IEmployeeRepository _employees = Substitute.For<IEmployeeRepository>();
     private readonly ICpUserRepository _cpUsers = Substitute.For<ICpUserRepository>();
     private readonly ICpCurrencyRepository _currencies = Substitute.For<ICpCurrencyRepository>();
-    private readonly IStorageService _storage = Substitute.For<IStorageService>();
+    private readonly IEmployeeDocumentBlobStorage _blobs = Substitute.For<IEmployeeDocumentBlobStorage>();
     private readonly IHrDocumentPathRepository _documents = Substitute.For<IHrDocumentPathRepository>();
     private readonly ITenantContext _tenant = Substitute.For<ITenantContext>();
     private readonly ICurrentUserService _currentUser = Substitute.For<ICurrentUserService>();
@@ -37,12 +36,12 @@ public class EmployeeRegistrationTests
             new ConfigurationBuilder().Build(),
             Options.Create(new AzureStorageOptions()));
         var profileUrls = new HrDocumentPresignedUrlService(
-            _storage, _documents, storageConfig, _tenant);
+            _blobs, _documents, storageConfig, _tenant);
         _sut = new EmployeeRegistrationService(
             _employees,
             _cpUsers,
             _currencies,
-            _storage,
+            _blobs,
             _documents,
             storageConfig,
             profileUrls,

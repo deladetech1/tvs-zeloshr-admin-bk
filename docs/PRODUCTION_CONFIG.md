@@ -69,6 +69,20 @@ Set **`App__ConnectionString`** to a full PostgreSQL URI, for example:
 
 In Azure Portal: Container App → **Containers** → your container → **Environment variables** (or **Secrets** referenced by env vars). The revision restarts automatically when env changes.
 
+### File upload: `DefaultAzureCredential failed`
+
+Employee documents use Azure Blob Storage via the Container App **user-assigned managed identity** (`Trovesuite__AzureStorage__UserAssignedManagedIdentityClientId` must match the identity attached to the app).
+
+**Option A (recommended for dev):** add a storage connection string secret and env:
+
+```bash
+AzureStorage__ConnectionString=DefaultEndpointsProtocol=https;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net
+```
+
+ZelosHR copies this into Trovesuite storage settings at startup.
+
+**Option B:** keep managed identity only — ensure `trovesuite-dev-mi` (or your UAMI) has **Storage Blob Data Contributor** on the storage account and `Trovesuite__AzureStorage__UserAssignedManagedIdentityClientId` is set to that identity’s client id.
+
 ### Fix `IDX10703` / HTTP 400–503 “key length is zero”
 
 This is **not** an application bug — the API cannot validate JWTs until a signing key is present.

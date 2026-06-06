@@ -1,4 +1,3 @@
-using Trovesuite.Package.Storage;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Persistence.Entities;
 using ZelosHR.Api.Persistence.Repositories;
@@ -8,7 +7,7 @@ namespace ZelosHR.Api.Entities.Files;
 
 public sealed class FileManagementService
 {
-    private readonly IStorageService _storage;
+    private readonly IEmployeeDocumentBlobStorage _blobs;
     private readonly IHrDocumentPathRepository _documents;
     private readonly FileManagementStorage _storageConfig;
     private readonly HrDocumentPresignedUrlService _presignedUrls;
@@ -16,14 +15,14 @@ public sealed class FileManagementService
     private readonly ICurrentUserService _currentUser;
 
     public FileManagementService(
-        IStorageService storage,
+        IEmployeeDocumentBlobStorage blobs,
         IHrDocumentPathRepository documents,
         FileManagementStorage storageConfig,
         HrDocumentPresignedUrlService presignedUrls,
         ITenantContext tenant,
         ICurrentUserService currentUser)
     {
-        _storage = storage;
+        _blobs = blobs;
         _documents = documents;
         _storageConfig = storageConfig;
         _presignedUrls = presignedUrls;
@@ -74,27 +73,28 @@ public sealed class FileManagementService
 
             var documentPath = paths.Length == 1 ? paths[0] : paths[i];
             var description = i < descriptionList.Length ? descriptionList[i] : null;
+            var contentType = string.IsNullOrWhiteSpace(file.ContentType)
+                ? "application/octet-stream"
+                : file.ContentType;
 
             await using var stream = file.OpenReadStream();
             using var ms = new MemoryStream();
             await stream.CopyToAsync(ms, ct);
 
-            var upload = await _storage.UploadFileAsync(new StorageFileUploadServiceWriteDto
+            try
             {
-                StorageAccountUrl = _storageConfig.StorageAccountUrl,
-                ContainerName = _storageConfig.ContainerName,
-                BlobName = documentPath,
-                FileContent = ms.ToArray(),
-                ContentType = string.IsNullOrWhiteSpace(file.ContentType)
-                    ? "application/octet-stream"
-                    : file.ContentType,
-            }, ct);
-
-            if (!upload.Success || upload.Data is null)
+                await _blobs.UploadAsync(
+                    _storageConfig.ContainerName,
+                    documentPath,
+                    ms.ToArray(),
+                    contentType,
+                    ct);
+            }
+            catch (Exception ex)
             {
                 return Respons<IReadOnlyList<FileUploadMultipleReadDto>>.Fail(
-                    upload.Error ?? upload.Detail ?? "File upload failed.",
-                    statusCode: upload.StatusCode > 0 ? upload.StatusCode : 502);
+                    BlobStorageErrors.Map(ex),
+                    statusCode: 502);
             }
 
             var id = Guid.NewGuid().ToString();
@@ -133,27 +133,26 @@ public sealed class FileManagementService
             return Respons<FileResponseReadDto>.NotFound("Document not found.");
 
         var targetPath = string.IsNullOrWhiteSpace(blobPath) ? existing.DocumentPath : blobPath.Trim();
+        var contentType = string.IsNullOrWhiteSpace(file.ContentType)
+            ? "application/octet-stream"
+            : file.ContentType;
 
         await using var stream = file.OpenReadStream();
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms, ct);
 
-        var updated = await _storage.UpdateFileAsync(new StorageFileUpdateServiceWriteDto
+        try
         {
-            StorageAccountUrl = _storageConfig.StorageAccountUrl,
-            ContainerName = _storageConfig.ContainerName,
-            BlobName = targetPath,
-            FileContent = ms.ToArray(),
-            ContentType = string.IsNullOrWhiteSpace(file.ContentType)
-                ? "application/octet-stream"
-                : file.ContentType,
-        }, ct);
-
-        if (!updated.Success)
+            await _blobs.UpdateAsync(
+                _storageConfig.ContainerName,
+                targetPath,
+                ms.ToArray(),
+                contentType,
+                ct);
+        }
+        catch (Exception ex)
         {
-            return Respons<FileResponseReadDto>.Fail(
-                updated.Error ?? updated.Detail ?? "File update failed.",
-                statusCode: updated.StatusCode > 0 ? updated.StatusCode : 502);
+            return Respons<FileResponseReadDto>.Fail(BlobStorageErrors.Map(ex), statusCode: 502);
         }
 
         existing.DocumentPath = targetPath;
@@ -182,18 +181,13 @@ public sealed class FileManagementService
         if (existing is null)
             return Respons<FileDeleteReadDto>.NotFound("Document not found.");
 
-        var deleted = await _storage.DeleteFileAsync(new StorageFileDeleteServiceWriteDto
+        try
         {
-            StorageAccountUrl = _storageConfig.StorageAccountUrl,
-            ContainerName = _storageConfig.ContainerName,
-            BlobName = existing.DocumentPath,
-        }, ct);
-
-        if (!deleted.Success)
+            await _blobs.DeleteAsync(_storageConfig.ContainerName, existing.DocumentPath, ct);
+        }
+        catch (Exception ex)
         {
-            return Respons<FileDeleteReadDto>.Fail(
-                deleted.Error ?? deleted.Detail ?? "File delete failed.",
-                statusCode: deleted.StatusCode > 0 ? deleted.StatusCode : 502);
+            return Respons<FileDeleteReadDto>.Fail(BlobStorageErrors.Map(ex), statusCode: 502);
         }
 
         existing.DeleteStatus = "DELETED";

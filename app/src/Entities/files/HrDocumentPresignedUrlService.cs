@@ -1,4 +1,3 @@
-using Trovesuite.Package.Storage;
 using ZelosHR.Api.Persistence.Repositories;
 using ZelosHR.Api.Shared.Abstractions;
 
@@ -11,18 +10,18 @@ public sealed class HrDocumentPresignedUrlService
 {
     private const int DefaultPresignedExpiryHours = 24;
 
-    private readonly IStorageService _storage;
+    private readonly IEmployeeDocumentBlobStorage _blobs;
     private readonly IHrDocumentPathRepository _documents;
     private readonly FileManagementStorage _storageConfig;
     private readonly ITenantContext _tenant;
 
     public HrDocumentPresignedUrlService(
-        IStorageService storage,
+        IEmployeeDocumentBlobStorage blobs,
         IHrDocumentPathRepository documents,
         FileManagementStorage storageConfig,
         ITenantContext tenant)
     {
-        _storage = storage;
+        _blobs = blobs;
         _documents = documents;
         _storageConfig = storageConfig;
         _tenant = tenant;
@@ -112,17 +111,17 @@ public sealed class HrDocumentPresignedUrlService
 
     public async Task<string?> ResolvePresignedUrlForBlobPathAsync(string blobPath, CancellationToken ct = default)
     {
-        var storageResult = await _storage.GetFileUrlAsync(new StorageFileUrlServiceWriteDto
+        try
         {
-            StorageAccountUrl = _storageConfig.StorageAccountUrl,
-            ContainerName = _storageConfig.ContainerName,
-            BlobName = blobPath,
-            ExpiryHours = DefaultPresignedExpiryHours,
-        }, ct);
-
-        if (!storageResult.Success || storageResult.Data is null || storageResult.Data.Count == 0)
+            return await _blobs.GetPresignedReadUrlAsync(
+                _storageConfig.ContainerName,
+                blobPath,
+                DefaultPresignedExpiryHours,
+                ct);
+        }
+        catch
+        {
             return null;
-
-        return storageResult.Data[0].PresignedUrl;
+        }
     }
 }

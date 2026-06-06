@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Trovesuite.Package.Storage;
 using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Persistence.Entities;
@@ -16,7 +15,7 @@ public sealed class EmployeeRegistrationService
     private readonly IEmployeeRepository _employees;
     private readonly ICpUserRepository _cpUsers;
     private readonly ICpCurrencyRepository _currencies;
-    private readonly IStorageService _storage;
+    private readonly IEmployeeDocumentBlobStorage _blobs;
     private readonly IHrDocumentPathRepository _documents;
     private readonly FileManagementStorage _storageConfig;
     private readonly HrDocumentPresignedUrlService _profileUrls;
@@ -27,7 +26,7 @@ public sealed class EmployeeRegistrationService
         IEmployeeRepository employees,
         ICpUserRepository cpUsers,
         ICpCurrencyRepository currencies,
-        IStorageService storage,
+        IEmployeeDocumentBlobStorage blobs,
         IHrDocumentPathRepository documents,
         FileManagementStorage storageConfig,
         HrDocumentPresignedUrlService profileUrls,
@@ -37,7 +36,7 @@ public sealed class EmployeeRegistrationService
         _employees = employees;
         _cpUsers = cpUsers;
         _currencies = currencies;
-        _storage = storage;
+        _blobs = blobs;
         _documents = documents;
         _storageConfig = storageConfig;
         _profileUrls = profileUrls;
@@ -519,20 +518,18 @@ public sealed class EmployeeRegistrationService
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms, ct);
 
-        var upload = await _storage.UploadFileAsync(new StorageFileUploadServiceWriteDto
+        try
         {
-            StorageAccountUrl = _storageConfig.StorageAccountUrl,
-            ContainerName = _storageConfig.ContainerName,
-            BlobName = blobPath,
-            FileContent = ms.ToArray(),
-            ContentType = contentType,
-        }, ct);
-
-        if (!upload.Success || upload.Data is null)
+            await _blobs.UploadAsync(
+                _storageConfig.ContainerName,
+                blobPath,
+                ms.ToArray(),
+                contentType,
+                ct);
+        }
+        catch (Exception ex)
         {
-            return Respons<string>.Fail(
-                upload.Error ?? upload.Detail ?? "File upload failed.",
-                statusCode: upload.StatusCode > 0 ? upload.StatusCode : 502);
+            return Respons<string>.Fail(BlobStorageErrors.Map(ex), statusCode: 502);
         }
 
         var documentId = Guid.NewGuid().ToString();
