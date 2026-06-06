@@ -190,14 +190,28 @@ public sealed class EmployeeRegistrationService
         var e = entity.Value!;
         ApplyHrPersonalFields(e, dto);
 
-        var profileErrors = await _profileUrls.ValidateDocumentReferenceAsync(
-            "identity.profile_url", dto.ProfileUrl, ct);
-        if (profileErrors is not null)
-            return Respons<EmployeeRegistrationReadDto>.ValidationError(profileErrors);
+        var syncDto = dto;
+        if (dto.ProfileUrl is not null)
+        {
+            CpUserDto? cp = null;
+            if (!string.IsNullOrWhiteSpace(e.UserId))
+                cp = await _cpUsers.GetByIdAsync(e.UserId, _tenant.TenantId, ct);
 
-        ApplyProfileUrl(e, dto);
+            var storedProfileRef = EmployeeIdentityResolver.ResolveStoredProfileReference(e, cp);
+            var resolved = await _profileUrls.ResolveProfileUrlForWriteAsync(
+                "identity.profile_url", dto.ProfileUrl, storedProfileRef, ct);
+            if (resolved.Error is not null)
+                return Respons<EmployeeRegistrationReadDto>.ValidationError(resolved.Error);
 
-        var syncError = await SyncPlatformIdentityAsync(e, dto, ct);
+            if (resolved.ShouldApply)
+                ApplyProfileUrlValue(e, resolved.Value);
+
+            syncDto = resolved.ShouldApply
+                ? dto with { ProfileUrl = resolved.Value }
+                : dto with { ProfileUrl = null };
+        }
+
+        var syncError = await SyncPlatformIdentityAsync(e, syncDto, ct);
         if (syncError is not null)
             return syncError;
 
@@ -468,12 +482,15 @@ public sealed class EmployeeRegistrationService
         e.LinkedInUrl = dto.LinkedInUrl ?? e.LinkedInUrl;
     }
 
+    private static void ApplyProfileUrlValue(EmployeeEntity e, string? profileUrl) =>
+        e.ProfilePhotoUrl = string.IsNullOrWhiteSpace(profileUrl) ? null : profileUrl.Trim();
+
     private static void ApplyProfileUrl(EmployeeEntity e, CreateEmployeeRequest dto)
     {
         if (dto.ProfileUrl is null)
             return;
 
-        e.ProfilePhotoUrl = string.IsNullOrWhiteSpace(dto.ProfileUrl) ? null : dto.ProfileUrl.Trim();
+        ApplyProfileUrlValue(e, dto.ProfileUrl);
     }
 
     private async Task<string> ResolveDraftDisplayNameAsync(EmployeeEntity e, CancellationToken ct)

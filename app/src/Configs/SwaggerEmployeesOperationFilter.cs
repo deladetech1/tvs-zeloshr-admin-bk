@@ -21,7 +21,8 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
             AppendParameterDescription(operation, "employee_id",
                 "Required. Employee UUID from POST /employees/add or GET /employees/list → items[].employee_id.");
             operation.Description = AppendDescription(operation.Description,
-                "Response `document_ids`: each item includes `id`, `presigned_url` (~24h), and `description`. On create/update send string IDs in `document_ids`.");
+                "Response `document_ids`: each item includes `id`, `presigned_url` (~24h), and `description`. "
+                + "`identity.profile_url` on read is a presigned URL; on update send a document id or omit to keep unchanged.");
             return;
         }
 

@@ -777,7 +777,7 @@ internal static class SwaggerExamples
                 ["status"] = SwaggerExampleHints.Status,
                 ["is_draft"] = SwaggerExampleHints.BooleanPipe,
                 ["user_id"] = "usr_cp_abc123",
-                ["identity"] = IdentitySection(withCustomField: true),
+                ["identity"] = IdentitySection(withCustomField: true, forRead: true),
                 ["employment"] = EmploymentSection(withNames: true),
                 ["compensation"] = CompensationReadSection(),
                 ["education"] = new JsonArray(EducationEntry(withId: true)),
@@ -810,7 +810,7 @@ internal static class SwaggerExamples
         Unknown keys are ignored. Use an empty object when there are no values.
         """;
 
-    private static JsonObject IdentitySection(bool withCustomField = false, bool optionHints = false) => new()
+    private static JsonObject IdentitySection(bool withCustomField = false, bool optionHints = false, bool forRead = false) => new()
     {
         ["full_name"] = "Ada Lovelace",
         ["date_of_birth"] = "1990-05-15",
@@ -825,7 +825,7 @@ internal static class SwaggerExamples
         ["phone"] = "+233201234567",
         ["linked_in_url"] = "https://linkedin.com/in/adalovelace",
         ["residential_address"] = "12 Independence Ave, Accra",
-        ["profile_url"] = SampleDocumentId1,
+        ["profile_url"] = forRead ? SamplePresignedUrl : SampleDocumentId1,
         ["custom_fields"] = withCustomField
             ? CustomFieldsForSection(EmployeeCustomFieldSections.Identity)
             : EmptyCustomFields(EmployeeCustomFieldSections.Identity),

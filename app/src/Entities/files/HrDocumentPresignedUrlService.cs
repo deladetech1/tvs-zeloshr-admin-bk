@@ -3,6 +3,12 @@ using ZelosHR.Api.Shared.Abstractions;
 
 namespace ZelosHR.Api.Entities.Files;
 
+/// <summary>Result of normalizing <c>profile_url</c> on write (document id vs presigned round-trip).</summary>
+public readonly record struct ProfileUrlWriteResolution(
+    bool ShouldApply,
+    string? Value,
+    Dictionary<string, string>? Error);
+
 /// <summary>
 /// Resolves <c>human_resource.hr_document_paths</c> IDs to Azure presigned URLs (MyStoreGuard file/list pattern).
 /// </summary>
@@ -49,8 +55,8 @@ public sealed class HrDocumentPresignedUrlService
             return new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 [fieldPath] =
-                    "Use a document id from POST /api/v1/file/post/multiple (not a direct HTTPS URL). "
-                    + "GET /api/v1/file/list returns presigned_url for display.",
+                    "Send a document id from POST /api/v1/file/post/multiple (not the presigned URL from GET). "
+                    + "Omit profile_url to leave unchanged, or pass \"\" to clear.",
             };
         }
 
@@ -64,6 +70,62 @@ public sealed class HrDocumentPresignedUrlService
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Accept document ids on write; treat an unchanged presigned URL from GET as a no-op on update.
+    /// </summary>
+    public async Task<ProfileUrlWriteResolution> ResolveProfileUrlForWriteAsync(
+        string fieldPath,
+        string submittedValue,
+        string? currentStoredReference,
+        CancellationToken ct = default)
+    {
+        var trimmed = submittedValue.Trim();
+        if (trimmed.Length == 0)
+            return new ProfileUrlWriteResolution(true, null, null);
+
+        if (!IsLegacyHttpUrl(trimmed))
+        {
+            var validationError = await ValidateDocumentReferenceAsync(fieldPath, trimmed, ct);
+            return validationError is null
+                ? new ProfileUrlWriteResolution(true, trimmed, null)
+                : new ProfileUrlWriteResolution(false, null, validationError);
+        }
+
+        if (!string.IsNullOrWhiteSpace(currentStoredReference))
+        {
+            if (IsLegacyHttpUrl(currentStoredReference)
+                && string.Equals(trimmed, currentStoredReference.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                return new ProfileUrlWriteResolution(false, null, null);
+            }
+
+            if (!IsLegacyHttpUrl(currentStoredReference))
+            {
+                var currentDisplay = await ResolveDisplayUrlAsync(currentStoredReference, ct);
+                if (currentDisplay is not null && PresignedUrlsReferToSameBlob(trimmed, currentDisplay))
+                    return new ProfileUrlWriteResolution(false, null, null);
+            }
+        }
+
+        var error = await ValidateDocumentReferenceAsync(fieldPath, trimmed, ct);
+        return new ProfileUrlWriteResolution(false, null, error);
+    }
+
+    internal static bool PresignedUrlsReferToSameBlob(string left, string right)
+    {
+        if (string.Equals(left, right, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (!Uri.TryCreate(left, UriKind.Absolute, out var leftUri)
+            || !Uri.TryCreate(right, UriKind.Absolute, out var rightUri))
+        {
+            return false;
+        }
+
+        return leftUri.Host.Equals(rightUri.Host, StringComparison.OrdinalIgnoreCase)
+            && leftUri.AbsolutePath.Equals(rightUri.AbsolutePath, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

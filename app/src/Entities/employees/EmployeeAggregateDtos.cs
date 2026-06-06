@@ -103,9 +103,8 @@ public sealed class EmployeeAggregateIdentityDto
     public string? ResidentialAddress { get; init; }
 
     /// <summary>
-    /// Profile photo. **Write:** document id from file upload. **Read:** presigned URL (~24h).
-    /// Stored on <c>cp_users.profile_pic</c> when linked; on <c>zhr_employees.profile_photo_url</c> until then.
-    /// Pass <c>""</c> on update to clear.
+    /// **Write:** document id from file upload. **Read:** presigned URL (~24h).
+    /// Omit on update to leave unchanged; pass <c>""</c> to clear. Do not send the presigned URL back from GET.
     /// </summary>
     public string? ProfileUrl { get; init; }
 

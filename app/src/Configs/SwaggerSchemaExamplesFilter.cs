@@ -205,6 +205,11 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             case nameof(EmployeeAggregateIdentityDto.LinkedInUrl):
                 schema.Example = JsonValue.Create("https://linkedin.com/in/adalovelace");
                 return;
+            case nameof(EmployeeAggregateIdentityDto.ProfileUrl):
+                schema.Example = JsonValue.Create(SwaggerExamples.SampleDocumentId1);
+                schema.Description = AppendDescription(schema.Description,
+                    "Write: document id from POST /file/post/multiple. Read (GET): presigned URL (~24h). Omit on update to keep photo; resending the GET URL is ignored.");
+                return;
             case nameof(EmployeeAggregateIdentityDto.ResidentialAddress):
                 schema.Example = JsonValue.Create("12 Independence Ave, Accra");
                 return;
