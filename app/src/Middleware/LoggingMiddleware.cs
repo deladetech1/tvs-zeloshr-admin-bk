@@ -30,13 +30,29 @@ public class LoggingMiddleware
         {
             await _next(context);
             sw.Stop();
-            _logger.LogInformation(
-                "HTTP {Method} {Path} completed {StatusCode} in {ElapsedMs}ms [RequestId: {RequestId}]",
-                context.Request.Method,
-                context.Request.Path,
-                context.Response.StatusCode,
-                sw.ElapsedMilliseconds,
-                requestId);
+            if (context.Response.StatusCode is StatusCodes.Status401Unauthorized or StatusCodes.Status403Forbidden)
+            {
+                var authEvent = context.Response.StatusCode == StatusCodes.Status401Unauthorized
+                    ? "Authentication"
+                    : "Authorization";
+                _logger.LogWarning(
+                    "{AuthEvent} failed on {Method} {Path} in {ElapsedMs}ms [RequestId: {RequestId}]",
+                    authEvent,
+                    context.Request.Method,
+                    context.Request.Path,
+                    sw.ElapsedMilliseconds,
+                    requestId);
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "HTTP {Method} {Path} completed {StatusCode} in {ElapsedMs}ms [RequestId: {RequestId}]",
+                    context.Request.Method,
+                    context.Request.Path,
+                    context.Response.StatusCode,
+                    sw.ElapsedMilliseconds,
+                    requestId);
+            }
         }
         catch (Exception ex)
         {

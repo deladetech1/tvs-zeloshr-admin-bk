@@ -31,7 +31,11 @@ public class ExceptionHandlerMiddleware
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogWarning(ex, "Forbidden");
+            _logger.LogWarning(
+                "Authorization failed on {Method} {Path}: {Message}",
+                context.Request.Method,
+                context.Request.Path,
+                ex.Message);
             await WriteResponsAsync(context, Respons<object>.Forbidden(ex.Message));
         }
         catch (KeyNotFoundException ex)

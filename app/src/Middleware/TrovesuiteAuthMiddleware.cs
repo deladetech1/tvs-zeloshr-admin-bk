@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Trovesuite.Package.Auth;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Shared;
@@ -68,28 +69,44 @@ public class TrovesuiteAuthMiddleware
             return;
         }
 
-        var result = await authService.AuthorizeUserFromTokenAsync(token);
-        if (!result.Success || result.Data is null || result.Data.Count == 0)
+        try
         {
-            _logger.LogWarning("Trovesuite auth failed: {Error}", result.Error);
-            context.Response.StatusCode = result.StatusCode > 0 ? result.StatusCode : StatusCodes.Status401Unauthorized;
-            context.Response.ContentType = "application/json";
-            await context.Response.WriteAsync(JsonSerializer.Serialize(result, PlatformJson.SerializerOptions));
-            return;
+            var result = await authService.AuthorizeUserFromTokenAsync(token);
+            if (!result.Success || result.Data is null || result.Data.Count == 0)
+            {
+                _logger.LogWarning(
+                    "Authentication failed on {Method} {Path}: {Error}",
+                    context.Request.Method,
+                    context.Request.Path,
+                    result.Error);
+                context.Response.StatusCode = result.StatusCode > 0 ? result.StatusCode : StatusCodes.Status401Unauthorized;
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsync(JsonSerializer.Serialize(result, PlatformJson.SerializerOptions));
+                return;
+            }
+
+            var principal = result.Data[0];
+            var orgFromHeader = context.Items[TrovesuiteHttpContextKeys.OrgId] as string;
+
+            context.Items[TrovesuiteHttpContextKeys.AuthEntries] = result.Data;
+            context.Items[TrovesuiteHttpContextKeys.UserId] = principal.UserId;
+            context.Items[TrovesuiteHttpContextKeys.TenantId] = principal.TenantId;
+            context.Items[TrovesuiteHttpContextKeys.OrgId] =
+                !string.IsNullOrWhiteSpace(orgFromHeader) ? orgFromHeader : principal.OrgId;
+            context.Items[TrovesuiteHttpContextKeys.Permissions] =
+                result.Data.SelectMany(e => e.Permissions ?? []).Distinct().ToList();
+
+            await _next(context);
         }
-
-        var principal = result.Data[0];
-        var orgFromHeader = context.Items[TrovesuiteHttpContextKeys.OrgId] as string;
-
-        context.Items[TrovesuiteHttpContextKeys.AuthEntries] = result.Data;
-        context.Items[TrovesuiteHttpContextKeys.UserId] = principal.UserId;
-        context.Items[TrovesuiteHttpContextKeys.TenantId] = principal.TenantId;
-        context.Items[TrovesuiteHttpContextKeys.OrgId] =
-            !string.IsNullOrWhiteSpace(orgFromHeader) ? orgFromHeader : principal.OrgId;
-        context.Items[TrovesuiteHttpContextKeys.Permissions] =
-            result.Data.SelectMany(e => e.Permissions ?? []).Distinct().ToList();
-
-        await _next(context);
+        catch (Exception ex) when (ex is UnauthorizedAccessException or SecurityTokenException)
+        {
+            // Match MyStoreGuard: return 403 JSON without throwing — avoids duplicate IDX10503 stack traces.
+            _logger.LogWarning(
+                "Authentication failed on {Method} {Path}",
+                context.Request.Method,
+                context.Request.Path);
+            await WriteForbiddenAsync(context, "Could not validate credentials");
+        }
     }
 
     private static bool IsAnonymous(PathString path)
@@ -101,6 +118,14 @@ public class TrovesuiteAuthMiddleware
         }
 
         return false;
+    }
+
+    private static Task WriteForbiddenAsync(HttpContext context, string message)
+    {
+        var response = Respons<object>.Forbidden(message);
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        context.Response.ContentType = "application/json";
+        return context.Response.WriteAsync(JsonSerializer.Serialize(response, PlatformJson.SerializerOptions));
     }
 
     private static Task WriteUnauthorizedAsync(HttpContext context, Dictionary<string, string> fieldErrors)
