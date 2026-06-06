@@ -13,11 +13,14 @@ public sealed class SwaggerRequiredSchemaFilter : ISchemaFilter
 {
     public void Apply(IOpenApiSchema schema, SchemaFilterContext context)
     {
-        if (schema.Properties is null || schema.Properties.Count == 0)
+        if (schema is not OpenApiSchema mutable)
             return;
 
-        var required = schema.Required is not null
-            ? new HashSet<string>(schema.Required)
+        if (mutable.Properties is null || mutable.Properties.Count == 0)
+            return;
+
+        var required = mutable.Required is not null
+            ? new HashSet<string>(mutable.Required)
             : new HashSet<string>();
 
         foreach (var property in context.Type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
@@ -29,7 +32,7 @@ public sealed class SwaggerRequiredSchemaFilter : ISchemaFilter
         ApplyTypeRules(context.Type, required);
 
         if (required.Count > 0)
-            schema.Required = required;
+            mutable.Required = required;
     }
 
     private static void ApplyTypeRules(Type type, HashSet<string> required)
