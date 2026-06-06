@@ -130,3 +130,4 @@ See `tvs-sqlscript/README.md` for CI dispatch, rollback, and validate.
 - [docs/TROVESUITE.md](docs/TROVESUITE.md) — Trovesuite.Package, NuGet token
 - [docs/SPRINTS.md](docs/SPRINTS.md) — API modules
 - [docs/API_CONTRACTS.md](docs/API_CONTRACTS.md) — HTTP contracts
+- [docs/FILE_MANAGEMENT.md](docs/FILE_MANAGEMENT.md) — employee file upload & DocumentReadDto

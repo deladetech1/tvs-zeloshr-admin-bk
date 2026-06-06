@@ -23,7 +23,7 @@ See [ENTERPRISE_API.md](ENTERPRISE_API.md) for the full CRUD matrix and [GET /ap
 | GET | `/directory` | Table (search, filters, pagination) |
 | GET | `/directory/filter-options` | Dropdown values |
 | GET | `/list` | Platform list |
-| GET | `/get?employee_id=` | Aggregate read |
+| GET | `/get?employee_id=` | Aggregate read (`documents[]`, `identity.profile_url` as objects) |
 | GET | `/detail?employee_id=` | Flat profile DTO |
 | POST | `/add` | Create (aggregate body) |
 | PUT | `/update?employee_id=` | Partial update — send only changed sections (no `id` in body) |
@@ -125,7 +125,7 @@ Send **only** sections/fields you are changing. At least one top-level field or 
 
 **Profile photo (MyStoreGuard pattern):** upload via `POST /api/v1/file/post/multiple`, then set `identity.profile_url` to the returned document id. On read, GET returns `DocumentReadDto` (same shape as product `documents[]`). Direct blob HTTPS URLs are rejected on write. Legacy rows that already store a full URL still return that URL on read.
 
-**Attachments on read:** `GET /employees/get` returns `documents[]` (not `document_ids`) — each item is `DocumentReadDto`: `doc_id`, `name`, `presigned_url`, `description`. **Write** still uses `document_ids` string array (same as MyStoreGuard products).
+**Attachments on read:** `GET /employees/get` returns `documents[]` (not `document_ids`) — each item is `DocumentReadDto`: `doc_id`, `name`, `presigned_url`, `description`. **Write** still uses `document_ids` string array (same as MyStoreGuard products). Full flows, curl, and errors: [FILE_MANAGEMENT.md](FILE_MANAGEMENT.md).
 
 **Government ID (frontend):** `id_type` + `id_number` + optional `id_issue_date` / `id_expiry_date`. Example:
 
@@ -148,7 +148,22 @@ Send **only** sections/fields you are changing. At least one top-level field or 
 | `end_date` | date | `YYYY-MM-DD` |
 | `is_current` | boolean | |
 
-File uploads: `POST /photo/upload`, `POST /documents/upload`.
+See [FILE_MANAGEMENT.md](FILE_MANAGEMENT.md) for uploads (`POST /file/post/multiple`), attachments (`document_ids` / `documents[]`), and profile photos (`identity.profile_url`).
+
+---
+
+## File management (`/api/v1/file`)
+
+Full guide: **[FILE_MANAGEMENT.md](FILE_MANAGEMENT.md)** — MyStoreGuard shapes, upload flow, `blob_paths`, and error reference.
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| POST | `/post/multiple` | Upload files → `data[].id` |
+| GET | `/list?document_ids=` | Presigned URLs (`id`, `file_name`, …) |
+| PUT | `/put?document_id=` | Replace file content |
+| DELETE | `/delete?document_id=` | Remove blob + registry row |
+
+**Employee wiring:** write `document_ids` + `identity.profile_url` (strings) · read `documents[]` + `identity.profile_url` (`DocumentReadDto`).
 
 ---
 
@@ -201,3 +216,4 @@ Each module: `GET /statistics`, `GET /list`, `GET /get?{resource}_id=`, `POST /a
 - No `PATCH` — use `PUT …/update?…`
 - No path UUIDs — use `?employee_id=` (etc.)
 - Public KPI route is `/statistics`, not `/summary`
+- Employee read attachments: `documents[]` / `doc_id` (not `document_ids[]` / `id`) — see [FILE_MANAGEMENT.md](FILE_MANAGEMENT.md)

@@ -26,7 +26,9 @@ public sealed class SwaggerFileManagementTagDocumentFilter : IDocumentFilter
     }
 
     internal const string FileManagementTagDescription =
-        "Upload and register employee documents. Use returned `document_ids` on employee create/update — not blob paths.";
+        "Upload and register employee documents. Use returned registry `id` values on employee "
+        + "`document_ids` (write) — not blob paths. On employee GET, attachments appear as "
+        + "`documents[]` (MyStoreGuard DocumentReadDto). See docs/FILE_MANAGEMENT.md.";
 }
 
 /// <summary>Response examples and extra operation descriptions for file routes.</summary>

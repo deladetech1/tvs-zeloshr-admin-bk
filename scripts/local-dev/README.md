@@ -31,9 +31,12 @@ cp scripts/local-dev/live-session.example.env scripts/local-dev/live-session.env
 
 # Full live smoke — GET + POST + PUT + DELETE with cleanup (Swagger-shipped modules)
 ./scripts/local-dev/test-live-all.sh
+
+# File upload only — POST /file/post/multiple → GET /file/list → optional DELETE
+./scripts/local-dev/test-live-file.sh
 ```
 
-Failures print **`detail`** and **`field_errors`** (not raw JSON blobs).
+Failures print **`detail`** and **`field_errors`** (not raw JSON blobs). File upload errors (`blob_paths` vs file count): [docs/FILE_MANAGEMENT.md](../docs/FILE_MANAGEMENT.md#error-reference).
 
 After a deploy, run locally (JWT refresh + regression + live smoke):
 

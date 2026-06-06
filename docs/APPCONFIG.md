@@ -49,7 +49,7 @@ The package expects a `Trovesuite` section in configuration. **Database host/use
 | `DocumentsContainer` | Blob container for employee files (**default: `zeloshr`**) |
 | `ProfilePhotosContainer` | Legacy key; profile photos use `DocumentsContainer` via file registry |
 
-**Blob layout** (inside `zeloshr` container):
+**Blob layout** (inside `zeloshr` container) — full client guide: [FILE_MANAGEMENT.md](FILE_MANAGEMENT.md):
 
 ```
 {tenant_id}/{org_id}/{bus_id}/employees/documents/{unique}-{filename}   ← file API (auto path)

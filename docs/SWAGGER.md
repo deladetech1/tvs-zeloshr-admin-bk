@@ -34,6 +34,7 @@ Tenant scope is taken from the JWT claim `tenant_id` (read without DB validation
 | Feature | Description |
 |---------|-------------|
 | **Tags** | Employees · Custom Fields · File Management · Currencies · Organisation (active); other modules hidden |
+| **File Management** | Upload / list / delete — see [FILE_MANAGEMENT.md](FILE_MANAGEMENT.md) for `DocumentReadDto` vs write `document_ids` |
 | **Bearer JWT** | Authorize — sets `authorization: Bearer …` |
 | **Trove headers** | `app-id`, `bus-id`, `loc-id`, `org-id` on each operation (pre-filled for local demo) |
 | **Standard errors** | 400, 401, 404, 409, 500 |
@@ -107,3 +108,9 @@ If production looks **out of date** compared to local:
 4. **Compare route counts** — `GET /api/v1/navigation` and `/swagger/v1/swagger.json` should list the same endpoints (~55 paths). If `paths` is empty, the image was built without **Swashbuckle.AspNetCore 10.x** (see top of this doc).
 
 Production does **not** prefill JWT/headers (Development only). Use a real Trove Bearer token and platform `org-id` / `bus-id` / `loc-id` in **Authorize** / **Try it out**.
+
+## Related docs
+
+- [FILE_MANAGEMENT.md](FILE_MANAGEMENT.md) — employee documents, uploads, MyStoreGuard shapes
+- [API_CONTRACTS.md](API_CONTRACTS.md) — frontend field reference
+- [MYSTOREGUARD_API_CONFORMANCE.md](MYSTOREGUARD_API_CONFORMANCE.md) — platform parity

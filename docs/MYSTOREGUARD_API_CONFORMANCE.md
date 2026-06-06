@@ -126,6 +126,7 @@ For each module (`custom-fields`, `leave`, `org-structure/branches`, …):
 
 ## Related docs
 
+- [`FILE_MANAGEMENT.md`](FILE_MANAGEMENT.md) — uploads, `DocumentReadDto`, `blob_paths`, employee attach flow
 - [`ENTERPRISE_API.md`](ENTERPRISE_API.md) — CRUD matrix
 - [`API_CONTRACTS.md`](API_CONTRACTS.md) — frontend quick reference
 - [`SWAGGER.md`](SWAGGER.md) — Try it out / production spec
