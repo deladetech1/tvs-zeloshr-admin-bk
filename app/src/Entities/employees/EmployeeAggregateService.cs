@@ -467,7 +467,7 @@ public sealed class EmployeeAggregateService
         var certificationItems = certifications.Success && certifications.Data is { Count: > 0 } certData
             ? certData
             : null;
-        var documents = entity.DocumentIds.Count > 0
+        var documentIds = entity.DocumentIds.Count > 0
             ? (await _profileUrls.ResolveDocumentsAsync(entity.DocumentIds, ct))
                 .Select(d => new EmployeeDocumentReadDto
                 {
@@ -532,7 +532,7 @@ public sealed class EmployeeAggregateService
                     CustomFields = EmployeeAggregateReadMapper.CustomFieldsOrNull(sections.Certification),
                 })
                 .ToList(),
-            Documents = EmployeeAggregateReadMapper.DocumentsOrNull(documents),
+            DocumentIds = EmployeeAggregateReadMapper.DocumentIdsOrNull(documentIds),
         };
 
         return Respons<EmployeeAggregateReadDto>.Ok(read);

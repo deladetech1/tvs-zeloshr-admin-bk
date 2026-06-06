@@ -7,9 +7,9 @@ internal static class EmployeeAggregateReadMapper
     internal static Dictionary<string, string?>? CustomFieldsOrNull(Dictionary<string, string?>? fields) =>
         fields is { Count: > 0 } ? fields : null;
 
-    internal static IReadOnlyList<EmployeeDocumentReadDto>? DocumentsOrNull(
-        IReadOnlyList<EmployeeDocumentReadDto>? documents) =>
-        documents is { Count: > 0 } ? documents : null;
+    internal static IReadOnlyList<EmployeeDocumentReadDto>? DocumentIdsOrNull(
+        IReadOnlyList<EmployeeDocumentReadDto>? documentIds) =>
+        documentIds is { Count: > 0 } ? documentIds : null;
 
     internal static bool HasEmployment(EmployeeEntity entity, Dictionary<string, string?>? customFields) =>
         !string.IsNullOrWhiteSpace(entity.JobTitle)

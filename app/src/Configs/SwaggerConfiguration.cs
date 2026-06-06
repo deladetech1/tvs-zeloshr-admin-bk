@@ -59,10 +59,10 @@ public static class SwaggerConfiguration
                     1. **(Optional) Custom fields** — Admin form: `GET /api/v1/custom-fields/entity-types` → `GET /api/v1/custom-fields/sections?entity_type=` → `POST /api/v1/custom-fields/add` (use section `value` as `section_name`)  
                        Update definition: `PUT /api/v1/custom-fields/update?custom_field_id=`  
                        Employee form schema: `GET /api/v1/custom-fields/schema?entity_type=employee`
-                    2. **(Optional) Documents** — `POST /api/v1/file/post/multiple` → attach returned IDs as `document_ids` on employee create/update. On read, `GET /employees/get` returns `documents[]` with `id`, `presigned_url`, and `description`.
+                    2. **(Optional) Documents** — `POST /api/v1/file/post/multiple` → attach returned IDs as `document_ids` (strings) on employee create/update. On read, `GET /employees/get` returns `document_ids` as objects with `id`, `presigned_url`, and `description`.
                     3. **Currency** — `GET /api/v1/currencies/list` → use returned `id` as `compensation.currency_id` (not a currency code string)
                     4. **Create** — `POST /api/v1/employees/add` with `status: draft | finalised`
-                    5. **Read / update** — `GET /api/v1/employees/get?employee_id=` (includes `documents[]` with presigned URLs) · `PUT /api/v1/employees/update?employee_id=` (full profile or partial body; `document_ids` / `delete_document_ids` on write)
+                    5. **Read / update** — `GET /api/v1/employees/get?employee_id=` (`document_ids` with presigned URLs on read) · `PUT /api/v1/employees/update?employee_id=` (string `document_ids` / `delete_document_ids` on write)
                     6. **Bulk import** — `GET /api/v1/employees/bulk/template` → fill CSV → `POST /api/v1/employees/bulk?status=`
 
                     ---

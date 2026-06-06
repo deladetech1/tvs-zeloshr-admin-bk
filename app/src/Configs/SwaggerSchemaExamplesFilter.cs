@@ -92,7 +92,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(EmployeeAggregateCompensationDto) => AppendDescription(schema.Description,
                 $"currency_id from GET /api/v1/currencies/list. pay_frequency: {SwaggerExampleHints.PayFrequency}."),
             nameof(EmployeeAggregateReadDto) => AppendDescription(schema.Description,
-                "Read-only employee aggregate. documents[] resolves stored attachments to id, presigned_url (~24h), and description."),
+                "Read-only employee aggregate. document_ids[] on read: id, presigned_url (~24h), description per attachment."),
             nameof(EmployeeDocumentReadDto) => AppendDescription(schema.Description,
                 "Employee attachment on read. Write via document_ids (registry IDs from POST /file/post/multiple)."),
             nameof(FileUploadMultipleReadDto) => AppendDescription(schema.Description,
@@ -317,23 +317,31 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             return;
         }
 
-        if (name.Equals("Documents", StringComparison.OrdinalIgnoreCase)
-            && property.DeclaringType == typeof(EmployeeAggregateReadDto))
+        if (name.Equals("DocumentIds", StringComparison.OrdinalIgnoreCase))
         {
-            schema.Example = SwaggerExamples.EmployeeDocumentsArray();
-            schema.Description = AppendDescription(schema.Description,
-                "Read only. Each item: id, presigned_url (~24h), description. Attach files on write via document_ids.");
-            return;
+            if (property.DeclaringType == typeof(EmployeeAggregateReadDto))
+            {
+                schema.Example = SwaggerExamples.EmployeeDocumentsArray();
+                schema.Description = AppendDescription(schema.Description,
+                    "Read only. Each item: id, presigned_url (~24h), description. On create/update send string IDs from POST /file/post/multiple.");
+                return;
+            }
+
+            if (property.DeclaringType == typeof(CreateEmployeeAggregateRequest)
+                || property.DeclaringType == typeof(UpdateEmployeeAggregateRequest))
+            {
+                schema.Example = new JsonArray(SwaggerExamples.SampleDocumentId1, SwaggerExamples.SampleDocumentId2);
+                schema.Description = AppendDescription(schema.Description,
+                    "Append registry IDs from POST /file/post/multiple (string array on write).");
+                return;
+            }
         }
 
-        if (name.Equals("DocumentIds", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("DeleteDocumentIds", StringComparison.OrdinalIgnoreCase))
+        if (name.Equals("DeleteDocumentIds", StringComparison.OrdinalIgnoreCase))
         {
-            schema.Example = name.Contains("Delete", StringComparison.OrdinalIgnoreCase)
-                ? new JsonArray(SwaggerExamples.SampleDocumentId2)
-                : new JsonArray(SwaggerExamples.SampleDocumentId1, SwaggerExamples.SampleDocumentId2);
+            schema.Example = new JsonArray(SwaggerExamples.SampleDocumentId2);
             schema.Description = AppendDescription(schema.Description,
-                "Registry IDs from POST /file/post/multiple. On employee GET, see documents[] (id, presigned_url, description).");
+                "Remove registry IDs from the employee record.");
         }
     }
 
