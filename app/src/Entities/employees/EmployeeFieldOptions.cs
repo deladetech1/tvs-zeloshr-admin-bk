@@ -60,8 +60,9 @@ public static class EmployeeFieldOptions
 
     public static readonly IReadOnlyList<string> ContractTypes = ["Permanent", "Fixed-term"];
 
-    /// <summary>How the employee works (remote / hybrid / onsite / field).</summary>
-    public static readonly IReadOnlyList<string> WorkArrangements = ["remote", "hybrid", "onsite", "field"];
+    /// <summary>How the employee works. <c>on_site</c> requires <c>branch_id</c>; <c>remote</c> must omit it.</summary>
+    public static readonly IReadOnlyList<string> WorkArrangements =
+        ["remote", "hybrid", "on_site", "onsite", "field"];
 
     /// <summary>Values used by annualized-cost calculation (case-insensitive).</summary>
     public static readonly IReadOnlyList<string> PayFrequencies = ["Monthly", "Bi-weekly", "Weekly", "Annual"];

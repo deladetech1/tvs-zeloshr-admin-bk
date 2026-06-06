@@ -576,6 +576,9 @@ internal static class SwaggerExamples
     {
         ["branch_id"] = SampleBranchId.ToString(),
         ["name"] = "Accra HQ",
+        ["city"] = "Accra",
+        ["region"] = "Greater Accra",
+        ["country_code"] = "GH",
         ["employee_count"] = 24,
         ["is_archived"] = SwaggerExampleHints.BooleanPipe,
     };
@@ -601,6 +604,9 @@ internal static class SwaggerExamples
             {
                 ["branch_id"] = SampleBranchId.ToString(),
                 ["name"] = "Accra HQ",
+                ["city"] = "Accra",
+                ["region"] = "Greater Accra",
+                ["country_code"] = "GH",
                 ["employee_count"] = 24,
                 ["is_archived"] = false,
             },
@@ -630,6 +636,9 @@ internal static class SwaggerExamples
     {
         ["branch_id"] = SampleBranchId.ToString(),
         ["name"] = "Accra HQ",
+        ["city"] = "Accra",
+        ["region"] = "Greater Accra",
+        ["country_code"] = "GH",
     };
 
     internal static JsonObject CreateDepartmentRoot() => new()
@@ -653,9 +662,21 @@ internal static class SwaggerExamples
         ["head_of_department_id"] = SampleEmployeeId.ToString(),
     };
 
-    internal static JsonObject CreateBranchBody() => new() { ["name"] = "Accra HQ" };
+    internal static JsonObject CreateBranchBody() => new()
+    {
+        ["name"] = "Accra HQ",
+        ["city"] = "Accra",
+        ["region"] = "Greater Accra",
+        ["country_code"] = "GH",
+    };
 
-    internal static JsonObject UpdateBranchBody() => new() { ["name"] = "Accra Headquarters" };
+    internal static JsonObject UpdateBranchBody() => new()
+    {
+        ["name"] = "Accra Headquarters",
+        ["city"] = "Accra",
+        ["region"] = "Greater Accra",
+        ["country_code"] = "GH",
+    };
 
     internal static bool IsResponsType(Type type) =>
         type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Respons<>);

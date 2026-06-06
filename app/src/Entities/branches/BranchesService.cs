@@ -25,6 +25,9 @@ public class BranchesService
         {
             BranchId = r.Id.ToString(),
             Name = r.Name,
+            City = r.City,
+            Region = r.Region,
+            CountryCode = r.CountryCode,
             EmployeeCount = r.EmployeeCount,
             IsArchived = r.IsArchived,
         }).ToList();

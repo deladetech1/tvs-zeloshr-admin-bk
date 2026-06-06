@@ -45,3 +45,24 @@ for path in "${paths[@]}"; do
   json=$(echo "$body" | sed '$d' | head -c 400)
   printf "GET %s\n  HTTP %s\n  %s\n\n" "$path" "$code" "$json"
 done
+
+branch_body='{"name":"Sprint Test Branch","city":"Accra","region":"Greater Accra","country_code":"GH"}'
+create=$(curl -sS -w "\n%{http_code}" -X POST "${curl_headers[@]}" \
+  -H "content-type: application/json" \
+  -d "${branch_body}" \
+  "${BASE}/api/v1/org-structure/branches/add")
+create_code=$(echo "$create" | tail -1)
+create_json=$(echo "$create" | sed '$d' | head -c 500)
+printf "POST /api/v1/org-structure/branches/add\n  HTTP %s\n  %s\n\n" "$create_code" "$create_json"
+
+branch_id=$(echo "$create_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print((d.get('data') or {}).get('branch_id',''))" 2>/dev/null || true)
+if [[ -n "${branch_id}" ]]; then
+  update_body='{"city":"Tema","region":"Greater Accra","country_code":"GH"}'
+  update=$(curl -sS -w "\n%{http_code}" -X PUT "${curl_headers[@]}" \
+    -H "content-type: application/json" \
+    -d "${update_body}" \
+    "${BASE}/api/v1/org-structure/branches/update?branch_id=${branch_id}")
+  update_code=$(echo "$update" | tail -1)
+  update_json=$(echo "$update" | sed '$d' | head -c 500)
+  printf "PUT /api/v1/org-structure/branches/update?branch_id=%s\n  HTTP %s\n  %s\n\n" "$branch_id" "$update_code" "$update_json"
+fi

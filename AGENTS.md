@@ -2,6 +2,25 @@
 
 Read this before changing the database, seeds, or anything that affects PostgreSQL schema or reference data.
 
+## Git branch policy (ZelosHR + tvs-sqlscript)
+
+**Active ZelosHR work uses `dev` only** in both repos. Do not branch from or PR to `main` / `master` unless the user explicitly asks.
+
+| Repo | Path | Work branch | PR target | Auto-deploy |
+|------|------|-------------|-----------|-------------|
+| **ZelosHR.Api** | this repo | `dev` | `dev` | dev Container App |
+| **tvs-sqlscript** | `../tvs-sqlscript` | `dev` | `dev` | `saas-dev` Postgres |
+
+Before starting a task:
+
+```bash
+cd /path/to/ZelosHR && git checkout dev && git pull
+cd ../tvs-sqlscript && git checkout dev && git pull
+```
+
+- Schema PRs in **tvs-sqlscript** merge to **`dev` first**; let CI deploy to `saas-dev` before merging dependent ZelosHR API changes.
+- `main` / `master` on either repo are release paths — not the default sprint branch.
+
 ## Database source of truth
 
 **All database changes live in the sibling repo [tvs-sqlscript](https://github.com/deladetech1/tvs-sqlscript)** (`../tvs-sqlscript`).
@@ -73,8 +92,8 @@ See `tvs-sqlscript/README.md` for CI dispatch, rollback, and validate.
 3. Run `dotnet ef migrations add <Name> --project src/Trovesuite.Database.HumanResource --startup-project src/Trovesuite.Database.Runner`.
 4. Update `Sql/Seeds/` when RBAC or reference data changes.
 5. Do **not** add demo tenant / employee inserts to tvs-sqlscript; test data is local-only (SQL/pgAdmin) or comes from the real environment.
-6. Open a PR in **tvs-sqlscript**; link from ZelosHR PR if both repos change.
-7. **Merge tvs-sqlscript first** — push to `dev` or `main` auto-deploys schema to `saas-dev` / `saas-prod`.
+6. Open a PR in **tvs-sqlscript** targeting **`dev`**; link from the ZelosHR PR (also targeting **`dev`**) if both repos change.
+7. **Merge tvs-sqlscript `dev` first** — that push auto-deploys schema to **`saas-dev`**. Then merge ZelosHR `dev`.
 8. Verify locally:
 
    ```bash

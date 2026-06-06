@@ -15,10 +15,27 @@ public interface IBranchRepository
         CancellationToken ct = default);
 
     Task<Guid> CreateScopedAsync(
-        string tenantId, string orgId, string name, CancellationToken ct = default);
+        BranchWriteModel model,
+        string tenantId,
+        string orgId,
+        CancellationToken ct = default);
 
-    Task<string?> UpdateNameScopedAsync(
-        Guid id, string tenantId, string orgId, string name, CancellationToken ct = default);
+    Task<BranchListRow?> GetActiveScopedAsync(
+        Guid id, string tenantId, string orgId, CancellationToken ct = default);
+
+    Task<BranchListRow?> UpdateScopedAsync(
+        Guid id,
+        string tenantId,
+        string orgId,
+        string? name,
+        string? city,
+        string? region,
+        string? countryCode,
+        bool updateName,
+        bool updateCity,
+        bool updateRegion,
+        bool updateCountryCode,
+        CancellationToken ct = default);
 
     Task<bool> ArchiveScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default);
@@ -27,4 +44,17 @@ public interface IBranchRepository
         Guid id, string tenantId, string orgId, CancellationToken ct = default);
 }
 
-public sealed record BranchListRow(Guid Id, string Name, int EmployeeCount, bool IsArchived);
+public sealed record BranchWriteModel(
+    string Name,
+    string? City,
+    string? Region,
+    string? CountryCode);
+
+public sealed record BranchListRow(
+    Guid Id,
+    string Name,
+    string? City,
+    string? Region,
+    string? CountryCode,
+    int EmployeeCount,
+    bool IsArchived);

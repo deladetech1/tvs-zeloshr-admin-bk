@@ -143,8 +143,8 @@ File uploads: `POST /photo/upload`, `POST /documents/upload`.
 | PUT | `/departments/update?department_id=` | Update department |
 | DELETE | `/departments/delete?department_id=` | Archive |
 | GET | `/branches` | Branch list |
-| POST | `/branches/add` | Create branch |
-| PUT | `/branches/update?branch_id=` | Rename branch |
+| POST | `/branches/add` | Create branch (`name`, optional `city`, `region`, `country_code`) |
+| PUT | `/branches/update?branch_id=` | Update branch (partial: name, city, region, country_code) |
 | DELETE | `/branches/delete?branch_id=` | Archive |
 | GET | `/chart` | Nested org chart |
 

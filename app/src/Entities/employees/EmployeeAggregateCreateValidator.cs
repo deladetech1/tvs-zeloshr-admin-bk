@@ -28,6 +28,18 @@ internal static class EmployeeAggregateCreateValidator
         if (request.Certifications.Count > MaxCertifications)
             errors["certifications"] = $"At most {MaxCertifications} certification records allowed.";
 
+        if (request.Employment is not null)
+        {
+            var branchRule = WorkArrangementRules.ValidateBranchForArrangement(
+                request.Employment.WorkArrangement,
+                request.Employment.BranchId);
+            if (branchRule is not null)
+            {
+                foreach (var (key, message) in branchRule)
+                    errors[key] = message;
+            }
+        }
+
         return errors.Count == 0 ? null : errors;
     }
 }

@@ -522,7 +522,7 @@ public sealed class EmployeeRegistrationService
         e.DepartmentId = dto.DepartmentId ?? e.DepartmentId;
         e.BranchId = dto.BranchId ?? e.BranchId;
         e.EmploymentType = dto.EmploymentType ?? e.EmploymentType;
-        e.WorkArrangement = dto.WorkArrangement ?? e.WorkArrangement;
+        e.WorkArrangement = WorkArrangementRules.Normalize(dto.WorkArrangement) ?? e.WorkArrangement;
         e.WorkLocation = dto.WorkLocation ?? e.WorkLocation;
         e.PayGrade = dto.PayGrade ?? e.PayGrade;
         e.StartDate = dto.StartDate ?? e.StartDate;

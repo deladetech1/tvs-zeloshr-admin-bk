@@ -170,14 +170,21 @@ public class OrgStructureService
             return Respons<BranchMutationResponseDto>.ValidationError(
                 new Dictionary<string, string> { ["name"] = "Branch name is required." });
 
+        var locationErrors = OrgStructureValidation.ValidateBranchLocationFields(
+            request.City, request.Region, request.CountryCode);
+        if (locationErrors is not null)
+            return Respons<BranchMutationResponseDto>.ValidationError(locationErrors);
+
         try
         {
-            var id = await _branchRepo.CreateScopedAsync(tenantId, orgId, request.Name, ct);
-            return Respons<BranchMutationResponseDto>.Ok(new BranchMutationResponseDto
-            {
-                BranchId = id.ToString(),
-                Name = request.Name.Trim(),
-            });
+            var model = new BranchWriteModel(
+                request.Name,
+                request.City,
+                request.Region,
+                request.CountryCode);
+            var id = await _branchRepo.CreateScopedAsync(model, tenantId, orgId, ct);
+            var created = await _branchRepo.GetActiveScopedAsync(id, tenantId, orgId, ct);
+            return Respons<BranchMutationResponseDto>.Ok(ToMutationDto(created!));
         }
         catch (DbUpdateException ex)
             when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
@@ -193,22 +200,64 @@ public class OrgStructureService
         string orgId,
         CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(request.Name))
+        var hasName = !string.IsNullOrWhiteSpace(request.Name);
+        var hasCity = request.City is not null;
+        var hasRegion = request.Region is not null;
+        var hasCountry = request.CountryCode is not null;
+        if (!hasName && !hasCity && !hasRegion && !hasCountry)
+        {
             return Respons<BranchMutationResponseDto>.ValidationError(new Dictionary<string, string>
             {
-                ["name"] = "Branch name is required.",
+                ["request"] = "Provide at least one of: name, city, region, country_code.",
             });
+        }
 
-        var name = await _branchRepo.UpdateNameScopedAsync(id, tenantId, orgId, request.Name!, ct);
-        if (name is null)
+        if (hasName && string.IsNullOrWhiteSpace(request.Name))
+        {
+            return Respons<BranchMutationResponseDto>.ValidationError(new Dictionary<string, string>
+            {
+                ["name"] = "Branch name cannot be empty.",
+            });
+        }
+
+        var locationErrors = OrgStructureValidation.ValidateBranchLocationFields(
+            hasCity ? request.City : null,
+            hasRegion ? request.Region : null,
+            hasCountry ? request.CountryCode : null);
+        if (locationErrors is not null)
+            return Respons<BranchMutationResponseDto>.ValidationError(locationErrors);
+
+        if (!await _branchRepo.ExistsActiveScopedAsync(id, tenantId, orgId, ct))
             return Respons<BranchMutationResponseDto>.Fail("Branch not found.", statusCode: 404);
 
-        return Respons<BranchMutationResponseDto>.Ok(new BranchMutationResponseDto
-        {
-            BranchId = id.ToString(),
-            Name = name,
-        });
+        var updated = await _branchRepo.UpdateScopedAsync(
+            id,
+            tenantId,
+            orgId,
+            request.Name,
+            request.City,
+            request.Region,
+            request.CountryCode,
+            hasName,
+            hasCity,
+            hasRegion,
+            hasCountry,
+            ct);
+
+        if (updated is null)
+            return Respons<BranchMutationResponseDto>.Fail("Branch not found.", statusCode: 404);
+
+        return Respons<BranchMutationResponseDto>.Ok(ToMutationDto(updated));
     }
+
+    private static BranchMutationResponseDto ToMutationDto(BranchListRow row) => new()
+    {
+        BranchId = row.Id.ToString(),
+        Name = row.Name,
+        City = row.City,
+        Region = row.Region,
+        CountryCode = row.CountryCode,
+    };
 
     public async Task<Respons<object>> ArchiveBranchAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default)

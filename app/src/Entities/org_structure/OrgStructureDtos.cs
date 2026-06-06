@@ -49,15 +49,24 @@ public sealed class UpdateDepartmentRequestDto
 public sealed class CreateBranchRequestDto
 {
     public required string Name { get; init; }
+    public string? City { get; init; }
+    public string? Region { get; init; }
+    public string? CountryCode { get; init; }
 }
 
 public sealed class UpdateBranchRequestDto
 {
     public string? Name { get; init; }
+    public string? City { get; init; }
+    public string? Region { get; init; }
+    public string? CountryCode { get; init; }
 }
 
 public sealed class BranchMutationResponseDto
 {
     public required string BranchId { get; init; }
     public required string Name { get; init; }
+    public string? City { get; init; }
+    public string? Region { get; init; }
+    public string? CountryCode { get; init; }
 }
