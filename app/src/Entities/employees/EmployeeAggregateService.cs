@@ -60,7 +60,7 @@ public sealed class EmployeeAggregateService
     public async Task<Respons<EmployeeAggregateReadDto>> CreateAsync(
         CreateEmployeeAggregateRequest request, CancellationToken ct = default)
     {
-        var validation = ValidateCreate(request);
+        var validation = EmployeeAggregateCreateValidator.Validate(request);
         if (validation is not null)
             return Respons<EmployeeAggregateReadDto>.ValidationError(validation);
 
@@ -580,29 +580,6 @@ public sealed class EmployeeAggregateService
                 Total = total,
                 HasNext = paging.Offset + items.Count < total,
             });
-    }
-
-    private static Dictionary<string, string>? ValidateCreate(CreateEmployeeAggregateRequest request)
-    {
-        var errors = new Dictionary<string, string>();
-
-        if (string.IsNullOrWhiteSpace(request.Identity.FullName))
-            errors["identity.full_name"] = "Full name is required.";
-
-        if (!string.IsNullOrWhiteSpace(request.Status)
-            && !string.Equals(request.Status, "finalised", StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(request.Status, "draft", StringComparison.OrdinalIgnoreCase))
-        {
-            errors["status"] = "Status must be 'draft' or 'finalised'.";
-        }
-
-        if (request.Education.Count > MaxEducation)
-            errors["education"] = $"At most {MaxEducation} education records allowed.";
-
-        if (request.Certifications.Count > MaxCertifications)
-            errors["certifications"] = $"At most {MaxCertifications} certification records allowed.";
-
-        return errors.Count == 0 ? null : errors;
     }
 
     private static bool HasAnyUpdate(UpdateEmployeeAggregateRequest request) =>

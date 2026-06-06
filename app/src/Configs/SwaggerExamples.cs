@@ -69,7 +69,6 @@ internal static class SwaggerExamples
             ["success"] = SwaggerExampleHints.EnvelopeSuccessPipe,
             ["status_code"] = SwaggerExampleHints.EnvelopeStatusCodePipe,
             ["detail"] = SwaggerExampleHints.EnvelopeDetailPipe,
-            ["message"] = SwaggerExampleHints.EnvelopeDetailPipe,
             ["data"] = data,
         };
 
@@ -84,8 +83,6 @@ internal static class SwaggerExamples
         envelope["success"] = SwaggerExampleHints.EnvelopeSuccessPipe;
         envelope["status_code"] = SwaggerExampleHints.EnvelopeStatusCodePipe;
         envelope["detail"] = SwaggerExampleHints.EnvelopeDetailPipe;
-        if (envelope.ContainsKey("message"))
-            envelope["message"] = SwaggerExampleHints.EnvelopeDetailPipe;
     }
 
     internal static JsonObject BranchListResponseExample() =>
@@ -142,10 +139,8 @@ internal static class SwaggerExamples
             ["success"] = "false",
             ["status_code"] = SwaggerExampleHints.EnvelopeStatusCodeErrorPipe,
             ["detail"] = detail,
-            ["message"] = detail,
             ["error"] = SwaggerExampleHints.EnvelopeDetailErrorPipe,
             ["field_errors"] = errors,
-            ["errors"] = new JsonArray(errors.Select(e => e.Value?.DeepClone()).ToArray()),
         };
     }
 
@@ -170,7 +165,6 @@ internal static class SwaggerExamples
         ["success"] = "false",
         ["status_code"] = "404|409",
         ["detail"] = "Not found|Conflict",
-        ["message"] = "Not found|Conflict",
         ["error"] = "Not found|Conflict",
     };
 
@@ -460,7 +454,6 @@ internal static class SwaggerExamples
         ["success"] = "false",
         ["status_code"] = "404",
         ["detail"] = "Currency not found.",
-        ["message"] = "Currency not found.",
         ["error"] = "Currency not found.",
     };
 
@@ -680,24 +673,11 @@ internal static class SwaggerExamples
 
     internal static JsonObject CreateEmployeeDraft() => new()
     {
-        ["status"] = SwaggerExampleHints.Status,
+        ["status"] = "draft",
         ["identity"] = new JsonObject
         {
-            ["full_name"] = "Kwame Mensah",
-            ["work_email"] = "kwame.mensah@company.com",
-            ["custom_fields"] = EmptyCustomFields(EmployeeCustomFieldSections.Identity),
-        },
-        ["employment"] = new JsonObject
-        {
-            ["job_title"] = "HR Coordinator",
-            ["custom_fields"] = EmptyCustomFields(EmployeeCustomFieldSections.Employment),
-        },
-        ["compensation"] = new JsonObject
-        {
-            ["gross_salary"] = 4500.00m,
-            ["pay_frequency"] = SwaggerExampleHints.PayFrequency,
-            ["currency_id"] = SampleCurrencyId,
-            ["custom_fields"] = EmptyCustomFields(EmployeeCustomFieldSections.Compensation),
+            ["full_name"] = "Ada Lovelace",
+            ["phone"] = "+233201234567",
         },
         ["education"] = new JsonArray(),
         ["certifications"] = new JsonArray(),

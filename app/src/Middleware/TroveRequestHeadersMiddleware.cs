@@ -201,13 +201,9 @@ public sealed class TroveRequestHeadersMiddleware
 
     private static Task WriteErrorAsync(HttpContext context, int statusCode, string message)
     {
+        var response = Respons<object>.Fail(message, statusCode: statusCode);
         context.Response.StatusCode = statusCode;
         context.Response.ContentType = "application/json";
-        return context.Response.WriteAsync(JsonSerializer.Serialize(new
-        {
-            success = false,
-            status_code = statusCode,
-            error = message,
-        }, PlatformJson.SerializerOptions));
+        return context.Response.WriteAsync(JsonSerializer.Serialize(response, PlatformJson.SerializerOptions));
     }
 }

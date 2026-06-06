@@ -37,8 +37,9 @@ Link existing platform user: `POST /import` (separate from `POST /add`). Wizard:
 
 | Field | Required | When required | Notes |
 |-------|----------|---------------|-------|
-| `status` | no | — | Default `finalised`. Use `draft` to save incomplete profile. |
-| `identity.full_name` | **yes** | always on create | Only hard requirement for draft create. |
+| `status` | no | — | Default `draft`. Use `finalised` to complete registration in one step. |
+| `identity.full_name` | **yes** | always on create | Display name. |
+| `identity.phone` | **yes** | always on create | Contact number, e.g. `+233201234567`. |
 | `identity` (other fields) | no | — | See identity table below (includes optional `profile_url`). |
 | `employment` | no | — | Required fields apply only when **finalising** (see below). |
 | `compensation` | no | — | `currency_id` required when `gross_salary` is set and employee has no currency yet. |
@@ -99,7 +100,7 @@ Send **only** sections/fields you are changing. At least one top-level field or 
 | `id_number` | no | string | The ID number matching `id_type` |
 | `personal_email` | no | string | Non-work email (HR record) |
 | `work_email` | no* | string | Work email; links/creates platform user (*required to finalise) |
-| `phone` | no | string | Contact number |
+| `phone` | **yes** (create) | string | Contact number, e.g. `+233201234567` |
 | `linkedin_url` | no | string | |
 | `residential_address` | no | string | |
 | `profile_url` | no | string | HTTPS URL; synced to `cp_users.profile_pic` when linked. Pass `""` on update to clear. |

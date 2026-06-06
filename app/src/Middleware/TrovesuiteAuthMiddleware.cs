@@ -114,13 +114,9 @@ public class TrovesuiteAuthMiddleware
 
     private static Task WriteServiceUnavailableAsync(HttpContext context, string message)
     {
+        var response = Respons<object>.Fail(message, statusCode: StatusCodes.Status503ServiceUnavailable);
         context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
         context.Response.ContentType = "application/json";
-        return context.Response.WriteAsync(JsonSerializer.Serialize(new
-        {
-            success = false,
-            status_code = 503,
-            error = message,
-        }, PlatformJson.SerializerOptions));
+        return context.Response.WriteAsync(JsonSerializer.Serialize(response, PlatformJson.SerializerOptions));
     }
 }

@@ -3,7 +3,7 @@ using ZelosHR.Api.Configs;
 namespace ZelosHR.Api.Entities.Employees;
 
 /// <summary>
-/// One-shot employee create. Required on create: <c>identity.full_name</c> only (draft).
+/// One-shot employee create. Required on create: <c>identity.full_name</c> and <c>identity.phone</c>.
 /// Finalise additionally requires <c>employment.job_title</c>, <c>employment.department_id</c>, and <c>identity.work_email</c>.
 /// </summary>
 /// <remarks>
@@ -25,7 +25,7 @@ public sealed class CreateEmployeeAggregateRequest
 {
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.CreateStatuses),
         Description = "draft: save without finalising | finalised: create and link platform user when work_email is set.")]
-    public string Status { get; init; } = "finalised";
+    public string Status { get; init; } = "draft";
 
     public EmployeeAggregateIdentityDto Identity { get; init; } = new();
     public EmployeeAggregateEmploymentDto? Employment { get; init; }
@@ -74,7 +74,7 @@ public sealed class UpdateEmployeeAggregateRequest
 
 public sealed class EmployeeAggregateIdentityDto
 {
-    /// <summary>Display name. Required on create unless using <c>POST /employees/import</c> first.</summary>
+    /// <summary>Display name. Required on create.</summary>
     public string FullName { get; init; } = string.Empty;
 
     public DateOnly? DateOfBirth { get; init; }
@@ -94,6 +94,8 @@ public sealed class EmployeeAggregateIdentityDto
     public string? IdNumber { get; init; }
     public string? PersonalEmail { get; init; }
     public string? WorkEmail { get; init; }
+
+    /// <summary>Contact number. Required on create (<c>POST /add</c>).</summary>
     public string? Phone { get; init; }
     public string? LinkedInUrl { get; init; }
     public string? ResidentialAddress { get; init; }

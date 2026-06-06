@@ -45,7 +45,8 @@ public class EmployeesController : ControllerBase
     /// Create employee in one request (identity, employment, compensation, education[], certifications[], custom fields, document_ids).
     /// </summary>
     /// <remarks>
-    /// **Try the Examples dropdown** for full finalised and minimal draft payloads.
+    /// **Required on create:** `identity.full_name`, `identity.phone`. All other body fields are optional.
+    /// Use `status: finalised` only when employment and work email are complete (see Examples).
     ///
     /// | Step | Action |
     /// |------|--------|

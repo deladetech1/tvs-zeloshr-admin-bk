@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using ZelosHR.Api.Shared.Validation;
 
 namespace ZelosHR.Api.Entities.Shared;
@@ -14,10 +15,12 @@ public class Respons<T>
     public Dictionary<string, string>? FieldErrors { get; set; }
     public PaginationMeta? Pagination { get; set; }
 
-    /// <summary>Alias for <see cref="Detail"/> / <see cref="Error"/> for uplift-spec compatibility.</summary>
+    /// <summary>Alias for <see cref="Detail"/> / <see cref="Error"/> — not serialized; use <see cref="Detail"/> on the wire.</summary>
+    [JsonIgnore]
     public string Message => Detail ?? Error ?? string.Empty;
 
-    /// <summary>Validation or business rule errors (alias of field map values).</summary>
+    /// <summary>Validation or business rule errors (alias of field map values) — not serialized; use <see cref="FieldErrors"/>.</summary>
+    [JsonIgnore]
     public IReadOnlyList<string>? Errors =>
         FieldErrors is null ? null : FieldErrors.Values.ToList();
 
@@ -52,7 +55,7 @@ public class Respons<T>
     public static Respons<T> Fail(string error, int statusCode = 400, string? detail = null) =>
         new()
         {
-            Detail = detail ?? "Error",
+            Detail = detail ?? error,
             Success = false,
             StatusCode = statusCode,
             Error = error,

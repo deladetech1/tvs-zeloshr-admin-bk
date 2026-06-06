@@ -37,7 +37,7 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
                 ["draft_minimal"] = Example(
                     SwaggerExamples.CreateEmployeeDraft(),
                     "Draft — minimal",
-                    "Saves a draft with name and basic employment/compensation only. Finalise later via PUT /employees/update with status finalised."),
+                    "Only identity.full_name and identity.phone are required. All other sections and fields are optional on create."),
             };
         }
 
