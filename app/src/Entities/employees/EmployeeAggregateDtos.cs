@@ -50,7 +50,7 @@ public sealed class CreateEmployeeAggregateRequest
 /// Same aggregate shape as <c>POST /add</c> — send the full profile or only fields to change.
 /// <c>document_ids</c> appends file-registry IDs; <c>delete_document_ids</c> removes them.
 /// Education/certification array items: include <c>id</c> from GET to update; omit <c>id</c> only to add new rows.
-/// If <c>id</c> is omitted but row content matches a single existing record, that record is updated (no duplicate).
+/// If <c>id</c> is omitted but row content matches existing record(s), the first match is updated and duplicates are removed.
 /// </remarks>
 public sealed class UpdateEmployeeAggregateRequest
 {

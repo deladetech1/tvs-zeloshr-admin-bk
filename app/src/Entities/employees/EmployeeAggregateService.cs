@@ -356,9 +356,9 @@ public sealed class EmployeeAggregateService
                 foreach (var edu in request.Education)
                 {
                     var write = EmployeeAggregateMapper.ToEducationWrite(edu);
-                    var resolvedId = EmployeeSubResourceUpsertMatcher.ResolveEducationId(
+                    var resolution = EmployeeSubResourceUpsertMatcher.ResolveEducation(
                         edu, existingEducationRows, consumedEducationIds);
-                    var result = resolvedId is { } id
+                    var result = resolution.UpdateId is { } id
                         ? await _subResources.UpdateEducationAsync(employeeId, id, write, ct)
                         : await _subResources.AddEducationAsync(employeeId, write, ct);
                     if (!result.Success)
@@ -369,6 +369,18 @@ public sealed class EmployeeAggregateService
 
                     if (result.Data is not null)
                         consumedEducationIds.Add(result.Data.Id);
+
+                    foreach (var duplicateId in resolution.DuplicateIdsToRemove)
+                    {
+                        var deleted = await _subResources.DeleteEducationAsync(employeeId, duplicateId, ct);
+                        if (!deleted.Success)
+                        {
+                            await transaction.RollbackAsync(ct);
+                            return Respons<EmployeeAggregateReadDto>.Fail(
+                                deleted.Error ?? deleted.Detail ?? "Could not remove duplicate education record.",
+                                statusCode: deleted.StatusCode);
+                        }
+                    }
                 }
             }
 
@@ -398,9 +410,9 @@ public sealed class EmployeeAggregateService
                 foreach (var cert in request.Certifications)
                 {
                     var write = EmployeeAggregateMapper.ToCertificationWrite(cert);
-                    var resolvedId = EmployeeSubResourceUpsertMatcher.ResolveCertificationId(
+                    var resolution = EmployeeSubResourceUpsertMatcher.ResolveCertification(
                         cert, existingCertificationRows, consumedCertificationIds);
-                    var result = resolvedId is { } id
+                    var result = resolution.UpdateId is { } id
                         ? await _subResources.UpdateCertificationAsync(employeeId, id, write, ct)
                         : await _subResources.AddCertificationAsync(employeeId, write, ct);
                     if (!result.Success)
@@ -411,6 +423,18 @@ public sealed class EmployeeAggregateService
 
                     if (result.Data is not null)
                         consumedCertificationIds.Add(result.Data.Id);
+
+                    foreach (var duplicateId in resolution.DuplicateIdsToRemove)
+                    {
+                        var deleted = await _subResources.DeleteCertificationAsync(employeeId, duplicateId, ct);
+                        if (!deleted.Success)
+                        {
+                            await transaction.RollbackAsync(ct);
+                            return Respons<EmployeeAggregateReadDto>.Fail(
+                                deleted.Error ?? deleted.Detail ?? "Could not remove duplicate certification.",
+                                statusCode: deleted.StatusCode);
+                        }
+                    }
                 }
             }
 

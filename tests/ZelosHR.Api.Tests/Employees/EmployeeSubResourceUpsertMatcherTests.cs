@@ -3,60 +3,81 @@ using ZelosHR.Api.Entities.Employees;
 
 namespace ZelosHR.Api.Tests.Employees;
 
-public class EmployeeSubResourceUpsertMatcherTests
+public sealed class EmployeeSubResourceUpsertMatcherTests
 {
     private static readonly Guid EducationId = Guid.Parse("55555555-5555-5555-5555-555555555501");
+    private static readonly Guid EducationDuplicateId = Guid.Parse("55555555-5555-5555-5555-555555555502");
 
     [Fact]
-    public void ResolveEducationId_WhenIdProvided_ReturnsExplicitId()
+    public void ResolveEducation_WhenIdProvided_ReturnsExplicitId()
     {
         var incoming = SampleEducationUpsert() with { Id = EducationId };
         var existing = new[] { SampleEducationDto() };
 
-        var resolved = EmployeeSubResourceUpsertMatcher.ResolveEducationId(
+        var resolved = EmployeeSubResourceUpsertMatcher.ResolveEducation(
             incoming, existing, new HashSet<Guid>());
 
-        resolved.Should().Be(EducationId);
+        resolved.UpdateId.Should().Be(EducationId);
+        resolved.DuplicateIdsToRemove.Should().BeEmpty();
     }
 
     [Fact]
-    public void ResolveEducationId_WhenContentMatchesSingleExistingRow_ReturnsExistingId()
+    public void ResolveEducation_WhenContentMatchesSingleExistingRow_ReturnsExistingId()
     {
         var incoming = SampleEducationUpsert() with { Id = null };
         var existing = new[] { SampleEducationDto() };
 
-        var resolved = EmployeeSubResourceUpsertMatcher.ResolveEducationId(
+        var resolved = EmployeeSubResourceUpsertMatcher.ResolveEducation(
             incoming, existing, new HashSet<Guid>());
 
-        resolved.Should().Be(EducationId);
+        resolved.UpdateId.Should().Be(EducationId);
+        resolved.DuplicateIdsToRemove.Should().BeEmpty();
     }
 
     [Fact]
-    public void ResolveEducationId_WhenContentMatchesMultipleExistingRows_ReturnsNull()
+    public void ResolveEducation_WhenContentMatchesMultipleExistingRows_UpdatesFirstAndRemovesRest()
     {
         var incoming = SampleEducationUpsert() with { Id = null };
-        var existing = new[] { SampleEducationDto(), SampleEducationDto() };
+        var existing = new[]
+        {
+            SampleEducationDto(),
+            SampleEducationDto(EducationDuplicateId),
+        };
 
-        var resolved = EmployeeSubResourceUpsertMatcher.ResolveEducationId(
+        var resolved = EmployeeSubResourceUpsertMatcher.ResolveEducation(
             incoming, existing, new HashSet<Guid>());
 
-        resolved.Should().BeNull();
+        resolved.UpdateId.Should().Be(EducationId);
+        resolved.DuplicateIdsToRemove.Should().Equal(EducationDuplicateId);
     }
 
     [Fact]
-    public void ResolveEducationId_WhenExistingRowAlreadyConsumed_ReturnsNull()
+    public void ResolveEducation_WhenExistingRowAlreadyConsumed_InsertsNew()
     {
         var incoming = SampleEducationUpsert() with { Id = null };
         var existing = new[] { SampleEducationDto() };
 
-        var resolved = EmployeeSubResourceUpsertMatcher.ResolveEducationId(
+        var resolved = EmployeeSubResourceUpsertMatcher.ResolveEducation(
             incoming, existing, new HashSet<Guid> { EducationId });
 
-        resolved.Should().BeNull();
+        resolved.UpdateId.Should().BeNull();
+        resolved.DuplicateIdsToRemove.Should().BeEmpty();
     }
 
-    private static EmployeeEducationDto SampleEducationDto() => new(
-        EducationId,
+    [Fact]
+    public void ResolveEducation_WhenEmptyGuidProvided_TreatsAsMissingId()
+    {
+        var incoming = SampleEducationUpsert() with { Id = Guid.Empty };
+        var existing = new[] { SampleEducationDto() };
+
+        var resolved = EmployeeSubResourceUpsertMatcher.ResolveEducation(
+            incoming, existing, new HashSet<Guid>());
+
+        resolved.UpdateId.Should().Be(EducationId);
+    }
+
+    private static EmployeeEducationDto SampleEducationDto(Guid? id = null) => new(
+        id ?? EducationId,
         Guid.NewGuid(),
         "University of Ghana",
         "BSc",
