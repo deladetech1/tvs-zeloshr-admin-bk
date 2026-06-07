@@ -58,6 +58,7 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
             HeadFirstName = d.HeadOfDepartment != null ? d.HeadOfDepartment.FirstName : null,
             HeadLastName = d.HeadOfDepartment != null ? d.HeadOfDepartment.LastName : null,
             HeadJobTitle = d.HeadOfDepartment != null ? d.HeadOfDepartment.JobTitle : null,
+            d.HeadcountCapacity,
             d.CreatedAt,
             d.UpdatedAt,
             d.CreatedBy,
@@ -94,6 +95,7 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
             x.HeadLastName,
             x.HeadJobTitle,
             x.EmployeeCount,
+            x.HeadcountCapacity,
             x.CreatedAt,
             x.UpdatedAt,
             x.CreatedBy,
@@ -102,33 +104,6 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
         return (rows, total);
     }
 
-    public async Task<IReadOnlyList<DepartmentListRow>> GetOrgChartScopedAsync(
-        string tenantId, string orgId, CancellationToken ct = default) =>
-        await Scoped(tenantId, orgId)
-            .Where(d => !d.IsArchived)
-            .OrderBy(d => d.Name)
-            .Select(d => new DepartmentListRow(
-                d.Id,
-                d.Name,
-                d.Description,
-                d.ParentDepartmentId,
-                null,
-                d.IsArchived,
-                d.HeadOfDepartmentId,
-                d.HeadOfDepartment != null ? d.HeadOfDepartment.FirstName : null,
-                d.HeadOfDepartment != null ? d.HeadOfDepartment.LastName : null,
-                d.HeadOfDepartment != null ? d.HeadOfDepartment.JobTitle : null,
-                db.Employees.Count(e =>
-                    e.DepartmentId == d.Id
-                    && e.TenantId == tenantId
-                    && e.OrgId == orgId
-                    && !e.IsDeleted),
-                d.CreatedAt,
-                d.UpdatedAt,
-                d.CreatedBy,
-                d.UpdatedBy))
-            .ToListAsync(ct);
-
     public async Task<Guid> CreateScopedAsync(
         string tenantId,
         string orgId,
@@ -136,6 +111,7 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
         Guid? parentDepartmentId,
         Guid? headOfDepartmentId,
         string? description,
+        int? headcountCapacity,
         string? actedBy,
         CancellationToken ct = default)
     {
@@ -149,6 +125,7 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
             Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
             ParentDepartmentId = parentDepartmentId,
             HeadOfDepartmentId = headOfDepartmentId,
+            HeadcountCapacity = headcountCapacity,
             CreatedAt = now,
             UpdatedAt = now,
             CreatedBy = actedBy,
@@ -187,6 +164,7 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
             null,
             null,
             employeeCount,
+            entity.HeadcountCapacity,
             entity.CreatedAt,
             entity.UpdatedAt,
             entity.CreatedBy,
@@ -209,6 +187,8 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
         Guid? headOfDepartmentId,
         string? description,
         bool updateDescription,
+        int? headcountCapacity,
+        bool updateHeadcountCapacity,
         string? actedBy,
         CancellationToken ct = default)
     {
@@ -236,6 +216,11 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
         if (updateDescription)
         {
             entity.Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+            changed = true;
+        }
+        if (updateHeadcountCapacity)
+        {
+            entity.HeadcountCapacity = headcountCapacity;
             changed = true;
         }
 

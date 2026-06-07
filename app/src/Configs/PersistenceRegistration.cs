@@ -17,6 +17,7 @@ using ZelosHR.Api.Entities.Performance;
 using ZelosHR.Api.Entities.Recruitment;
 using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Persistence;
+using ZelosHR.Api.Entities.OrgStructure;
 using ZelosHR.Api.Persistence.Repositories;
 
 namespace ZelosHR.Api.Configs;
@@ -41,6 +42,7 @@ public static class PersistenceRegistration
         services.AddScoped<IEmployeeCertificationRepository, EmployeeCertificationRepository>();
         services.AddScoped<IEmployeeWizardDocumentRepository, EmployeeWizardDocumentRepository>();
         services.AddScoped<IDepartmentRepository, DepartmentRepository>();
+        services.AddScoped<IOrgChartRepository, OrgChartRepository>();
         services.AddScoped<IBranchRepository, BranchRepository>();
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
         services.AddScoped<ILifecycleEventRepository, LifecycleEventRepository>();

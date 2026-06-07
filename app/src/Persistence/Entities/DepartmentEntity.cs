@@ -11,6 +11,7 @@ public sealed class DepartmentEntity
     public DepartmentEntity? ParentDepartment { get; set; }
     public Guid? HeadOfDepartmentId { get; set; }
     public EmployeeEntity? HeadOfDepartment { get; set; }
+    public int? HeadcountCapacity { get; set; }
     public bool IsArchived { get; set; }
     public string CustomFieldsData { get; set; } = "{}";
     public string? CreatedBy { get; set; }

@@ -80,6 +80,13 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(BranchListItemDto) => SwaggerExamples.BranchListItemExample(),
             nameof(DepartmentListItemDto) => SwaggerExamples.DepartmentListItemExample(),
             nameof(OrgChartNodeDto) => SwaggerExamples.OrgChartNodeExample(),
+            nameof(OrgChartDepartmentBadgeDto) => new JsonObject
+            {
+                ["department_id"] = SwaggerExamples.SampleDepartmentId.ToString(),
+                ["name"] = "Engineering",
+                ["employee_count"] = 8,
+                ["headcount_capacity"] = 10,
+            },
             _ => schema.Example,
         };
 
@@ -116,19 +123,21 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(FileDeleteReadDto) => AppendDescription(schema.Description,
                 "Echo of storage location after delete."),
             nameof(CreateDepartmentRequestDto) => AppendDescription(schema.Description,
-                "Create department. Optional parent_department_id, head_of_department_id (employee UUID), and description."),
+                "Create department. Optional parent_department_id, head_of_department_id (employee UUID), description, and headcount_capacity."),
             nameof(CreateBranchRequestDto) => AppendDescription(schema.Description,
                 "Create branch. Optional address, country (full name, e.g. Ghana, Kenya), and description."),
             nameof(UpdateBranchRequestDto) => AppendDescription(schema.Description,
                 "Partial branch update — include only fields to change."),
             nameof(OrgChartDto) => AppendDescription(schema.Description,
-                "Nested department tree. Each node: id · name · node_type (department) · parent_id · head_of_department · employee_count · children."),
+                "Reporting-line tree from employees.reports_to_id. Roots have no manager; dept heads include department badge with employee_count/headcount_capacity."),
             nameof(BranchListItemDto) => AppendDescription(schema.Description,
                 "branch_id (UUID) · name · address · country · description · employee_count · is_archived."),
             nameof(DepartmentListItemDto) => AppendDescription(schema.Description,
-                $"department_id (UUID) · name · parent_department_id · head_of_department · employee_count · is_archived ({SwaggerExampleHints.OrgIncludeArchived}) · hierarchy_level."),
+                $"department_id (UUID) · name · parent_department_id · head_of_department · employee_count · headcount_capacity · is_archived ({SwaggerExampleHints.OrgIncludeArchived}) · hierarchy_level."),
             nameof(OrgChartNodeDto) => AppendDescription(schema.Description,
-                $"Chart node. node_type: {SwaggerExampleHints.OrgNodeType}. parent_id null on roots."),
+                $"Person node. node_type: {SwaggerExampleHints.OrgNodeType}. department badge on dept heads; children are direct reports."),
+            nameof(OrgChartDepartmentBadgeDto) => AppendDescription(schema.Description,
+                "Shown on department-head nodes only. employee_count / headcount_capacity drive the headcount bar (e.g. 8/10)."),
             _ => schema.Description,
         };
     }
@@ -354,14 +363,24 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 schema.Example = JsonValue.Create(SwaggerExamples.SampleDepartmentId.ToString());
                 return;
             case "NodeType" when property.DeclaringType == typeof(OrgChartNodeDto):
-                schema.Example = JsonValue.Create("department");
+                schema.Example = JsonValue.Create("employee");
                 schema.Description = AppendDescription(schema.Description,
-                    "Chart nodes are departments.");
+                    "Chart nodes are employees in the reporting tree.");
                 return;
             case "EmployeeCount":
                 schema.Example = JsonValue.Create(24);
                 schema.Description = AppendDescription(schema.Description,
-                    "Active employees assigned to this department or branch.");
+                    property.DeclaringType == typeof(OrgChartDepartmentBadgeDto)
+                        ? "Active employees in the department (numerator for headcount bar)."
+                        : "Active employees assigned to this department or branch.");
+                return;
+            case "HeadcountCapacity" when property.DeclaringType == typeof(DepartmentListItemDto)
+                                         || property.DeclaringType == typeof(CreateDepartmentRequestDto)
+                                         || property.DeclaringType == typeof(UpdateDepartmentRequestDto)
+                                         || property.DeclaringType == typeof(OrgChartDepartmentBadgeDto):
+                schema.Example = JsonValue.Create(10);
+                schema.Description = AppendDescription(schema.Description,
+                    "Optional max headcount for department; denominator on org-chart badge (e.g. 8/10).");
                 return;
         }
 

@@ -548,22 +548,98 @@ internal static class SwaggerExamples
 
     private static JsonObject OrgChartRootNode() => new()
     {
-        ["id"] = SampleDepartmentId.ToString(),
-        ["name"] = "Engineering",
-        ["node_type"] = "department",
+        ["id"] = "11111111-1111-1111-1111-111111111101",
+        ["full_name"] = "Kwame Asante",
+        ["job_title"] = "Chief Executive Officer",
+        ["initials"] = "KA",
+        ["node_type"] = "employee",
         ["parent_id"] = null,
-        ["head_of_department"] = DepartmentHeadExample(),
-        ["employee_count"] = 24,
-        ["children"] = new JsonArray(new JsonObject
+        ["department"] = null,
+        ["children"] = new JsonArray(
+            OrgChartManagerNode(
+                "11111111-1111-1111-1111-111111111102",
+                "11111111-1111-1111-1111-111111111101",
+                "Kwame Boateng",
+                "Chief Technology Officer",
+                "KB",
+                SampleDepartmentId,
+                "Engineering",
+                8,
+                10,
+                new JsonArray(
+                    OrgChartEmployeeNode("11111111-1111-1111-1111-111111111105", "11111111-1111-1111-1111-111111111102", "Kofi Asante", "Software Engineer", "KA"),
+                    OrgChartEmployeeNode("11111111-1111-1111-1111-111111111106", "11111111-1111-1111-1111-111111111102", "Abena Mensah", "Senior product designer", "AM"))),
+            OrgChartManagerNode(
+                "11111111-1111-1111-1111-111111111103",
+                "11111111-1111-1111-1111-111111111101",
+                "Yaw Mensah",
+                "Chief Financial Officer",
+                "YM",
+                SampleChildDepartmentId,
+                "Finance",
+                4,
+                10,
+                new JsonArray(
+                    OrgChartEmployeeNode("11111111-1111-1111-1111-111111111107", "11111111-1111-1111-1111-111111111103", "Yaw Ofori", "Financial Analyst", "YO"),
+                    OrgChartEmployeeNode("11111111-1111-1111-1111-111111111108", "11111111-1111-1111-1111-111111111103", "Maame Bonsu", "Accountant", "MB"))),
+            OrgChartManagerNode(
+                "11111111-1111-1111-1111-111111111104",
+                "11111111-1111-1111-1111-111111111101",
+                "Ama Darko",
+                "Chief Operating Officer",
+                "AD",
+                SampleBranchId,
+                "Operations",
+                6,
+                10,
+                new JsonArray(
+                    OrgChartEmployeeNode("11111111-1111-1111-1111-111111111109", "11111111-1111-1111-1111-111111111104", "Efua Boateng", "Operations Manager", "EB"),
+                    OrgChartEmployeeNode("11111111-1111-1111-1111-111111111110", "11111111-1111-1111-1111-111111111104", "Nana Adjei", "Human Resources", "NA")))),
+    };
+
+    private static JsonObject OrgChartManagerNode(
+        string id,
+        string parentId,
+        string fullName,
+        string jobTitle,
+        string initials,
+        Guid departmentId,
+        string departmentName,
+        int employeeCount,
+        int headcountCapacity,
+        JsonArray children) => new()
+    {
+        ["id"] = id,
+        ["full_name"] = fullName,
+        ["job_title"] = jobTitle,
+        ["initials"] = initials,
+        ["node_type"] = "employee",
+        ["parent_id"] = parentId,
+        ["department"] = new JsonObject
         {
-            ["id"] = SampleChildDepartmentId.ToString(),
-            ["name"] = "Platform",
-            ["node_type"] = "department",
-            ["parent_id"] = SampleDepartmentId.ToString(),
-            ["head_of_department"] = null,
-            ["employee_count"] = 12,
-            ["children"] = new JsonArray(),
-        }),
+            ["department_id"] = departmentId.ToString(),
+            ["name"] = departmentName,
+            ["employee_count"] = employeeCount,
+            ["headcount_capacity"] = headcountCapacity,
+        },
+        ["children"] = children,
+    };
+
+    private static JsonObject OrgChartEmployeeNode(
+        string id,
+        string parentId,
+        string fullName,
+        string jobTitle,
+        string initials) => new()
+    {
+        ["id"] = id,
+        ["full_name"] = fullName,
+        ["job_title"] = jobTitle,
+        ["initials"] = initials,
+        ["node_type"] = "employee",
+        ["parent_id"] = parentId,
+        ["department"] = null,
+        ["children"] = new JsonArray(),
     };
 
     private static JsonObject DepartmentHeadExample() => new()
@@ -587,6 +663,7 @@ internal static class SwaggerExamples
                 ["parent_department_name"] = null,
                 ["head_of_department"] = DepartmentHeadExample(),
                 ["employee_count"] = 24,
+                ["headcount_capacity"] = 30,
                 ["is_archived"] = false,
                 ["hierarchy_level"] = 0,
                 ["created_at"] = "2025-01-15T10:30:00+00:00",
@@ -711,6 +788,7 @@ internal static class SwaggerExamples
         ["parent_department_id"] = null,
         ["head_of_department_id"] = SampleEmployeeId.ToString(),
         ["description"] = null,
+        ["headcount_capacity"] = 10,
     };
 
     internal static JsonObject CreateDepartmentChild() => new()
@@ -719,6 +797,7 @@ internal static class SwaggerExamples
         ["parent_department_id"] = SampleDepartmentId.ToString(),
         ["head_of_department_id"] = null,
         ["description"] = null,
+        ["headcount_capacity"] = null,
     };
 
     internal static JsonObject UpdateDepartmentBody() => new()
@@ -727,6 +806,7 @@ internal static class SwaggerExamples
         ["parent_department_id"] = null,
         ["head_of_department_id"] = SampleEmployeeId.ToString(),
         ["description"] = "Product engineering and platform teams.",
+        ["headcount_capacity"] = 30,
     };
 
     internal static JsonObject CreateBranchBody() => new()

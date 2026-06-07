@@ -28,6 +28,7 @@ internal static class OrgStructureMapper
                     Initials = NameFormatting.BuildInitials(row.HeadFirstName!, row.HeadLastName!),
                 },
             EmployeeCount = row.EmployeeCount,
+            HeadcountCapacity = row.HeadcountCapacity,
             IsArchived = row.IsArchived,
             HierarchyLevel = row.ParentDepartmentId is null ? 0 : 1,
             CreatedAt = row.CreatedAt,

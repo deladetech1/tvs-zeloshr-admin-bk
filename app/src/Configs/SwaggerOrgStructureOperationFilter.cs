@@ -30,19 +30,19 @@ public sealed class SwaggerOrgStructureOperationFilter : IOperationFilter
             {
                 ["empty"] = new OpenApiExample
                 {
-                    Summary = "No departments",
-                    Description = "New tenant or org with no department rows yet.",
+                    Summary = "No employees",
+                    Description = "Org with no active (non-draft) employees yet.",
                     Value = SwaggerExamples.OrgChartEmptyResponse(),
                 },
                 ["with_tree"] = new OpenApiExample
                 {
-                    Summary = "Nested department tree",
-                    Description = "Roots have null parent_id; children nest under their parent department.",
+                    Summary = "CEO → dept heads → direct reports",
+                    Description = "Reporting tree from employees.reports_to_id; dept heads include department badge with headcount bar.",
                     Value = SwaggerExamples.OrgChartResponse(),
                 },
             });
             operation.Summary ??= "Org chart";
-            operation.Description = "Returns `{ success, status_code, detail, data: { roots: [...] } }`. Each node: `id` (department UUID) · `name` · `node_type` (`department`) · `parent_id` (null | UUID) · `head_of_department` (null | employee summary) · `employee_count` · `children` (nested nodes).";
+            operation.Description = "Returns `{ success, status_code, detail, data: { roots: [...] } }`. Each node is an employee: `id` · `full_name` · `job_title` · `initials` · `node_type` (`employee`) · `parent_id` (manager employee UUID, null on roots) · `department` (null | badge on dept heads: department_id · name · employee_count · headcount_capacity) · `children` (direct reports).";
             return;
         }
 
@@ -60,7 +60,7 @@ public sealed class SwaggerOrgStructureOperationFilter : IOperationFilter
         {
             SetJsonResponseExample(operation, 200, SwaggerExamples.EnvelopeFor(typeof(Respons<DepartmentListDto>), 200));
             operation.Description = SwaggerOptionFormat.Append(operation.Description,
-                "Response `data.items[]`: department_id · name · parent_department_id (null | UUID) · parent_department_name · head_of_department · employee_count · is_archived (false | true) · hierarchy_level.");
+                "Response `data.items[]`: department_id · name · parent_department_id (null | UUID) · parent_department_name · head_of_department · employee_count · headcount_capacity · is_archived (false | true) · hierarchy_level.");
             AppendParameterDescription(operation, "sort_by",
                 $"Sort column. Allowed: {SwaggerExampleHints.OrgDepartmentSortBy}.");
             AppendParameterDescription(operation, "sort_order",

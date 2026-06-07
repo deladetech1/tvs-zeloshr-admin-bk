@@ -135,11 +135,15 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
                 ["root_department"] = Example(
                     SwaggerExamples.CreateDepartmentRoot(),
                     "Root department",
-                    "Top-level department with optional head_of_department_id (employee UUID)."),
+                    "Top-level department with optional head_of_department_id (employee UUID) and headcount_capacity for org-chart badge."),
                 ["child_department"] = Example(
                     SwaggerExamples.CreateDepartmentChild(),
                     "Child department",
                     "Nested under parent_department_id from an existing department."),
+                ["with_headcount"] = Example(
+                    SwaggerExamples.CreateDepartmentRoot(),
+                    "Department with headcount cap",
+                    "Set headcount_capacity so the org-chart headcount bar can show current vs max (e.g. 8/10)."),
             };
         }
 

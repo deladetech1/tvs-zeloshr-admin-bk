@@ -39,6 +39,20 @@ Tenant scope is taken from the JWT claim `tenant_id` (read without DB validation
 | **Trove headers** | `app-id`, `bus-id`, `loc-id`, `org-id` on each operation (pre-filled for local demo) |
 | **Standard errors** | 400, 401, 404, 409, 500 |
 
+### Organisation org chart (`GET /api/v1/org-structure/chart`)
+
+Response is a **reporting-line tree** (`data.roots[]`), not a department hierarchy:
+
+| Field | Meaning |
+|-------|---------|
+| `full_name`, `job_title`, `initials` | Person shown on each node |
+| `node_type` | Always `employee` |
+| `parent_id` | Manager employee UUID; `null` on roots |
+| `department` | Badge on department heads only: `name`, `employee_count`, `headcount_capacity` (headcount bar e.g. 8/10) |
+| `children` | Direct reports (nested sub-levels) |
+
+Tree shape comes from employee `reports_to_id`. Department badge requires `head_of_department_id` on the department row.
+
 ## Required on every API change (MUST)
 
 Any PR that changes request/response shapes, query params, routes, or workflows **must** update Swagger in the same commit. Do not merge API code without matching OpenAPI docs.

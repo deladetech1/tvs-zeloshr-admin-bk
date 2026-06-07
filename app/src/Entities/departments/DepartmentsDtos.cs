@@ -26,6 +26,7 @@ public sealed class DepartmentListItemDto
     public int EmployeeCount { get; init; }
     public bool IsArchived { get; init; }
     public int HierarchyLevel { get; init; }
+    public int? HeadcountCapacity { get; init; }
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
     public string? CreatedById { get; init; }

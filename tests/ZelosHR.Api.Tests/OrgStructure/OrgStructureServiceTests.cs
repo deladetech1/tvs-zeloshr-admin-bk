@@ -13,6 +13,7 @@ public class OrgStructureServiceTests
     private readonly DepartmentsService _departments;
     private readonly BranchesService _branches;
     private readonly IDepartmentRepository _departmentRepo = Substitute.For<IDepartmentRepository>();
+    private readonly IOrgChartRepository _orgChartRepo = Substitute.For<IOrgChartRepository>();
     private readonly IBranchRepository _branchRepo = Substitute.For<IBranchRepository>();
     private readonly ICpUserRepository _cpUsers = Substitute.For<ICpUserRepository>();
     private readonly IHttpContextAccessor _httpContextAccessor = Substitute.For<IHttpContextAccessor>();
@@ -25,7 +26,35 @@ public class OrgStructureServiceTests
         _departments = new DepartmentsService(_departmentRepo, _cpUsers);
         _branches = new BranchesService(_branchRepo, _cpUsers);
         _sut = new OrgStructureService(
-            _departments, _branches, _departmentRepo, _branchRepo, _cpUsers, _httpContextAccessor);
+            _departments, _branches, _departmentRepo, _orgChartRepo, _branchRepo, _cpUsers, _httpContextAccessor);
+    }
+
+    [Fact]
+    public async Task GetOrgChart_builds_reporting_tree_from_repository()
+    {
+        var ceoId = Guid.NewGuid();
+        var headId = Guid.NewGuid();
+        var deptId = Guid.NewGuid();
+
+        _orgChartRepo.GetReportingHierarchyScopedAsync("t1", "o1", Arg.Any<CancellationToken>())
+            .Returns((
+                new List<OrgChartEmployeeRow>
+                {
+                    new(ceoId, "Kwame Asante", "Kwame", "Asante", "Chief Executive Officer", null),
+                    new(headId, "Kwame Boateng", "Kwame", "Boateng", "Chief Technology Officer", ceoId),
+                },
+                new List<OrgChartDepartmentHeadRow>
+                {
+                    new(deptId, "Engineering", headId, 8, 10),
+                }));
+
+        var result = await _sut.GetOrgChartAsync("t1", "o1");
+
+        result.Success.Should().BeTrue();
+        result.Data!.Roots.Should().ContainSingle();
+        result.Data.Roots[0].FullName.Should().Be("Kwame Asante");
+        result.Data.Roots[0].Children.Should().ContainSingle();
+        result.Data.Roots[0].Children[0].Department!.Name.Should().Be("Engineering");
     }
 
     [Fact]
@@ -38,7 +67,7 @@ public class OrgStructureServiceTests
         result.StatusCode.Should().Be(400);
         await _departmentRepo.DidNotReceive().CreateScopedAsync(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
-            Arg.Any<Guid?>(), Arg.Any<Guid?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
+            Arg.Any<Guid?>(), Arg.Any<Guid?>(), Arg.Any<string?>(), Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -59,7 +88,7 @@ public class OrgStructureServiceTests
         await _departmentRepo.DidNotReceive().UpdateScopedAsync(
             Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<string>(),
             Arg.Any<string?>(), Arg.Any<Guid?>(), Arg.Any<Guid?>(), Arg.Any<string?>(), Arg.Any<bool>(),
-            Arg.Any<string?>(), Arg.Any<CancellationToken>());
+            Arg.Any<int?>(), Arg.Any<bool>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]

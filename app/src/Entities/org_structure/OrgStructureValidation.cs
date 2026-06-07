@@ -31,4 +31,15 @@ internal static class OrgStructureValidation
 
         return null;
     }
+
+    internal static Dictionary<string, string>? ValidateHeadcountCapacity(int? headcountCapacity)
+    {
+        if (headcountCapacity is < 0)
+            return new Dictionary<string, string>
+            {
+                ["headcount_capacity"] = "Headcount capacity must be zero or greater.",
+            };
+
+        return null;
+    }
 }

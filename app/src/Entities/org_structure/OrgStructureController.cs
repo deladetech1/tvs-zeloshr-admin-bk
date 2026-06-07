@@ -96,8 +96,9 @@ public class OrgStructureController : ControllerBase
         CancellationToken ct = default) =>
         ListBranches(search, includeArchived, page, size, ct);
 
-    /// <summary>Nested org chart (department tree with heads and employee counts).</summary>
+    /// <summary>Reporting-line org chart (CEO → managers with department badges → direct reports).</summary>
     [HttpGet("chart")]
+    [ProducesResponseType(typeof(Respons<OrgChartDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<OrgChartDto>>> Chart(CancellationToken ct)
     {
         var ctx = _tenant.Current;

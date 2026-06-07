@@ -19,9 +19,6 @@ public interface IDepartmentRepository
         int pageSize,
         CancellationToken ct = default);
 
-    Task<IReadOnlyList<DepartmentListRow>> GetOrgChartScopedAsync(
-        string tenantId, string orgId, CancellationToken ct = default);
-
     Task<Guid> CreateScopedAsync(
         string tenantId,
         string orgId,
@@ -29,6 +26,7 @@ public interface IDepartmentRepository
         Guid? parentDepartmentId,
         Guid? headOfDepartmentId,
         string? description,
+        int? headcountCapacity,
         string? actedBy,
         CancellationToken ct = default);
 
@@ -47,6 +45,8 @@ public interface IDepartmentRepository
         Guid? headOfDepartmentId,
         string? description,
         bool updateDescription,
+        int? headcountCapacity,
+        bool updateHeadcountCapacity,
         string? actedBy,
         CancellationToken ct = default);
 
@@ -66,6 +66,7 @@ public sealed record DepartmentListRow(
     string? HeadLastName,
     string? HeadJobTitle,
     int EmployeeCount,
+    int? HeadcountCapacity,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
     string? CreatedBy,

@@ -240,14 +240,14 @@ Full guide: **[FILE_MANAGEMENT.md](FILE_MANAGEMENT.md)** — MyStoreGuard shapes
 |--------|------|---------|
 | GET | `/statistics` | Tab counts |
 | GET | `/departments/list` | Department table (paginated, sortable) |
-| POST | `/departments/add` | Create department (`name`, optional `parent_department_id`, `head_of_department_id`, `description`) |
-| PUT | `/departments/update?department_id=` | Update department (partial) |
+| POST | `/departments/add` | Create department (`name`, optional `parent_department_id`, `head_of_department_id`, `description`, `headcount_capacity`) |
+| PUT | `/departments/update?department_id=` | Update department (partial: `name`, `parent_department_id`, `head_of_department_id`, `description`, `headcount_capacity`) |
 | DELETE | `/departments/delete?department_id=` | Permanently delete (409 if employees assigned or child departments exist) |
 | GET | `/branches/list` | Branch list (paginated) |
 | POST | `/branches/add` | Create branch (`name`, optional `address`, `country`, `description`) |
 | PUT | `/branches/update?branch_id=` | Update branch (partial: name, address, country, description) |
 | DELETE | `/branches/delete?branch_id=` | Permanently delete (409 if employees assigned) |
-| GET | `/chart` | Nested org chart (`data.roots[]` with `id`, `name`, `node_type`, `parent_id`, `head_of_department`, `employee_count`, `children`) |
+| GET | `/chart` | Reporting-line org chart (`data.roots[]` employee nodes: `id`, `full_name`, `job_title`, `initials`, `node_type`, `parent_id`, `department` badge on dept heads, `children`) |
 
 ---
 

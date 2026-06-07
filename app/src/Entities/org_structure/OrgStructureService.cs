@@ -4,7 +4,6 @@ using ZelosHR.Api.Entities.Branches;
 using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Shared;
-using ZelosHR.Api.Shared.Formatting;
 using ZelosHR.Api.Shared.Tenant;
 
 namespace ZelosHR.Api.Entities.OrgStructure;
@@ -14,6 +13,7 @@ public class OrgStructureService
     private readonly DepartmentsService _departments;
     private readonly BranchesService _branches;
     private readonly IDepartmentRepository _departmentRepo;
+    private readonly IOrgChartRepository _orgChartRepo;
     private readonly IBranchRepository _branchRepo;
     private readonly ICpUserRepository _cpUsers;
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -22,6 +22,7 @@ public class OrgStructureService
         DepartmentsService departments,
         BranchesService branches,
         IDepartmentRepository departmentRepo,
+        IOrgChartRepository orgChartRepo,
         IBranchRepository branchRepo,
         ICpUserRepository cpUsers,
         IHttpContextAccessor httpContextAccessor)
@@ -29,6 +30,7 @@ public class OrgStructureService
         _departments = departments;
         _branches = branches;
         _departmentRepo = departmentRepo;
+        _orgChartRepo = orgChartRepo;
         _branchRepo = branchRepo;
         _cpUsers = cpUsers;
         _httpContextAccessor = httpContextAccessor;
@@ -58,36 +60,15 @@ public class OrgStructureService
     public async Task<Respons<OrgChartDto>> GetOrgChartAsync(
         string tenantId, string orgId, CancellationToken ct = default)
     {
-        var rows = await _departmentRepo.GetOrgChartScopedAsync(tenantId, orgId, ct);
+        var (employees, departmentHeads) =
+            await _orgChartRepo.GetReportingHierarchyScopedAsync(tenantId, orgId, ct);
 
-        var mutable = rows.Select(r => new MutableNode
-        {
-            Id = r.Id.ToString(),
-            Name = r.Name,
-            ParentId = r.ParentDepartmentId?.ToString(),
-            Head = r.HeadId is null ? null : new DepartmentHeadDto
-            {
-                EmployeeId = r.HeadId.Value.ToString(),
-                FullName = NameFormatting.BuildFullName(r.HeadFirstName!, null, r.HeadLastName!),
-                JobTitle = r.HeadJobTitle,
-                Initials = NameFormatting.BuildInitials(r.HeadFirstName!, r.HeadLastName!),
-            },
-            EmployeeCount = r.EmployeeCount,
-        }).ToDictionary(n => n.Id);
+        var departmentByHeadId = departmentHeads
+            .GroupBy(d => d.HeadOfDepartmentId)
+            .ToDictionary(g => g.Key, g => g.First());
+        var roots = OrgChartBuilder.Build(employees, departmentByHeadId);
 
-        foreach (var node in mutable.Values)
-        {
-            if (node.ParentId is not null && mutable.TryGetValue(node.ParentId, out var parent))
-                parent.Children.Add(node);
-        }
-
-        var treeRoots = mutable.Values
-            .Where(n => n.ParentId is null)
-            .Select(n => n.ToDto())
-            .OrderBy(n => n.Name)
-            .ToList();
-
-        return Respons<OrgChartDto>.Ok(new OrgChartDto { Roots = treeRoots });
+        return Respons<OrgChartDto>.Ok(new OrgChartDto { Roots = roots });
     }
 
     public async Task<Respons<CreateDepartmentResponseDto>> CreateDepartmentAsync(
@@ -104,11 +85,15 @@ public class OrgStructureService
         if (descriptionErrors is not null)
             return Respons<CreateDepartmentResponseDto>.ValidationError(descriptionErrors);
 
+        var headcountErrors = OrgStructureValidation.ValidateHeadcountCapacity(request.HeadcountCapacity);
+        if (headcountErrors is not null)
+            return Respons<CreateDepartmentResponseDto>.ValidationError(headcountErrors);
+
         try
         {
             var id = await _departmentRepo.CreateScopedAsync(
                 tenantId, orgId, request.Name, request.ParentDepartmentId, request.HeadOfDepartmentId,
-                request.Description, CurrentUserId, ct);
+                request.Description, request.HeadcountCapacity, CurrentUserId, ct);
 
             var created = await _departmentRepo.GetActiveScopedAsync(id, tenantId, orgId, ct);
             return Respons<CreateDepartmentResponseDto>.Ok(
@@ -140,10 +125,11 @@ public class OrgStructureService
         var hasParent = request.ParentDepartmentId.HasValue;
         var hasHead = request.HeadOfDepartmentId.HasValue;
         var hasDescription = request.Description is not null;
-        if (!hasName && !hasParent && !hasHead && !hasDescription)
+        var hasHeadcountCapacity = request.HeadcountCapacity.HasValue;
+        if (!hasName && !hasParent && !hasHead && !hasDescription && !hasHeadcountCapacity)
             return Respons<CreateDepartmentResponseDto>.ValidationError(new Dictionary<string, string>
             {
-                ["request"] = "Provide at least one of: name, parent_department_id, head_of_department_id, description.",
+                ["request"] = "Provide at least one of: name, parent_department_id, head_of_department_id, description, headcount_capacity.",
             });
 
         if (hasDescription)
@@ -151,6 +137,13 @@ public class OrgStructureService
             var descriptionErrors = OrgStructureValidation.ValidateDepartmentDescription(request.Description);
             if (descriptionErrors is not null)
                 return Respons<CreateDepartmentResponseDto>.ValidationError(descriptionErrors);
+        }
+
+        if (hasHeadcountCapacity)
+        {
+            var headcountErrors = OrgStructureValidation.ValidateHeadcountCapacity(request.HeadcountCapacity);
+            if (headcountErrors is not null)
+                return Respons<CreateDepartmentResponseDto>.ValidationError(headcountErrors);
         }
 
         var name = await _departmentRepo.UpdateScopedAsync(
@@ -162,6 +155,8 @@ public class OrgStructureService
             hasHead ? request.HeadOfDepartmentId : null,
             request.Description,
             hasDescription,
+            request.HeadcountCapacity,
+            hasHeadcountCapacity,
             CurrentUserId,
             ct);
 
@@ -331,25 +326,4 @@ public class OrgStructureService
                 statusCode: 409),
             _ => Respons<object>.Fail("Delete failed.", statusCode: 500),
         };
-
-    private sealed class MutableNode
-    {
-        public required string Id { get; init; }
-        public required string Name { get; init; }
-        public string? ParentId { get; init; }
-        public DepartmentHeadDto? Head { get; init; }
-        public int EmployeeCount { get; init; }
-        public List<MutableNode> Children { get; } = [];
-
-        public OrgChartNodeDto ToDto() => new()
-        {
-            Id = Id,
-            Name = Name,
-            NodeType = "department",
-            ParentId = ParentId,
-            HeadOfDepartment = Head,
-            EmployeeCount = EmployeeCount,
-            Children = Children.Select(c => c.ToDto()).OrderBy(c => c.Name).ToList(),
-        };
-    }
 }
