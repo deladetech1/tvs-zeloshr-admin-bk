@@ -11,6 +11,7 @@ using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Entities.OrgStructure;
 using ZelosHR.Api.Persistence.Repositories;
 using ZelosHR.Api.Shared.Abstractions;
+using ZelosHR.Api.Shared.Infrastructure;
 
 namespace ZelosHR.Api.Tests.OrgStructure;
 
