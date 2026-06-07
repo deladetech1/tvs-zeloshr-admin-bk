@@ -42,7 +42,7 @@ public sealed class SwaggerOrgStructureOperationFilter : IOperationFilter
                 },
             });
             operation.Summary ??= "Org chart";
-            operation.Description = "Returns `{ success, status_code, detail, data: { roots: [...] } }`. Each node is an employee: `id` · `full_name` · `job_title` · `initials` · `node_type` (`employee`) · `parent_id` (manager employee UUID, null on roots) · `department` (null | badge on dept heads: department_id · name · employee_count · headcount_capacity) · `children` (direct reports).";
+            operation.Description = "Returns `{ success, status_code, detail, data: { roots: [...] } }`. Each node is an employee: `id` · `full_name` · `job_title` · `profile_url` (null | DocumentReadDto with presigned_url) · `node_type` (`employee`) · `parent_id` (manager employee UUID, null on roots) · `department` (null | badge on dept heads) · `children` (direct reports).";
             return;
         }
 

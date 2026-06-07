@@ -247,7 +247,7 @@ Full guide: **[FILE_MANAGEMENT.md](FILE_MANAGEMENT.md)** — MyStoreGuard shapes
 | POST | `/branches/add` | Create branch (`name`, optional `address`, `country`, `description`) |
 | PUT | `/branches/update?branch_id=` | Update branch (partial: name, address, country, description) |
 | DELETE | `/branches/delete?branch_id=` | Permanently delete (409 if employees assigned) |
-| GET | `/chart` | Reporting-line org chart (`data.roots[]` employee nodes: `id`, `full_name`, `job_title`, `initials`, `node_type`, `parent_id`, `department` badge on dept heads, `children`) |
+| GET | `/chart` | Reporting-line org chart (`data.roots[]` employee nodes: `id`, `full_name`, `job_title`, `profile_url` DocumentReadDto, `node_type`, `parent_id`, `department` badge on dept heads, `children`) |
 
 ---
 

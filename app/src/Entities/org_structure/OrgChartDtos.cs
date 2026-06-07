@@ -1,4 +1,5 @@
 using ZelosHR.Api.Configs;
+using ZelosHR.Api.Entities.Files;
 
 namespace ZelosHR.Api.Entities.OrgStructure;
 
@@ -20,7 +21,8 @@ public sealed class OrgChartNodeDto
     public required string Id { get; init; }
     public required string FullName { get; init; }
     public string? JobTitle { get; init; }
-    public required string Initials { get; init; }
+    /// <summary>Profile photo with presigned URL (~24h), same shape as GET /employees/list.</summary>
+    public DocumentReadDto? ProfileUrl { get; init; }
     [SwaggerAllowedValues(typeof(OrgStructureFieldOptions), nameof(OrgStructureFieldOptions.NodeTypes))]
     public required string NodeType { get; init; }
     public string? ParentId { get; init; }
@@ -39,7 +41,9 @@ public sealed record OrgChartEmployeeRow(
     string? FirstName,
     string? LastName,
     string? JobTitle,
-    Guid? ReportsToId);
+    Guid? ReportsToId,
+    string? UserId,
+    string? ProfilePhotoUrl);
 
 public sealed record OrgChartDepartmentHeadRow(
     Guid DepartmentId,

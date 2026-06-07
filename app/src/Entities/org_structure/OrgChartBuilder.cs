@@ -1,4 +1,4 @@
-using ZelosHR.Api.Shared.Formatting;
+using ZelosHR.Api.Entities.Files;
 
 namespace ZelosHR.Api.Entities.OrgStructure;
 
@@ -6,7 +6,8 @@ internal static class OrgChartBuilder
 {
     internal static IReadOnlyList<OrgChartNodeDto> Build(
         IReadOnlyList<OrgChartEmployeeRow> employees,
-        IReadOnlyDictionary<Guid, OrgChartDepartmentHeadRow> departmentByHeadId)
+        IReadOnlyDictionary<Guid, OrgChartDepartmentHeadRow> departmentByHeadId,
+        IReadOnlyDictionary<Guid, DocumentReadDto?> profileUrlsByEmployeeId)
     {
         if (employees.Count == 0)
             return [];
@@ -18,9 +19,7 @@ internal static class OrgChartBuilder
                 Id = e.Id.ToString(),
                 FullName = ResolveFullName(e),
                 JobTitle = e.JobTitle,
-                Initials = NameFormatting.BuildInitials(
-                    e.FirstName ?? e.FullName,
-                    e.LastName),
+                ProfileUrl = profileUrlsByEmployeeId.GetValueOrDefault(e.Id),
                 ReportsToId = e.ReportsToId?.ToString(),
                 Department = departmentByHeadId.TryGetValue(e.Id, out var dept)
                     ? new OrgChartDepartmentBadgeDto
@@ -60,7 +59,10 @@ internal static class OrgChartBuilder
         if (!string.IsNullOrWhiteSpace(row.FullName))
             return row.FullName.Trim();
 
-        return NameFormatting.BuildFullName(row.FirstName ?? string.Empty, null, row.LastName ?? string.Empty);
+        return ZelosHR.Api.Shared.Formatting.NameFormatting.BuildFullName(
+            row.FirstName ?? string.Empty,
+            null,
+            row.LastName ?? string.Empty);
     }
 
     private sealed class MutableNode
@@ -68,7 +70,7 @@ internal static class OrgChartBuilder
         public required string Id { get; init; }
         public required string FullName { get; init; }
         public string? JobTitle { get; init; }
-        public required string Initials { get; init; }
+        public DocumentReadDto? ProfileUrl { get; init; }
         public string? ReportsToId { get; init; }
         public OrgChartDepartmentBadgeDto? Department { get; init; }
         public List<MutableNode> Children { get; } = [];
@@ -78,7 +80,7 @@ internal static class OrgChartBuilder
             Id = Id,
             FullName = FullName,
             JobTitle = JobTitle,
-            Initials = Initials,
+            ProfileUrl = ProfileUrl,
             NodeType = "employee",
             ParentId = ReportsToId,
             Department = Department,

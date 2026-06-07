@@ -3,6 +3,7 @@ using Npgsql;
 using ZelosHR.Api.Entities.Branches;
 using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Employees;
+using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Shared.Tenant;
 
@@ -16,6 +17,7 @@ public class OrgStructureService
     private readonly IOrgChartRepository _orgChartRepo;
     private readonly IBranchRepository _branchRepo;
     private readonly ICpUserRepository _cpUsers;
+    private readonly HrDocumentPresignedUrlService _profileUrls;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
     public OrgStructureService(
@@ -25,6 +27,7 @@ public class OrgStructureService
         IOrgChartRepository orgChartRepo,
         IBranchRepository branchRepo,
         ICpUserRepository cpUsers,
+        HrDocumentPresignedUrlService profileUrls,
         IHttpContextAccessor httpContextAccessor)
     {
         _departments = departments;
@@ -33,6 +36,7 @@ public class OrgStructureService
         _orgChartRepo = orgChartRepo;
         _branchRepo = branchRepo;
         _cpUsers = cpUsers;
+        _profileUrls = profileUrls;
         _httpContextAccessor = httpContextAccessor;
     }
 
@@ -66,7 +70,35 @@ public class OrgStructureService
         var departmentByHeadId = departmentHeads
             .GroupBy(d => d.HeadOfDepartmentId)
             .ToDictionary(g => g.Key, g => g.First());
-        var roots = OrgChartBuilder.Build(employees, departmentByHeadId);
+
+        var userIds = employees
+            .Select(e => e.UserId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id!)
+            .Distinct();
+        var platformUsers = await _cpUsers.GetByIdsAsync(userIds, tenantId, ct);
+
+        var storedProfileRefs = employees
+            .Select(e =>
+            {
+                platformUsers.TryGetValue(e.UserId ?? string.Empty, out var cp);
+                return cp?.ProfilePic ?? e.ProfilePhotoUrl;
+            })
+            .ToList();
+        var profileUrlMap = await _profileUrls.ResolveDocumentReadsAsync(storedProfileRefs, ct);
+
+        var profileUrlsByEmployeeId = employees.ToDictionary(
+            e => e.Id,
+            e =>
+            {
+                platformUsers.TryGetValue(e.UserId ?? string.Empty, out var cp);
+                var storedProfileRef = cp?.ProfilePic ?? e.ProfilePhotoUrl;
+                return storedProfileRef is null
+                    ? null
+                    : profileUrlMap.GetValueOrDefault(storedProfileRef.Trim());
+            });
+
+        var roots = OrgChartBuilder.Build(employees, departmentByHeadId, profileUrlsByEmployeeId);
 
         return Respons<OrgChartDto>.Ok(new OrgChartDto { Roots = roots });
     }

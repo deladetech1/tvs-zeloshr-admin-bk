@@ -1,10 +1,16 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using NSubstitute;
+using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Branches;
 using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Employees;
+using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Entities.OrgStructure;
+using ZelosHR.Api.Persistence.Repositories;
+using ZelosHR.Api.Shared.Abstractions;
 
 namespace ZelosHR.Api.Tests.OrgStructure;
 
@@ -23,10 +29,24 @@ public class OrgStructureServiceTests
     {
         _cpUsers.GetByIdsAsync(Arg.Any<IEnumerable<string>>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new Dictionary<string, CpUserDto>());
+        var tenant = Substitute.For<ITenantContext>();
+        tenant.TenantId.Returns("t1");
+        var profileUrls = new HrDocumentPresignedUrlService(
+            Substitute.For<IEmployeeDocumentBlobStorage>(),
+            Substitute.For<IHrDocumentPathRepository>(),
+            new FileManagementStorage(new ConfigurationBuilder().Build(), Options.Create(new AzureStorageOptions())),
+            tenant);
         _departments = new DepartmentsService(_departmentRepo, _cpUsers);
         _branches = new BranchesService(_branchRepo, _cpUsers);
         _sut = new OrgStructureService(
-            _departments, _branches, _departmentRepo, _orgChartRepo, _branchRepo, _cpUsers, _httpContextAccessor);
+            _departments,
+            _branches,
+            _departmentRepo,
+            _orgChartRepo,
+            _branchRepo,
+            _cpUsers,
+            profileUrls,
+            _httpContextAccessor);
     }
 
     [Fact]
@@ -40,8 +60,8 @@ public class OrgStructureServiceTests
             .Returns((
                 new List<OrgChartEmployeeRow>
                 {
-                    new(ceoId, "Kwame Asante", "Kwame", "Asante", "Chief Executive Officer", null),
-                    new(headId, "Kwame Boateng", "Kwame", "Boateng", "Chief Technology Officer", ceoId),
+                    new(ceoId, "Kwame Asante", "Kwame", "Asante", "Chief Executive Officer", null, null, null),
+                    new(headId, "Kwame Boateng", "Kwame", "Boateng", "Chief Technology Officer", ceoId, null, null),
                 },
                 new List<OrgChartDepartmentHeadRow>
                 {

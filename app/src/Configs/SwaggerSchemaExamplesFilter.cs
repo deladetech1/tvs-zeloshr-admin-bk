@@ -135,7 +135,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(DepartmentListItemDto) => AppendDescription(schema.Description,
                 $"department_id (UUID) · name · parent_department_id · head_of_department · employee_count · headcount_capacity · is_archived ({SwaggerExampleHints.OrgIncludeArchived}) · hierarchy_level."),
             nameof(OrgChartNodeDto) => AppendDescription(schema.Description,
-                $"Person node. node_type: {SwaggerExampleHints.OrgNodeType}. department badge on dept heads; children are direct reports."),
+                $"Person node. node_type: {SwaggerExampleHints.OrgNodeType}. profile_url: DocumentReadDto (presigned_url ~24h) or null. department badge on dept heads; children are direct reports."),
             nameof(OrgChartDepartmentBadgeDto) => AppendDescription(schema.Description,
                 "Shown on department-head nodes only. employee_count / headcount_capacity drive the headcount bar (e.g. 8/10)."),
             _ => schema.Description,
@@ -202,12 +202,13 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
         if (name.Equals("ProfileUrl", StringComparison.OrdinalIgnoreCase))
         {
             if (property.DeclaringType == typeof(EmployeeAggregateIdentityReadDto)
-                || property.DeclaringType == typeof(EmployeeListItemDto))
+                || property.DeclaringType == typeof(EmployeeListItemDto)
+                || property.DeclaringType == typeof(OrgChartNodeDto))
             {
                 schema.Example = SwaggerExamples.EmployeeDocumentItem(
                     SwaggerExamples.SampleDocumentId1, "Employee profile photo");
                 schema.Description = AppendDescription(schema.Description,
-                    "Profile photo on read: id, presigned_url (~24h), description.");
+                    "Profile photo on read: doc_id, name, presigned_url (~24h), description. Null when no photo.");
                 return;
             }
 

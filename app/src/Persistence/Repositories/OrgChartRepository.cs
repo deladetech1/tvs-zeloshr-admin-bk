@@ -17,7 +17,9 @@ public sealed class OrgChartRepository(ZelosHrDbContext db) : IOrgChartRepositor
                 e.FirstName,
                 e.LastName,
                 e.JobTitle,
-                e.ReportsToId))
+                e.ReportsToId,
+                e.UserId,
+                e.ProfilePhotoUrl))
             .ToListAsync(ct);
 
         var departmentHeads = await db.Departments.AsNoTracking()

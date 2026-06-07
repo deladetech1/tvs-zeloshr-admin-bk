@@ -45,7 +45,8 @@ Response is a **reporting-line tree** (`data.roots[]`), not a department hierarc
 
 | Field | Meaning |
 |-------|---------|
-| `full_name`, `job_title`, `initials` | Person shown on each node |
+| `full_name`, `job_title` | Person shown on each node |
+| `profile_url` | `null` or `DocumentReadDto` (`doc_id`, `name`, `presigned_url`, `description`) — same as GET /employees/list |
 | `node_type` | Always `employee` |
 | `parent_id` | Manager employee UUID; `null` on roots |
 | `department` | Badge on department heads only: `name`, `employee_count`, `headcount_capacity` (headcount bar e.g. 8/10) |

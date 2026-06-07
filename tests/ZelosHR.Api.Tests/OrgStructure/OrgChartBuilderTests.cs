@@ -15,9 +15,9 @@ public class OrgChartBuilderTests
 
         var employees = new List<OrgChartEmployeeRow>
         {
-            new(ceoId, "Kwame Asante", "Kwame", "Asante", "Chief Executive Officer", null),
-            new(engHeadId, "Kwame Boateng", "Kwame", "Boateng", "Chief Technology Officer", ceoId),
-            new(icId, "Kofi Asante", "Kofi", "Asante", "Software Engineer", engHeadId),
+            new(ceoId, "Kwame Asante", "Kwame", "Asante", "Chief Executive Officer", null, null, null),
+            new(engHeadId, "Kwame Boateng", "Kwame", "Boateng", "Chief Technology Officer", ceoId, null, null),
+            new(icId, "Kofi Asante", "Kofi", "Asante", "Software Engineer", engHeadId, null, null),
         };
 
         var departmentByHead = new Dictionary<Guid, OrgChartDepartmentHeadRow>
@@ -25,12 +25,16 @@ public class OrgChartBuilderTests
             [engHeadId] = new(engDeptId, "Engineering", engHeadId, 8, 10),
         };
 
-        var roots = OrgChartBuilder.Build(employees, departmentByHead);
+        var roots = OrgChartBuilder.Build(
+            employees,
+            departmentByHead,
+            new Dictionary<Guid, ZelosHR.Api.Entities.Files.DocumentReadDto?>());
 
         roots.Should().ContainSingle();
         var ceo = roots[0];
         ceo.FullName.Should().Be("Kwame Asante");
         ceo.NodeType.Should().Be("employee");
+        ceo.ProfileUrl.Should().BeNull();
         ceo.Department.Should().BeNull();
         ceo.Children.Should().ContainSingle();
 

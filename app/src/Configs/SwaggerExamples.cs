@@ -546,12 +546,15 @@ internal static class SwaggerExamples
 
     internal static JsonObject OrgChartDataForSchema() => OrgChartData();
 
+    private static JsonObject OrgChartProfileUrlExample() =>
+        EmployeeDocumentItem(SampleDocumentId1, "Employee profile photo", "profile.jpg");
+
     private static JsonObject OrgChartRootNode() => new()
     {
         ["id"] = "11111111-1111-1111-1111-111111111101",
         ["full_name"] = "Kwame Asante",
         ["job_title"] = "Chief Executive Officer",
-        ["initials"] = "KA",
+        ["profile_url"] = OrgChartProfileUrlExample(),
         ["node_type"] = "employee",
         ["parent_id"] = null,
         ["department"] = null,
@@ -561,40 +564,40 @@ internal static class SwaggerExamples
                 "11111111-1111-1111-1111-111111111101",
                 "Kwame Boateng",
                 "Chief Technology Officer",
-                "KB",
+                OrgChartProfileUrlExample(),
                 SampleDepartmentId,
                 "Engineering",
                 8,
                 10,
                 new JsonArray(
-                    OrgChartEmployeeNode("11111111-1111-1111-1111-111111111105", "11111111-1111-1111-1111-111111111102", "Kofi Asante", "Software Engineer", "KA"),
-                    OrgChartEmployeeNode("11111111-1111-1111-1111-111111111106", "11111111-1111-1111-1111-111111111102", "Abena Mensah", "Senior product designer", "AM"))),
+                    OrgChartEmployeeNode("11111111-1111-1111-1111-111111111105", "11111111-1111-1111-1111-111111111102", "Kofi Asante", "Software Engineer", null),
+                    OrgChartEmployeeNode("11111111-1111-1111-1111-111111111106", "11111111-1111-1111-1111-111111111102", "Abena Mensah", "Senior product designer", null))),
             OrgChartManagerNode(
                 "11111111-1111-1111-1111-111111111103",
                 "11111111-1111-1111-1111-111111111101",
                 "Yaw Mensah",
                 "Chief Financial Officer",
-                "YM",
+                OrgChartProfileUrlExample(),
                 SampleChildDepartmentId,
                 "Finance",
                 4,
                 10,
                 new JsonArray(
-                    OrgChartEmployeeNode("11111111-1111-1111-1111-111111111107", "11111111-1111-1111-1111-111111111103", "Yaw Ofori", "Financial Analyst", "YO"),
-                    OrgChartEmployeeNode("11111111-1111-1111-1111-111111111108", "11111111-1111-1111-1111-111111111103", "Maame Bonsu", "Accountant", "MB"))),
+                    OrgChartEmployeeNode("11111111-1111-1111-1111-111111111107", "11111111-1111-1111-1111-111111111103", "Yaw Ofori", "Financial Analyst", null),
+                    OrgChartEmployeeNode("11111111-1111-1111-1111-111111111108", "11111111-1111-1111-1111-111111111103", "Maame Bonsu", "Accountant", null))),
             OrgChartManagerNode(
                 "11111111-1111-1111-1111-111111111104",
                 "11111111-1111-1111-1111-111111111101",
                 "Ama Darko",
                 "Chief Operating Officer",
-                "AD",
+                OrgChartProfileUrlExample(),
                 SampleBranchId,
                 "Operations",
                 6,
                 10,
                 new JsonArray(
-                    OrgChartEmployeeNode("11111111-1111-1111-1111-111111111109", "11111111-1111-1111-1111-111111111104", "Efua Boateng", "Operations Manager", "EB"),
-                    OrgChartEmployeeNode("11111111-1111-1111-1111-111111111110", "11111111-1111-1111-1111-111111111104", "Nana Adjei", "Human Resources", "NA")))),
+                    OrgChartEmployeeNode("11111111-1111-1111-1111-111111111109", "11111111-1111-1111-1111-111111111104", "Efua Boateng", "Operations Manager", null),
+                    OrgChartEmployeeNode("11111111-1111-1111-1111-111111111110", "11111111-1111-1111-1111-111111111104", "Nana Adjei", "Human Resources", null)))),
     };
 
     private static JsonObject OrgChartManagerNode(
@@ -602,7 +605,7 @@ internal static class SwaggerExamples
         string parentId,
         string fullName,
         string jobTitle,
-        string initials,
+        JsonNode? profileUrl,
         Guid departmentId,
         string departmentName,
         int employeeCount,
@@ -612,7 +615,7 @@ internal static class SwaggerExamples
         ["id"] = id,
         ["full_name"] = fullName,
         ["job_title"] = jobTitle,
-        ["initials"] = initials,
+        ["profile_url"] = profileUrl,
         ["node_type"] = "employee",
         ["parent_id"] = parentId,
         ["department"] = new JsonObject
@@ -630,12 +633,12 @@ internal static class SwaggerExamples
         string parentId,
         string fullName,
         string jobTitle,
-        string initials) => new()
+        JsonNode? profileUrl) => new()
     {
         ["id"] = id,
         ["full_name"] = fullName,
         ["job_title"] = jobTitle,
-        ["initials"] = initials,
+        ["profile_url"] = profileUrl,
         ["node_type"] = "employee",
         ["parent_id"] = parentId,
         ["department"] = null,
