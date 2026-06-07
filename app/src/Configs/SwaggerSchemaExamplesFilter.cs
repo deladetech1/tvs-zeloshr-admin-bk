@@ -281,15 +281,12 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 schema.Example = JsonValue.Create("Computer Science");
                 return;
             case nameof(EmployeeCertificationUpsertDto.Name):
-            case "Name" when property.DeclaringType == typeof(EmployeeCertificationDto):
                 schema.Example = JsonValue.Create("Masters in react");
                 return;
             case nameof(EmployeeCertificationUpsertDto.IssuingBody):
-            case "IssuingBody" when property.DeclaringType == typeof(EmployeeCertificationDto):
                 schema.Example = JsonValue.Create("Udemy");
                 return;
             case nameof(EmployeeCertificationUpsertDto.CredentialUrl):
-            case "CredentialUrl" when property.DeclaringType == typeof(EmployeeCertificationDto):
                 schema.Example = JsonValue.Create("https://udemy.com/certificate/3424-3424");
                 return;
             case nameof(FileResponseReadDto.PresignedUrl):
