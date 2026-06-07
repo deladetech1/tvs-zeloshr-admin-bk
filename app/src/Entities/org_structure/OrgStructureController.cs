@@ -35,8 +35,9 @@ public class OrgStructureController : ControllerBase
     }
 
     /// <summary>List departments (paginated, sortable).</summary>
-    [HttpGet("departments")]
-    public async Task<ActionResult<Respons<DepartmentListDto>>> Departments(
+    [HttpGet("departments/list")]
+    [ProducesResponseType(typeof(Respons<DepartmentListDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<Respons<DepartmentListDto>>> ListDepartments(
         [FromQuery] string? search,
         [FromQuery]
         [SwaggerAllowedValues(typeof(OrgStructureFieldOptions), nameof(OrgStructureFieldOptions.DepartmentSortBy))]
@@ -55,9 +56,23 @@ public class OrgStructureController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Legacy alias for <c>GET /departments/list</c>.</summary>
+    [HttpGet("departments")]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    public Task<ActionResult<Respons<DepartmentListDto>>> ListDepartmentsLegacy(
+        [FromQuery] string? search,
+        [FromQuery] string sortBy = "name",
+        [FromQuery] string sortOrder = "asc",
+        [FromQuery] bool includeArchived = false,
+        [FromQuery] int page = 1,
+        [FromQuery] int size = 15,
+        CancellationToken ct = default) =>
+        ListDepartments(search, sortBy, sortOrder, includeArchived, page, size, ct);
+
     /// <summary>List branches (paginated).</summary>
-    [HttpGet("branches")]
-    public async Task<ActionResult<Respons<BranchListDto>>> Branches(
+    [HttpGet("branches/list")]
+    [ProducesResponseType(typeof(Respons<BranchListDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<Respons<BranchListDto>>> ListBranches(
         [FromQuery] string? search,
         [FromQuery] bool includeArchived = false,
         [FromQuery] int page = 1,
@@ -69,6 +84,17 @@ public class OrgStructureController : ControllerBase
             search, includeArchived, page, size, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
+
+    /// <summary>Legacy alias for <c>GET /branches/list</c>.</summary>
+    [HttpGet("branches")]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    public Task<ActionResult<Respons<BranchListDto>>> ListBranchesLegacy(
+        [FromQuery] string? search,
+        [FromQuery] bool includeArchived = false,
+        [FromQuery] int page = 1,
+        [FromQuery] int size = 20,
+        CancellationToken ct = default) =>
+        ListBranches(search, includeArchived, page, size, ct);
 
     /// <summary>Nested org chart (department tree with heads and employee counts).</summary>
     [HttpGet("chart")]

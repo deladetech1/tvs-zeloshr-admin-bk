@@ -5,7 +5,7 @@ using ZelosHR.Api.Shared.Tenant;
 
 namespace ZelosHR.Api.Entities.Branches;
 
-/// <summary>Legacy branches list — prefer <c>/api/v1/org-structure/branches</c> for writes.</summary>
+/// <summary>Legacy branches list — prefer <c>/api/v1/org-structure/branches/list</c>.</summary>
 [ApiController]
 [ApiExplorerSettings(GroupName = SwaggerGroups.OrganisationLegacy, IgnoreApi = true)]
 [Route("api/v1/branches")]

@@ -71,9 +71,9 @@ public static class SwaggerConfiguration
 
                     1. **Summary tabs** — `GET /api/v1/org-structure/statistics`
                     2. **Org chart tree** — `GET /api/v1/org-structure/chart` → `data.roots[]` hierarchy (`node_type`: department)
-                    3. **Departments** — list `GET …/departments` (`sort_by`: name | employeeCount · `sort_order`: asc | desc · `include_archived`: false | true)
-                       · create `POST …/departments/add` · update `PUT …/departments/update?department_id=` · archive `DELETE …/departments/delete?department_id=`
-                    4. **Branches** — list `GET …/branches` · create `POST …/branches/add` · update `PUT …/branches/update?branch_id=` · archive `DELETE …/branches/delete?branch_id=`
+                    3. **Departments** — list `GET …/departments/list` (`sort_by`: name | employeeCount · `sort_order`: asc | desc · `include_archived`: false | true)
+                       · create `POST …/departments/add` · update `PUT …/departments/update?department_id=` · delete `DELETE …/departments/delete?department_id=`
+                    4. **Branches** — list `GET …/branches/list` · create `POST …/branches/add` · update `PUT …/branches/update?branch_id=` · delete `DELETE …/branches/delete?branch_id=`
 
                     ---
 

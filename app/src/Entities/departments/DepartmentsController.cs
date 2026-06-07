@@ -5,7 +5,7 @@ using ZelosHR.Api.Shared.Tenant;
 
 namespace ZelosHR.Api.Entities.Departments;
 
-/// <summary>Legacy departments list — prefer <c>/api/v1/org-structure</c> for writes.</summary>
+/// <summary>Legacy departments list — prefer <c>/api/v1/org-structure/departments/list</c>.</summary>
 [ApiController]
 [ApiExplorerSettings(GroupName = SwaggerGroups.OrganisationLegacy, IgnoreApi = true)]
 [Route("api/v1/departments")]

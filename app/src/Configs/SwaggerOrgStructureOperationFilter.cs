@@ -54,7 +54,9 @@ public sealed class SwaggerOrgStructureOperationFilter : IOperationFilter
             return;
         }
 
-        if (method.Equals("GET", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/org-structure/departments", StringComparison.OrdinalIgnoreCase))
+        if (method.Equals("GET", StringComparison.OrdinalIgnoreCase)
+            && (path.Equals("api/v1/org-structure/departments/list", StringComparison.OrdinalIgnoreCase)
+                || path.Equals("api/v1/org-structure/departments", StringComparison.OrdinalIgnoreCase)))
         {
             SetJsonResponseExample(operation, 200, SwaggerExamples.EnvelopeFor(typeof(Respons<DepartmentListDto>), 200));
             operation.Description = SwaggerOptionFormat.Append(operation.Description,
@@ -70,7 +72,9 @@ public sealed class SwaggerOrgStructureOperationFilter : IOperationFilter
             return;
         }
 
-        if (method.Equals("GET", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/org-structure/branches", StringComparison.OrdinalIgnoreCase))
+        if (method.Equals("GET", StringComparison.OrdinalIgnoreCase)
+            && (path.Equals("api/v1/org-structure/branches/list", StringComparison.OrdinalIgnoreCase)
+                || path.Equals("api/v1/org-structure/branches", StringComparison.OrdinalIgnoreCase)))
         {
             SetJsonResponseExample(operation, 200, SwaggerExamples.BranchListResponseExample());
             operation.Description = SwaggerOptionFormat.Append(operation.Description,
@@ -92,7 +96,7 @@ public sealed class SwaggerOrgStructureOperationFilter : IOperationFilter
         {
             SetJsonResponseExample(operation, 200, SwaggerExamples.EnvelopeFor(typeof(Respons<CreateDepartmentResponseDto>), 200));
             AppendParameterDescription(operation, "department_id",
-                "Required. Department UUID from POST /org-structure/departments/add or GET /org-structure/departments.");
+                "Required. Department UUID from POST /org-structure/departments/add or GET /org-structure/departments/list.");
             return;
         }
 
@@ -113,7 +117,7 @@ public sealed class SwaggerOrgStructureOperationFilter : IOperationFilter
         {
             SetJsonResponseExample(operation, 200, SwaggerExamples.EnvelopeFor(typeof(Respons<BranchMutationResponseDto>), 200));
             AppendParameterDescription(operation, "branch_id",
-                "Required. Branch UUID from POST /org-structure/branches/add or GET /org-structure/branches.");
+                "Required. Branch UUID from POST /org-structure/branches/add or GET /org-structure/branches/list.");
             return;
         }
 

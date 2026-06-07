@@ -32,8 +32,8 @@ curl_headers=(
 paths=(
   "/api/v1/org-structure/statistics"
   "/api/v1/org-structure/chart"
-  "/api/v1/org-structure/departments?page=1&size=5&sort_by=name&sort_order=asc&include_archived=false"
-  "/api/v1/org-structure/branches?page=1&size=5&include_archived=false"
+  "/api/v1/org-structure/departments/list?page=1&size=5&sort_by=name&sort_order=asc&include_archived=false"
+  "/api/v1/org-structure/branches/list?page=1&size=5&include_archived=false"
 )
 
 echo "ZelosHR base: ${BASE}"

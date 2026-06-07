@@ -342,7 +342,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             case "BranchId" when property.DeclaringType == typeof(BranchListItemDto):
                 schema.Example = JsonValue.Create(SwaggerExamples.SampleBranchId.ToString());
                 schema.Description = AppendDescription(schema.Description,
-                    "UUID from POST /org-structure/branches/add or GET /org-structure/branches.");
+                    "UUID from POST /org-structure/branches/add or GET /org-structure/branches/list.");
                 return;
             case "IsArchived" when property.DeclaringType == typeof(BranchListItemDto)
                                   || property.DeclaringType == typeof(DepartmentListItemDto):

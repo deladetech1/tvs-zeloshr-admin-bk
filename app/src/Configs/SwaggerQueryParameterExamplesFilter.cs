@@ -195,7 +195,7 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
         {
             schema.Example = SwaggerExamples.SampleDepartmentId.ToString();
             parameter.Description = """
-                Department UUID from POST /org-structure/departments/add or GET /org-structure/departments.
+                Department UUID from POST /org-structure/departments/add or GET /org-structure/departments/list.
                 """;
             return;
         }
@@ -205,7 +205,7 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
         {
             schema.Example = SwaggerExamples.SampleBranchId.ToString();
             parameter.Description = """
-                Branch UUID from POST /org-structure/branches/add or GET /org-structure/branches.
+                Branch UUID from POST /org-structure/branches/add or GET /org-structure/branches/list.
                 """;
             return;
         }

@@ -238,11 +238,11 @@ Full guide: **[FILE_MANAGEMENT.md](FILE_MANAGEMENT.md)** — MyStoreGuard shapes
 | Method | Path | Purpose |
 |--------|------|---------|
 | GET | `/statistics` | Tab counts |
-| GET | `/departments` | Department table |
+| GET | `/departments/list` | Department table (paginated, sortable) |
 | POST | `/departments/add` | Create department (`name`, optional `parent_department_id`, `head_of_department_id`, `description`) |
 | PUT | `/departments/update?department_id=` | Update department (partial) |
 | DELETE | `/departments/delete?department_id=` | Permanently delete (409 if employees assigned or child departments exist) |
-| GET | `/branches` | Branch list |
+| GET | `/branches/list` | Branch list (paginated) |
 | POST | `/branches/add` | Create branch (`name`, optional `address`, `country`, `description`) |
 | PUT | `/branches/update?branch_id=` | Update branch (partial: name, address, country, description) |
 | DELETE | `/branches/delete?branch_id=` | Permanently delete (409 if employees assigned) |
