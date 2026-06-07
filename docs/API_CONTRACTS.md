@@ -10,7 +10,7 @@ See [ENTERPRISE_API.md](ENTERPRISE_API.md) for the full CRUD matrix and [GET /ap
 | Envelope | `{ success, status_code, detail, data, pagination?, field_errors? }` (snake_case — [MYSTOREGUARD_API_CONFORMANCE.md](MYSTOREGUARD_API_CONFORMANCE.md)) |
 | Resource IDs | Query params only (`employee_id`, `department_id`, …) — **no** `{id}` path segments |
 | Updates | `PUT` with partial JSON bodies |
-| Deletes | `DELETE /{module}/delete?{resource}_id=` — employees soft-delete; departments/branches archive |
+| Deletes | `DELETE /{module}/delete?{resource}_id=` — employees soft-delete; departments/branches permanent delete |
 | KPIs | `GET /{module}/statistics` (not `summary` on the public surface) |
 
 ---
@@ -241,11 +241,11 @@ Full guide: **[FILE_MANAGEMENT.md](FILE_MANAGEMENT.md)** — MyStoreGuard shapes
 | GET | `/departments` | Department table |
 | POST | `/departments/add` | Create department (`name`, optional `parent_department_id`, `head_of_department_id`, `description`) |
 | PUT | `/departments/update?department_id=` | Update department (partial) |
-| DELETE | `/departments/delete?department_id=` | Archive |
+| DELETE | `/departments/delete?department_id=` | Permanently delete (409 if employees assigned or child departments exist) |
 | GET | `/branches` | Branch list |
 | POST | `/branches/add` | Create branch (`name`, optional `address`, `country`, `description`) |
 | PUT | `/branches/update?branch_id=` | Update branch (partial: name, address, country, description) |
-| DELETE | `/branches/delete?branch_id=` | Archive |
+| DELETE | `/branches/delete?branch_id=` | Permanently delete (409 if employees assigned) |
 | GET | `/chart` | Nested org chart (`data.roots[]` with `id`, `name`, `node_type`, `parent_id`, `head_of_department`, `employee_count`, `children`) |
 
 ---

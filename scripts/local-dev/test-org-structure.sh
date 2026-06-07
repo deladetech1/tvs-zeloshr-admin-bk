@@ -65,4 +65,10 @@ if [[ -n "${branch_id}" ]]; then
   update_code=$(echo "$update" | tail -1)
   update_json=$(echo "$update" | sed '$d' | head -c 500)
   printf "PUT /api/v1/org-structure/branches/update?branch_id=%s\n  HTTP %s\n  %s\n\n" "$branch_id" "$update_code" "$update_json"
+
+  delete=$(curl -sS -w "\n%{http_code}" -X DELETE "${curl_headers[@]}" \
+    "${BASE}/api/v1/org-structure/branches/delete?branch_id=${branch_id}")
+  delete_code=$(echo "$delete" | tail -1)
+  delete_json=$(echo "$delete" | sed '$d' | head -c 500)
+  printf "DELETE /api/v1/org-structure/branches/delete?branch_id=%s\n  HTTP %s\n  %s\n\n" "$branch_id" "$delete_code" "$delete_json"
 fi

@@ -167,12 +167,11 @@ public class OrgStructureService
         });
     }
 
-    public async Task<Respons<object>> ArchiveDepartmentAsync(
+    public async Task<Respons<object>> DeleteDepartmentAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default)
     {
-        if (!await _departmentRepo.ArchiveScopedAsync(id, tenantId, orgId, ct))
-            return Respons<object>.Fail("Department not found.", statusCode: 404);
-        return Respons<object>.Ok(new { departmentId = id.ToString() }, "Department archived.");
+        var result = await _departmentRepo.DeleteScopedAsync(id, tenantId, orgId, ct);
+        return MapDepartmentDeleteResult(result, id);
     }
 
     public async Task<Respons<BranchMutationResponseDto>> CreateBranchAsync(
@@ -274,13 +273,45 @@ public class OrgStructureService
         Description = row.Description,
     };
 
-    public async Task<Respons<object>> ArchiveBranchAsync(
+    public async Task<Respons<object>> DeleteBranchAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default)
     {
-        if (!await _branchRepo.ArchiveScopedAsync(id, tenantId, orgId, ct))
-            return Respons<object>.Fail("Branch not found.", statusCode: 404);
-        return Respons<object>.Ok(new { branchId = id.ToString() }, "Branch archived.");
+        var result = await _branchRepo.DeleteScopedAsync(id, tenantId, orgId, ct);
+        return MapBranchDeleteResult(result, id);
     }
+
+    private static Respons<object> MapDepartmentDeleteResult(OrgStructureDeleteResult result, Guid id) =>
+        result switch
+        {
+            OrgStructureDeleteResult.Deleted => Respons<object>.Ok(
+                new { departmentId = id.ToString() },
+                "Department deleted."),
+            OrgStructureDeleteResult.NotFound => Respons<object>.Fail(
+                "Department not found.",
+                statusCode: 404),
+            OrgStructureDeleteResult.InUseByEmployees => Respons<object>.Fail(
+                "Department cannot be deleted while employees are assigned to it.",
+                statusCode: 409),
+            OrgStructureDeleteResult.HasChildDepartments => Respons<object>.Fail(
+                "Department cannot be deleted while it has child departments. Delete or reassign child departments first.",
+                statusCode: 409),
+            _ => Respons<object>.Fail("Delete failed.", statusCode: 500),
+        };
+
+    private static Respons<object> MapBranchDeleteResult(OrgStructureDeleteResult result, Guid id) =>
+        result switch
+        {
+            OrgStructureDeleteResult.Deleted => Respons<object>.Ok(
+                new { branchId = id.ToString() },
+                "Branch deleted."),
+            OrgStructureDeleteResult.NotFound => Respons<object>.Fail(
+                "Branch not found.",
+                statusCode: 404),
+            OrgStructureDeleteResult.InUseByEmployees => Respons<object>.Fail(
+                "Branch cannot be deleted while employees are assigned to it.",
+                statusCode: 409),
+            _ => Respons<object>.Fail("Delete failed.", statusCode: 500),
+        };
 
     private sealed class MutableNode
     {

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ZelosHR.Api.Entities.Departments;
+using ZelosHR.Api.Entities.OrgStructure;
 using ZelosHR.Api.Persistence.Entities;
 
 namespace ZelosHR.Api.Persistence.Repositories;
@@ -193,17 +194,31 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
         return entity.Name;
     }
 
-    public async Task<bool> ArchiveScopedAsync(
+    public async Task<OrgStructureDeleteResult> DeleteScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default)
     {
         var entity = await db.Departments.FirstOrDefaultAsync(
-            d => d.Id == id && d.TenantId == tenantId && d.OrgId == orgId && !d.IsArchived, ct);
+            d => d.Id == id && d.TenantId == tenantId && d.OrgId == orgId, ct);
         if (entity is null)
-            return false;
+            return OrgStructureDeleteResult.NotFound;
 
-        entity.IsArchived = true;
-        entity.UpdatedAt = DateTimeOffset.UtcNow;
+        var hasEmployees = await db.Employees.AnyAsync(
+            e => e.DepartmentId == id
+                 && e.TenantId == tenantId
+                 && e.OrgId == orgId
+                 && !e.IsDeleted,
+            ct);
+        if (hasEmployees)
+            return OrgStructureDeleteResult.InUseByEmployees;
+
+        var hasChildren = await db.Departments.AnyAsync(
+            d => d.ParentDepartmentId == id && d.TenantId == tenantId && d.OrgId == orgId,
+            ct);
+        if (hasChildren)
+            return OrgStructureDeleteResult.HasChildDepartments;
+
+        db.Departments.Remove(entity);
         await db.SaveChangesAsync(ct);
-        return true;
+        return OrgStructureDeleteResult.Deleted;
     }
 }

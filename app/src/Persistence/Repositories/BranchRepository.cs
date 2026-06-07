@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ZelosHR.Api.Entities.Branches;
+using ZelosHR.Api.Entities.OrgStructure;
 using ZelosHR.Api.Persistence.Entities;
 
 namespace ZelosHR.Api.Persistence.Repositories;
@@ -142,18 +143,26 @@ public sealed class BranchRepository(ZelosHrDbContext db) : IBranchRepository
         await db.Branches.AsNoTracking()
             .AnyAsync(b => b.Id == id && b.TenantId == tenantId && b.OrgId == orgId && !b.IsArchived, ct);
 
-    public async Task<bool> ArchiveScopedAsync(
+    public async Task<OrgStructureDeleteResult> DeleteScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default)
     {
         var entity = await db.Branches.FirstOrDefaultAsync(
-            b => b.Id == id && b.TenantId == tenantId && b.OrgId == orgId && !b.IsArchived, ct);
+            b => b.Id == id && b.TenantId == tenantId && b.OrgId == orgId, ct);
         if (entity is null)
-            return false;
+            return OrgStructureDeleteResult.NotFound;
 
-        entity.IsArchived = true;
-        entity.UpdatedAt = DateTimeOffset.UtcNow;
+        var hasEmployees = await db.Employees.AnyAsync(
+            e => e.BranchId == id
+                 && e.TenantId == tenantId
+                 && e.OrgId == orgId
+                 && !e.IsDeleted,
+            ct);
+        if (hasEmployees)
+            return OrgStructureDeleteResult.InUseByEmployees;
+
+        db.Branches.Remove(entity);
         await db.SaveChangesAsync(ct);
-        return true;
+        return OrgStructureDeleteResult.Deleted;
     }
 
     private static string? NullIfWhiteSpace(string? value) =>

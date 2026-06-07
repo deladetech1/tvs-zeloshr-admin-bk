@@ -1,3 +1,5 @@
+using ZelosHR.Api.Entities.OrgStructure;
+
 namespace ZelosHR.Api.Entities.Branches;
 
 public interface IBranchRepository
@@ -37,7 +39,7 @@ public interface IBranchRepository
         bool updateDescription,
         CancellationToken ct = default);
 
-    Task<bool> ArchiveScopedAsync(
+    Task<OrgStructureDeleteResult> DeleteScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default);
 
     Task<bool> ExistsActiveScopedAsync(

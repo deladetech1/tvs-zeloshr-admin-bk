@@ -50,4 +50,43 @@ public class OrgStructureServiceTests
             Arg.Any<string?>(), Arg.Any<Guid?>(), Arg.Any<Guid?>(), Arg.Any<string?>(), Arg.Any<bool>(),
             Arg.Any<CancellationToken>());
     }
+
+    [Fact]
+    public async Task DeleteDepartment_returns_404_when_missing()
+    {
+        var id = Guid.NewGuid();
+        _departmentRepo.DeleteScopedAsync(id, "t1", "o1", Arg.Any<CancellationToken>())
+            .Returns(OrgStructureDeleteResult.NotFound);
+
+        var result = await _sut.DeleteDepartmentAsync(id, "t1", "o1");
+
+        result.Success.Should().BeFalse();
+        result.StatusCode.Should().Be(404);
+    }
+
+    [Fact]
+    public async Task DeleteDepartment_returns_409_when_employees_assigned()
+    {
+        var id = Guid.NewGuid();
+        _departmentRepo.DeleteScopedAsync(id, "t1", "o1", Arg.Any<CancellationToken>())
+            .Returns(OrgStructureDeleteResult.InUseByEmployees);
+
+        var result = await _sut.DeleteDepartmentAsync(id, "t1", "o1");
+
+        result.Success.Should().BeFalse();
+        result.StatusCode.Should().Be(409);
+    }
+
+    [Fact]
+    public async Task DeleteBranch_returns_ok_when_deleted()
+    {
+        var id = Guid.NewGuid();
+        _branchRepo.DeleteScopedAsync(id, "t1", "o1", Arg.Any<CancellationToken>())
+            .Returns(OrgStructureDeleteResult.Deleted);
+
+        var result = await _sut.DeleteBranchAsync(id, "t1", "o1");
+
+        result.Success.Should().BeTrue();
+        result.StatusCode.Should().Be(200);
+    }
 }

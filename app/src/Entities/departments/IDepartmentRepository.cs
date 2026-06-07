@@ -1,3 +1,4 @@
+using ZelosHR.Api.Entities.OrgStructure;
 using ZelosHR.Api.Persistence.Entities;
 
 namespace ZelosHR.Api.Entities.Departments;
@@ -44,7 +45,7 @@ public interface IDepartmentRepository
         bool updateDescription,
         CancellationToken ct = default);
 
-    Task<bool> ArchiveScopedAsync(
+    Task<OrgStructureDeleteResult> DeleteScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default);
 }
 

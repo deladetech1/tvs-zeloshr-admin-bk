@@ -99,7 +99,7 @@ public sealed class SwaggerOrgStructureOperationFilter : IOperationFilter
         if (method.Equals("DELETE", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/org-structure/departments/delete", StringComparison.OrdinalIgnoreCase))
         {
             SetJsonResponseExample(operation, 200, SwaggerExamples.EnvelopeFor(typeof(Respons<object>), 200));
-            AppendParameterDescription(operation, "department_id", "Department UUID to archive (soft-delete).");
+            AppendParameterDescription(operation, "department_id", "Department UUID to delete permanently.");
             return;
         }
 
@@ -120,7 +120,7 @@ public sealed class SwaggerOrgStructureOperationFilter : IOperationFilter
         if (method.Equals("DELETE", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/org-structure/branches/delete", StringComparison.OrdinalIgnoreCase))
         {
             SetJsonResponseExample(operation, 200, SwaggerExamples.EnvelopeFor(typeof(Respons<object>), 200));
-            AppendParameterDescription(operation, "branch_id", "Branch UUID to archive (soft-delete).");
+            AppendParameterDescription(operation, "branch_id", "Branch UUID to delete permanently.");
         }
     }
 

@@ -106,9 +106,9 @@ public class OrgStructureController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Archive a department (soft-delete).</summary>
+    /// <summary>Permanently delete a department.</summary>
     [HttpDelete("departments/delete")]
-    public async Task<ActionResult<Respons<object>>> ArchiveDepartment(
+    public async Task<ActionResult<Respons<object>>> DeleteDepartment(
         [FromQuery(Name = PlatformQueryParams.DepartmentId)] Guid departmentId,
         CancellationToken ct)
     {
@@ -117,7 +117,7 @@ public class OrgStructureController : ControllerBase
             return missingId;
 
         var ctx = _tenant.Current;
-        var result = await _service.ArchiveDepartmentAsync(departmentId, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.DeleteDepartmentAsync(departmentId, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
@@ -148,9 +148,9 @@ public class OrgStructureController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Archive a branch (soft-delete).</summary>
+    /// <summary>Permanently delete a branch.</summary>
     [HttpDelete("branches/delete")]
-    public async Task<ActionResult<Respons<object>>> ArchiveBranch(
+    public async Task<ActionResult<Respons<object>>> DeleteBranch(
         [FromQuery(Name = PlatformQueryParams.BranchId)] Guid branchId,
         CancellationToken ct)
     {
@@ -159,7 +159,7 @@ public class OrgStructureController : ControllerBase
             return missingId;
 
         var ctx = _tenant.Current;
-        var result = await _service.ArchiveBranchAsync(branchId, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.DeleteBranchAsync(branchId, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 }
