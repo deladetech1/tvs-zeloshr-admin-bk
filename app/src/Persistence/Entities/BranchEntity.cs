@@ -11,6 +11,8 @@ public sealed class BranchEntity
     public string? Description { get; set; }
     public bool IsArchived { get; set; }
     public string CustomFieldsData { get; set; } = "{}";
+    public string? CreatedBy { get; set; }
+    public string? UpdatedBy { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 }

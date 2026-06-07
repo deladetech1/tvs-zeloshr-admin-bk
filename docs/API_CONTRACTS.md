@@ -8,6 +8,7 @@ See [ENTERPRISE_API.md](ENTERPRISE_API.md) for the full CRUD matrix and [GET /ap
 |------|------|
 | Auth | `authorization: Bearer <JWT>` plus `app-id`, `bus-id`, `loc-id`, `org-id` on every `/api/v1/*` request |
 | Envelope | `{ success, status_code, detail, data, pagination?, field_errors? }` (snake_case — [MYSTOREGUARD_API_CONFORMANCE.md](MYSTOREGUARD_API_CONFORMANCE.md)) |
+| Audit (list/get/mutation) | Every resource item includes `created_at`, `updated_at`, `created_by_id`, `updated_by_id`, `created_by`, `updated_by` (display name from `cp_users.fullname`; ids may be null on legacy rows) |
 | Resource IDs | Query params only (`employee_id`, `department_id`, …) — **no** `{id}` path segments |
 | Updates | `PUT` with partial JSON bodies |
 | Deletes | `DELETE /{module}/delete?{resource}_id=` — employees soft-delete; departments/branches permanent delete |

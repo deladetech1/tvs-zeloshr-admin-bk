@@ -20,6 +20,7 @@ public interface IBranchRepository
         BranchWriteModel model,
         string tenantId,
         string orgId,
+        string? actedBy,
         CancellationToken ct = default);
 
     Task<BranchListRow?> GetActiveScopedAsync(
@@ -37,6 +38,7 @@ public interface IBranchRepository
         bool updateAddress,
         bool updateCountry,
         bool updateDescription,
+        string? actedBy,
         CancellationToken ct = default);
 
     Task<OrgStructureDeleteResult> DeleteScopedAsync(
@@ -59,4 +61,8 @@ public sealed record BranchListRow(
     string? Country,
     string? Description,
     int EmployeeCount,
-    bool IsArchived);
+    bool IsArchived,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    string? CreatedBy,
+    string? UpdatedBy);

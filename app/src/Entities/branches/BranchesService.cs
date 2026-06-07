@@ -1,3 +1,4 @@
+using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Shared.Pagination;
 
@@ -6,8 +7,13 @@ namespace ZelosHR.Api.Entities.Branches;
 public class BranchesService
 {
     private readonly IBranchRepository _branches;
+    private readonly ICpUserRepository _cpUsers;
 
-    public BranchesService(IBranchRepository branches) => _branches = branches;
+    public BranchesService(IBranchRepository branches, ICpUserRepository cpUsers)
+    {
+        _branches = branches;
+        _cpUsers = cpUsers;
+    }
 
     public async Task<Respons<BranchListDto>> ListBranchesAsync(
         string tenantId,
@@ -21,6 +27,12 @@ public class BranchesService
         var paging = PagedQuery.From(page, size);
         var (rows, total) = await _branches.ListPagedScopedAsync(
             tenantId, orgId, search, includeArchived, paging.Page, paging.Size, ct);
+
+        var users = await _cpUsers.GetByIdsAsync(
+            ResourceAuditMapper.CollectUserIds(rows.Select(r => new[] { r.CreatedBy, r.UpdatedBy })),
+            tenantId,
+            ct);
+
         var items = rows.Select(r => new BranchListItemDto
         {
             BranchId = r.Id.ToString(),
@@ -30,6 +42,12 @@ public class BranchesService
             Description = r.Description,
             EmployeeCount = r.EmployeeCount,
             IsArchived = r.IsArchived,
+            CreatedAt = r.CreatedAt,
+            UpdatedAt = r.UpdatedAt,
+            CreatedById = r.CreatedBy,
+            UpdatedById = r.UpdatedBy,
+            CreatedBy = ResourceAuditMapper.ResolveDisplayName(r.CreatedBy, users),
+            UpdatedBy = ResourceAuditMapper.ResolveDisplayName(r.UpdatedBy, users),
         }).ToList();
 
         return Respons<BranchListDto>.Ok(

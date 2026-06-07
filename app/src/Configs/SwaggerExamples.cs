@@ -582,12 +582,19 @@ internal static class SwaggerExamples
             {
                 ["department_id"] = SampleDepartmentId.ToString(),
                 ["name"] = "Engineering",
+                ["description"] = "Product engineering and platform",
                 ["parent_department_id"] = null,
                 ["parent_department_name"] = null,
                 ["head_of_department"] = DepartmentHeadExample(),
                 ["employee_count"] = 24,
                 ["is_archived"] = false,
                 ["hierarchy_level"] = 0,
+                ["created_at"] = "2025-01-15T10:30:00+00:00",
+                ["updated_at"] = "2025-06-01T14:00:00+00:00",
+                ["created_by_id"] = "uid_sample_user",
+                ["updated_by_id"] = "uid_sample_user",
+                ["created_by"] = "Larry Ntori",
+                ["updated_by"] = "Larry Ntori",
             },
             new JsonObject
             {
@@ -618,12 +625,19 @@ internal static class SwaggerExamples
     {
         ["department_id"] = SampleDepartmentId.ToString(),
         ["name"] = "Engineering",
+        ["description"] = "Product engineering and platform",
         ["parent_department_id"] = null,
         ["parent_department_name"] = null,
         ["head_of_department"] = DepartmentHeadExample(),
         ["employee_count"] = 24,
         ["is_archived"] = SwaggerExampleHints.BooleanPipe,
         ["hierarchy_level"] = 0,
+        ["created_at"] = "2025-01-15T10:30:00+00:00",
+        ["updated_at"] = "2025-06-01T14:00:00+00:00",
+        ["created_by_id"] = "uid_sample_user",
+        ["updated_by_id"] = "uid_sample_user",
+        ["created_by"] = "Larry Ntori",
+        ["updated_by"] = "Larry Ntori",
     };
 
     internal static JsonObject OrgChartNodeExample() => OrgChartRootNode();
@@ -640,6 +654,12 @@ internal static class SwaggerExamples
                 ["description"] = null,
                 ["employee_count"] = 24,
                 ["is_archived"] = false,
+                ["created_at"] = "2025-01-15T10:30:00+00:00",
+                ["updated_at"] = "2025-06-01T14:00:00+00:00",
+                ["created_by_id"] = "uid_sample_user",
+                ["updated_by_id"] = "uid_sample_user",
+                ["created_by"] = "Larry Ntori",
+                ["updated_by"] = "Larry Ntori",
             },
             new JsonObject
             {
@@ -667,6 +687,13 @@ internal static class SwaggerExamples
     {
         ["department_id"] = SampleDepartmentId.ToString(),
         ["name"] = "Engineering",
+        ["description"] = "Product engineering and platform",
+        ["created_at"] = "2025-01-15T10:30:00+00:00",
+        ["updated_at"] = "2025-06-01T14:00:00+00:00",
+        ["created_by_id"] = "uid_sample_user",
+        ["updated_by_id"] = "uid_sample_user",
+        ["created_by"] = "Larry Ntori",
+        ["updated_by"] = "Larry Ntori",
     };
 
     private static JsonObject BranchMutationResponseData() => new()

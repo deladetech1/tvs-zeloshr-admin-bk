@@ -29,7 +29,11 @@ public interface IDepartmentRepository
         Guid? parentDepartmentId,
         Guid? headOfDepartmentId,
         string? description,
+        string? actedBy,
         CancellationToken ct = default);
+
+    Task<DepartmentListRow?> GetActiveScopedAsync(
+        Guid id, string tenantId, string orgId, CancellationToken ct = default);
 
     Task<bool> ExistsActiveScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default);
@@ -43,6 +47,7 @@ public interface IDepartmentRepository
         Guid? headOfDepartmentId,
         string? description,
         bool updateDescription,
+        string? actedBy,
         CancellationToken ct = default);
 
     Task<OrgStructureDeleteResult> DeleteScopedAsync(
@@ -52,6 +57,7 @@ public interface IDepartmentRepository
 public sealed record DepartmentListRow(
     Guid Id,
     string Name,
+    string? Description,
     Guid? ParentDepartmentId,
     string? ParentDepartmentName,
     bool IsArchived,
@@ -59,4 +65,8 @@ public sealed record DepartmentListRow(
     string? HeadFirstName,
     string? HeadLastName,
     string? HeadJobTitle,
-    int EmployeeCount);
+    int EmployeeCount,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    string? CreatedBy,
+    string? UpdatedBy);

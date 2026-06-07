@@ -1,3 +1,4 @@
+using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Shared.Formatting;
 using ZelosHR.Api.Shared.Pagination;
@@ -7,10 +8,12 @@ namespace ZelosHR.Api.Entities.Departments;
 public class DepartmentsService
 {
     private readonly IDepartmentRepository _departments;
+    private readonly ICpUserRepository _cpUsers;
 
-    public DepartmentsService(IDepartmentRepository departments)
+    public DepartmentsService(IDepartmentRepository departments, ICpUserRepository cpUsers)
     {
         _departments = departments;
+        _cpUsers = cpUsers;
     }
 
     public async Task<Respons<OrganisationSummaryDto>> GetSummaryAsync(
@@ -37,10 +40,16 @@ public class DepartmentsService
         var (rows, total) = await _departments.ListScopedAsync(
             tenantId, orgId, search, sortBy, sortOrder, includeArchived, paging.Page, paging.Size, ct);
 
+        var users = await _cpUsers.GetByIdsAsync(
+            ResourceAuditMapper.CollectUserIds(rows.Select(r => new[] { r.CreatedBy, r.UpdatedBy })),
+            tenantId,
+            ct);
+
         var items = rows.Select(r => new DepartmentListItemDto
         {
             DepartmentId = r.Id.ToString(),
             Name = r.Name,
+            Description = r.Description,
             ParentDepartmentId = r.ParentDepartmentId?.ToString(),
             ParentDepartmentName = r.ParentDepartmentName,
             HeadOfDepartment = r.HeadId is null
@@ -55,6 +64,12 @@ public class DepartmentsService
             EmployeeCount = r.EmployeeCount,
             IsArchived = r.IsArchived,
             HierarchyLevel = r.ParentDepartmentId is null ? 0 : 1,
+            CreatedAt = r.CreatedAt,
+            UpdatedAt = r.UpdatedAt,
+            CreatedById = r.CreatedBy,
+            UpdatedById = r.UpdatedBy,
+            CreatedBy = ResourceAuditMapper.ResolveDisplayName(r.CreatedBy, users),
+            UpdatedBy = ResourceAuditMapper.ResolveDisplayName(r.UpdatedBy, users),
         }).ToList();
 
         var summary = await _departments.GetSummaryScopedAsync(tenantId, orgId, ct);

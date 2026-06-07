@@ -2,8 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using ZelosHR.Api.Entities.Branches;
 using ZelosHR.Api.Entities.Departments;
+using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Shared.Formatting;
+using ZelosHR.Api.Shared.Tenant;
 
 namespace ZelosHR.Api.Entities.OrgStructure;
 
@@ -13,18 +15,27 @@ public class OrgStructureService
     private readonly BranchesService _branches;
     private readonly IDepartmentRepository _departmentRepo;
     private readonly IBranchRepository _branchRepo;
+    private readonly ICpUserRepository _cpUsers;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public OrgStructureService(
         DepartmentsService departments,
         BranchesService branches,
         IDepartmentRepository departmentRepo,
-        IBranchRepository branchRepo)
+        IBranchRepository branchRepo,
+        ICpUserRepository cpUsers,
+        IHttpContextAccessor httpContextAccessor)
     {
         _departments = departments;
         _branches = branches;
         _departmentRepo = departmentRepo;
         _branchRepo = branchRepo;
+        _cpUsers = cpUsers;
+        _httpContextAccessor = httpContextAccessor;
     }
+
+    private string? CurrentUserId =>
+        _httpContextAccessor.HttpContext?.Items[TrovesuiteHttpContextKeys.UserId] as string;
 
     public Task<Respons<OrganisationSummaryDto>> GetSummaryAsync(string tenantId, string orgId, CancellationToken ct) =>
         _departments.GetSummaryAsync(tenantId, orgId, ct);
@@ -97,13 +108,11 @@ public class OrgStructureService
         {
             var id = await _departmentRepo.CreateScopedAsync(
                 tenantId, orgId, request.Name, request.ParentDepartmentId, request.HeadOfDepartmentId,
-                request.Description, ct);
+                request.Description, CurrentUserId, ct);
 
-            return Respons<CreateDepartmentResponseDto>.Ok(new CreateDepartmentResponseDto
-            {
-                DepartmentId = id.ToString(),
-                Name = request.Name.Trim(),
-            });
+            var created = await _departmentRepo.GetActiveScopedAsync(id, tenantId, orgId, ct);
+            return Respons<CreateDepartmentResponseDto>.Ok(
+                await ToDepartmentMutationAsync(created!, tenantId, ct));
         }
         catch (DbUpdateException ex)
             when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
@@ -153,6 +162,7 @@ public class OrgStructureService
             hasHead ? request.HeadOfDepartmentId : null,
             request.Description,
             hasDescription,
+            CurrentUserId,
             ct);
 
         if (name is null)
@@ -160,11 +170,9 @@ public class OrgStructureService
         if (name.Length == 0)
             return Respons<CreateDepartmentResponseDto>.EmptyUpdateRequest();
 
-        return Respons<CreateDepartmentResponseDto>.Ok(new CreateDepartmentResponseDto
-        {
-            DepartmentId = id.ToString(),
-            Name = name,
-        });
+        var updated = await _departmentRepo.GetActiveScopedAsync(id, tenantId, orgId, ct);
+        return Respons<CreateDepartmentResponseDto>.Ok(
+            await ToDepartmentMutationAsync(updated!, tenantId, ct));
     }
 
     public async Task<Respons<object>> DeleteDepartmentAsync(
@@ -196,9 +204,10 @@ public class OrgStructureService
                 request.Address,
                 request.Country,
                 request.Description);
-            var id = await _branchRepo.CreateScopedAsync(model, tenantId, orgId, ct);
+            var id = await _branchRepo.CreateScopedAsync(model, tenantId, orgId, CurrentUserId, ct);
             var created = await _branchRepo.GetActiveScopedAsync(id, tenantId, orgId, ct);
-            return Respons<BranchMutationResponseDto>.Ok(ToMutationDto(created!));
+            return Respons<BranchMutationResponseDto>.Ok(
+                await ToBranchMutationAsync(created!, tenantId, ct));
         }
         catch (DbUpdateException ex)
             when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
@@ -256,22 +265,32 @@ public class OrgStructureService
             hasAddress,
             hasCountry,
             hasDescription,
+            CurrentUserId,
             ct);
 
         if (updated is null)
             return Respons<BranchMutationResponseDto>.Fail("Branch not found.", statusCode: 404);
 
-        return Respons<BranchMutationResponseDto>.Ok(ToMutationDto(updated));
+        return Respons<BranchMutationResponseDto>.Ok(await ToBranchMutationAsync(updated, tenantId, ct));
     }
 
-    private static BranchMutationResponseDto ToMutationDto(BranchListRow row) => new()
+    private async Task<CreateDepartmentResponseDto> ToDepartmentMutationAsync(
+        DepartmentListRow row,
+        string tenantId,
+        CancellationToken ct)
     {
-        BranchId = row.Id.ToString(),
-        Name = row.Name,
-        Address = row.Address,
-        Country = row.Country,
-        Description = row.Description,
-    };
+        var users = await _cpUsers.GetByIdsAsync(OrgStructureMapper.CollectUserIds([row]), tenantId, ct);
+        return OrgStructureMapper.ToDepartmentMutation(row, users);
+    }
+
+    private async Task<BranchMutationResponseDto> ToBranchMutationAsync(
+        BranchListRow row,
+        string tenantId,
+        CancellationToken ct)
+    {
+        var users = await _cpUsers.GetByIdsAsync(OrgStructureMapper.CollectUserIds([row]), tenantId, ct);
+        return OrgStructureMapper.ToBranchMutation(row, users);
+    }
 
     public async Task<Respons<object>> DeleteBranchAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default)

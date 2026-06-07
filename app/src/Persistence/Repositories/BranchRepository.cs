@@ -12,7 +12,18 @@ public sealed class BranchRepository(ZelosHrDbContext db) : IBranchRepository
             .Where(b => b.TenantId == tenantId && b.OrgId == orgId);
 
     private static BranchListRow ToRow(BranchEntity b, int employeeCount) =>
-        new(b.Id, b.Name, b.Address, b.Country, b.Description, employeeCount, b.IsArchived);
+        new(
+            b.Id,
+            b.Name,
+            b.Address,
+            b.Country,
+            b.Description,
+            employeeCount,
+            b.IsArchived,
+            b.CreatedAt,
+            b.UpdatedAt,
+            b.CreatedBy,
+            b.UpdatedBy);
 
     private int EmployeeCount(Guid branchId, string tenantId, string orgId) =>
         db.Employees.Count(e =>
@@ -75,6 +86,7 @@ public sealed class BranchRepository(ZelosHrDbContext db) : IBranchRepository
         BranchWriteModel model,
         string tenantId,
         string orgId,
+        string? actedBy,
         CancellationToken ct = default)
     {
         var now = DateTimeOffset.UtcNow;
@@ -89,6 +101,8 @@ public sealed class BranchRepository(ZelosHrDbContext db) : IBranchRepository
             Description = NullIfWhiteSpace(model.Description),
             CreatedAt = now,
             UpdatedAt = now,
+            CreatedBy = actedBy,
+            UpdatedBy = actedBy,
         };
         db.Branches.Add(entity);
         await db.SaveChangesAsync(ct);
@@ -116,6 +130,7 @@ public sealed class BranchRepository(ZelosHrDbContext db) : IBranchRepository
         bool updateAddress,
         bool updateCountry,
         bool updateDescription,
+        string? actedBy,
         CancellationToken ct = default)
     {
         var entity = await db.Branches.FirstOrDefaultAsync(
@@ -133,6 +148,7 @@ public sealed class BranchRepository(ZelosHrDbContext db) : IBranchRepository
             entity.Description = NullIfWhiteSpace(description);
 
         entity.UpdatedAt = DateTimeOffset.UtcNow;
+        entity.UpdatedBy = actedBy;
         await db.SaveChangesAsync(ct);
 
         return ToRow(entity, EmployeeCount(entity.Id, tenantId, orgId));

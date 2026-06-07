@@ -50,6 +50,7 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
         {
             d.Id,
             d.Name,
+            d.Description,
             d.ParentDepartmentId,
             ParentDepartmentName = d.ParentDepartment != null ? d.ParentDepartment.Name : null,
             d.IsArchived,
@@ -57,6 +58,10 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
             HeadFirstName = d.HeadOfDepartment != null ? d.HeadOfDepartment.FirstName : null,
             HeadLastName = d.HeadOfDepartment != null ? d.HeadOfDepartment.LastName : null,
             HeadJobTitle = d.HeadOfDepartment != null ? d.HeadOfDepartment.JobTitle : null,
+            d.CreatedAt,
+            d.UpdatedAt,
+            d.CreatedBy,
+            d.UpdatedBy,
             EmployeeCount = db.Employees.Count(e =>
                 e.DepartmentId == d.Id
                 && e.TenantId == tenantId
@@ -80,6 +85,7 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
         var rows = pageItems.Select(x => new DepartmentListRow(
             x.Id,
             x.Name,
+            x.Description,
             x.ParentDepartmentId,
             x.ParentDepartmentName,
             x.IsArchived,
@@ -87,7 +93,11 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
             x.HeadFirstName,
             x.HeadLastName,
             x.HeadJobTitle,
-            x.EmployeeCount)).ToList();
+            x.EmployeeCount,
+            x.CreatedAt,
+            x.UpdatedAt,
+            x.CreatedBy,
+            x.UpdatedBy)).ToList();
 
         return (rows, total);
     }
@@ -100,6 +110,7 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
             .Select(d => new DepartmentListRow(
                 d.Id,
                 d.Name,
+                d.Description,
                 d.ParentDepartmentId,
                 null,
                 d.IsArchived,
@@ -111,7 +122,11 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
                     e.DepartmentId == d.Id
                     && e.TenantId == tenantId
                     && e.OrgId == orgId
-                    && !e.IsDeleted)))
+                    && !e.IsDeleted),
+                d.CreatedAt,
+                d.UpdatedAt,
+                d.CreatedBy,
+                d.UpdatedBy))
             .ToListAsync(ct);
 
     public async Task<Guid> CreateScopedAsync(
@@ -121,6 +136,7 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
         Guid? parentDepartmentId,
         Guid? headOfDepartmentId,
         string? description,
+        string? actedBy,
         CancellationToken ct = default)
     {
         var now = DateTimeOffset.UtcNow;
@@ -135,10 +151,46 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
             HeadOfDepartmentId = headOfDepartmentId,
             CreatedAt = now,
             UpdatedAt = now,
+            CreatedBy = actedBy,
+            UpdatedBy = actedBy,
         };
         db.Departments.Add(entity);
         await db.SaveChangesAsync(ct);
         return entity.Id;
+    }
+
+    public async Task<DepartmentListRow?> GetActiveScopedAsync(
+        Guid id, string tenantId, string orgId, CancellationToken ct = default)
+    {
+        var entity = await db.Departments.AsNoTracking()
+            .FirstOrDefaultAsync(
+                d => d.Id == id && d.TenantId == tenantId && d.OrgId == orgId && !d.IsArchived, ct);
+        if (entity is null)
+            return null;
+
+        var employeeCount = await db.Employees.CountAsync(
+            e => e.DepartmentId == entity.Id
+                 && e.TenantId == tenantId
+                 && e.OrgId == orgId
+                 && !e.IsDeleted,
+            ct);
+
+        return new DepartmentListRow(
+            entity.Id,
+            entity.Name,
+            entity.Description,
+            entity.ParentDepartmentId,
+            null,
+            entity.IsArchived,
+            entity.HeadOfDepartmentId,
+            null,
+            null,
+            null,
+            employeeCount,
+            entity.CreatedAt,
+            entity.UpdatedAt,
+            entity.CreatedBy,
+            entity.UpdatedBy);
     }
 
     public async Task<bool> ExistsActiveScopedAsync(
@@ -157,6 +209,7 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
         Guid? headOfDepartmentId,
         string? description,
         bool updateDescription,
+        string? actedBy,
         CancellationToken ct = default)
     {
         var entity = await db.Departments.FirstOrDefaultAsync(
@@ -190,6 +243,7 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
             return string.Empty;
 
         entity.UpdatedAt = DateTimeOffset.UtcNow;
+        entity.UpdatedBy = actedBy;
         await db.SaveChangesAsync(ct);
         return entity.Name;
     }

@@ -9,6 +9,12 @@ public sealed class BranchListItemDto
     public string? Description { get; init; }
     public int EmployeeCount { get; init; }
     public bool IsArchived { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
+    public string? CreatedById { get; init; }
+    public string? UpdatedById { get; init; }
+    public string? CreatedBy { get; init; }
+    public string? UpdatedBy { get; init; }
 }
 
 public sealed class BranchListDto

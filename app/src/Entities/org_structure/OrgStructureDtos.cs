@@ -38,6 +38,13 @@ public sealed class CreateDepartmentResponseDto
 {
     public required string DepartmentId { get; init; }
     public required string Name { get; init; }
+    public string? Description { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
+    public string? CreatedById { get; init; }
+    public string? UpdatedById { get; init; }
+    public string? CreatedBy { get; init; }
+    public string? UpdatedBy { get; init; }
 }
 
 public sealed class UpdateDepartmentRequestDto
@@ -71,4 +78,10 @@ public sealed class BranchMutationResponseDto
     public string? Address { get; init; }
     public string? Country { get; init; }
     public string? Description { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
+    public string? CreatedById { get; init; }
+    public string? UpdatedById { get; init; }
+    public string? CreatedBy { get; init; }
+    public string? UpdatedBy { get; init; }
 }
