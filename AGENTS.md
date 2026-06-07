@@ -19,7 +19,15 @@ cd ../tvs-sqlscript && git checkout dev && git pull
 ```
 
 - Schema PRs in **tvs-sqlscript** merge to **`dev` first**; let CI deploy to `saas-dev` before merging dependent ZelosHR API changes.
-- `main` / `master` on either repo are release paths — not the default sprint branch.
+- `main` / `master` on either repo are **production release paths** — not the default sprint branch.
+
+### Never apply migrations from `master` / `main` during sprint work
+
+- **All DDL** lives in **tvs-sqlscript** on branch **`dev`**. Push to **`dev`** → **Database deploy (branch push)** applies to **`saas-dev`**.
+- **Do not** push migration fixes to `master`/`main` to unblock dev.
+- **Do not** run EF `deploy` against shared dev Postgres from this repo, local scripts, or a manual dispatch that checks out `master`.
+- Manual **Database (EF Core dispatch)** for `saas-dev` uses migration code from **`dev`** (forced checkout in that workflow).
+- If dev API returns `column … does not exist`, fix is: merge migration on **tvs-sqlscript `dev`**, wait for deploy, retest — not a ZelosHR code workaround.
 
 ## Database source of truth
 
