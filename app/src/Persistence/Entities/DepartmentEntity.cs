@@ -6,6 +6,7 @@ public sealed class DepartmentEntity
     public string TenantId { get; set; } = default!;
     public string OrgId { get; set; } = default!;
     public string Name { get; set; } = default!;
+    public string? Description { get; set; }
     public Guid? ParentDepartmentId { get; set; }
     public DepartmentEntity? ParentDepartment { get; set; }
     public Guid? HeadOfDepartmentId { get; set; }

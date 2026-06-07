@@ -6,13 +6,23 @@ namespace ZelosHR.Api.Tests.OrgStructure;
 public class OrgStructureValidationTests
 {
     [Fact]
-    public void NormalizeOptionalCountryCode_uppercases_valid_iso_code() =>
-        OrgStructureValidation.NormalizeOptionalCountryCode("gh").Should().Be("GH");
+    public void ValidateBranchFields_rejects_long_address()
+    {
+        var errors = OrgStructureValidation.ValidateBranchFields(new string('a', 501), null, null);
+        errors.Should().ContainKey("address");
+    }
 
     [Fact]
-    public void ValidateBranchLocationFields_rejects_invalid_country_code()
+    public void ValidateBranchFields_rejects_long_country()
     {
-        var errors = OrgStructureValidation.ValidateBranchLocationFields(null, null, "GHANA");
-        errors.Should().ContainKey("country_code");
+        var errors = OrgStructureValidation.ValidateBranchFields(null, new string('a', 101), null);
+        errors.Should().ContainKey("country");
+    }
+
+    [Fact]
+    public void ValidateDepartmentDescription_rejects_long_value()
+    {
+        var errors = OrgStructureValidation.ValidateDepartmentDescription(new string('a', 501));
+        errors.Should().ContainKey("description");
     }
 }

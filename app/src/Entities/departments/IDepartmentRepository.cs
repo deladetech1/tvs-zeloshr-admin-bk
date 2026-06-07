@@ -27,6 +27,7 @@ public interface IDepartmentRepository
         string name,
         Guid? parentDepartmentId,
         Guid? headOfDepartmentId,
+        string? description,
         CancellationToken ct = default);
 
     Task<bool> ExistsActiveScopedAsync(
@@ -39,6 +40,8 @@ public interface IDepartmentRepository
         string? name,
         Guid? parentDepartmentId,
         Guid? headOfDepartmentId,
+        string? description,
+        bool updateDescription,
         CancellationToken ct = default);
 
     Task<bool> ArchiveScopedAsync(

@@ -74,6 +74,8 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(FileUploadMultipleReadDto) => new JsonObject { ["id"] = SwaggerExamples.SampleDocumentId1 },
             nameof(CreateDepartmentRequestDto) => SwaggerExamples.CreateDepartmentRoot(),
             nameof(UpdateDepartmentRequestDto) => SwaggerExamples.UpdateDepartmentBody(),
+            nameof(CreateBranchRequestDto) => SwaggerExamples.CreateBranchBody(),
+            nameof(UpdateBranchRequestDto) => SwaggerExamples.UpdateBranchBody(),
             nameof(OrgChartDto) => SwaggerExamples.OrgChartDataForSchema(),
             nameof(BranchListItemDto) => SwaggerExamples.BranchListItemExample(),
             nameof(DepartmentListItemDto) => SwaggerExamples.DepartmentListItemExample(),
@@ -114,11 +116,15 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(FileDeleteReadDto) => AppendDescription(schema.Description,
                 "Echo of storage location after delete."),
             nameof(CreateDepartmentRequestDto) => AppendDescription(schema.Description,
-                "Create department. Optional parent_department_id and head_of_department_id (employee UUID)."),
+                "Create department. Optional parent_department_id, head_of_department_id (employee UUID), and description."),
+            nameof(CreateBranchRequestDto) => AppendDescription(schema.Description,
+                "Create branch. Optional address, country (full name, e.g. Ghana, Kenya), and description."),
+            nameof(UpdateBranchRequestDto) => AppendDescription(schema.Description,
+                "Partial branch update — include only fields to change."),
             nameof(OrgChartDto) => AppendDescription(schema.Description,
                 "Nested department tree. Each node: id · name · node_type (department) · parent_id · head_of_department · employee_count · children."),
             nameof(BranchListItemDto) => AppendDescription(schema.Description,
-                $"branch_id (UUID) · name · employee_count · is_archived ({SwaggerExampleHints.OrgIncludeArchived})."),
+                "branch_id (UUID) · name · address · country · description · employee_count · is_archived."),
             nameof(DepartmentListItemDto) => AppendDescription(schema.Description,
                 $"department_id (UUID) · name · parent_department_id · head_of_department · employee_count · is_archived ({SwaggerExampleHints.OrgIncludeArchived}) · hierarchy_level."),
             nameof(OrgChartNodeDto) => AppendDescription(schema.Description,
@@ -351,9 +357,9 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 schema.Example = JsonValue.Create(SwaggerExamples.SampleDepartmentId.ToString());
                 return;
             case "NodeType" when property.DeclaringType == typeof(OrgChartNodeDto):
-                schema.Example = JsonValue.Create(SwaggerExampleHints.OrgNodeType);
+                schema.Example = JsonValue.Create("department");
                 schema.Description = AppendDescription(schema.Description,
-                    $"Allowed: {SwaggerExampleHints.OrgNodeType}.");
+                    "Chart nodes are departments.");
                 return;
             case "EmployeeCount":
                 schema.Example = JsonValue.Create(24);

@@ -93,6 +93,22 @@ internal static class SwaggerExamples
         return envelope;
     }
 
+    internal static JsonObject EnvelopeOkConcrete(JsonNode data, JsonObject? pagination = null)
+    {
+        var envelope = new JsonObject
+        {
+            ["success"] = true,
+            ["status_code"] = 200,
+            ["detail"] = "Success",
+            ["data"] = data,
+        };
+
+        if (pagination is not null)
+            envelope["pagination"] = pagination;
+
+        return envelope;
+    }
+
     internal static void ApplyResponseEnvelopeHints(JsonObject envelope)
     {
         envelope["success"] = SwaggerExampleHints.EnvelopeSuccessPipe;
@@ -215,7 +231,7 @@ internal static class SwaggerExamples
             nameof(EmployeeDirectorySummaryDto) => EmployeeDirectoryStatisticsResponse(),
             nameof(EmployeeRegistrationReadDto) => EmployeeRegistrationImportResponse(),
             nameof(OrganisationSummaryDto) => EnvelopeOk(OrganisationSummaryData()),
-            nameof(OrgChartDto) => EnvelopeOk(OrgChartData()),
+            nameof(OrgChartDto) => EnvelopeOkConcrete(OrgChartData()),
             nameof(DepartmentListDto) => EnvelopeOk(DepartmentListData(), OrgDepartmentListPagination()),
             nameof(BranchListDto) => BranchListResponseExample(),
             nameof(CreateDepartmentResponseDto) => EnvelopeOk(CreateDepartmentResponseData()),
@@ -516,9 +532,9 @@ internal static class SwaggerExamples
         ["archived_count"] = 1,
     };
 
-    internal static JsonObject OrgChartResponse() => EnvelopeOk(OrgChartData());
+    internal static JsonObject OrgChartResponse() => EnvelopeOkConcrete(OrgChartData());
 
-    internal static JsonObject OrgChartEmptyResponse() => EnvelopeOk(new JsonObject
+    internal static JsonObject OrgChartEmptyResponse() => EnvelopeOkConcrete(new JsonObject
     {
         ["roots"] = new JsonArray(),
     });
@@ -534,7 +550,7 @@ internal static class SwaggerExamples
     {
         ["id"] = SampleDepartmentId.ToString(),
         ["name"] = "Engineering",
-        ["node_type"] = SwaggerExampleHints.OrgNodeType,
+        ["node_type"] = "department",
         ["parent_id"] = null,
         ["head_of_department"] = DepartmentHeadExample(),
         ["employee_count"] = 24,
@@ -542,7 +558,7 @@ internal static class SwaggerExamples
         {
             ["id"] = SampleChildDepartmentId.ToString(),
             ["name"] = "Platform",
-            ["node_type"] = SwaggerExampleHints.OrgNodeType,
+            ["node_type"] = "department",
             ["parent_id"] = SampleDepartmentId.ToString(),
             ["head_of_department"] = null,
             ["employee_count"] = 12,
@@ -591,11 +607,11 @@ internal static class SwaggerExamples
     {
         ["branch_id"] = SampleBranchId.ToString(),
         ["name"] = "Accra HQ",
-        ["city"] = "Accra",
-        ["region"] = "Greater Accra",
-        ["country_code"] = "GH",
+        ["address"] = "Greater Accra, 4th Avenue 128B Greda Estate, Teshie-Nungua",
+        ["country"] = "Ghana",
+        ["description"] = null,
         ["employee_count"] = 24,
-        ["is_archived"] = SwaggerExampleHints.BooleanPipe,
+        ["is_archived"] = false,
     };
 
     internal static JsonObject DepartmentListItemExample() => new()
@@ -619,25 +635,31 @@ internal static class SwaggerExamples
             {
                 ["branch_id"] = SampleBranchId.ToString(),
                 ["name"] = "Accra HQ",
-                ["city"] = "Accra",
-                ["region"] = "Greater Accra",
-                ["country_code"] = "GH",
+                ["address"] = "Greater Accra, 4th Avenue 128B Greda Estate, Teshie-Nungua",
+                ["country"] = "Ghana",
+                ["description"] = null,
                 ["employee_count"] = 24,
                 ["is_archived"] = false,
             },
             new JsonObject
             {
                 ["branch_id"] = SampleBranchId2.ToString(),
-                ["name"] = "Kumasi Office",
+                ["name"] = "London Office",
+                ["address"] = "1 Canada Square, Canary Wharf",
+                ["country"] = "United Kingdom",
+                ["description"] = null,
                 ["employee_count"] = 18,
                 ["is_archived"] = false,
             },
             new JsonObject
             {
                 ["branch_id"] = SampleBranchId3.ToString(),
-                ["name"] = "Tamale Office",
+                ["name"] = "Nairobi Office",
+                ["address"] = "Westlands Business Park",
+                ["country"] = "Kenya",
+                ["description"] = null,
                 ["employee_count"] = 9,
-                ["is_archived"] = SwaggerExampleHints.BooleanPipe,
+                ["is_archived"] = false,
             }),
     };
 
@@ -651,9 +673,9 @@ internal static class SwaggerExamples
     {
         ["branch_id"] = SampleBranchId.ToString(),
         ["name"] = "Accra HQ",
-        ["city"] = "Accra",
-        ["region"] = "Greater Accra",
-        ["country_code"] = "GH",
+        ["address"] = "Greater Accra, 4th Avenue 128B Greda Estate, Teshie-Nungua",
+        ["country"] = "Ghana",
+        ["description"] = null,
     };
 
     internal static JsonObject CreateDepartmentRoot() => new()
@@ -661,6 +683,7 @@ internal static class SwaggerExamples
         ["name"] = "Engineering",
         ["parent_department_id"] = null,
         ["head_of_department_id"] = SampleEmployeeId.ToString(),
+        ["description"] = null,
     };
 
     internal static JsonObject CreateDepartmentChild() => new()
@@ -668,6 +691,7 @@ internal static class SwaggerExamples
         ["name"] = "Platform",
         ["parent_department_id"] = SampleDepartmentId.ToString(),
         ["head_of_department_id"] = null,
+        ["description"] = null,
     };
 
     internal static JsonObject UpdateDepartmentBody() => new()
@@ -675,22 +699,23 @@ internal static class SwaggerExamples
         ["name"] = "Engineering & Product",
         ["parent_department_id"] = null,
         ["head_of_department_id"] = SampleEmployeeId.ToString(),
+        ["description"] = "Product engineering and platform teams.",
     };
 
     internal static JsonObject CreateBranchBody() => new()
     {
         ["name"] = "Accra HQ",
-        ["city"] = "Accra",
-        ["region"] = "Greater Accra",
-        ["country_code"] = "GH",
+        ["address"] = "Greater Accra, 4th Avenue 128B Greda Estate, Teshie-Nungua",
+        ["country"] = "Ghana",
+        ["description"] = null,
     };
 
     internal static JsonObject UpdateBranchBody() => new()
     {
         ["name"] = "Accra Headquarters",
-        ["city"] = "Accra",
-        ["region"] = "Greater Accra",
-        ["country_code"] = "GH",
+        ["address"] = "Greater Accra, 4th Avenue 128B Greda Estate, Teshie-Nungua",
+        ["country"] = "Ghana",
+        ["description"] = "Main office for Ghana operations.",
     };
 
     internal static bool IsResponsType(Type type) =>

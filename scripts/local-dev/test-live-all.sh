@@ -209,11 +209,11 @@ if api_post "/api/v1/org-structure/departments/add" "$DEPT_BODY"; then
   fi
 fi
 
-BRANCH_BODY="$(printf '{"name":"Branch %s","city":"Accra","region":"Greater Accra","country_code":"GH"}' "$TAG")"
+BRANCH_BODY="$(printf '{"name":"Branch %s","address":"Greater Accra, 4th Avenue 128B","country":"Ghana","description":null}' "$TAG")"
 if api_post "/api/v1/org-structure/branches/add" "$BRANCH_BODY"; then
   BRANCH_ID="$(json_path "$LAST_JSON" "data.branch_id")"
   api_put "/api/v1/org-structure/branches/update?branch_id=${BRANCH_ID}" \
-    "$(printf '{"name":"Branch %s HQ","city":"Tema","region":"Greater Accra","country_code":"GH"}' "$TAG")" || true
+    "$(printf '{"name":"Branch %s HQ","address":"1 Canada Square, Canary Wharf","country":"United Kingdom"}' "$TAG")" || true
 fi
 
 echo "=== Custom fields (POST / GET / PUT / DELETE) ==="

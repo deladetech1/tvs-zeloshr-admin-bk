@@ -27,7 +27,7 @@ public class OrgStructureServiceTests
         result.StatusCode.Should().Be(400);
         await _departmentRepo.DidNotReceive().CreateScopedAsync(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
-            Arg.Any<Guid?>(), Arg.Any<Guid?>(), Arg.Any<CancellationToken>());
+            Arg.Any<Guid?>(), Arg.Any<Guid?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -47,6 +47,7 @@ public class OrgStructureServiceTests
         result.StatusCode.Should().Be(400);
         await _departmentRepo.DidNotReceive().UpdateScopedAsync(
             Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<string>(),
-            Arg.Any<string?>(), Arg.Any<Guid?>(), Arg.Any<Guid?>(), Arg.Any<CancellationToken>());
+            Arg.Any<string?>(), Arg.Any<Guid?>(), Arg.Any<Guid?>(), Arg.Any<string?>(), Arg.Any<bool>(),
+            Arg.Any<CancellationToken>());
     }
 }

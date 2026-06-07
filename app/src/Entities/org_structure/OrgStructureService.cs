@@ -89,10 +89,15 @@ public class OrgStructureService
             return Respons<CreateDepartmentResponseDto>.ValidationError(
                 new Dictionary<string, string> { ["name"] = "Department name is required." });
 
+        var descriptionErrors = OrgStructureValidation.ValidateDepartmentDescription(request.Description);
+        if (descriptionErrors is not null)
+            return Respons<CreateDepartmentResponseDto>.ValidationError(descriptionErrors);
+
         try
         {
             var id = await _departmentRepo.CreateScopedAsync(
-                tenantId, orgId, request.Name, request.ParentDepartmentId, request.HeadOfDepartmentId, ct);
+                tenantId, orgId, request.Name, request.ParentDepartmentId, request.HeadOfDepartmentId,
+                request.Description, ct);
 
             return Respons<CreateDepartmentResponseDto>.Ok(new CreateDepartmentResponseDto
             {
@@ -125,11 +130,19 @@ public class OrgStructureService
         var hasName = !string.IsNullOrWhiteSpace(request.Name);
         var hasParent = request.ParentDepartmentId.HasValue;
         var hasHead = request.HeadOfDepartmentId.HasValue;
-        if (!hasName && !hasParent && !hasHead)
+        var hasDescription = request.Description is not null;
+        if (!hasName && !hasParent && !hasHead && !hasDescription)
             return Respons<CreateDepartmentResponseDto>.ValidationError(new Dictionary<string, string>
             {
-                ["request"] = "Provide at least one of: name, parent_department_id, head_of_department_id.",
+                ["request"] = "Provide at least one of: name, parent_department_id, head_of_department_id, description.",
             });
+
+        if (hasDescription)
+        {
+            var descriptionErrors = OrgStructureValidation.ValidateDepartmentDescription(request.Description);
+            if (descriptionErrors is not null)
+                return Respons<CreateDepartmentResponseDto>.ValidationError(descriptionErrors);
+        }
 
         var name = await _departmentRepo.UpdateScopedAsync(
             id,
@@ -138,6 +151,8 @@ public class OrgStructureService
             hasName ? request.Name : null,
             hasParent ? request.ParentDepartmentId : null,
             hasHead ? request.HeadOfDepartmentId : null,
+            request.Description,
+            hasDescription,
             ct);
 
         if (name is null)
@@ -170,8 +185,8 @@ public class OrgStructureService
             return Respons<BranchMutationResponseDto>.ValidationError(
                 new Dictionary<string, string> { ["name"] = "Branch name is required." });
 
-        var locationErrors = OrgStructureValidation.ValidateBranchLocationFields(
-            request.City, request.Region, request.CountryCode);
+        var locationErrors = OrgStructureValidation.ValidateBranchFields(
+            request.Address, request.Country, request.Description);
         if (locationErrors is not null)
             return Respons<BranchMutationResponseDto>.ValidationError(locationErrors);
 
@@ -179,9 +194,9 @@ public class OrgStructureService
         {
             var model = new BranchWriteModel(
                 request.Name,
-                request.City,
-                request.Region,
-                request.CountryCode);
+                request.Address,
+                request.Country,
+                request.Description);
             var id = await _branchRepo.CreateScopedAsync(model, tenantId, orgId, ct);
             var created = await _branchRepo.GetActiveScopedAsync(id, tenantId, orgId, ct);
             return Respons<BranchMutationResponseDto>.Ok(ToMutationDto(created!));
@@ -201,14 +216,14 @@ public class OrgStructureService
         CancellationToken ct = default)
     {
         var hasName = !string.IsNullOrWhiteSpace(request.Name);
-        var hasCity = request.City is not null;
-        var hasRegion = request.Region is not null;
-        var hasCountry = request.CountryCode is not null;
-        if (!hasName && !hasCity && !hasRegion && !hasCountry)
+        var hasAddress = request.Address is not null;
+        var hasCountry = request.Country is not null;
+        var hasDescription = request.Description is not null;
+        if (!hasName && !hasAddress && !hasCountry && !hasDescription)
         {
             return Respons<BranchMutationResponseDto>.ValidationError(new Dictionary<string, string>
             {
-                ["request"] = "Provide at least one of: name, city, region, country_code.",
+                ["request"] = "Provide at least one of: name, address, country, description.",
             });
         }
 
@@ -220,10 +235,10 @@ public class OrgStructureService
             });
         }
 
-        var locationErrors = OrgStructureValidation.ValidateBranchLocationFields(
-            hasCity ? request.City : null,
-            hasRegion ? request.Region : null,
-            hasCountry ? request.CountryCode : null);
+        var locationErrors = OrgStructureValidation.ValidateBranchFields(
+            hasAddress ? request.Address : null,
+            hasCountry ? request.Country : null,
+            hasDescription ? request.Description : null);
         if (locationErrors is not null)
             return Respons<BranchMutationResponseDto>.ValidationError(locationErrors);
 
@@ -235,13 +250,13 @@ public class OrgStructureService
             tenantId,
             orgId,
             request.Name,
-            request.City,
-            request.Region,
-            request.CountryCode,
+            request.Address,
+            request.Country,
+            request.Description,
             hasName,
-            hasCity,
-            hasRegion,
+            hasAddress,
             hasCountry,
+            hasDescription,
             ct);
 
         if (updated is null)
@@ -254,9 +269,9 @@ public class OrgStructureService
     {
         BranchId = row.Id.ToString(),
         Name = row.Name,
-        City = row.City,
-        Region = row.Region,
-        CountryCode = row.CountryCode,
+        Address = row.Address,
+        Country = row.Country,
+        Description = row.Description,
     };
 
     public async Task<Respons<object>> ArchiveBranchAsync(

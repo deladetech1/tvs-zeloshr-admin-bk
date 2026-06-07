@@ -25,6 +25,7 @@ public sealed class SwaggerOrgStructureOperationFilter : IOperationFilter
 
         if (method.Equals("GET", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/org-structure/chart", StringComparison.OrdinalIgnoreCase))
         {
+            SetJsonResponseExample(operation, 200, SwaggerExamples.OrgChartResponse());
             SetNamedJsonResponseExamples(operation, 200, new Dictionary<string, IOpenApiExample>
             {
                 ["empty"] = new OpenApiExample
@@ -41,7 +42,7 @@ public sealed class SwaggerOrgStructureOperationFilter : IOperationFilter
                 },
             });
             operation.Summary ??= "Org chart";
-            operation.Description = "Returns `{ data: { roots: [...] } }`. Each node: `id` (department UUID) · `name` · `node_type` (department) · `parent_id` (null | UUID) · `head_of_department` (null | employee summary) · `employee_count` · `children` (nested nodes).";
+            operation.Description = "Returns `{ success, status_code, detail, data: { roots: [...] } }`. Each node: `id` (department UUID) · `name` · `node_type` (`department`) · `parent_id` (null | UUID) · `head_of_department` (null | employee summary) · `employee_count` · `children` (nested nodes).";
             return;
         }
 
@@ -73,7 +74,7 @@ public sealed class SwaggerOrgStructureOperationFilter : IOperationFilter
         {
             SetJsonResponseExample(operation, 200, SwaggerExamples.BranchListResponseExample());
             operation.Description = SwaggerOptionFormat.Append(operation.Description,
-                "Response `data.items[]`: branch_id (UUID) · name · employee_count · is_archived (false | true).");
+                "Response `data.items[]`: branch_id (UUID) · name · address · country · description · employee_count · is_archived.");
             AppendParameterDescription(operation, "include_archived",
                 $"Include archived branches. Allowed: {SwaggerExampleHints.OrgIncludeArchived}.");
             AppendParameterDescription(operation, "search",

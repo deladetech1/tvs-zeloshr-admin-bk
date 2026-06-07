@@ -28,13 +28,13 @@ public interface IBranchRepository
         string tenantId,
         string orgId,
         string? name,
-        string? city,
-        string? region,
-        string? countryCode,
+        string? address,
+        string? country,
+        string? description,
         bool updateName,
-        bool updateCity,
-        bool updateRegion,
-        bool updateCountryCode,
+        bool updateAddress,
+        bool updateCountry,
+        bool updateDescription,
         CancellationToken ct = default);
 
     Task<bool> ArchiveScopedAsync(
@@ -46,15 +46,15 @@ public interface IBranchRepository
 
 public sealed record BranchWriteModel(
     string Name,
-    string? City,
-    string? Region,
-    string? CountryCode);
+    string? Address,
+    string? Country,
+    string? Description);
 
 public sealed record BranchListRow(
     Guid Id,
     string Name,
-    string? City,
-    string? Region,
-    string? CountryCode,
+    string? Address,
+    string? Country,
+    string? Description,
     int EmployeeCount,
     bool IsArchived);

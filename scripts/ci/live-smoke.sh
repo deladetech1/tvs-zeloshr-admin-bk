@@ -114,7 +114,7 @@ check "navigation" GET "/api/v1/navigation" || true
 check "org stats" GET "/api/v1/org-structure/statistics" || true
 check "employees stats" GET "/api/v1/employees/statistics" || true
 
-BRANCH_BODY="$(printf '{"name":"CI Branch %s","city":"Accra","region":"Greater Accra","country_code":"GH"}' "$TAG")"
+BRANCH_BODY="$(printf '{"name":"CI Branch %s","address":"Greater Accra, 4th Avenue 128B","country":"Ghana","description":null}' "$TAG")"
 BRANCH_ID=""
 branch_raw="$(curl "${curl_base[@]}" -X POST -H "content-type: application/json" -d "$BRANCH_BODY" \
   -w "\n__HTTP__%{http_code}" "${BASE}/api/v1/org-structure/branches/add")"

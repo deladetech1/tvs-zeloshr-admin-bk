@@ -239,14 +239,14 @@ Full guide: **[FILE_MANAGEMENT.md](FILE_MANAGEMENT.md)** — MyStoreGuard shapes
 |--------|------|---------|
 | GET | `/statistics` | Tab counts |
 | GET | `/departments` | Department table |
-| POST | `/departments/add` | Create department |
-| PUT | `/departments/update?department_id=` | Update department |
+| POST | `/departments/add` | Create department (`name`, optional `parent_department_id`, `head_of_department_id`, `description`) |
+| PUT | `/departments/update?department_id=` | Update department (partial) |
 | DELETE | `/departments/delete?department_id=` | Archive |
 | GET | `/branches` | Branch list |
-| POST | `/branches/add` | Create branch (`name`, optional `city`, `region`, `country_code`) |
-| PUT | `/branches/update?branch_id=` | Update branch (partial: name, city, region, country_code) |
+| POST | `/branches/add` | Create branch (`name`, optional `address`, `country`, `description`) |
+| PUT | `/branches/update?branch_id=` | Update branch (partial: name, address, country, description) |
 | DELETE | `/branches/delete?branch_id=` | Archive |
-| GET | `/chart` | Nested org chart |
+| GET | `/chart` | Nested org chart (`data.roots[]` with `id`, `name`, `node_type`, `parent_id`, `head_of_department`, `employee_count`, `children`) |
 
 ---
 

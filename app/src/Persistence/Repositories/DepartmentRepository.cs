@@ -119,6 +119,7 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
         string name,
         Guid? parentDepartmentId,
         Guid? headOfDepartmentId,
+        string? description,
         CancellationToken ct = default)
     {
         var now = DateTimeOffset.UtcNow;
@@ -128,6 +129,7 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
             TenantId = tenantId,
             OrgId = orgId,
             Name = name.Trim(),
+            Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
             ParentDepartmentId = parentDepartmentId,
             HeadOfDepartmentId = headOfDepartmentId,
             CreatedAt = now,
@@ -152,6 +154,8 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
         string? name,
         Guid? parentDepartmentId,
         Guid? headOfDepartmentId,
+        string? description,
+        bool updateDescription,
         CancellationToken ct = default)
     {
         var entity = await db.Departments.FirstOrDefaultAsync(
@@ -173,6 +177,11 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
         if (headOfDepartmentId.HasValue)
         {
             entity.HeadOfDepartmentId = headOfDepartmentId;
+            changed = true;
+        }
+        if (updateDescription)
+        {
+            entity.Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
             changed = true;
         }
 

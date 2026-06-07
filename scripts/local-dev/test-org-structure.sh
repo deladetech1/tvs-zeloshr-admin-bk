@@ -46,7 +46,7 @@ for path in "${paths[@]}"; do
   printf "GET %s\n  HTTP %s\n  %s\n\n" "$path" "$code" "$json"
 done
 
-branch_body='{"name":"Sprint Test Branch","city":"Accra","region":"Greater Accra","country_code":"GH"}'
+branch_body='{"name":"Sprint Test Branch","address":"Westlands Business Park","country":"Kenya","description":null}'
 create=$(curl -sS -w "\n%{http_code}" -X POST "${curl_headers[@]}" \
   -H "content-type: application/json" \
   -d "${branch_body}" \
@@ -57,7 +57,7 @@ printf "POST /api/v1/org-structure/branches/add\n  HTTP %s\n  %s\n\n" "$create_c
 
 branch_id=$(echo "$create_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print((d.get('data') or {}).get('branch_id',''))" 2>/dev/null || true)
 if [[ -n "${branch_id}" ]]; then
-  update_body='{"city":"Tema","region":"Greater Accra","country_code":"GH"}'
+  update_body='{"address":"1 Canada Square, Canary Wharf","country":"United Kingdom"}'
   update=$(curl -sS -w "\n%{http_code}" -X PUT "${curl_headers[@]}" \
     -H "content-type: application/json" \
     -d "${update_body}" \

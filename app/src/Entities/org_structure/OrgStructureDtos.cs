@@ -31,6 +31,7 @@ public sealed class CreateDepartmentRequestDto
     public required string Name { get; init; }
     public Guid? ParentDepartmentId { get; init; }
     public Guid? HeadOfDepartmentId { get; init; }
+    public string? Description { get; init; }
 }
 
 public sealed class CreateDepartmentResponseDto
@@ -44,29 +45,30 @@ public sealed class UpdateDepartmentRequestDto
     public string? Name { get; init; }
     public Guid? ParentDepartmentId { get; init; }
     public Guid? HeadOfDepartmentId { get; init; }
+    public string? Description { get; init; }
 }
 
 public sealed class CreateBranchRequestDto
 {
     public required string Name { get; init; }
-    public string? City { get; init; }
-    public string? Region { get; init; }
-    public string? CountryCode { get; init; }
+    public string? Address { get; init; }
+    public string? Country { get; init; }
+    public string? Description { get; init; }
 }
 
 public sealed class UpdateBranchRequestDto
 {
     public string? Name { get; init; }
-    public string? City { get; init; }
-    public string? Region { get; init; }
-    public string? CountryCode { get; init; }
+    public string? Address { get; init; }
+    public string? Country { get; init; }
+    public string? Description { get; init; }
 }
 
 public sealed class BranchMutationResponseDto
 {
     public required string BranchId { get; init; }
     public required string Name { get; init; }
-    public string? City { get; init; }
-    public string? Region { get; init; }
-    public string? CountryCode { get; init; }
+    public string? Address { get; init; }
+    public string? Country { get; init; }
+    public string? Description { get; init; }
 }

@@ -1,40 +1,34 @@
-using System.Text.RegularExpressions;
-
 namespace ZelosHR.Api.Entities.OrgStructure;
 
-internal static partial class OrgStructureValidation
+internal static class OrgStructureValidation
 {
-    [GeneratedRegex("^[A-Za-z]{2}$")]
-    private static partial Regex IsoCountryCodePattern();
-
-    internal static string? NormalizeOptionalCountryCode(string? countryCode)
-    {
-        if (string.IsNullOrWhiteSpace(countryCode))
-            return null;
-
-        var trimmed = countryCode.Trim().ToUpperInvariant();
-        return IsoCountryCodePattern().IsMatch(trimmed) ? trimmed : null;
-    }
-
-    internal static Dictionary<string, string>? ValidateBranchLocationFields(
-        string? city,
-        string? region,
-        string? countryCode)
+    internal static Dictionary<string, string>? ValidateBranchFields(
+        string? address,
+        string? country,
+        string? description)
     {
         var errors = new Dictionary<string, string>();
 
-        if (city is { Length: > 100 })
-            errors["city"] = "City must be at most 100 characters.";
+        if (address is { Length: > 500 })
+            errors["address"] = "Address must be at most 500 characters.";
 
-        if (region is { Length: > 100 })
-            errors["region"] = "Region must be at most 100 characters.";
+        if (country is { Length: > 100 })
+            errors["country"] = "Country must be at most 100 characters.";
 
-        if (!string.IsNullOrWhiteSpace(countryCode)
-            && NormalizeOptionalCountryCode(countryCode) is null)
-        {
-            errors["country_code"] = "Country code must be a 2-letter ISO code (e.g. GH).";
-        }
+        if (description is { Length: > 500 })
+            errors["description"] = "Description must be at most 500 characters.";
 
         return errors.Count == 0 ? null : errors;
+    }
+
+    internal static Dictionary<string, string>? ValidateDepartmentDescription(string? description)
+    {
+        if (description is { Length: > 500 })
+            return new Dictionary<string, string>
+            {
+                ["description"] = "Description must be at most 500 characters.",
+            };
+
+        return null;
     }
 }

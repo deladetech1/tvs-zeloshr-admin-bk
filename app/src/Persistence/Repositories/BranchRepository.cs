@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using ZelosHR.Api.Entities.Branches;
-using ZelosHR.Api.Entities.OrgStructure;
 using ZelosHR.Api.Persistence.Entities;
 
 namespace ZelosHR.Api.Persistence.Repositories;
@@ -12,7 +11,7 @@ public sealed class BranchRepository(ZelosHrDbContext db) : IBranchRepository
             .Where(b => b.TenantId == tenantId && b.OrgId == orgId);
 
     private static BranchListRow ToRow(BranchEntity b, int employeeCount) =>
-        new(b.Id, b.Name, b.City, b.Region, b.CountryCode, employeeCount, b.IsArchived);
+        new(b.Id, b.Name, b.Address, b.Country, b.Description, employeeCount, b.IsArchived);
 
     private int EmployeeCount(Guid branchId, string tenantId, string orgId) =>
         db.Employees.Count(e =>
@@ -52,9 +51,9 @@ public sealed class BranchRepository(ZelosHrDbContext db) : IBranchRepository
             var pattern = $"%{search.Trim()}%";
             query = query.Where(b =>
                 EF.Functions.ILike(b.Name, pattern)
-                || (b.City != null && EF.Functions.ILike(b.City, pattern))
-                || (b.Region != null && EF.Functions.ILike(b.Region, pattern))
-                || (b.CountryCode != null && EF.Functions.ILike(b.CountryCode, pattern)));
+                || (b.Address != null && EF.Functions.ILike(b.Address, pattern))
+                || (b.Country != null && EF.Functions.ILike(b.Country, pattern))
+                || (b.Description != null && EF.Functions.ILike(b.Description, pattern)));
         }
 
         var total = await query.CountAsync(ct);
@@ -84,9 +83,9 @@ public sealed class BranchRepository(ZelosHrDbContext db) : IBranchRepository
             TenantId = tenantId,
             OrgId = orgId,
             Name = model.Name.Trim(),
-            City = NullIfWhiteSpace(model.City),
-            Region = NullIfWhiteSpace(model.Region),
-            CountryCode = OrgStructureValidation.NormalizeOptionalCountryCode(model.CountryCode),
+            Address = NullIfWhiteSpace(model.Address),
+            Country = NullIfWhiteSpace(model.Country),
+            Description = NullIfWhiteSpace(model.Description),
             CreatedAt = now,
             UpdatedAt = now,
         };
@@ -109,13 +108,13 @@ public sealed class BranchRepository(ZelosHrDbContext db) : IBranchRepository
         string tenantId,
         string orgId,
         string? name,
-        string? city,
-        string? region,
-        string? countryCode,
+        string? address,
+        string? country,
+        string? description,
         bool updateName,
-        bool updateCity,
-        bool updateRegion,
-        bool updateCountryCode,
+        bool updateAddress,
+        bool updateCountry,
+        bool updateDescription,
         CancellationToken ct = default)
     {
         var entity = await db.Branches.FirstOrDefaultAsync(
@@ -125,12 +124,12 @@ public sealed class BranchRepository(ZelosHrDbContext db) : IBranchRepository
 
         if (updateName)
             entity.Name = name!.Trim();
-        if (updateCity)
-            entity.City = NullIfWhiteSpace(city);
-        if (updateRegion)
-            entity.Region = NullIfWhiteSpace(region);
-        if (updateCountryCode)
-            entity.CountryCode = OrgStructureValidation.NormalizeOptionalCountryCode(countryCode);
+        if (updateAddress)
+            entity.Address = NullIfWhiteSpace(address);
+        if (updateCountry)
+            entity.Country = NullIfWhiteSpace(country);
+        if (updateDescription)
+            entity.Description = NullIfWhiteSpace(description);
 
         entity.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
