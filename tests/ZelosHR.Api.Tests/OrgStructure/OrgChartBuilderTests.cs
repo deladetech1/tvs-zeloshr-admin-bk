@@ -72,7 +72,7 @@ public class OrgChartBuilderTests
             userId,
             "doc-profile");
 
-        var cp = new CpUserDto { Id = userId, FullName = "Gary Ntori" };
+        var cp = new CpUserDto(userId, "Gary Ntori", "gary@example.com", null, true);
 
         var name = OrgChartBuilder.ResolveFullName(row, cp);
 

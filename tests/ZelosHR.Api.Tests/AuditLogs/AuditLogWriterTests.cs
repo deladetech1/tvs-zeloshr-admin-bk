@@ -25,7 +25,7 @@ public class AuditLogWriterTests
         ctx.Items[TrovesuiteHttpContextKeys.UserId] = "u1000001";
         _httpContextAccessor.HttpContext.Returns(ctx);
         _cpUsers.GetByIdAsync("u1000001", "t1", Arg.Any<CancellationToken>())
-            .Returns(new CpUserDto { Id = "u1000001", FullName = "Demo Admin" });
+            .Returns(new CpUserDto("u1000001", "Demo Admin", "admin@example.com", null, true));
 
         var auditEvent = new AuditEvent(
             "Employee record created",
