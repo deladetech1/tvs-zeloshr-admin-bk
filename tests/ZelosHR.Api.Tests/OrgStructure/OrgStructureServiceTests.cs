@@ -148,8 +148,16 @@ public class OrgStructureServiceTests
         _departmentRepo.ExistsActiveScopedAsync(id, "t1", "o1", Arg.Any<CancellationToken>())
             .Returns(true);
         _departmentRepo.UpdateScopedAsync(
-                id, "t1", "o1", "Backend Team", null, null, true, null, false, null, false,
-                Arg.Any<string?>(), Arg.Any<CancellationToken>())
+                id, "t1", "o1", "Backend Team",
+                Arg.Is<Guid?>(g => g == null),
+                Arg.Is<Guid?>(g => g == null),
+                true,
+                Arg.Is<string?>(s => s == null),
+                false,
+                Arg.Is<int?>(i => i == null),
+                false,
+                Arg.Any<string?>(),
+                Arg.Any<CancellationToken>())
             .Returns("Backend Team");
         _departmentRepo.GetActiveScopedAsync(id, "t1", "o1", Arg.Any<CancellationToken>())
             .Returns(new DepartmentListRow(
@@ -169,8 +177,16 @@ public class OrgStructureServiceTests
         result.Success.Should().BeTrue();
         result.Data!.HeadOfDepartment.Should().BeNull();
         await _departmentRepo.Received(1).UpdateScopedAsync(
-            id, "t1", "o1", "Backend Team", null, null, true, null, false, null, false,
-            Arg.Any<string?>(), Arg.Any<CancellationToken>());
+            id, "t1", "o1", "Backend Team",
+            Arg.Is<Guid?>(g => g == null),
+            Arg.Is<Guid?>(g => g == null),
+            true,
+            Arg.Is<string?>(s => s == null),
+            false,
+            Arg.Is<int?>(i => i == null),
+            false,
+            Arg.Any<string?>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
