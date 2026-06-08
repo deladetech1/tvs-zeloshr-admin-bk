@@ -36,21 +36,53 @@ public class AuditLogsController : ControllerBase
     }
 
     /// <summary>Paginated audit log table.</summary>
+    /// <remarks>
+    /// Optional <c>start_date</c> / <c>end_date</c> filter by <c>occurred_at</c> (UTC day boundaries).
+    /// Same filters as <c>GET /audit-logs/export</c>.
+    /// </remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("list")]
     [ProducesResponseType(typeof(Respons<AuditLogListDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<AuditLogListDto>), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<Respons<AuditLogListDto>>> List(
-        [FromQuery] string? search,
-        [FromQuery] string? action,
-        [FromQuery] string? severity,
-        [FromQuery] string? actor,
-        [FromQuery] int page = 1,
-        [FromQuery] int size = 20,
+        [FromQuery] AuditLogListQuery query,
         CancellationToken ct = default)
     {
         var ctx = _tenant.Current;
-        var result = await _service.ListAsync(
-            search, action, severity, actor, page, size, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.ListAsync(query, ctx.TenantId, ctx.OrgId, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    /// <summary>Export audit log entries as CSV.</summary>
+    /// <remarks>
+    /// Accepts the same filters as <c>GET /audit-logs/list</c> (search, action, severity, actor, start_date, end_date).
+    /// </remarks>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
+    [HttpGet("export")]
+    [Produces("text/csv")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<object>), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Export(
+        [FromQuery] AuditLogExportQuery query,
+        CancellationToken ct = default)
+    {
+        var ctx = _tenant.Current;
+        var result = await _service.ExportCsvAsync(query, ctx.TenantId, ctx.OrgId, ct);
+        if (!result.Success || result.Data is null)
+            return StatusCode(result.StatusCode, result);
+
+        var fileName = $"audit_logs_export_{DateTime.UtcNow:yyyyMMdd}.csv";
+        return File(result.Data, "text/csv", fileName);
+    }
+
+    /// <summary>Delete audit log entries older than three months for the current org.</summary>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
+    [HttpDelete("purge")]
+    [ProducesResponseType(typeof(Respons<AuditLogPurgeResultDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<Respons<AuditLogPurgeResultDto>>> Purge(CancellationToken ct)
+    {
+        var ctx = _tenant.Current;
+        var result = await _service.PurgeOldAsync(ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 

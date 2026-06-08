@@ -252,10 +252,12 @@ Full guide: **[FILE_MANAGEMENT.md](FILE_MANAGEMENT.md)** — MyStoreGuard shapes
 | Module | Pattern |
 |--------|---------|
 | Lifecycle | `GET /statistics`, `GET /list`, `GET /get?lifecycle_event_id=`, `POST /add`, `PUT /update?lifecycle_event_id=`, `DELETE /delete?lifecycle_event_id=` |
-| Audit logs | `GET /api/v1/audit-logs/statistics`, `GET /api/v1/audit-logs/list`, `GET /api/v1/audit-logs/get?audit_log_id=` (read-only; appended on employee create/update) |
+| Audit logs | `GET /api/v1/audit-logs/statistics`, `GET /api/v1/audit-logs/list`, `GET /api/v1/audit-logs/export`, `DELETE /api/v1/audit-logs/purge`, `GET /api/v1/audit-logs/get?audit_log_id=` (append on employee create/update) |
 | Employee CSV export | `GET /api/v1/employees/export` — optional `start_date`, `end_date` (employment start range), plus list filters (`search`, `employment_status`, `department_id`, `branch_id`, …) |
 
-Audit list filters: `search` (min 3 chars), `action`, `severity` (`Low|Medium|High|all`), `actor` (user id or name substring).
+Audit list/export filters: `search` (min 3 chars), `action`, `severity` (`Low|Medium|High|all`), `actor` (user id or name substring), `start_date`, `end_date` (occurred_at range, UTC day boundaries). Purge deletes entries with `occurred_at` older than 3 months for the current org.
+
+Platform users (`GET /api/v1/users/get-users`): `page`, `size`, `is_active`, `delete_status`, `can_login`, `email`, `fullname`, `gender`, `use_or` — same scope as Core Platform (cp_users ∩ cp_members). Import picker: `GET /api/v1/employees/import/search?query=`.
 
 ---
 

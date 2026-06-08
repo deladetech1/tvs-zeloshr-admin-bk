@@ -18,8 +18,21 @@ public sealed class CpUserEntity
     public string? Dob { get; set; }
     public string? Address { get; set; }
     public string? ProfilePic { get; set; }
+    public string? Description { get; set; }
     public string? CreatedBy { get; set; }
+    public string? Cdate { get; set; }
+    public string? Ctime { get; set; }
     public DateTimeOffset? Cdatetime { get; set; }
+}
+
+/// <summary>core_platform.cp_members — core-platform directory users (not HR-only shells).</summary>
+public sealed class CpMemberEntity
+{
+    public string Id { get; set; } = default!;
+    public string TenantId { get; set; } = default!;
+    public string UserId { get; set; } = default!;
+    public string DeleteStatus { get; set; } = CorePlatformConstants.DeleteStatus.NotDeleted;
+    public bool IsActive { get; set; } = true;
 }
 
 /// <summary>core_platform.cp_login_settings — required for platform auth.</summary>

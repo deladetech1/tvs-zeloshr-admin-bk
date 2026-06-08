@@ -71,7 +71,7 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
             operation.Description = AppendDescription(operation.Description,
                 """
                 Trovesuite platform user picker for HR import. Reads `core_platform.cp_users` for the current tenant.
-                For a full paginated user directory with filters, use Core Platform `GET /api/v1/users/get-users` (separate API / Swagger).
+                For a full paginated user directory with filters, use `GET /api/v1/users/get-users` (Users tag).
                 """);
             return;
         }

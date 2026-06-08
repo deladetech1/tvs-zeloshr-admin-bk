@@ -8,16 +8,25 @@ public interface IAuditLogRepository
     Task<(IReadOnlyList<AuditLogListRow> Items, int Total)> ListScopedAsync(
         string tenantId,
         string orgId,
-        string? search,
-        string? action,
-        string? severity,
-        string? actor,
+        AuditLogFilterQuery filters,
         int page,
         int pageSize,
         CancellationToken ct = default);
 
+    Task<IReadOnlyList<AuditLogListRow>> ExportListScopedAsync(
+        string tenantId,
+        string orgId,
+        AuditLogFilterQuery filters,
+        CancellationToken ct = default);
+
     Task<AuditLogListRow?> GetByIdScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default);
+
+    Task<int> PurgeOlderThanScopedAsync(
+        string tenantId,
+        string orgId,
+        DateTimeOffset cutoffBefore,
+        CancellationToken ct = default);
 
     Task AppendScopedAsync(
         string tenantId,

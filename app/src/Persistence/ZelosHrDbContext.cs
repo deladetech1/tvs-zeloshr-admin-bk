@@ -7,6 +7,7 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
 {
     public DbSet<EmployeeEntity> Employees => Set<EmployeeEntity>();
     public DbSet<CpUserEntity> CpUsers => Set<CpUserEntity>();
+    public DbSet<CpMemberEntity> CpMembers => Set<CpMemberEntity>();
     public DbSet<CpLoginSettingsEntity> CpLoginSettings => Set<CpLoginSettingsEntity>();
     public DbSet<CpUserLocationEntity> CpUserLocations => Set<CpUserLocationEntity>();
     public DbSet<CpBusinessAppLocationEntity> BusinessAppLocations => Set<CpBusinessAppLocationEntity>();
@@ -42,6 +43,19 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
             b.Property(x => x.Dob).HasColumnName("dob");
             b.Property(x => x.Address).HasColumnName("address");
             b.Property(x => x.ProfilePic).HasColumnName("profile_pic");
+            b.Property(x => x.Cdate).HasColumnName("cdate");
+            b.Property(x => x.Ctime).HasColumnName("ctime");
+        });
+
+        modelBuilder.Entity<CpMemberEntity>(b =>
+        {
+            b.ToTable("cp_members", "core_platform", t => t.ExcludeFromMigrations());
+            b.HasKey(x => new { x.Id, x.TenantId });
+            b.Property(x => x.UserId).HasColumnName("user_id");
+            b.HasOne<CpUserEntity>()
+                .WithMany()
+                .HasForeignKey(x => new { x.UserId, x.TenantId })
+                .HasPrincipalKey(x => new { x.Id, x.TenantId });
         });
 
         modelBuilder.Entity<CpLoginSettingsEntity>(b =>

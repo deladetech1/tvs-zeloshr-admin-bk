@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Smoke-test audit-log read endpoints (deployed or local API).
+# Smoke-test platform users list (deployed or local API).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -30,21 +30,19 @@ curl_headers=(
 )
 
 paths=(
-  "/api/v1/audit-logs/statistics"
-  "/api/v1/audit-logs/list?page=1&size=5"
-  "/api/v1/audit-logs/list?page=1&size=5&severity=Medium&actor=all&action=all"
-  "/api/v1/audit-logs/list?page=1&size=5&start_date=2026-01-01&end_date=2026-12-31"
-  "/api/v1/audit-logs/export?severity=all&actor=all&action=all"
+  "/api/v1/users/get-users?page=1&size=10"
+  "/api/v1/users/get-users?page=1&size=5&is_active=true&delete_status=NOT_DELETED"
+  "/api/v1/users/get-users?page=1&size=5&fullname=demo&use_or=false"
 )
 
 for path in "${paths[@]}"; do
   echo "GET ${BASE}${path}"
-  code="$(curl -sS -o /tmp/audit-log-smoke.json -w "%{http_code}" "${curl_headers[@]}" "${BASE}${path}")"
+  code="$(curl -sS -o /tmp/users-smoke.json -w "%{http_code}" "${curl_headers[@]}" "${BASE}${path}")"
   echo "  -> ${code}"
   if [[ "${code}" != "200" ]]; then
-    cat /tmp/audit-log-smoke.json >&2
+    cat /tmp/users-smoke.json >&2
     exit 1
   fi
 done
 
-echo "Audit log smoke OK"
+echo "Users list smoke OK"

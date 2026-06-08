@@ -1,3 +1,5 @@
+using ZelosHR.Api.Entities.Users;
+
 namespace ZelosHR.Api.Entities.Employees;
 
 public sealed record CpUserDto(
@@ -21,6 +23,25 @@ public sealed record CpUserEmailOwner(string TenantId, string UserId);
 
 public sealed record CpUserContactOwner(string TenantId, string UserId);
 
+public sealed record PlatformUserListRow(
+    string Id,
+    string TenantId,
+    string Fullname,
+    string Email,
+    string Contact,
+    string? Address,
+    string? Gender,
+    string? Dob,
+    string? ProfilePic,
+    bool CanLogin,
+    string DeleteStatus,
+    bool IsActive,
+    bool IsOwner,
+    string? Description,
+    string? Cdate,
+    string? Ctime,
+    DateTimeOffset? Cdatetime);
+
 public interface ICpUserRepository
 {
     Task<CpUserDto?> FindByEmailAsync(string email, string tenantId, CancellationToken ct = default);
@@ -35,6 +56,13 @@ public interface ICpUserRepository
     Task<IReadOnlyDictionary<string, CpUserDto>> GetByIdsAsync(
         IEnumerable<string> userIds, string tenantId, CancellationToken ct = default);
     Task<IReadOnlyList<CpUserDto>> SearchAsync(string query, string tenantId, int limit = 20, CancellationToken ct = default);
+
+    Task<(IReadOnlyList<PlatformUserListRow> Items, int Total)> ListPlatformMembersScopedAsync(
+        GetUsersQuery query,
+        string tenantId,
+        int page,
+        int pageSize,
+        CancellationToken ct = default);
     Task<bool> IsLinkedToEmployeeAsync(string userId, string tenantId, CancellationToken ct = default);
 
     /// <summary>

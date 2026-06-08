@@ -274,7 +274,41 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
         }
 
         if (context.ParameterInfo?.Member.DeclaringType?.FullName?.Contains(
-                "AuditLogs",
+                ".Entities.Users.",
+                StringComparison.Ordinal) == true)
+        {
+            if (name.Equals("delete_status", StringComparison.OrdinalIgnoreCase))
+            {
+                schema.Example = "NOT_DELETED";
+                return;
+            }
+
+            if (name.Equals("gender", StringComparison.OrdinalIgnoreCase))
+            {
+                schema.Example = "MALE";
+                return;
+            }
+
+            if (name.Equals("email", StringComparison.OrdinalIgnoreCase))
+            {
+                schema.Example = "admin@demo.trovesuite.com";
+                return;
+            }
+
+            if (name.Equals("fullname", StringComparison.OrdinalIgnoreCase))
+            {
+                schema.Example = "Demo Admin";
+                return;
+            }
+
+            return;
+        }
+
+        if (context.ParameterInfo?.Member.DeclaringType?.FullName?.Contains(
+                ".AuditLogs.",
+                StringComparison.Ordinal) != true
+            && context.ParameterInfo?.Member.DeclaringType?.FullName?.Contains(
+                "AuditLog",
                 StringComparison.Ordinal) != true)
             return;
 
@@ -302,6 +336,24 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
             parameter.Description = SwaggerOptionFormat.Append(
                 parameter.Description,
                 "Platform user id or actor display name substring.");
+            return;
+        }
+
+        if (name.Equals("start_date", StringComparison.OrdinalIgnoreCase))
+        {
+            schema.Example = "2026-01-01";
+            parameter.Description = SwaggerOptionFormat.Append(
+                parameter.Description,
+                "Activity occurred on or after this date (YYYY-MM-DD, UTC day boundary).");
+            return;
+        }
+
+        if (name.Equals("end_date", StringComparison.OrdinalIgnoreCase))
+        {
+            schema.Example = "2026-06-30";
+            parameter.Description = SwaggerOptionFormat.Append(
+                parameter.Description,
+                "Activity occurred on or before this date (YYYY-MM-DD, UTC day boundary).");
             return;
         }
 

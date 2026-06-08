@@ -1284,4 +1284,36 @@ internal static class SwaggerExamples
     };
 
     internal static JsonObject AuditLogGetResponse() => EnvelopeOk(AuditLogListItemData());
+
+    internal static JsonObject AuditLogPurgeData() => new()
+    {
+        ["deleted_count"] = 42,
+        ["cutoff_before"] = "2026-03-05T12:00:00+00:00",
+    };
+
+    internal static JsonObject AuditLogPurgeResponse() => EnvelopeOk(AuditLogPurgeData());
+
+    internal static JsonObject PlatformUserListItemData() => new()
+    {
+        ["id"] = "u1000001-0000-0000-0000-000000000001",
+        ["tenant_id"] = "tenant_demo",
+        ["fullname"] = "Demo Admin",
+        ["email"] = "admin@demo.trovesuite.com",
+        ["contact"] = "+233200000001",
+        ["address"] = "Accra",
+        ["gender"] = "MALE",
+        ["dob"] = "1990-01-15",
+        ["profile_pic"] = null,
+        ["can_login"] = true,
+        ["delete_status"] = "NOT_DELETED",
+        ["is_active"] = true,
+        ["is_owner"] = false,
+        ["description"] = null,
+        ["cdate"] = "2026-01-01",
+        ["ctime"] = "10:00:00",
+        ["cdatetime"] = "2026-01-01T10:00:00+00:00",
+    };
+
+    internal static JsonObject PlatformUsersListResponse() =>
+        EnvelopeOk(new JsonArray(PlatformUserListItemData()), SamplePagination());
 }

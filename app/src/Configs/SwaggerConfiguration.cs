@@ -81,16 +81,24 @@ public static class SwaggerConfiguration
                     ### Audit logs (read-only)
 
                     1. **KPI cards** — `GET /api/v1/audit-logs/statistics`
-                    2. **Table** — `GET /api/v1/audit-logs/list` (`search`, `action`, `severity`, `actor` filters)
-                    3. **Detail** — `GET /api/v1/audit-logs/get?audit_log_id=`
+                    2. **Table** — `GET /api/v1/audit-logs/list` (`search`, `action`, `severity`, `actor`, `start_date`, `end_date`)
+                    3. **Export** — `GET /api/v1/audit-logs/export` (same filters as list)
+                    4. **Purge** — `DELETE /api/v1/audit-logs/purge` (removes entries older than 3 months)
+                    5. **Detail** — `GET /api/v1/audit-logs/get?audit_log_id=`
 
                     Entries append automatically on employee create/update.
 
                     ---
 
+                    ### Platform users
+
+                    `GET /api/v1/users/get-users` — paginated Trovesuite user directory (`is_active`, `delete_status`, `can_login`, `email`, `fullname`, `gender`, `use_or`). Same data scope as Core Platform; use from ZelosHR with your existing Trove headers.
+
+                    ---
+
                     ### Documented modules
 
-                    **Employees** · **Currencies** · **Custom Fields** · **File Management** · **Organisation** (org chart, departments, branches) · **Lifecycle Events** · **Audit Logs**
+                    **Employees** · **Users** · **Currencies** · **Custom Fields** · **File Management** · **Organisation** (org chart, departments, branches) · **Lifecycle Events** · **Audit Logs**
 
                     Conformance: `docs/MYSTOREGUARD_API_CONFORMANCE.md` · Navigation: `GET /api/v1/navigation`
                     """,
@@ -130,6 +138,7 @@ public static class SwaggerConfiguration
             options.OperationFilter<SwaggerFileManagementOperationFilter>();
             options.OperationFilter<SwaggerOrgStructureOperationFilter>();
             options.OperationFilter<SwaggerAuditLogsOperationFilter>();
+            options.OperationFilter<SwaggerUsersOperationFilter>();
             options.OperationFilter<SwaggerResponseExamplesOperationFilter>();
             options.DocumentFilter<SwaggerFileManagementTagDocumentFilter>();
             options.TagActionsBy(api =>
@@ -258,6 +267,7 @@ public static class SwaggerConfiguration
         "Branches" => SwaggerGroups.OrganisationLegacy,
         "LifecycleEvents" => SwaggerGroups.LifecycleEvents,
         "AuditLogs" => SwaggerGroups.AuditLogs,
+        "Users" => SwaggerGroups.Users,
         "Attendance" => SwaggerGroups.Attendance,
         "Leave" => SwaggerGroups.Leave,
         "Recruitment" => SwaggerGroups.Recruitment,

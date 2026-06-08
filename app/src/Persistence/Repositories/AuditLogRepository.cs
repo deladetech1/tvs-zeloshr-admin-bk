@@ -31,15 +31,12 @@ public sealed class AuditLogRepository(ZelosHrDbContext db) : IAuditLogRepositor
     public async Task<(IReadOnlyList<AuditLogListRow> Items, int Total)> ListScopedAsync(
         string tenantId,
         string orgId,
-        string? search,
-        string? action,
-        string? severity,
-        string? actor,
+        AuditLogFilterQuery filters,
         int page,
         int pageSize,
         CancellationToken ct = default)
     {
-        var query = ApplyFilters(Scoped(tenantId, orgId), search, action, severity, actor);
+        var query = ApplyFilters(Scoped(tenantId, orgId), filters);
         var total = await query.CountAsync(ct);
         var items = await query
             .OrderByDescending(a => a.OccurredAt)
@@ -49,6 +46,27 @@ public sealed class AuditLogRepository(ZelosHrDbContext db) : IAuditLogRepositor
             .ToListAsync(ct);
         return (items, total);
     }
+
+    public async Task<IReadOnlyList<AuditLogListRow>> ExportListScopedAsync(
+        string tenantId,
+        string orgId,
+        AuditLogFilterQuery filters,
+        CancellationToken ct = default)
+    {
+        return await ApplyFilters(Scoped(tenantId, orgId), filters)
+            .OrderByDescending(a => a.OccurredAt)
+            .Select(a => ToRow(a))
+            .ToListAsync(ct);
+    }
+
+    public Task<int> PurgeOlderThanScopedAsync(
+        string tenantId,
+        string orgId,
+        DateTimeOffset cutoffBefore,
+        CancellationToken ct = default) =>
+        db.AuditLogs
+            .Where(a => a.TenantId == tenantId && a.OrgId == orgId && a.OccurredAt < cutoffBefore)
+            .ExecuteDeleteAsync(ct);
 
     public async Task<AuditLogListRow?> GetByIdScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default)
@@ -90,32 +108,41 @@ public sealed class AuditLogRepository(ZelosHrDbContext db) : IAuditLogRepositor
 
     private static IQueryable<AuditLogEntity> ApplyFilters(
         IQueryable<AuditLogEntity> query,
-        string? search,
-        string? action,
-        string? severity,
-        string? actor)
+        AuditLogFilterQuery filters)
     {
-        if (!string.IsNullOrWhiteSpace(search) && search.Trim().Length >= 3)
+        if (!string.IsNullOrWhiteSpace(filters.Search) && filters.Search.Trim().Length >= 3)
         {
-            var pattern = $"%{search.Trim()}%";
+            var pattern = $"%{filters.Search.Trim()}%";
             query = query.Where(a =>
                 EF.Functions.ILike(a.ActorFullName, pattern)
                 || (a.EmployeeFullName != null && EF.Functions.ILike(a.EmployeeFullName, pattern))
                 || EF.Functions.ILike(a.ActionTitle, pattern));
         }
 
-        if (!string.IsNullOrWhiteSpace(action) && !action.Equals("all", StringComparison.OrdinalIgnoreCase))
-            query = query.Where(a => EF.Functions.ILike(a.ActionTitle, $"%{action.Trim()}%"));
+        if (!string.IsNullOrWhiteSpace(filters.Action) && !filters.Action.Equals("all", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(a => EF.Functions.ILike(a.ActionTitle, $"%{filters.Action.Trim()}%"));
 
-        if (!string.IsNullOrWhiteSpace(severity) && !severity.Equals("all", StringComparison.OrdinalIgnoreCase))
-            query = query.Where(a => a.Severity == severity.Trim());
+        if (!string.IsNullOrWhiteSpace(filters.Severity) && !filters.Severity.Equals("all", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(a => a.Severity == filters.Severity.Trim());
 
-        if (!string.IsNullOrWhiteSpace(actor) && !actor.Equals("all", StringComparison.OrdinalIgnoreCase))
+        if (!string.IsNullOrWhiteSpace(filters.Actor) && !filters.Actor.Equals("all", StringComparison.OrdinalIgnoreCase))
         {
-            var trimmed = actor.Trim();
+            var trimmed = filters.Actor.Trim();
             query = query.Where(a =>
                 a.ActorId == trimmed
                 || EF.Functions.ILike(a.ActorFullName, $"%{trimmed}%"));
+        }
+
+        if (filters.StartDate is not null)
+        {
+            var from = new DateTimeOffset(filters.StartDate.Value.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+            query = query.Where(a => a.OccurredAt >= from);
+        }
+
+        if (filters.EndDate is not null)
+        {
+            var toExclusive = new DateTimeOffset(filters.EndDate.Value.AddDays(1).ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+            query = query.Where(a => a.OccurredAt < toExclusive);
         }
 
         return query;

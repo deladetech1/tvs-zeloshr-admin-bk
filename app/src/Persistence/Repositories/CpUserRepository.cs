@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ZelosHR.Api.Entities.Employees;
+using ZelosHR.Api.Entities.Users;
 using ZelosHR.Api.Persistence.Entities;
 using ZelosHR.Api.Shared.Constants;
 using ZelosHR.Api.Shared.Infrastructure;
@@ -77,6 +78,32 @@ public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
             .Take(limit)
             .ToListAsync(ct);
         return rows.Select(ToDto).ToList();
+    }
+
+    public async Task<(IReadOnlyList<PlatformUserListRow> Items, int Total)> ListPlatformMembersScopedAsync(
+        GetUsersQuery query,
+        string tenantId,
+        int page,
+        int pageSize,
+        CancellationToken ct = default)
+    {
+        var users = from u in db.CpUsers.AsNoTracking()
+                    join m in db.CpMembers.AsNoTracking()
+                        on new { u.Id, u.TenantId } equals new { Id = m.UserId, m.TenantId }
+                    where u.TenantId == tenantId
+                          && m.DeleteStatus == CorePlatformConstants.DeleteStatus.NotDeleted
+                    select u;
+
+        users = ApplyPlatformUserFilters(users, query);
+
+        var total = await users.CountAsync(ct);
+        var rows = await users
+            .OrderByDescending(u => u.Cdatetime)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        return (rows.Select(ToPlatformRow).ToList(), total);
     }
 
     public Task<bool> IsLinkedToEmployeeAsync(string userId, string tenantId, CancellationToken ct = default) =>
@@ -378,4 +405,86 @@ public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
 
         throw ex;
     }
+
+    private static IQueryable<CpUserEntity> ApplyPlatformUserFilters(
+        IQueryable<CpUserEntity> query,
+        GetUsersQuery filters)
+    {
+        if (filters.UseOr)
+        {
+            var isActive = filters.IsActive;
+            var deleteStatus = string.IsNullOrWhiteSpace(filters.DeleteStatus)
+                ? null
+                : filters.DeleteStatus.Trim();
+            var canLogin = filters.CanLogin;
+            var email = string.IsNullOrWhiteSpace(filters.Email) ? null : filters.Email.Trim();
+            var fullname = string.IsNullOrWhiteSpace(filters.Fullname) ? null : filters.Fullname.Trim();
+            var gender = string.IsNullOrWhiteSpace(filters.Gender) ? null : filters.Gender.Trim().ToUpperInvariant();
+
+            var hasOptional = isActive is not null
+                || deleteStatus is not null
+                || canLogin is not null
+                || email is not null
+                || fullname is not null
+                || gender is not null;
+
+            if (hasOptional)
+            {
+                query = query.Where(u =>
+                    (isActive != null && u.IsActive == isActive)
+                    || (deleteStatus != null && u.DeleteStatus == deleteStatus)
+                    || (canLogin != null && u.CanLogin == canLogin)
+                    || (email != null && EF.Functions.ILike(u.Email, $"%{email}%"))
+                    || (fullname != null && EF.Functions.ILike(u.Fullname, $"%{fullname}%"))
+                    || (gender != null && u.Gender == gender));
+            }
+
+            return query;
+        }
+
+        if (filters.IsActive is not null)
+            query = query.Where(u => u.IsActive == filters.IsActive);
+
+        if (!string.IsNullOrWhiteSpace(filters.DeleteStatus))
+            query = query.Where(u => u.DeleteStatus == filters.DeleteStatus.Trim());
+
+        if (filters.CanLogin is not null)
+            query = query.Where(u => u.CanLogin == filters.CanLogin);
+
+        if (!string.IsNullOrWhiteSpace(filters.Email))
+        {
+            var pattern = $"%{filters.Email.Trim()}%";
+            query = query.Where(u => EF.Functions.ILike(u.Email, pattern));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filters.Fullname))
+        {
+            var pattern = $"%{filters.Fullname.Trim()}%";
+            query = query.Where(u => EF.Functions.ILike(u.Fullname, pattern));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filters.Gender))
+            query = query.Where(u => u.Gender == filters.Gender.Trim().ToUpperInvariant());
+
+        return query;
+    }
+
+    private static PlatformUserListRow ToPlatformRow(CpUserEntity u) => new(
+        u.Id,
+        u.TenantId,
+        u.Fullname,
+        u.Email,
+        u.Contact,
+        u.Address,
+        u.Gender,
+        u.Dob,
+        u.ProfilePic,
+        u.CanLogin,
+        u.DeleteStatus,
+        u.IsActive,
+        u.IsOwner,
+        u.Description,
+        u.Cdate,
+        u.Ctime,
+        u.Cdatetime);
 }

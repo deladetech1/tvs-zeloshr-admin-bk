@@ -59,8 +59,11 @@ Tree shape comes from employee `reports_to_id`. Department badge requires `head_
 | Endpoint | Purpose |
 |----------|---------|
 | `GET /api/v1/audit-logs/statistics` | KPI cards (total, critical, flagged, sensitive reads, unique actors) |
-| `GET /api/v1/audit-logs/list` | Paginated table with filters: `search`, `action`, `severity`, `actor` |
+| `GET /api/v1/audit-logs/list` | Paginated table with filters: `search`, `action`, `severity`, `actor`, `start_date`, `end_date` |
+| `GET /api/v1/audit-logs/export` | CSV export (same filters as list) |
+| `DELETE /api/v1/audit-logs/purge` | Delete entries with `occurred_at` older than 3 months |
 | `GET /api/v1/audit-logs/get?audit_log_id=` | Single entry |
+| `GET /api/v1/users/get-users` | Paginated Trovesuite users (`is_active`, `delete_status`, `can_login`, `email`, `fullname`, `gender`, `use_or`) |
 
 Entries are appended automatically when employees are created or updated (Phase 1). `actor_id` is the platform user id from the JWT when available.
 

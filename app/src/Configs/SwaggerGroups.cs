@@ -13,6 +13,7 @@ public static class SwaggerGroups
         Organisation,
         LifecycleEvents,
         AuditLogs,
+        Users,
     };
 
     public static bool IsVisibleInSwagger(string? groupName) =>
@@ -27,6 +28,7 @@ public static class SwaggerGroups
     public const string OrganisationLegacy = "Organisation (legacy)";
     public const string LifecycleEvents = "Lifecycle Events";
     public const string AuditLogs = "Audit Logs";
+    public const string Users = "Users";
     public const string Attendance = "Attendance";
     public const string Leave = "Leave";
     public const string Recruitment = "Recruitment";

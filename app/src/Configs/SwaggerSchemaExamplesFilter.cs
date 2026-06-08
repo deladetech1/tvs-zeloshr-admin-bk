@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using ZelosHR.Api.Entities.AuditLogs;
+using ZelosHR.Api.Entities.Users;
 using ZelosHR.Api.Entities.Branches;
 using ZelosHR.Api.Entities.Currencies;
 using ZelosHR.Api.Entities.CustomFields;
@@ -91,6 +92,8 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(AuditLogSummaryDto) => SwaggerExamples.AuditLogSummaryData(),
             nameof(AuditLogListItemDto) => SwaggerExamples.AuditLogListItemData(),
             nameof(AuditLogListDto) => SwaggerExamples.AuditLogListData(),
+            nameof(AuditLogPurgeResultDto) => SwaggerExamples.AuditLogPurgeData(),
+            nameof(PlatformUserListItemDto) => SwaggerExamples.PlatformUserListItemData(),
             nameof(AuditLogEmployeeRefDto) => new JsonObject
             {
                 ["employee_id"] = SwaggerExamples.SampleEmployeeId.ToString(),
@@ -152,6 +155,10 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 "KPI cards on audit log page: total_entries · critical_count (High) · flagged_count · sensitive_reads_count · unique_actors_count."),
             nameof(AuditLogListItemDto) => AppendDescription(schema.Description,
                 $"Table row. category: {SwaggerExampleHints.AuditCategory}. severity: {SwaggerExampleHints.AuditSeverity}. actor_id is platform user id when known."),
+            nameof(AuditLogPurgeResultDto) => AppendDescription(schema.Description,
+                "Purge result: deleted_count and cutoff_before (occurred_at strictly before this instant were removed)."),
+            nameof(PlatformUserListItemDto) => AppendDescription(schema.Description,
+                "Trovesuite cp_users row (joined to cp_members). profile_pic is stored path; Core Platform may return a presigned URL."),
             _ => schema.Description,
         };
     }
