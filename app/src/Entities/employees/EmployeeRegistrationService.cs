@@ -90,7 +90,10 @@ public sealed class EmployeeRegistrationService
                     new Dictionary<string, string> { ["existingUserId"] = "User not found in platform." });
 
             if (await _cpUsers.IsLinkedToEmployeeAsync(cp.Id, _tenant.TenantId, ct))
-                return Respons<EmployeeRegistrationReadDto>.Fail("User is already linked to an employee.", statusCode: 409);
+            {
+                return Respons<EmployeeRegistrationReadDto>.Fail(
+                    EmployeeErrorMessages.UserAlreadyLinkedToEmployee, statusCode: 409);
+            }
 
             userId = cp.Id;
         }
@@ -116,6 +119,14 @@ public sealed class EmployeeRegistrationService
             {
                 await _employees.AddAsync(entity, ct);
                 return Respons<EmployeeRegistrationReadDto>.Ok(await ToReadDtoAsync(entity, ct));
+            }
+            catch (DbUpdateException ex) when (PostgresUniqueViolation.IsEmployeeUserId(ex))
+            {
+                if (transaction is not null)
+                    await transaction.RollbackToSavepointAsync(savepoint, ct);
+                _db.Entry(entity).State = EntityState.Detached;
+                return Respons<EmployeeRegistrationReadDto>.Fail(
+                    EmployeeErrorMessages.UserAlreadyLinkedToEmployee, statusCode: 409);
             }
             catch (DbUpdateException ex) when (PostgresUniqueViolation.IsEmployeeCode(ex))
             {
@@ -152,16 +163,34 @@ public sealed class EmployeeRegistrationService
         var rows = new List<ImportEmployeeRowResult>();
         foreach (var userId in userIds.Where(id => !string.IsNullOrWhiteSpace(id)).Select(id => id.Trim()).Distinct(StringComparer.OrdinalIgnoreCase))
         {
-            var imported = await ImportAsync(userId, ct);
-            rows.Add(new ImportEmployeeRowResult
+            ImportEmployeeRowResult rowResult;
+            try
             {
-                UserId = userId,
-                Success = imported.Success,
-                EmployeeId = imported.Data?.Id,
-                EmployeeCode = imported.Data?.EmployeeCode,
-                FullName = imported.Data?.FullName,
-                Error = imported.Success ? null : imported.Error ?? imported.Detail,
-            });
+                var imported = await ImportAsync(userId, ct);
+                rowResult = new ImportEmployeeRowResult
+                {
+                    UserId = userId,
+                    Success = imported.Success,
+                    EmployeeId = imported.Data?.Id,
+                    EmployeeCode = imported.Data?.EmployeeCode,
+                    FullName = imported.Data?.FullName,
+                    Error = imported.Success ? null : imported.Error ?? imported.Detail,
+                };
+            }
+            catch (DbUpdateException ex)
+            {
+                _db.ChangeTracker.Clear();
+                rowResult = new ImportEmployeeRowResult
+                {
+                    UserId = userId,
+                    Success = false,
+                    Error = PostgresUniqueViolation.IsEmployeeUserId(ex)
+                        ? EmployeeErrorMessages.UserAlreadyLinkedToEmployee
+                        : "Could not import user. Please retry.",
+                };
+            }
+
+            rows.Add(rowResult);
         }
 
         if (rows.Count == 0)

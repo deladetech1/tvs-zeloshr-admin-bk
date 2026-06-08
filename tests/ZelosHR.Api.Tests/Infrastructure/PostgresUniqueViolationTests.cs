@@ -22,4 +22,20 @@ public class PostgresUniqueViolationTests
         PostgresUniqueViolation.IsCpUserContact(ex).Should().BeTrue();
         PostgresUniqueViolation.IsCpUserEmail(ex).Should().BeFalse();
     }
+
+    [Fact]
+    public void IsEmployeeUserId_WhenTenantUserConstraint_ReturnsTrue()
+    {
+        var ex = new DbUpdateException(
+            "duplicate",
+            new PostgresException(
+                "duplicate key value violates unique constraint",
+                severity: "ERROR",
+                invariantSeverity: "ERROR",
+                sqlState: PostgresErrorCodes.UniqueViolation,
+                constraintName: "ix_zhr_employees_tenant_id_user_id"));
+
+        PostgresUniqueViolation.IsEmployeeUserId(ex).Should().BeTrue();
+        PostgresUniqueViolation.IsEmployeeCode(ex).Should().BeFalse();
+    }
 }

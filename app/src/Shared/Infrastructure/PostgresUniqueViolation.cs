@@ -10,6 +10,11 @@ internal static class PostgresUniqueViolation
         && pg.SqlState == PostgresErrorCodes.UniqueViolation
         && pg.ConstraintName?.Contains("employee_code", StringComparison.OrdinalIgnoreCase) == true;
 
+    internal static bool IsEmployeeUserId(DbUpdateException ex) =>
+        ex.InnerException is PostgresException pg
+        && pg.SqlState == PostgresErrorCodes.UniqueViolation
+        && pg.ConstraintName?.Contains("user_id", StringComparison.OrdinalIgnoreCase) == true;
+
     internal static bool IsGhanaCard(DbUpdateException ex) =>
         ex.InnerException is PostgresException pg
         && pg.SqlState == PostgresErrorCodes.UniqueViolation

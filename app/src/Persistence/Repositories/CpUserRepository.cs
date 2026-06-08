@@ -108,7 +108,7 @@ public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
 
     public Task<bool> IsLinkedToEmployeeAsync(string userId, string tenantId, CancellationToken ct = default) =>
         db.Employees.AsNoTracking()
-            .AnyAsync(e => e.TenantId == tenantId && e.UserId == userId && !e.IsDeleted, ct);
+            .AnyAsync(e => e.TenantId == tenantId && e.UserId == userId, ct);
 
     public async Task<CpUserDto> ProvisionEmployeeUserAsync(
         ProvisionCpUserRequest request, CancellationToken ct = default)

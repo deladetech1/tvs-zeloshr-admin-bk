@@ -19,4 +19,7 @@ public static class EmployeeErrorMessages
 
     public const string PhoneAlreadyRegistered =
         "This phone number is already registered on Trove. Use a different number or update the existing user.";
+
+    public const string UserAlreadyLinkedToEmployee =
+        "This platform user is already linked to an employee in your organisation.";
 }

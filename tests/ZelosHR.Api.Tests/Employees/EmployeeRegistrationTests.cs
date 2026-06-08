@@ -558,4 +558,21 @@ public class EmployeeRegistrationTests
         result.FieldErrors.Should().ContainKey("identity.phone")
             .WhoseValue.Should().Be(EmployeeErrorMessages.PhoneAlreadyRegistered);
     }
+
+    [Fact]
+    public async Task ImportMany_WhenUserAlreadyLinked_ReturnsRowFailureNotServerError()
+    {
+        _cpUsers.GetByIdAsync("u-linked", TestDefaults.TenantId, Arg.Any<CancellationToken>())
+            .Returns(new CpUserDto("u-linked", "Linked User", "linked@corp.com", "+233", true));
+        _cpUsers.IsLinkedToEmployeeAsync("u-linked", TestDefaults.TenantId, Arg.Any<CancellationToken>())
+            .Returns(true);
+
+        var result = await _sut.ImportManyAsync(["u-linked"]);
+
+        result.StatusCode.Should().Be(StatusCodes.Status422UnprocessableEntity);
+        result.Data!.Items.Should().ContainSingle();
+        result.Data.Items[0].Success.Should().BeFalse();
+        result.Data.Items[0].Error.Should().Be(EmployeeErrorMessages.UserAlreadyLinkedToEmployee);
+        await _employees.DidNotReceive().AddAsync(Arg.Any<EmployeeEntity>(), Arg.Any<CancellationToken>());
+    }
 }
