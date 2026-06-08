@@ -302,7 +302,10 @@ public sealed class EmployeeRegistrationService
         if (!string.IsNullOrWhiteSpace(e.UserId))
         {
             var syncExisting = await RunPlatformUserAsync(
-                innerCt => _cpUsers.UpdateIdentityAsync(e.UserId, _tenant.TenantId, identity, innerCt), ct);
+                async innerCt =>
+                {
+                    await _cpUsers.UpdateIdentityAsync(e.UserId, _tenant.TenantId, identity, innerCt);
+                }, ct);
             if (syncExisting is not null)
                 return syncExisting;
 
