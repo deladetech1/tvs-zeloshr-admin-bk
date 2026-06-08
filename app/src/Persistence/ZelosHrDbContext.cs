@@ -48,6 +48,10 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
         {
             b.ToTable("cp_login_settings", "core_platform", t => t.ExcludeFromMigrations());
             b.HasKey(x => new { x.Id, x.TenantId });
+            b.HasOne<CpUserEntity>()
+                .WithMany()
+                .HasForeignKey(x => new { x.UserId, x.TenantId })
+                .HasPrincipalKey(x => new { x.Id, x.TenantId });
         });
 
         modelBuilder.Entity<CpUserLocationEntity>(b =>
@@ -56,6 +60,10 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
             b.HasKey(x => new { x.Id, x.TenantId });
             b.Property(x => x.BusAppLocId).HasColumnName("bus_app_loc_id");
             b.Property(x => x.BusId).HasColumnName("bus_id");
+            b.HasOne<CpUserEntity>()
+                .WithMany()
+                .HasForeignKey(x => new { x.UserId, x.TenantId })
+                .HasPrincipalKey(x => new { x.Id, x.TenantId });
         });
 
         modelBuilder.Entity<CpBusinessAppLocationEntity>(b =>
@@ -82,6 +90,10 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
             b.ToTable("hr_employees", "human_resource", t => t.ExcludeFromMigrations());
             b.HasKey(x => new { x.Id, x.TenantId });
             b.HasIndex(x => new { x.UserId, x.TenantId }).IsUnique();
+            b.HasOne<CpUserEntity>()
+                .WithMany()
+                .HasForeignKey(x => new { x.UserId, x.TenantId })
+                .HasPrincipalKey(x => new { x.Id, x.TenantId });
         });
 
         modelBuilder.Entity<EmployeeEntity>(b =>

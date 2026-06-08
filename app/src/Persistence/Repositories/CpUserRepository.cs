@@ -138,6 +138,7 @@ public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
         DateTimeOffset now,
         CancellationToken ct)
     {
+        // Platform FK order: cp_users before cp_login_settings / cp_user_locations / hr_employees.
         db.CpUsers.Add(new CpUserEntity
         {
             Id = userId,
@@ -156,6 +157,7 @@ public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
             CreatedBy = request.CreatedBy,
             Cdatetime = now,
         });
+        await db.SaveChangesAsync(ct);
 
         db.CpLoginSettings.Add(new CpLoginSettingsEntity
         {
