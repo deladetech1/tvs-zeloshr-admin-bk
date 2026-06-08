@@ -42,7 +42,8 @@ public sealed class CreateEmployeeAggregateRequest
 /// Pass <c>employee_id</c> on the query string (UUID from <c>GET /employees/get?employee_id=</c>).
 ///
 /// **education[] / certifications[] (default, sync false):** patch the list — include <c>id</c> from GET to update;
-/// omit <c>id</c> to add; rows you omit are **unchanged**.
+/// omit <c>id</c> to add. Client-generated UUIDs on new rows are treated as add (only ids already on the employee update).
+/// Rows you omit are **unchanged**.
 ///
 /// **sync_education / sync_certifications (true):** replace the list — the array you send is the **full desired set**;
 /// any existing row not listed is **deleted**. Send <c>[]</c> with sync true to clear the section.

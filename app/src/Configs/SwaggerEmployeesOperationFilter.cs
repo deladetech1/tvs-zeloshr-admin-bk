@@ -98,6 +98,8 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
                 • sync false (default): PATCH — send rows to add/update; rows you omit are unchanged.
                 • sync true: REPLACE — array is the full desired set; existing rows not listed are deleted.
 
+                Row ids: include <c>id</c> from GET only to update an existing row. Omit <c>id</c> (or send a client UUID not yet saved) to add a new education/certification row while editing.
+
                 delete_education_ids / delete_certification_ids remove rows by UUID without sending arrays.
                 Include id from GET on education/certification items to update; omit id to add.
                 """);
