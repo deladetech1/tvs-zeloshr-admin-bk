@@ -316,6 +316,7 @@ public class EmployeesController : ControllerBase
     /// <remarks>
     /// Status filtering: use <c>status</c> with simple commands (<c>active</c>, <c>probation</c>, <c>on_leave</c>, …)
     /// or <c>employment_status</c> for exact match on stored values (Active, Probation, On Leave, …). Do not combine both.
+    /// Optional <c>start_date</c> / <c>end_date</c> filter by employment start. Same filters as <c>GET /employees/export</c>.
     /// Each item returns <c>employment_status</c>, <c>engagement</c>, and <c>work_states[]</c>.
     /// </remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]

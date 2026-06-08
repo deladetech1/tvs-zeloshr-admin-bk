@@ -655,7 +655,7 @@ internal static class SwaggerExamples
         ["employee_id"] = SampleEmployeeId.ToString(),
         ["full_name"] = "Ada Lovelace",
         ["job_title"] = "Engineering Director",
-        ["initials"] = "AL",
+        ["profile_url"] = EmployeeDocumentItem(SampleDocumentId1, "Employee profile photo"),
     };
 
     private static JsonObject DepartmentListData() => new()

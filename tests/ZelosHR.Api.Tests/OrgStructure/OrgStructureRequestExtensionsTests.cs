@@ -37,7 +37,7 @@ public class OrgStructureRequestExtensionsTests
 
         var dto = new UpdateDepartmentRequestDto
         {
-            HeadOfDepartmentId = flat,
+            HeadOfDepartmentId = new OptionalNullableGuid { IsSpecified = true, Value = flat },
             HeadOfDepartment = new DepartmentHeadReferenceDto { EmployeeId = nested.ToString() },
         };
 
@@ -57,5 +57,22 @@ public class OrgStructureRequestExtensionsTests
 
         dto.HasHeadOfDepartmentChange().Should().BeTrue();
         dto.ResolveHeadOfDepartmentId().Should().Be(Guid.Parse("e1000001-0000-4000-8000-000000000003"));
+    }
+
+    [Fact]
+    public void UpdateDepartment_deserializes_explicit_null_head_as_clear()
+    {
+        const string json = """
+            {
+              "name": "Backend Team",
+              "head_of_department_id": null
+            }
+            """;
+
+        var dto = JsonSerializer.Deserialize<UpdateDepartmentRequestDto>(json, Json);
+
+        dto.Should().NotBeNull();
+        dto!.HasHeadOfDepartmentChange().Should().BeTrue();
+        dto.ResolveHeadOfDepartmentId().Should().BeNull();
     }
 }

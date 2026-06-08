@@ -1,6 +1,7 @@
 using FluentAssertions;
 using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Employees;
+using ZelosHR.Api.Entities.Files;
 
 namespace ZelosHR.Api.Tests.Departments;
 
@@ -23,6 +24,7 @@ public class DepartmentHeadMapperTests
             null,
             null,
             "Director",
+            null,
             EmployeeCount: 3,
             HeadcountCapacity: null,
             CreatedAt: DateTimeOffset.UtcNow,
@@ -35,11 +37,19 @@ public class DepartmentHeadMapperTests
             ["u-head"] = new CpUserDto("u-head", "Ada Lovelace", "ada@corp.com", "+233", true),
         };
 
-        var head = DepartmentHeadMapper.Map(row, users);
+        var profileUrl = new DocumentReadDto
+        {
+            DocId = "doc-profile-001",
+            Name = "profile.jpg",
+            PresignedUrl = "https://storage.example.com/profile.jpg",
+            Description = "Employee profile photo",
+        };
+
+        var head = DepartmentHeadMapper.Map(row, users, profileUrl);
 
         head.Should().NotBeNull();
         head!.FullName.Should().Be("Ada Lovelace");
-        head.Initials.Should().Be("AL");
         head.JobTitle.Should().Be("Director");
+        head.ProfileUrl.Should().BeEquivalentTo(profileUrl);
     }
 }

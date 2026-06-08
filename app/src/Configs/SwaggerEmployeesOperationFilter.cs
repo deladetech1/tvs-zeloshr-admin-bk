@@ -49,7 +49,13 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
                 • GET /employees/list?employment_status=Active — exact match only (excludes Probation rows)
 
                 Each item returns employment_status (stored value), plus engagement and work_states[] for UI badges.
+
+                Filter by employment start with start_date / end_date (YYYY-MM-DD). Same filters apply to GET /employees/export.
                 """);
+            AppendParameterDescription(operation, "start_date",
+                "Employment start on or after this date (uses start_date or employment_start_date on the employee record).");
+            AppendParameterDescription(operation, "end_date",
+                "Employment start on or before this date (uses start_date or employment_start_date on the employee record).");
             AppendParameterDescription(operation, "status",
                 $"Smart workforce filter. Allowed: {SwaggerExampleHints.ListStatusFilter}. Ignored when employment_status is set.");
             AppendParameterDescription(operation, "employment_status",

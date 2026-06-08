@@ -1,6 +1,6 @@
 using ZelosHR.Api.Configs;
-using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Branches;
+using ZelosHR.Api.Entities.Departments;
 
 namespace ZelosHR.Api.Entities.OrgStructure;
 
@@ -43,8 +43,8 @@ public sealed class UpdateDepartmentRequestDto
     public string? Name { get; init; }
     public Guid? ParentDepartmentId { get; init; }
 
-    /// <summary>Flat employee UUID (<c>head_of_department_id</c>).</summary>
-    public Guid? HeadOfDepartmentId { get; init; }
+    /// <summary>Flat employee UUID (<c>head_of_department_id</c>). Send explicit <c>null</c> to clear the head.</summary>
+    public OptionalNullableGuid HeadOfDepartmentId { get; init; }
 
     /// <summary>Nested head from list round-trip (<c>head_of_department.employee_id</c>).</summary>
     public DepartmentHeadReferenceDto? HeadOfDepartment { get; init; }

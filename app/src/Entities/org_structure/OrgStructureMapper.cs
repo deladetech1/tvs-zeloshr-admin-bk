@@ -1,6 +1,7 @@
 using ZelosHR.Api.Entities.Branches;
 using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Employees;
+using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Entities.Shared;
 
 namespace ZelosHR.Api.Entities.OrgStructure;
@@ -9,7 +10,8 @@ internal static class OrgStructureMapper
 {
     internal static DepartmentListItemDto ToDepartmentListItem(
         DepartmentListRow row,
-        IReadOnlyDictionary<string, CpUserDto> users) =>
+        IReadOnlyDictionary<string, CpUserDto> users,
+        DocumentReadDto? headProfileUrl = null) =>
         new()
         {
             DepartmentId = row.Id.ToString(),
@@ -17,7 +19,7 @@ internal static class OrgStructureMapper
             Description = row.Description,
             ParentDepartmentId = row.ParentDepartmentId?.ToString(),
             ParentDepartmentName = row.ParentDepartmentName,
-            HeadOfDepartment = DepartmentHeadMapper.Map(row, users),
+            HeadOfDepartment = DepartmentHeadMapper.Map(row, users, headProfileUrl),
             EmployeeCount = row.EmployeeCount,
             HeadcountCapacity = row.HeadcountCapacity,
             IsArchived = row.IsArchived,
@@ -52,13 +54,14 @@ internal static class OrgStructureMapper
 
     internal static CreateDepartmentResponseDto ToDepartmentMutation(
         DepartmentListRow row,
-        IReadOnlyDictionary<string, CpUserDto> users) =>
+        IReadOnlyDictionary<string, CpUserDto> users,
+        DocumentReadDto? headProfileUrl = null) =>
         new()
         {
             DepartmentId = row.Id.ToString(),
             Name = row.Name,
             Description = row.Description,
-            HeadOfDepartment = DepartmentHeadMapper.Map(row, users),
+            HeadOfDepartment = DepartmentHeadMapper.Map(row, users, headProfileUrl),
             CreatedAt = row.CreatedAt,
             UpdatedAt = row.UpdatedAt,
             CreatedById = row.CreatedBy,

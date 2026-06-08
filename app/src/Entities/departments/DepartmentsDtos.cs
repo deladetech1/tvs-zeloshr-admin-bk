@@ -1,3 +1,5 @@
+using ZelosHR.Api.Entities.Files;
+
 namespace ZelosHR.Api.Entities.Departments;
 
 public sealed class OrganisationSummaryDto
@@ -12,7 +14,9 @@ public sealed class DepartmentHeadDto
     public string? EmployeeId { get; init; }
     public required string FullName { get; init; }
     public string? JobTitle { get; init; }
-    public required string Initials { get; init; }
+
+    /// <summary>Profile photo (<c>DocumentReadDto</c>): <c>doc_id</c>, <c>name</c>, <c>presigned_url</c>, <c>description</c>.</summary>
+    public DocumentReadDto? ProfileUrl { get; init; }
 }
 
 public sealed class DepartmentListItemDto

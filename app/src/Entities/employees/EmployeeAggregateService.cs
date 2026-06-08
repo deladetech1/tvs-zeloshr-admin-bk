@@ -657,6 +657,14 @@ public sealed class EmployeeAggregateService
     public async Task<Respons<EmployeeListDto>> ListAsync(
         EmployeeListQuery query, CancellationToken ct = default)
     {
+        if (query.StartDate is not null && query.EndDate is not null && query.StartDate > query.EndDate)
+        {
+            return Respons<EmployeeListDto>.ValidationError(new Dictionary<string, string>
+            {
+                ["start_date"] = "start_date must be on or before end_date.",
+            });
+        }
+
         var paging = PagedQuery.From(query.Page, query.Size);
         var (rows, total) = await _employees.ListScopedAsync(
             query, _tenant.TenantId, _tenant.OrgId, paging.Page, paging.Size, ct);

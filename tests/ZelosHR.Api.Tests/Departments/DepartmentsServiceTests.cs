@@ -1,7 +1,14 @@
 using FluentAssertions;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using NSubstitute;
+using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Employees;
+using ZelosHR.Api.Entities.Files;
+using ZelosHR.Api.Persistence.Repositories;
+using ZelosHR.Api.Shared.Abstractions;
+using ZelosHR.Api.Shared.Infrastructure;
 
 namespace ZelosHR.Api.Tests.Departments;
 
@@ -15,7 +22,14 @@ public class DepartmentsServiceTests
     {
         _cpUsers.GetByIdsAsync(Arg.Any<IEnumerable<string>>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new Dictionary<string, CpUserDto>());
-        _sut = new DepartmentsService(_repo, _cpUsers);
+        var tenant = Substitute.For<ITenantContext>();
+        tenant.TenantId.Returns("t1");
+        var profileUrls = new HrDocumentPresignedUrlService(
+            Substitute.For<IEmployeeDocumentBlobStorage>(),
+            Substitute.For<IHrDocumentPathRepository>(),
+            new FileManagementStorage(new ConfigurationBuilder().Build(), Options.Create(new AzureStorageOptions())),
+            tenant);
+        _sut = new DepartmentsService(_repo, _cpUsers, profileUrls);
     }
 
     [Fact]
@@ -54,6 +68,7 @@ public class DepartmentsServiceTests
                         null,
                         null,
                         false,
+                        null,
                         null,
                         null,
                         null,

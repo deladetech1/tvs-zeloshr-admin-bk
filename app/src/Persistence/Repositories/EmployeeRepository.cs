@@ -130,6 +130,8 @@ public sealed class EmployeeRepository(ZelosHrDbContext db) : IEmployeeRepositor
             Status = listQuery.EmploymentStatus,
             StatusFilter = listQuery.Status,
             IncludeInactive = listQuery.IncludeInactive,
+            StartDate = listQuery.StartDate,
+            EndDate = listQuery.EndDate,
             SortBy = listQuery.SortBy,
             SortOrder = listQuery.SortOrder,
         };

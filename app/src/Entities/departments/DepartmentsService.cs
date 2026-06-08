@@ -1,4 +1,5 @@
 using ZelosHR.Api.Entities.Employees;
+using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Shared.Pagination;
 
@@ -8,11 +9,16 @@ public class DepartmentsService
 {
     private readonly IDepartmentRepository _departments;
     private readonly ICpUserRepository _cpUsers;
+    private readonly HrDocumentPresignedUrlService _profileUrls;
 
-    public DepartmentsService(IDepartmentRepository departments, ICpUserRepository cpUsers)
+    public DepartmentsService(
+        IDepartmentRepository departments,
+        ICpUserRepository cpUsers,
+        HrDocumentPresignedUrlService profileUrls)
     {
         _departments = departments;
         _cpUsers = cpUsers;
+        _profileUrls = profileUrls;
     }
 
     public async Task<Respons<OrganisationSummaryDto>> GetSummaryAsync(
@@ -45,6 +51,8 @@ public class DepartmentsService
             tenantId,
             ct);
 
+        var profileUrlMap = await DepartmentHeadProfiles.ResolveMapAsync(rows, users, _profileUrls, ct);
+
         var items = rows.Select(r => new DepartmentListItemDto
         {
             DepartmentId = r.Id.ToString(),
@@ -52,7 +60,10 @@ public class DepartmentsService
             Description = r.Description,
             ParentDepartmentId = r.ParentDepartmentId?.ToString(),
             ParentDepartmentName = r.ParentDepartmentName,
-            HeadOfDepartment = DepartmentHeadMapper.Map(r, users),
+            HeadOfDepartment = DepartmentHeadMapper.Map(
+                r,
+                users,
+                DepartmentHeadProfiles.ResolveForRow(r, users, profileUrlMap)),
             EmployeeCount = r.EmployeeCount,
             IsArchived = r.IsArchived,
             HierarchyLevel = r.ParentDepartmentId is null ? 0 : 1,

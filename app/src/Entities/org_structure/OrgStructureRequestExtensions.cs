@@ -10,11 +10,13 @@ internal static class OrgStructureRequestExtensions
         CoalesceHeadId(request.HeadOfDepartmentId, request.HeadOfDepartment);
 
     internal static Guid? ResolveHeadOfDepartmentId(this UpdateDepartmentRequestDto request) =>
-        CoalesceHeadId(request.HeadOfDepartmentId, request.HeadOfDepartment);
+        request.HeadOfDepartmentId.IsSpecified
+            ? request.HeadOfDepartmentId.Value
+            : CoalesceHeadId(null, request.HeadOfDepartment);
 
     internal static bool HasHeadOfDepartmentChange(this UpdateDepartmentRequestDto request) =>
-        request.HeadOfDepartmentId.HasValue
-        || !string.IsNullOrWhiteSpace(request.HeadOfDepartment?.EmployeeId);
+        request.HeadOfDepartmentId.IsSpecified
+        || request.HeadOfDepartment is not null;
 
     private static Guid? CoalesceHeadId(Guid? headOfDepartmentId, DepartmentHeadReferenceDto? headOfDepartment) =>
         headOfDepartmentId ?? ParseEmployeeId(headOfDepartment?.EmployeeId);

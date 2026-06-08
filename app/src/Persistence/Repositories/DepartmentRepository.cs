@@ -60,6 +60,7 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
             HeadFirstName = d.HeadOfDepartment != null ? d.HeadOfDepartment.FirstName : null,
             HeadLastName = d.HeadOfDepartment != null ? d.HeadOfDepartment.LastName : null,
             HeadJobTitle = d.HeadOfDepartment != null ? d.HeadOfDepartment.JobTitle : null,
+            HeadProfilePhotoUrl = d.HeadOfDepartment != null ? d.HeadOfDepartment.ProfilePhotoUrl : null,
             d.HeadcountCapacity,
             d.CreatedAt,
             d.UpdatedAt,
@@ -98,6 +99,7 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
             x.HeadFirstName,
             x.HeadLastName,
             x.HeadJobTitle,
+            x.HeadProfilePhotoUrl,
             x.EmployeeCount,
             x.HeadcountCapacity,
             x.CreatedAt,
@@ -170,6 +172,7 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
             entity.HeadOfDepartment?.FirstName,
             entity.HeadOfDepartment?.LastName,
             entity.HeadOfDepartment?.JobTitle,
+            entity.HeadOfDepartment?.ProfilePhotoUrl,
             employeeCount,
             entity.HeadcountCapacity,
             entity.CreatedAt,
@@ -192,6 +195,7 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
         string? name,
         Guid? parentDepartmentId,
         Guid? headOfDepartmentId,
+        bool updateHeadOfDepartment,
         string? description,
         bool updateDescription,
         int? headcountCapacity,
@@ -215,7 +219,7 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
             entity.ParentDepartmentId = parentDepartmentId;
             changed = true;
         }
-        if (headOfDepartmentId.HasValue)
+        if (updateHeadOfDepartment)
         {
             entity.HeadOfDepartmentId = headOfDepartmentId;
             changed = true;

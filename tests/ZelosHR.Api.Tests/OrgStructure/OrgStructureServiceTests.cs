@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
@@ -37,7 +38,7 @@ public class OrgStructureServiceTests
             Substitute.For<IHrDocumentPathRepository>(),
             new FileManagementStorage(new ConfigurationBuilder().Build(), Options.Create(new AzureStorageOptions())),
             tenant);
-        _departments = new DepartmentsService(_departmentRepo, _cpUsers);
+        _departments = new DepartmentsService(_departmentRepo, _cpUsers, profileUrls);
         _branches = new BranchesService(_branchRepo, _cpUsers);
         _sut = new OrgStructureService(
             _departments,
@@ -88,7 +89,7 @@ public class OrgStructureServiceTests
             .Returns(Guid.NewGuid());
         _departmentRepo.GetActiveScopedAsync(Arg.Any<Guid>(), "t1", "o1", Arg.Any<CancellationToken>())
             .Returns(new DepartmentListRow(
-                Guid.NewGuid(), "Eng", null, null, null, false, headId, null, null, null, null, null, 0, null,
+                Guid.NewGuid(), "Eng", null, null, null, false, headId, null, null, null, null, null, null, 0, null,
                 DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, null, null));
 
         var result = await _sut.CreateDepartmentAsync(
@@ -136,8 +137,40 @@ public class OrgStructureServiceTests
         result.StatusCode.Should().Be(400);
         await _departmentRepo.DidNotReceive().UpdateScopedAsync(
             Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<string>(),
-            Arg.Any<string?>(), Arg.Any<Guid?>(), Arg.Any<Guid?>(), Arg.Any<string?>(), Arg.Any<bool>(),
+            Arg.Any<string?>(), Arg.Any<Guid?>(), Arg.Any<Guid?>(), Arg.Any<bool>(), Arg.Any<string?>(), Arg.Any<bool>(),
             Arg.Any<int?>(), Arg.Any<bool>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task UpdateDepartment_clears_head_when_head_of_department_id_is_null()
+    {
+        var id = Guid.NewGuid();
+        _departmentRepo.ExistsActiveScopedAsync(id, "t1", "o1", Arg.Any<CancellationToken>())
+            .Returns(true);
+        _departmentRepo.UpdateScopedAsync(
+                id, "t1", "o1", "Backend Team", null, null, true, null, false, null, false,
+                Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns("Backend Team");
+        _departmentRepo.GetActiveScopedAsync(id, "t1", "o1", Arg.Any<CancellationToken>())
+            .Returns(new DepartmentListRow(
+                id, "Backend Team", null, null, null, false, null, null, null, null, null, null, null, 0, null,
+                DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, null, null));
+
+        const string json = """
+            {
+              "name": "Backend Team",
+              "head_of_department_id": null
+            }
+            """;
+        var body = JsonSerializer.Deserialize<UpdateDepartmentRequestDto>(json, PlatformJson.SerializerOptions)!;
+
+        var result = await _sut.UpdateDepartmentAsync(id, body, "t1", "o1");
+
+        result.Success.Should().BeTrue();
+        result.Data!.HeadOfDepartment.Should().BeNull();
+        await _departmentRepo.Received(1).UpdateScopedAsync(
+            id, "t1", "o1", "Backend Team", null, null, true, null, false, null, false,
+            Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]

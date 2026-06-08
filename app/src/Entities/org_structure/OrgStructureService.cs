@@ -190,7 +190,8 @@ public class OrgStructureService
             orgId,
             hasName ? request.Name : null,
             hasParent ? request.ParentDepartmentId : null,
-            hasHead ? resolvedHeadId : null,
+            resolvedHeadId,
+            hasHead,
             request.Description,
             hasDescription,
             request.HeadcountCapacity,
@@ -313,7 +314,9 @@ public class OrgStructureService
         CancellationToken ct)
     {
         var users = await _cpUsers.GetByIdsAsync(OrgStructureMapper.CollectUserIds([row]), tenantId, ct);
-        return OrgStructureMapper.ToDepartmentMutation(row, users);
+        var profileUrlMap = await DepartmentHeadProfiles.ResolveMapAsync([row], users, _profileUrls, ct);
+        var profileUrl = DepartmentHeadProfiles.ResolveForRow(row, users, profileUrlMap);
+        return OrgStructureMapper.ToDepartmentMutation(row, users, profileUrl);
     }
 
     private async Task<BranchMutationResponseDto> ToBranchMutationAsync(
