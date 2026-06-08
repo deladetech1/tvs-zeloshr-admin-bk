@@ -41,7 +41,7 @@ public class DepartmentsService
 
         var users = await _cpUsers.GetByIdsAsync(
             ResourceAuditMapper.CollectUserIds(
-                rows.SelectMany(r => new[] { r.CreatedBy, r.UpdatedBy, r.HeadUserId })),
+                rows.Select(r => new[] { r.CreatedBy, r.UpdatedBy, r.HeadUserId })),
             tenantId,
             ct);
 

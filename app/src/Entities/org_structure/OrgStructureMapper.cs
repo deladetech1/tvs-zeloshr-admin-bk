@@ -86,7 +86,7 @@ internal static class OrgStructureMapper
 
     internal static IEnumerable<string> CollectUserIds(IEnumerable<DepartmentListRow> rows) =>
         ResourceAuditMapper.CollectUserIds(
-            rows.SelectMany(r => new[] { r.CreatedBy, r.UpdatedBy, r.HeadUserId }));
+            rows.Select(r => new[] { r.CreatedBy, r.UpdatedBy, r.HeadUserId }));
 
     internal static IEnumerable<string> CollectUserIds(IEnumerable<BranchListRow> rows) =>
         ResourceAuditMapper.CollectUserIds(rows.Select(r => new[] { r.CreatedBy, r.UpdatedBy }));
