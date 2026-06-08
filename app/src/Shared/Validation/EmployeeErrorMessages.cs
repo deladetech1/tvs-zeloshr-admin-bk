@@ -16,4 +16,7 @@ public static class EmployeeErrorMessages
 
     public const string WorkEmailAlreadyRegistered =
         "This work email is already registered on Trove. Use a different email or link the existing user.";
+
+    public const string PhoneAlreadyRegistered =
+        "This phone number is already registered on Trove. Use a different number or update the existing user.";
 }

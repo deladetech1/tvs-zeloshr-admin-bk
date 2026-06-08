@@ -4,6 +4,7 @@ using ZelosHR.Api.Persistence.Entities;
 using ZelosHR.Api.Shared.Constants;
 using ZelosHR.Api.Shared.Infrastructure;
 using ZelosHR.Api.Shared.Tenant;
+using ZelosHR.Api.Shared.Validation;
 
 namespace ZelosHR.Api.Persistence.Repositories;
 
@@ -29,6 +30,18 @@ public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
             .Select(u => new { u.TenantId, u.Id })
             .FirstOrDefaultAsync(ct);
         return row is null ? null : new CpUserEmailOwner(row.TenantId, row.Id);
+    }
+
+    public async Task<CpUserContactOwner?> FindContactOwnerAsync(
+        string contact, string? excludeUserId = null, CancellationToken ct = default)
+    {
+        var normalized = contact.Trim();
+        var query = db.CpUsers.AsNoTracking().Where(u => u.Contact == normalized);
+        if (!string.IsNullOrWhiteSpace(excludeUserId))
+            query = query.Where(u => u.Id != excludeUserId);
+
+        var row = await query.Select(u => new { u.TenantId, u.Id }).FirstOrDefaultAsync(ct);
+        return row is null ? null : new CpUserContactOwner(row.TenantId, row.Id);
     }
 
     public async Task<CpUserDto?> GetByIdAsync(string userId, string tenantId, CancellationToken ct = default)
@@ -76,16 +89,21 @@ public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
         var email = request.Email.Trim().ToLowerInvariant();
         var existing = await FindByEmailAsync(email, request.TenantId, ct);
         if (existing is not null)
-            throw new InvalidOperationException($"Platform user already exists for email {email}.");
+        {
+            throw new PlatformUserConflictException(
+                "identity.work_email", EmployeeErrorMessages.WorkEmailAlreadyRegistered);
+        }
 
         if (await FindEmailOwnerAsync(email, ct) is not null)
-            throw new InvalidOperationException($"Platform user already exists for email {email}.");
+        {
+            throw new PlatformUserConflictException(
+                "identity.work_email", EmployeeErrorMessages.WorkEmailUsedByAnotherOrganisation);
+        }
 
         var userId = Guid.NewGuid().ToString();
         var now = DateTimeOffset.UtcNow;
-        var contact = string.IsNullOrWhiteSpace(request.Contact)
-            ? "+233000000000"
-            : request.Contact.Trim();
+        var contact = ResolveContact(request.Contact, userId);
+        await EnsureContactAvailableAsync(contact, excludeUserId: null, ct);
 
         async Task PersistAsync()
         {
@@ -93,9 +111,9 @@ public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
             {
                 await PersistProvisionAsync(request, userId, email, contact, now, ct);
             }
-            catch (DbUpdateException ex) when (PostgresUniqueViolation.IsCpUserEmail(ex))
+            catch (DbUpdateException ex)
             {
-                throw new InvalidOperationException($"Platform user already exists for email {email}.");
+                ThrowIfCpUserUniqueViolation(ex);
             }
         }
 
@@ -213,7 +231,11 @@ public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
             row.Email = identity.Email.Trim().ToLowerInvariant();
 
         if (!string.IsNullOrWhiteSpace(identity.Contact))
-            row.Contact = identity.Contact.Trim();
+        {
+            var contact = identity.Contact.Trim();
+            await EnsureContactAvailableAsync(contact, userId, ct);
+            row.Contact = contact;
+        }
 
         row.Gender = identity.Gender ?? row.Gender;
         row.Dob = identity.Dob ?? row.Dob;
@@ -221,7 +243,15 @@ public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
         if (!string.IsNullOrWhiteSpace(identity.ProfilePic))
             row.ProfilePic = identity.ProfilePic;
 
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex)
+        {
+            ThrowIfCpUserUniqueViolation(ex);
+        }
+
         return ToDto(row);
     }
 
@@ -312,4 +342,40 @@ public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
                      && b.IsActive)
             .Select(b => b.Id)
             .FirstOrDefaultAsync(ct);
+
+    private static string ResolveContact(string? contact, string userId)
+    {
+        if (!string.IsNullOrWhiteSpace(contact))
+            return contact.Trim();
+
+        // cp_users.contact is globally unique; synthesize a stable placeholder per user.
+        var suffix = new string(userId.Where(char.IsLetterOrDigit).Take(9).ToArray());
+        return $"+233000{suffix.PadRight(9, '0')}";
+    }
+
+    private async Task EnsureContactAvailableAsync(string contact, string? excludeUserId, CancellationToken ct)
+    {
+        if (await FindContactOwnerAsync(contact, excludeUserId, ct) is not null)
+        {
+            throw new PlatformUserConflictException(
+                "identity.phone", EmployeeErrorMessages.PhoneAlreadyRegistered);
+        }
+    }
+
+    private static void ThrowIfCpUserUniqueViolation(DbUpdateException ex)
+    {
+        if (PostgresUniqueViolation.IsCpUserEmail(ex))
+        {
+            throw new PlatformUserConflictException(
+                "identity.work_email", EmployeeErrorMessages.WorkEmailAlreadyRegistered);
+        }
+
+        if (PostgresUniqueViolation.IsCpUserContact(ex))
+        {
+            throw new PlatformUserConflictException(
+                "identity.phone", EmployeeErrorMessages.PhoneAlreadyRegistered);
+        }
+
+        throw ex;
+    }
 }

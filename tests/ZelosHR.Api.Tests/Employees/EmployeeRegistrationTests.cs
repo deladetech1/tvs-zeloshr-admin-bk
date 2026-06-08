@@ -10,6 +10,7 @@ using ZelosHR.Api.Persistence.Entities;
 using ZelosHR.Api.Persistence.Repositories;
 using ZelosHR.Api.Shared.Abstractions;
 using ZelosHR.Api.Shared.Infrastructure;
+using ZelosHR.Api.Shared.Validation;
 
 namespace ZelosHR.Api.Tests.Employees;
 
@@ -478,5 +479,39 @@ public class EmployeeRegistrationTests
                 && r.Gender == "FEMALE"
                 && r.Dob == "1990-05-01"),
             Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task UpdatePersonalContact_WhenPhoneAlreadyRegistered_ReturnsIdentityPhoneFieldError()
+    {
+        var id = Guid.NewGuid();
+        var entity = new EmployeeEntity
+        {
+            Id = id,
+            TenantId = TestDefaults.TenantId,
+            OrgId = TestDefaults.OrgId,
+            FullName = "Ada Lovelace",
+            IsDraft = true,
+        };
+        _employees.GetByIdScopedForUpdateAsync(id, TestDefaults.TenantId, TestDefaults.OrgId, Arg.Any<CancellationToken>())
+            .Returns(entity);
+        _cpUsers.FindByEmailAsync("ada@corp.com", TestDefaults.TenantId, Arg.Any<CancellationToken>())
+            .Returns((CpUserDto?)null);
+        _cpUsers.ProvisionEmployeeUserAsync(Arg.Any<ProvisionCpUserRequest>(), Arg.Any<CancellationToken>())
+            .Returns<Task<CpUserDto>>(_ => throw new PlatformUserConflictException(
+                "identity.phone", EmployeeErrorMessages.PhoneAlreadyRegistered));
+
+        var result = await _sut.UpdatePersonalContactAsync(
+            id,
+            new CreateEmployeeRequest
+            {
+                FullName = "Ada Lovelace",
+                WorkEmail = "ada@corp.com",
+                Phone = "+233201234567",
+            });
+
+        result.Success.Should().BeFalse();
+        result.FieldErrors.Should().ContainKey("identity.phone")
+            .WhoseValue.Should().Be(EmployeeErrorMessages.PhoneAlreadyRegistered);
     }
 }

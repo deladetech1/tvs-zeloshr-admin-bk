@@ -8,8 +8,6 @@ using ZelosHR.Api.Shared.Formatting;
 using ZelosHR.Api.Shared.Infrastructure;
 using ZelosHR.Api.Shared.Validation;
 
-namespace ZelosHR.Api.Entities.Employees;
-
 public sealed class EmployeeRegistrationService
 {
     private readonly IEmployeeRepository _employees;
@@ -301,7 +299,11 @@ public sealed class EmployeeRegistrationService
 
         if (!string.IsNullOrWhiteSpace(e.UserId))
         {
-            await _cpUsers.UpdateIdentityAsync(e.UserId, _tenant.TenantId, identity, ct);
+            var syncExisting = await RunPlatformUserAsync(
+                innerCt => _cpUsers.UpdateIdentityAsync(e.UserId, _tenant.TenantId, identity, innerCt), ct);
+            if (syncExisting is not null)
+                return syncExisting;
+
             await _cpUsers.EnsureUserLocationAsync(
                 e.UserId, _tenant.TenantId, _tenant.OrgId, _tenant.BusId, _tenant.LocId, ct);
             ClearCpUserIdentityFromEmployee(e);
@@ -328,10 +330,15 @@ public sealed class EmployeeRegistrationService
             }
 
             e.UserId = existing.Id;
-            await _cpUsers.UpdateIdentityAsync(existing.Id, _tenant.TenantId, identity, ct);
-            await _cpUsers.EnsureHrMembershipAsync(existing.Id, _tenant.TenantId, createdBy, ct);
-            await _cpUsers.EnsureUserLocationAsync(
-                existing.Id, _tenant.TenantId, _tenant.OrgId, _tenant.BusId, _tenant.LocId, ct);
+            var linkExisting = await RunPlatformUserAsync(async ct =>
+            {
+                await _cpUsers.UpdateIdentityAsync(existing.Id, _tenant.TenantId, identity, ct);
+                await _cpUsers.EnsureHrMembershipAsync(existing.Id, _tenant.TenantId, createdBy, ct);
+                await _cpUsers.EnsureUserLocationAsync(
+                    existing.Id, _tenant.TenantId, _tenant.OrgId, _tenant.BusId, _tenant.LocId, ct);
+            }, ct);
+            if (linkExisting is not null)
+                return linkExisting;
         }
         else
         {
@@ -344,20 +351,12 @@ public sealed class EmployeeRegistrationService
                     });
             }
 
-            try
-            {
-                var provisioned = await _cpUsers.ProvisionEmployeeUserAsync(
-                    ToProvisionRequest(identity, createdBy), ct);
-                e.UserId = provisioned.Id;
-            }
-            catch (InvalidOperationException)
-            {
-                return Respons<EmployeeRegistrationReadDto>.ValidationError(
-                    new Dictionary<string, string>
-                    {
-                        ["identity.work_email"] = EmployeeErrorMessages.WorkEmailAlreadyRegistered,
-                    });
-            }
+            var provisioned = await RunPlatformUserAsync(
+                ct => _cpUsers.ProvisionEmployeeUserAsync(ToProvisionRequest(identity, createdBy), ct), ct);
+            if (provisioned.Error is not null)
+                return provisioned.Error;
+
+            e.UserId = provisioned.Value!.Id;
         }
 
         ClearCpUserIdentityFromEmployee(e);
@@ -374,10 +373,16 @@ public sealed class EmployeeRegistrationService
 
         if (!string.IsNullOrWhiteSpace(employee.UserId))
         {
-            await _cpUsers.UpdateIdentityAsync(employee.UserId, _tenant.TenantId, identity, ct);
-            await _cpUsers.EnsureHrMembershipAsync(employee.UserId, _tenant.TenantId, createdBy, ct);
-            await _cpUsers.EnsureUserLocationAsync(
-                employee.UserId, _tenant.TenantId, _tenant.OrgId, _tenant.BusId, _tenant.LocId, ct);
+            var updateExisting = await RunPlatformUserAsync(async ct =>
+            {
+                await _cpUsers.UpdateIdentityAsync(employee.UserId, _tenant.TenantId, identity, ct);
+                await _cpUsers.EnsureHrMembershipAsync(employee.UserId, _tenant.TenantId, createdBy, ct);
+                await _cpUsers.EnsureUserLocationAsync(
+                    employee.UserId, _tenant.TenantId, _tenant.OrgId, _tenant.BusId, _tenant.LocId, ct);
+            }, ct);
+            if (updateExisting is not null)
+                return (null, updateExisting);
+
             return (employee.UserId, null);
         }
 
@@ -403,28 +408,58 @@ public sealed class EmployeeRegistrationService
                     }));
             }
 
-            await _cpUsers.UpdateIdentityAsync(existing.Id, _tenant.TenantId, identity, ct);
-            await _cpUsers.EnsureHrMembershipAsync(existing.Id, _tenant.TenantId, createdBy, ct);
-            await _cpUsers.EnsureUserLocationAsync(
-                existing.Id, _tenant.TenantId, _tenant.OrgId, _tenant.BusId, _tenant.LocId, ct);
+            var linkByEmail = await RunPlatformUserAsync(async ct =>
+            {
+                await _cpUsers.UpdateIdentityAsync(existing.Id, _tenant.TenantId, identity, ct);
+                await _cpUsers.EnsureHrMembershipAsync(existing.Id, _tenant.TenantId, createdBy, ct);
+                await _cpUsers.EnsureUserLocationAsync(
+                    existing.Id, _tenant.TenantId, _tenant.OrgId, _tenant.BusId, _tenant.LocId, ct);
+            }, ct);
+            if (linkByEmail is not null)
+                return (null, linkByEmail);
+
             return (existing.Id, null);
         }
 
+        var provisioned = await RunPlatformUserAsync(
+            ct => _cpUsers.ProvisionEmployeeUserAsync(ToProvisionRequest(identity, createdBy), ct), ct);
+        if (provisioned.Error is not null)
+            return (null, provisioned.Error);
+
+        return (provisioned.Value!.Id, null);
+    }
+
+    private static async Task<Respons<EmployeeRegistrationReadDto>?> RunPlatformUserAsync(
+        Func<CancellationToken, Task> action, CancellationToken ct)
+    {
         try
         {
-            var provisioned = await _cpUsers.ProvisionEmployeeUserAsync(
-                ToProvisionRequest(identity, createdBy), ct);
-            return (provisioned.Id, null);
+            await action(ct);
+            return null;
         }
-        catch (InvalidOperationException)
+        catch (PlatformUserConflictException ex)
         {
-            return (null, Respons<EmployeeRegistrationReadDto>.ValidationError(
-                new Dictionary<string, string>
-                {
-                    ["identity.work_email"] = EmployeeErrorMessages.WorkEmailAlreadyRegistered,
-                }));
+            return ToPlatformUserValidationError(ex);
         }
     }
+
+    private static async Task<(CpUserDto? Value, Respons<EmployeeRegistrationReadDto>? Error)> RunPlatformUserAsync(
+        Func<CancellationToken, Task<CpUserDto>> action, CancellationToken ct)
+    {
+        try
+        {
+            return (await action(ct), null);
+        }
+        catch (PlatformUserConflictException ex)
+        {
+            return (null, ToPlatformUserValidationError(ex));
+        }
+    }
+
+    private static Respons<EmployeeRegistrationReadDto> ToPlatformUserValidationError(
+        PlatformUserConflictException ex) =>
+        Respons<EmployeeRegistrationReadDto>.ValidationError(
+            new Dictionary<string, string> { [ex.FieldKey] = ex.Message });
 
     private ProvisionCpUserRequest ToProvisionRequest(CpUserIdentityData identity, string? createdBy) =>
         new(

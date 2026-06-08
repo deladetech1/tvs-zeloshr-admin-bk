@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using ZelosHR.Api.Entities.AuditLogs;
 using ZelosHR.Api.Entities.Branches;
 using ZelosHR.Api.Entities.CustomFields;
@@ -9,7 +10,9 @@ using ZelosHR.Api.Persistence.Entities;
 using ZelosHR.Api.Persistence.Repositories;
 using ZelosHR.Api.Shared.Abstractions;
 using ZelosHR.Api.Shared.Formatting;
+using ZelosHR.Api.Shared.Infrastructure;
 using ZelosHR.Api.Shared.Pagination;
+using ZelosHR.Api.Shared.Validation;
 
 namespace ZelosHR.Api.Entities.Employees;
 
@@ -213,6 +216,30 @@ public sealed class EmployeeAggregateService
             await transaction.CommitAsync(ct);
             await TryRecordEmployeeCreateAuditAsync(employeeId, isFinalised, ct);
             return await GetAsync(employeeId, ct);
+        }
+        catch (PlatformUserConflictException ex)
+        {
+            await transaction.RollbackAsync(ct);
+            return Respons<EmployeeAggregateReadDto>.ValidationError(
+                new Dictionary<string, string> { [ex.FieldKey] = ex.Message });
+        }
+        catch (DbUpdateException ex) when (PostgresUniqueViolation.IsCpUserEmail(ex))
+        {
+            await transaction.RollbackAsync(ct);
+            return Respons<EmployeeAggregateReadDto>.ValidationError(
+                new Dictionary<string, string>
+                {
+                    ["identity.work_email"] = EmployeeErrorMessages.WorkEmailAlreadyRegistered,
+                });
+        }
+        catch (DbUpdateException ex) when (PostgresUniqueViolation.IsCpUserContact(ex))
+        {
+            await transaction.RollbackAsync(ct);
+            return Respons<EmployeeAggregateReadDto>.ValidationError(
+                new Dictionary<string, string>
+                {
+                    ["identity.phone"] = EmployeeErrorMessages.PhoneAlreadyRegistered,
+                });
         }
         catch (Exception ex)
         {
@@ -515,6 +542,30 @@ public sealed class EmployeeAggregateService
             await transaction.CommitAsync(ct);
             await TryRecordEmployeeUpdateAuditAsync(employeeId, request, ct);
             return await GetAsync(employeeId, ct);
+        }
+        catch (PlatformUserConflictException ex)
+        {
+            await transaction.RollbackAsync(ct);
+            return Respons<EmployeeAggregateReadDto>.ValidationError(
+                new Dictionary<string, string> { [ex.FieldKey] = ex.Message });
+        }
+        catch (DbUpdateException ex) when (PostgresUniqueViolation.IsCpUserEmail(ex))
+        {
+            await transaction.RollbackAsync(ct);
+            return Respons<EmployeeAggregateReadDto>.ValidationError(
+                new Dictionary<string, string>
+                {
+                    ["identity.work_email"] = EmployeeErrorMessages.WorkEmailAlreadyRegistered,
+                });
+        }
+        catch (DbUpdateException ex) when (PostgresUniqueViolation.IsCpUserContact(ex))
+        {
+            await transaction.RollbackAsync(ct);
+            return Respons<EmployeeAggregateReadDto>.ValidationError(
+                new Dictionary<string, string>
+                {
+                    ["identity.phone"] = EmployeeErrorMessages.PhoneAlreadyRegistered,
+                });
         }
         catch (Exception ex)
         {

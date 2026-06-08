@@ -43,6 +43,12 @@ public class ExceptionHandlerMiddleware
             _logger.LogInformation(ex, "Not found");
             await WriteResponsAsync(context, Respons<object>.NotFound(ex.Message));
         }
+        catch (PlatformUserConflictException ex)
+        {
+            _logger.LogInformation(ex, "Platform user conflict on {Field}", ex.FieldKey);
+            await WriteResponsAsync(context, Respons<object>.ValidationError(
+                new Dictionary<string, string> { [ex.FieldKey] = ex.Message }));
+        }
         catch (InvalidOperationException ex)
         {
             _logger.LogInformation(ex, "Invalid operation");
