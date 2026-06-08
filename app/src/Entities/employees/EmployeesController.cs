@@ -268,7 +268,6 @@ public class EmployeesController : ControllerBase
             FirstName = serviceResult.Data.FirstName,
             MiddleName = serviceResult.Data.MiddleName,
             LastName = serviceResult.Data.LastName,
-            LifecycleState = serviceResult.Data.LifecycleState,
         };
 
         return Ok(Respons<CreateEmployeeControllerReadDto>.Ok(read, "Employee created successfully"));

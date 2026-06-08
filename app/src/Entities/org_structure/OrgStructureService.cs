@@ -98,7 +98,11 @@ public class OrgStructureService
                     : profileUrlMap.GetValueOrDefault(storedProfileRef.Trim());
             });
 
-        var roots = OrgChartBuilder.Build(employees, departmentByHeadId, profileUrlsByEmployeeId);
+        var roots = OrgChartBuilder.Build(
+            employees,
+            departmentByHeadId,
+            profileUrlsByEmployeeId,
+            platformUsers);
 
         return Respons<OrgChartDto>.Ok(new OrgChartDto { Roots = roots });
     }

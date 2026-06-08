@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.Json.Nodes;
 using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using ZelosHR.Api.Entities.AuditLogs;
 using ZelosHR.Api.Entities.Branches;
 using ZelosHR.Api.Entities.Currencies;
 using ZelosHR.Api.Entities.CustomFields;
@@ -87,13 +88,22 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 ["employee_count"] = 8,
                 ["headcount_capacity"] = 10,
             },
+            nameof(AuditLogSummaryDto) => SwaggerExamples.AuditLogSummaryData(),
+            nameof(AuditLogListItemDto) => SwaggerExamples.AuditLogListItemData(),
+            nameof(AuditLogListDto) => SwaggerExamples.AuditLogListData(),
+            nameof(AuditLogEmployeeRefDto) => new JsonObject
+            {
+                ["employee_id"] = SwaggerExamples.SampleEmployeeId.ToString(),
+                ["employee_display_code"] = "EMP-0042",
+                ["employee_full_name"] = "Ama Mensah",
+            },
             _ => schema.Example,
         };
 
         schema.Description = context.Type.Name switch
         {
             nameof(CreateEmployeeAggregateRequest) => AppendDescription(schema.Description,
-                "One-shot employee create. See operation examples (finalised vs draft). Upload files first via POST /api/v1/file/post/multiple."),
+                "One-shot employee create. See operation examples (full profile vs minimal). Upload files first via POST /api/v1/file/post/multiple."),
             nameof(UpdateEmployeeAggregateRequest) => AppendDescription(schema.Description,
                 "Partial update — only include sections to change. education[]/certifications[]: id to update, omit id to add. sync_* + full array replaces section."),
             nameof(EmployeeDirectorySummaryDto) => AppendDescription(schema.Description,
@@ -138,6 +148,10 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 $"Person node. node_type: {SwaggerExampleHints.OrgNodeType}. profile_url: DocumentReadDto (presigned_url ~24h) or null. department badge on dept heads; children are direct reports."),
             nameof(OrgChartDepartmentBadgeDto) => AppendDescription(schema.Description,
                 "Shown on department-head nodes only. employee_count / headcount_capacity drive the headcount bar (e.g. 8/10)."),
+            nameof(AuditLogSummaryDto) => AppendDescription(schema.Description,
+                "KPI cards on audit log page: total_entries · critical_count (High) · flagged_count · sensitive_reads_count · unique_actors_count."),
+            nameof(AuditLogListItemDto) => AppendDescription(schema.Description,
+                $"Table row. category: {SwaggerExampleHints.AuditCategory}. severity: {SwaggerExampleHints.AuditSeverity}. actor_id is platform user id when known."),
             _ => schema.Description,
         };
     }

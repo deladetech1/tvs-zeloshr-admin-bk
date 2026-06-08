@@ -70,6 +70,7 @@ public class AuditLogsService
                 EmployeeDisplayCode = r.EmployeeDisplayCode,
                 EmployeeFullName = r.EmployeeFullName,
             },
+        ActorId = r.ActorId,
         ActorFullName = r.ActorFullName,
         Category = r.Category,
         Severity = r.Severity,

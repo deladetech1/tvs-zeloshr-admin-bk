@@ -1,4 +1,6 @@
+using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Files;
+using ZelosHR.Api.Shared.Formatting;
 
 namespace ZelosHR.Api.Entities.OrgStructure;
 
@@ -7,29 +9,34 @@ internal static class OrgChartBuilder
     internal static IReadOnlyList<OrgChartNodeDto> Build(
         IReadOnlyList<OrgChartEmployeeRow> employees,
         IReadOnlyDictionary<Guid, OrgChartDepartmentHeadRow> departmentByHeadId,
-        IReadOnlyDictionary<Guid, DocumentReadDto?> profileUrlsByEmployeeId)
+        IReadOnlyDictionary<Guid, DocumentReadDto?> profileUrlsByEmployeeId,
+        IReadOnlyDictionary<string, CpUserDto> platformUsers)
     {
         if (employees.Count == 0)
             return [];
 
         var nodes = employees.ToDictionary(
             e => e.Id,
-            e => new MutableNode
+            e =>
             {
-                Id = e.Id.ToString(),
-                FullName = ResolveFullName(e),
-                JobTitle = e.JobTitle,
-                ProfileUrl = profileUrlsByEmployeeId.GetValueOrDefault(e.Id),
-                ReportsToId = e.ReportsToId?.ToString(),
-                Department = departmentByHeadId.TryGetValue(e.Id, out var dept)
-                    ? new OrgChartDepartmentBadgeDto
-                    {
-                        DepartmentId = dept.DepartmentId.ToString(),
-                        Name = dept.Name,
-                        EmployeeCount = dept.EmployeeCount,
-                        HeadcountCapacity = dept.HeadcountCapacity,
-                    }
-                    : null,
+                platformUsers.TryGetValue(e.UserId ?? string.Empty, out var cp);
+                return new MutableNode
+                {
+                    Id = e.Id.ToString(),
+                    FullName = ResolveFullName(e, cp),
+                    JobTitle = e.JobTitle,
+                    ProfileUrl = profileUrlsByEmployeeId.GetValueOrDefault(e.Id),
+                    ReportsToId = e.ReportsToId?.ToString(),
+                    Department = departmentByHeadId.TryGetValue(e.Id, out var dept)
+                        ? new OrgChartDepartmentBadgeDto
+                        {
+                            DepartmentId = dept.DepartmentId.ToString(),
+                            Name = dept.Name,
+                            EmployeeCount = dept.EmployeeCount,
+                            HeadcountCapacity = dept.HeadcountCapacity,
+                        }
+                        : null,
+                };
             });
 
         var roots = new List<MutableNode>();
@@ -54,15 +61,16 @@ internal static class OrgChartBuilder
             .ToList();
     }
 
-    private static string ResolveFullName(OrgChartEmployeeRow row)
+    internal static string ResolveFullName(OrgChartEmployeeRow row, CpUserDto? platformUser)
     {
-        if (!string.IsNullOrWhiteSpace(row.FullName))
-            return row.FullName.Trim();
+        if (!string.IsNullOrWhiteSpace(platformUser?.FullName))
+            return platformUser.FullName.Trim();
 
-        return ZelosHR.Api.Shared.Formatting.NameFormatting.BuildFullName(
-            row.FirstName ?? string.Empty,
-            null,
-            row.LastName ?? string.Empty);
+        return NameFormatting.ResolveFullName(
+            row.FullName,
+            row.FirstName,
+            row.MiddleName,
+            row.LastName);
     }
 
     private sealed class MutableNode

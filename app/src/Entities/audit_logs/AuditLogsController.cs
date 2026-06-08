@@ -6,8 +6,9 @@ using ZelosHR.Api.Shared.Tenant;
 
 namespace ZelosHR.Api.Entities.AuditLogs;
 
+/// <summary>Read-only audit trail for HR actions (entries appended by the API on mutations).</summary>
 [ApiController]
-[ApiExplorerSettings(GroupName = SwaggerGroups.AuditLogs, IgnoreApi = true)]
+[ApiExplorerSettings(GroupName = SwaggerGroups.AuditLogs)]
 [Route("api/v1/audit-logs")]
 [Produces("application/json")]
 public class AuditLogsController : ControllerBase

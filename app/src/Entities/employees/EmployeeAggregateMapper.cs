@@ -37,7 +37,7 @@ internal static class EmployeeAggregateMapper
             GrossSalary = aggregate.Compensation?.GrossSalary,
             PayFrequency = aggregate.Compensation?.PayFrequency,
             CurrencyId = aggregate.Compensation?.CurrencyId,
-            Finalise = string.Equals(aggregate.Status, "finalised", StringComparison.OrdinalIgnoreCase),
+            Finalise = !string.IsNullOrWhiteSpace(aggregate.Identity.WorkEmail),
         };
 
     public static CreateEmployeeRequest ToWizardRequest(UpdateEmployeeAggregateRequest update) =>

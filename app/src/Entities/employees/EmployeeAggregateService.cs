@@ -1,3 +1,4 @@
+using ZelosHR.Api.Entities.AuditLogs;
 using ZelosHR.Api.Entities.Branches;
 using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Departments;
@@ -29,6 +30,7 @@ public sealed class EmployeeAggregateService
     private readonly IHrDocumentPathRepository _hrDocuments;
     private readonly ICpCurrencyRepository _currencies;
     private readonly HrDocumentPresignedUrlService _profileUrls;
+    private readonly IAuditLogWriter _auditLogs;
     private readonly ITenantContext _tenant;
 
     public EmployeeAggregateService(
@@ -44,6 +46,7 @@ public sealed class EmployeeAggregateService
         IHrDocumentPathRepository hrDocuments,
         ICpCurrencyRepository currencies,
         HrDocumentPresignedUrlService profileUrls,
+        IAuditLogWriter auditLogs,
         ITenantContext tenant)
     {
         _db = db;
@@ -58,6 +61,7 @@ public sealed class EmployeeAggregateService
         _hrDocuments = hrDocuments;
         _currencies = currencies;
         _profileUrls = profileUrls;
+        _auditLogs = auditLogs;
         _tenant = tenant;
     }
 
@@ -68,7 +72,7 @@ public sealed class EmployeeAggregateService
         if (validation is not null)
             return Respons<EmployeeAggregateReadDto>.ValidationError(validation);
 
-        var isFinalised = string.Equals(request.Status, "finalised", StringComparison.OrdinalIgnoreCase);
+        var isFinalised = !string.IsNullOrWhiteSpace(request.Identity.WorkEmail);
 
         await using var transaction = await _db.Database.BeginTransactionAsync(ct);
         try
@@ -200,6 +204,8 @@ public sealed class EmployeeAggregateService
                 }
             }
 
+            await RecordEmployeeCreateAuditAsync(employeeId, isFinalised, ct);
+
             await transaction.CommitAsync(ct);
             return await GetAsync(employeeId, ct);
         }
@@ -217,7 +223,7 @@ public sealed class EmployeeAggregateService
         {
             return Respons<EmployeeAggregateReadDto>.ValidationError(new Dictionary<string, string>
             {
-                ["body"] = "Include at least one field to update (status, identity, employment, compensation, lifecycle_state, education, certifications, documents).",
+                ["body"] = "Include at least one field to update (identity, employment, compensation, education, certifications, documents).",
             });
         }
 
@@ -225,10 +231,12 @@ public sealed class EmployeeAggregateService
         if (validation is not null)
             return Respons<EmployeeAggregateReadDto>.ValidationError(validation);
 
-        var shouldFinalise = string.Equals(request.Status, "finalised", StringComparison.OrdinalIgnoreCase);
-
-        if (await _employees.GetByIdScopedAsync(employeeId, _tenant.TenantId, _tenant.OrgId, ct) is null)
+        var entityBeforeUpdate = await _employees.GetByIdScopedAsync(employeeId, _tenant.TenantId, _tenant.OrgId, ct);
+        if (entityBeforeUpdate is null)
             return Respons<EmployeeAggregateReadDto>.Fail("Employee not found.", statusCode: 404);
+
+        var shouldFinalise = entityBeforeUpdate.IsDraft
+            && !string.IsNullOrWhiteSpace(request.Identity?.WorkEmail);
 
         await using var transaction = await _db.Database.BeginTransactionAsync(ct);
         try
@@ -293,19 +301,6 @@ public sealed class EmployeeAggregateService
                 {
                     await transaction.RollbackAsync(ct);
                     return MapError<EmployeeAggregateReadDto>(compensation);
-                }
-            }
-
-            if (!string.IsNullOrWhiteSpace(request.LifecycleState))
-            {
-                var lifecycle = await _employeesService.UpdateLifecycleStateAsync(
-                    employeeId, request.LifecycleState, _tenant.TenantId, _tenant.OrgId, ct);
-                if (!lifecycle.Success)
-                {
-                    await transaction.RollbackAsync(ct);
-                    return Respons<EmployeeAggregateReadDto>.Fail(
-                        lifecycle.Error ?? lifecycle.Detail ?? "Lifecycle update failed.",
-                        statusCode: lifecycle.StatusCode);
                 }
             }
 
@@ -509,6 +504,8 @@ public sealed class EmployeeAggregateService
                 }
             }
 
+            await RecordEmployeeUpdateAuditAsync(employeeId, request, ct);
+
             await transaction.CommitAsync(ct);
             return await GetAsync(employeeId, ct);
         }
@@ -561,8 +558,6 @@ public sealed class EmployeeAggregateService
         {
             Id = entity.Id,
             EmployeeCode = entity.EmployeeCode,
-            Status = entity.IsDraft ? "draft" : entity.LifecycleStatus,
-            IsDraft = entity.IsDraft,
             UserId = entity.UserId,
             Identity = EmployeeAggregateReadMapper.BuildIdentity(
                 fullName,
@@ -631,7 +626,6 @@ public sealed class EmployeeAggregateService
                 DepartmentName = e.Department?.Name,
                 BranchName = e.Branch?.Name,
                 WorkLocation = e.WorkLocation,
-                LifecycleState = e.LifecycleState,
                 EmploymentStatus = e.EmploymentStatus,
                 EmploymentType = e.EmploymentType,
                 ProfileUrl = profileUrl,
@@ -650,11 +644,9 @@ public sealed class EmployeeAggregateService
     }
 
     private static bool HasAnyUpdate(UpdateEmployeeAggregateRequest request) =>
-        !string.IsNullOrWhiteSpace(request.Status)
-        || request.Identity is not null
+        request.Identity is not null
         || request.Employment is not null
         || request.Compensation is not null
-        || !string.IsNullOrWhiteSpace(request.LifecycleState)
         || request.Education is not null
         || request.Certifications is not null
         || request.DeleteEducationIds is { Count: > 0 }
@@ -758,13 +750,6 @@ public sealed class EmployeeAggregateService
     {
         var errors = new Dictionary<string, string>();
 
-        if (!string.IsNullOrWhiteSpace(request.Status)
-            && !string.Equals(request.Status, "finalised", StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(request.Status, "draft", StringComparison.OrdinalIgnoreCase))
-        {
-            errors["status"] = "Status must be 'draft' or 'finalised'.";
-        }
-
         if (request.Education is { Count: > MaxEducation })
             errors["education"] = $"At most {MaxEducation} education records allowed per request.";
 
@@ -839,4 +824,44 @@ public sealed class EmployeeAggregateService
 
     private static Respons<T> Fail<T>(int statusCode, string? error, string? detail) =>
         Respons<T>.Fail(error ?? detail ?? "Request failed.", statusCode: statusCode);
+
+    private async Task RecordEmployeeCreateAuditAsync(
+        Guid employeeId,
+        bool isFinalised,
+        CancellationToken ct)
+    {
+        var (code, fullName) = await ResolveEmployeeAuditIdentityAsync(employeeId, ct);
+        var auditEvent = AuditLogEmployeeEvents.WithEmployee(
+            AuditLogEmployeeEvents.ForCreate(isFinalised),
+            employeeId,
+            code,
+            fullName);
+        await _auditLogs.RecordAsync(_tenant.TenantId, _tenant.OrgId, auditEvent, ct);
+    }
+
+    private async Task RecordEmployeeUpdateAuditAsync(
+        Guid employeeId,
+        UpdateEmployeeAggregateRequest request,
+        CancellationToken ct)
+    {
+        var (code, fullName) = await ResolveEmployeeAuditIdentityAsync(employeeId, ct);
+        var auditEvent = AuditLogEmployeeEvents.ForUpdate(request, employeeId, code, fullName);
+        await _auditLogs.RecordAsync(_tenant.TenantId, _tenant.OrgId, auditEvent, ct);
+    }
+
+    private async Task<(string Code, string FullName)> ResolveEmployeeAuditIdentityAsync(
+        Guid employeeId,
+        CancellationToken ct)
+    {
+        var entity = await _employees.GetByIdScopedAsync(employeeId, _tenant.TenantId, _tenant.OrgId, ct);
+        if (entity is null)
+            return (string.Empty, "Unknown employee");
+
+        CpUserDto? cp = null;
+        if (!string.IsNullOrWhiteSpace(entity.UserId))
+            cp = await _cpUsers.GetByIdAsync(entity.UserId, _tenant.TenantId, ct);
+
+        var fullName = EmployeeIdentityResolver.ResolveFullName(entity, cp);
+        return (entity.EmployeeCode ?? string.Empty, fullName);
+    }
 }

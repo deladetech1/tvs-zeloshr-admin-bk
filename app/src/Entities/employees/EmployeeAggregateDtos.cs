@@ -6,14 +6,11 @@ namespace ZelosHR.Api.Entities.Employees;
 
 /// <summary>
 /// One-shot employee create. Required on create: <c>identity.full_name</c> and <c>identity.phone</c>.
-/// Finalise requires <c>identity.work_email</c> (links/creates <c>cp_users</c>).
+/// When <c>identity.work_email</c> is set, registration finalises and links <c>cp_users</c>.
 /// All <c>employment</c> fields are optional; when <c>department_id</c> or <c>branch_id</c> is set, the ID must exist.
 /// <c>work_arrangement: remote</c> with a <c>branch_id</c> is rejected (inconsistent data).
 /// </summary>
 /// <remarks>
-/// **Status:** <c>draft</c> | <c>finalised</c> — draft saves without finalising; finalised completes registration and links
-/// <c>cp_users</c> when <c>work_email</c> is set.
-///
 /// **Custom fields:** Define schema first via <c>POST /api/v1/custom-fields/add</c> with
 /// <c>section_name</c> = <c>employee-directory-identity</c> | <c>employee-directory-employment</c> | etc.
 /// Load via <c>GET /api/v1/custom-fields/schema?entityType=employee</c>, then pass values under each section's
@@ -23,14 +20,10 @@ namespace ZelosHR.Api.Entities.Employees;
 ///
 /// **Currency:** Use <c>compensation.currency_id</c> (FK to <c>core_platform.cp_currencies</c>), not a currency code.
 ///
-/// See operation **Examples** dropdown for <c>finalised_full_profile</c> and <c>draft_minimal</c> payloads.
+/// See operation **Examples** dropdown for <c>full_profile</c> and <c>minimal</c> payloads.
 /// </remarks>
 public sealed class CreateEmployeeAggregateRequest
 {
-    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.CreateStatuses),
-        Description = "draft: save without finalising | finalised: create and link platform user when work_email is set.")]
-    public string Status { get; init; } = "draft";
-
     public EmployeeAggregateIdentityDto Identity { get; init; } = new();
     public EmployeeAggregateEmploymentDto? Employment { get; init; }
     public EmployeeAggregateCompensationDto? Compensation { get; init; }
@@ -58,16 +51,9 @@ public sealed class CreateEmployeeAggregateRequest
 /// </remarks>
 public sealed class UpdateEmployeeAggregateRequest
 {
-    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.CreateStatuses),
-        Description = "Use finalised to complete a draft | links platform user when work_email is set.")]
-    public string? Status { get; init; }
-
     public EmployeeAggregateIdentityDto? Identity { get; init; }
     public EmployeeAggregateEmploymentDto? Employment { get; init; }
     public EmployeeAggregateCompensationDto? Compensation { get; init; }
-
-    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.LifecycleStatesForUpdate))]
-    public string? LifecycleState { get; init; }
 
     public IReadOnlyList<EmployeeEducationUpsertDto>? Education { get; init; }
     public IReadOnlyList<EmployeeCertificationUpsertDto>? Certifications { get; init; }
@@ -215,11 +201,6 @@ public sealed class EmployeeAggregateReadDto
 {
     public required Guid Id { get; init; }
     public required string EmployeeCode { get; init; }
-
-    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.CreateStatuses))]
-    public required string Status { get; init; }
-
-    public bool IsDraft { get; init; }
     public string? UserId { get; init; }
     public EmployeeAggregateIdentityReadDto Identity { get; init; } = new();
     public EmployeeAggregateEmploymentReadDto? Employment { get; init; }
@@ -251,9 +232,6 @@ public sealed class EmployeeAggregateCompensationReadDto : EmployeeAggregateComp
 public sealed class EmployeeListQuery
 {
     public string? Search { get; init; }
-
-    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.LifecycleStatesAll))]
-    public string? LifecycleState { get; init; }
 
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.EmploymentStatuses))]
     public string? EmploymentStatus { get; init; }
@@ -291,9 +269,6 @@ public sealed class EmployeeListItemDto
     public string? DepartmentName { get; init; }
     public string? BranchName { get; init; }
     public string? WorkLocation { get; init; }
-
-    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.LifecycleStatesAll))]
-    public required string LifecycleState { get; init; }
 
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.EmploymentStatuses))]
     public string? EmploymentStatus { get; init; }

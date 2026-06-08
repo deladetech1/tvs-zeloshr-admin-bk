@@ -15,13 +15,6 @@ internal static class EmployeeAggregateCreateValidator
         if (string.IsNullOrWhiteSpace(request.Identity.Phone))
             errors["identity.phone"] = "Phone is required.";
 
-        if (!string.IsNullOrWhiteSpace(request.Status)
-            && !string.Equals(request.Status, "finalised", StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(request.Status, "draft", StringComparison.OrdinalIgnoreCase))
-        {
-            errors["status"] = "Status must be 'draft' or 'finalised'.";
-        }
-
         if (request.Education.Count > MaxEducation)
             errors["education"] = $"At most {MaxEducation} education records allowed.";
 

@@ -18,7 +18,27 @@ public interface IAuditLogRepository
 
     Task<AuditLogListRow?> GetByIdScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default);
+
+    Task AppendScopedAsync(
+        string tenantId,
+        string orgId,
+        AuditLogAppendRow row,
+        CancellationToken ct = default);
 }
+
+public sealed record AuditLogAppendRow(
+    DateTimeOffset OccurredAt,
+    string ActionTitle,
+    string? ActionDescription,
+    Guid? EmployeeId,
+    string? EmployeeDisplayCode,
+    string? EmployeeFullName,
+    string? ActorId,
+    string ActorFullName,
+    string Category,
+    string Severity,
+    bool IsFlagged,
+    bool IsSensitiveRead);
 
 public sealed record AuditLogListRow(
     Guid Id,
@@ -28,6 +48,7 @@ public sealed record AuditLogListRow(
     Guid? EmployeeId,
     string? EmployeeDisplayCode,
     string? EmployeeFullName,
+    string? ActorId,
     string ActorFullName,
     string Category,
     string Severity,

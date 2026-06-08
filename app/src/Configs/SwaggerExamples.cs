@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using ZelosHR.Api.Entities.AuditLogs;
 using ZelosHR.Api.Entities.Branches;
 using ZelosHR.Api.Entities.Currencies;
 using ZelosHR.Api.Entities.CustomFields;
@@ -23,6 +24,7 @@ internal static class SwaggerExamples
     internal static readonly Guid SampleEducationRowId = Guid.Parse("55555555-5555-5555-5555-555555555501");
     internal static readonly Guid SampleCertificationRowId = Guid.Parse("66666666-6666-6666-6666-666666666601");
     internal static readonly Guid SampleReportsToId = Guid.Parse("33333333-3333-3333-3333-333333333301");
+    internal static readonly Guid SampleAuditLogId = Guid.Parse("a1111111-1111-1111-1111-111111111101");
 
     internal const string SampleCurrencyId = "cur_ghs_default";
     internal const string SampleDocumentId1 = "doc_contract_a1b2c3";
@@ -236,6 +238,9 @@ internal static class SwaggerExamples
             nameof(BranchListDto) => BranchListResponseExample(),
             nameof(CreateDepartmentResponseDto) => EnvelopeOk(CreateDepartmentResponseData()),
             nameof(BranchMutationResponseDto) => EnvelopeOk(BranchMutationResponseData()),
+            nameof(AuditLogSummaryDto) => EnvelopeOk(AuditLogSummaryData()),
+            nameof(AuditLogListDto) => AuditLogListResponse(),
+            nameof(AuditLogListItemDto) => AuditLogGetResponse(),
             _ when dataType == typeof(string) => EnvelopeOk(JsonValue.Create("Operation completed successfully.")),
             _ when dataType == typeof(object) => EnvelopeOk(new JsonObject()),
             _ => EnvelopeOk(new JsonObject()),
@@ -312,7 +317,6 @@ internal static class SwaggerExamples
         ["first_name"] = "Ada",
         ["middle_name"] = "",
         ["last_name"] = "Lovelace",
-        ["lifecycle_state"] = "active",
     };
 
     private static JsonObject EmployeeListData() => new()
@@ -326,7 +330,6 @@ internal static class SwaggerExamples
             ["department_name"] = "Engineering",
             ["branch_name"] = "Accra HQ",
             ["work_location"] = "Accra HQ",
-            ["lifecycle_state"] = "active",
             ["employment_status"] = "Active",
             ["employment_type"] = "Full-time",
             ["profile_url"] = EmployeeDocumentItem(SampleDocumentId1, "Employee profile photo"),
@@ -833,7 +836,6 @@ internal static class SwaggerExamples
 
     internal static JsonObject CreateEmployeeFinalised() => new()
     {
-        ["status"] = SwaggerExampleHints.Status,
         ["identity"] = IdentitySection(withCustomField: true, optionHints: true),
         ["employment"] = EmploymentSection(optionHints: true),
         ["compensation"] = CompensationSection(withCustomField: true),
@@ -844,7 +846,6 @@ internal static class SwaggerExamples
 
     internal static JsonObject CreateEmployeeDraft() => new()
     {
-        ["status"] = "draft",
         ["identity"] = new JsonObject
         {
             ["full_name"] = "Ada Lovelace",
@@ -1005,8 +1006,6 @@ internal static class SwaggerExamples
             {
                 ["id"] = SampleEmployeeId.ToString(),
                 ["employee_code"] = "EMP-000042",
-                ["status"] = SwaggerExampleHints.Status,
-                ["is_draft"] = SwaggerExampleHints.BooleanPipe,
                 ["user_id"] = "usr_cp_abc123",
                 ["identity"] = IdentitySection(withCustomField: true, forRead: true),
                 ["employment"] = EmploymentSection(withNames: true),
@@ -1180,4 +1179,44 @@ internal static class SwaggerExamples
 
         return obj;
     }
+
+    internal static JsonObject AuditLogSummaryData() => new()
+    {
+        ["total_entries"] = 128,
+        ["critical_count"] = 3,
+        ["flagged_count"] = 5,
+        ["sensitive_reads_count"] = 2,
+        ["unique_actors_count"] = 12,
+    };
+
+    internal static JsonObject AuditLogListItemData() => new()
+    {
+        ["audit_log_id"] = SampleAuditLogId.ToString(),
+        ["occurred_at"] = "2026-06-05T14:32:00Z",
+        ["action_title"] = "Personal information updated",
+        ["action_description"] = "Employee identity details updated.",
+        ["employee"] = new JsonObject
+        {
+            ["employee_id"] = SampleEmployeeId.ToString(),
+            ["employee_display_code"] = "EMP-0042",
+            ["employee_full_name"] = "Ama Mensah",
+        },
+        ["actor_id"] = "u1000001-0000-0000-0000-000000000001",
+        ["actor_full_name"] = "Demo Admin",
+        ["category"] = SwaggerExampleHints.AuditCategory,
+        ["severity"] = "Medium",
+        ["is_flagged"] = SwaggerExampleHints.BooleanPipe,
+    };
+
+    internal static JsonObject AuditLogStatisticsResponse() => EnvelopeOk(AuditLogSummaryData());
+
+    internal static JsonObject AuditLogListResponse() => EnvelopeOk(AuditLogListData(), SamplePagination());
+
+    internal static JsonObject AuditLogListData() => new()
+    {
+        ["summary"] = AuditLogSummaryData(),
+        ["items"] = new JsonArray(AuditLogListItemData()),
+    };
+
+    internal static JsonObject AuditLogGetResponse() => EnvelopeOk(AuditLogListItemData());
 }

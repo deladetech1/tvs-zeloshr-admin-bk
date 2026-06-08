@@ -15,6 +15,7 @@ public sealed class OrgChartRepository(ZelosHrDbContext db) : IOrgChartRepositor
                 e.Id,
                 e.FullName,
                 e.FirstName,
+                e.MiddleName,
                 e.LastName,
                 e.JobTitle,
                 e.ReportsToId,

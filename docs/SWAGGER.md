@@ -29,11 +29,11 @@ Tenant scope is taken from the JWT claim `tenant_id` (read without DB validation
 
 ## What Swagger includes
 
-**Current sprint scope:** **Employees**, **Custom Fields**, **File Management**, **Currencies**, **Organisation** (org chart), and **Lifecycle Events** appear in Swagger. Other controllers stay in the codebase with `[ApiExplorerSettings(IgnoreApi = true)]` and are excluded via `SwaggerGroups.VisibleInSwagger` — remove `IgnoreApi` and add the group to that set when a module ships.
+**Current sprint scope:** **Employees**, **Custom Fields**, **File Management**, **Currencies**, **Organisation** (org chart), **Lifecycle Events**, and **Audit Logs** appear in Swagger. Other controllers stay in the codebase with `[ApiExplorerSettings(IgnoreApi = true)]` and are excluded via `SwaggerGroups.VisibleInSwagger` — remove `IgnoreApi` and add the group to that set when a module ships.
 
 | Feature | Description |
 |---------|-------------|
-| **Tags** | Employees · Custom Fields · File Management · Currencies · Organisation · Lifecycle Events (active); other modules hidden |
+| **Tags** | Employees · Custom Fields · File Management · Currencies · Organisation · Lifecycle Events · Audit Logs (active); other modules hidden |
 | **File Management** | Upload / list / delete — see [FILE_MANAGEMENT.md](FILE_MANAGEMENT.md) for `DocumentReadDto` vs write `document_ids` |
 | **Bearer JWT** | Authorize — sets `authorization: Bearer …` |
 | **Trove headers** | `app-id`, `bus-id`, `loc-id`, `org-id` on each operation (pre-filled for local demo) |
@@ -53,6 +53,16 @@ Response is a **reporting-line tree** (`data.roots[]`), not a department hierarc
 | `children` | Direct reports (nested sub-levels) |
 
 Tree shape comes from employee `reports_to_id`. Department badge requires `head_of_department_id` on the department row.
+
+### Audit logs (read-only)
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/v1/audit-logs/statistics` | KPI cards (total, critical, flagged, sensitive reads, unique actors) |
+| `GET /api/v1/audit-logs/list` | Paginated table with filters: `search`, `action`, `severity`, `actor` |
+| `GET /api/v1/audit-logs/get?audit_log_id=` | Single entry |
+
+Entries are appended automatically when employees are created or updated (Phase 1). `actor_id` is the platform user id from the JWT when available.
 
 ## Required on every API change (MUST)
 

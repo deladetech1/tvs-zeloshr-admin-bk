@@ -23,6 +23,7 @@ public sealed class AuditLogListItemDto
     public required string ActionTitle { get; init; }
     public string? ActionDescription { get; init; }
     public AuditLogEmployeeRefDto? Employee { get; init; }
+    public string? ActorId { get; init; }
     public required string ActorFullName { get; init; }
     public required string Category { get; init; }
     public required string Severity { get; init; }

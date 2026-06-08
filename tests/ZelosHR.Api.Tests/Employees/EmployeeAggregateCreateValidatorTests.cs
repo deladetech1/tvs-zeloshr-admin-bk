@@ -10,7 +10,6 @@ public class EmployeeAggregateCreateValidatorTests
     {
         var request = new CreateEmployeeAggregateRequest
         {
-            Status = "draft",
             Identity = new EmployeeAggregateIdentityDto
             {
                 FullName = "Ada Lovelace",

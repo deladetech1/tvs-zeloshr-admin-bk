@@ -50,7 +50,7 @@ public static class SwaggerConfiguration
 
                     **Validation (400):** `detail` summarizes the problem; `field_errors` maps field paths → messages (e.g. `identity.full_name`: "Full name is required."). Use `field_errors` keys to highlight form fields.
 
-                    **Example values:** Pipe-separated strings in Swagger (`true|false`, `200|400|500`, `draft|finalised`) list allowed shapes — send **one** value per field on real API calls.
+                    **Example values:** Pipe-separated strings in Swagger (`true|false`, `200|400|500`) list allowed shapes — send **one** value per field on real API calls.
 
                     ---
 
@@ -61,7 +61,7 @@ public static class SwaggerConfiguration
                        Employee form schema: `GET /api/v1/custom-fields/schema?entity_type=employee`
                     2. **(Optional) Documents** — `POST /api/v1/file/post/multiple` → attach returned IDs as `document_ids` (strings) on employee create/update. On read, `GET /employees/get` returns `documents[]` (MyStoreGuard `DocumentReadDto`: `doc_id`, `name`, `presigned_url`, `description`).
                     3. **Currency** — `GET /api/v1/currencies/list` → use returned `id` as `compensation.currency_id` (not a currency code string)
-                    4. **Create** — `POST /api/v1/employees/add` with `status: draft | finalised`
+                    4. **Create** — `POST /api/v1/employees/add` (finalises automatically when `identity.work_email` is set)
                     5. **Read / update** — `GET /api/v1/employees/get?employee_id=` (`documents[]` with presigned URLs on read) · `PUT /api/v1/employees/update?employee_id=` (string `document_ids` / `delete_document_ids` on write)
                     6. **Bulk import** — `GET /api/v1/employees/bulk/template` → fill CSV → `POST /api/v1/employees/bulk?status=`
 
@@ -77,9 +77,19 @@ public static class SwaggerConfiguration
 
                     ---
 
+                    ### Audit logs (read-only)
+
+                    1. **KPI cards** — `GET /api/v1/audit-logs/statistics`
+                    2. **Table** — `GET /api/v1/audit-logs/list` (`search`, `action`, `severity`, `actor` filters)
+                    3. **Detail** — `GET /api/v1/audit-logs/get?audit_log_id=`
+
+                    Entries append automatically on employee create/update.
+
+                    ---
+
                     ### Documented modules
 
-                    **Employees** · **Currencies** · **Custom Fields** · **File Management** · **Organisation** (org chart, departments, branches) · **Lifecycle Events**
+                    **Employees** · **Currencies** · **Custom Fields** · **File Management** · **Organisation** (org chart, departments, branches) · **Lifecycle Events** · **Audit Logs**
 
                     Conformance: `docs/MYSTOREGUARD_API_CONFORMANCE.md` · Navigation: `GET /api/v1/navigation`
                     """,
@@ -118,6 +128,7 @@ public static class SwaggerConfiguration
             options.OperationFilter<SwaggerCurrenciesOperationFilter>();
             options.OperationFilter<SwaggerFileManagementOperationFilter>();
             options.OperationFilter<SwaggerOrgStructureOperationFilter>();
+            options.OperationFilter<SwaggerAuditLogsOperationFilter>();
             options.OperationFilter<SwaggerResponseExamplesOperationFilter>();
             options.DocumentFilter<SwaggerFileManagementTagDocumentFilter>();
             options.TagActionsBy(api =>

@@ -1,3 +1,4 @@
+using ZelosHR.Api.Entities.AuditLogs;
 using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.OrgStructure;
@@ -33,4 +34,7 @@ internal static class SwaggerExampleHints
     internal static string OrgSortOrder => SwaggerOptionFormat.JoinPipe(OrgStructureFieldOptions.SortOrder);
     internal static string OrgNodeType => SwaggerOptionFormat.JoinPipe(OrgStructureFieldOptions.NodeTypes);
     internal static string OrgIncludeArchived => SwaggerOptionFormat.JoinPipe(OrgStructureFieldOptions.IncludeArchived);
+    internal static string AuditCategory => SwaggerOptionFormat.JoinPipe(AuditLogFieldOptions.Categories);
+    internal static string AuditSeverity => SwaggerOptionFormat.JoinPipe(AuditLogFieldOptions.Severities);
+    internal static string AuditFilterAll => SwaggerOptionFormat.JoinPipe(AuditLogFieldOptions.FilterAll);
 }

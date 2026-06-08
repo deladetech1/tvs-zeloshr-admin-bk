@@ -20,7 +20,6 @@ public sealed class EmployeeDetailDto
     public required string PersonalPhone { get; init; }
     public required string ResidentialAddress { get; init; }
     public required string GhanaPostGps { get; init; }
-    public required string LifecycleState { get; init; }
     public string? JobTitle { get; init; }
     public string? DepartmentId { get; init; }
     public string? DepartmentName { get; init; }

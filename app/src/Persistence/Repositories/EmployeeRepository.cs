@@ -126,7 +126,6 @@ public sealed class EmployeeRepository(ZelosHrDbContext db) : IEmployeeRepositor
             DepartmentId = listQuery.DepartmentId,
             BranchId = listQuery.BranchId,
             EmploymentType = listQuery.EmploymentType,
-            LifecycleState = listQuery.LifecycleState,
             WorkLocation = listQuery.WorkLocation,
             Status = listQuery.EmploymentStatus,
             IncludeInactive = listQuery.IncludeInactive,

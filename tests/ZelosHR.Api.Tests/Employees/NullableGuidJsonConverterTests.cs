@@ -14,7 +14,6 @@ public class NullableGuidJsonConverterTests
         var request = JsonSerializer.Deserialize<CreateEmployeeAggregateRequest>(
             """
             {
-              "status": "draft",
               "identity": {
                 "full_name": "Demo Employee",
                 "phone": "+233209998877"
@@ -38,7 +37,6 @@ public class NullableGuidJsonConverterTests
         var request = JsonSerializer.Deserialize<CreateEmployeeAggregateRequest>(
             """
             {
-              "status": "draft",
               "identity": {
                 "full_name": "Demo Employee",
                 "phone": "+233209998877"
@@ -61,7 +59,6 @@ public class NullableGuidJsonConverterTests
         var request = JsonSerializer.Deserialize<CreateEmployeeAggregateRequest>(
             $$"""
             {
-              "status": "draft",
               "identity": {
                 "full_name": "Demo Employee",
                 "phone": "+233209998877"

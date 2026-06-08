@@ -39,6 +39,7 @@ public sealed record OrgChartEmployeeRow(
     Guid Id,
     string FullName,
     string? FirstName,
+    string? MiddleName,
     string? LastName,
     string? JobTitle,
     Guid? ReportsToId,

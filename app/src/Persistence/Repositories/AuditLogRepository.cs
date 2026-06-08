@@ -57,6 +57,37 @@ public sealed class AuditLogRepository(ZelosHrDbContext db) : IAuditLogRepositor
         return entity is null ? null : ToRow(entity);
     }
 
+    public async Task AppendScopedAsync(
+        string tenantId,
+        string orgId,
+        AuditLogAppendRow row,
+        CancellationToken ct = default)
+    {
+        var now = DateTimeOffset.UtcNow;
+        db.AuditLogs.Add(new AuditLogEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            OrgId = orgId,
+            OccurredAt = row.OccurredAt,
+            ActionTitle = row.ActionTitle.Trim(),
+            ActionDescription = string.IsNullOrWhiteSpace(row.ActionDescription)
+                ? null
+                : row.ActionDescription.Trim(),
+            EmployeeId = row.EmployeeId,
+            EmployeeDisplayCode = row.EmployeeDisplayCode,
+            EmployeeFullName = row.EmployeeFullName,
+            ActorId = row.ActorId,
+            ActorFullName = row.ActorFullName.Trim(),
+            Category = row.Category.Trim(),
+            Severity = row.Severity.Trim(),
+            IsFlagged = row.IsFlagged,
+            IsSensitiveRead = row.IsSensitiveRead,
+            CreatedAt = now,
+        });
+        await db.SaveChangesAsync(ct);
+    }
+
     private static IQueryable<AuditLogEntity> ApplyFilters(
         IQueryable<AuditLogEntity> query,
         string? search,
@@ -80,7 +111,12 @@ public sealed class AuditLogRepository(ZelosHrDbContext db) : IAuditLogRepositor
             query = query.Where(a => a.Severity == severity.Trim());
 
         if (!string.IsNullOrWhiteSpace(actor) && !actor.Equals("all", StringComparison.OrdinalIgnoreCase))
-            query = query.Where(a => EF.Functions.ILike(a.ActorFullName, $"%{actor.Trim()}%"));
+        {
+            var trimmed = actor.Trim();
+            query = query.Where(a =>
+                a.ActorId == trimmed
+                || EF.Functions.ILike(a.ActorFullName, $"%{trimmed}%"));
+        }
 
         return query;
     }
@@ -93,6 +129,7 @@ public sealed class AuditLogRepository(ZelosHrDbContext db) : IAuditLogRepositor
         a.EmployeeId,
         a.EmployeeDisplayCode,
         a.EmployeeFullName,
+        a.ActorId,
         a.ActorFullName,
         a.Category,
         a.Severity,

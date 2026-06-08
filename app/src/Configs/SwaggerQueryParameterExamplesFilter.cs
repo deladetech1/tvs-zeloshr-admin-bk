@@ -217,6 +217,46 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
         {
             schema.Example = "eng";
             parameter.Description = "Optional name filter (minimum 3 characters, case-insensitive).";
+            return;
+        }
+
+        if (context.ParameterInfo?.Member.DeclaringType?.FullName?.Contains(
+                "AuditLogs",
+                StringComparison.Ordinal) != true)
+            return;
+
+        if (name.Equals("severity", StringComparison.OrdinalIgnoreCase))
+        {
+            schema.Example = SwaggerExampleHints.AuditSeverity;
+            parameter.Description = SwaggerOptionFormat.Append(
+                parameter.Description,
+                $"Allowed: {SwaggerExampleHints.AuditSeverity} or `{SwaggerExampleHints.AuditFilterAll}`.");
+            return;
+        }
+
+        if (name.Equals("action", StringComparison.OrdinalIgnoreCase))
+        {
+            schema.Example = "Personal information updated";
+            parameter.Description = SwaggerOptionFormat.Append(
+                parameter.Description,
+                $"Action title substring, or `{SwaggerExampleHints.AuditFilterAll}`.");
+            return;
+        }
+
+        if (name.Equals("actor", StringComparison.OrdinalIgnoreCase))
+        {
+            schema.Example = "u1000001-0000-0000-0000-000000000001";
+            parameter.Description = SwaggerOptionFormat.Append(
+                parameter.Description,
+                "Platform user id or actor display name substring.");
+            return;
+        }
+
+        if (name.Equals(PlatformQueryParams.AuditLogId, StringComparison.OrdinalIgnoreCase)
+            || name.Equals("auditLogId", StringComparison.OrdinalIgnoreCase))
+        {
+            schema.Example = SwaggerExamples.SampleAuditLogId.ToString();
+            parameter.Description = "Audit log UUID from GET /api/v1/audit-logs/list.";
         }
     }
 }

@@ -78,7 +78,6 @@ public partial class EmployeesService : IEmployeesService, IEmployeeLookup
                     FirstName = entity.FirstName,
                     MiddleName = entity.MiddleName,
                     LastName = entity.LastName,
-                    LifecycleState = entity.LifecycleState,
                 });
             }
             catch (DbUpdateException ex) when (PostgresUniqueViolation.IsGhanaCard(ex))
@@ -117,7 +116,6 @@ public partial class EmployeesService : IEmployeesService, IEmployeeLookup
                 Id = r.Id,
                 EmployeeCode = r.EmployeeCode,
                 FullName = EmployeeIdentityResolver.ResolveFullName(r, cp),
-                LifecycleState = r.LifecycleState,
             };
         }).ToList();
 
@@ -381,7 +379,6 @@ public partial class EmployeesService : IEmployeesService, IEmployeeLookup
             PersonalPhone = EmployeeIdentityResolver.ResolvePhone(row, cp) ?? row.PersonalPhone ?? string.Empty,
             ResidentialAddress = row.ResidentialAddress ?? string.Empty,
             GhanaPostGps = row.GhanaPostGps ?? string.Empty,
-            LifecycleState = row.LifecycleState,
             JobTitle = row.JobTitle,
             DepartmentId = row.DepartmentId?.ToString(),
             DepartmentName = row.Department?.Name,

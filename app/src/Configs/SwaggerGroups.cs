@@ -12,6 +12,7 @@ public static class SwaggerGroups
         FileManagement,
         Organisation,
         LifecycleEvents,
+        AuditLogs,
     };
 
     public static bool IsVisibleInSwagger(string? groupName) =>

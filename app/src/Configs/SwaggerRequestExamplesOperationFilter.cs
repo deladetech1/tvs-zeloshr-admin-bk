@@ -30,14 +30,14 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
         {
             return new Dictionary<string, IOpenApiExample>
             {
-                ["finalised_full_profile"] = Example(
+                ["full_profile"] = Example(
                     SwaggerExamples.CreateEmployeeFinalised(),
-                    "Finalised — full profile",
+                    "Full profile",
                     "Creates employee and links cp_users when work_email is set. Attach files via document_ids (from POST /file/post/multiple). Read response returns documents[] (DocumentReadDto with presigned URLs)."),
-                ["draft_minimal"] = Example(
+                ["minimal"] = Example(
                     SwaggerExamples.CreateEmployeeDraft(),
-                    "Draft — minimal",
-                    "Only identity.full_name and identity.phone are required. All other sections and fields are optional on create."),
+                    "Minimal",
+                    "Only identity.full_name and identity.phone are required. Omit work_email to save without linking cp_users yet."),
             };
         }
 

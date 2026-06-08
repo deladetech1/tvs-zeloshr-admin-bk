@@ -34,12 +34,12 @@ public class ValidationErrorsTests
         var errors = new Dictionary<string, string>
         {
             ["identity.full_name"] = "Full name is required.",
-            ["status"] = "Status must be 'draft' or 'finalised'.",
+            ["identity.phone"] = "Phone is required.",
         };
 
         var summary = ValidationErrors.BuildSummary(errors);
 
-        Assert.Equal("Full name is required. Status must be 'draft' or 'finalised'.", summary);
+        Assert.Equal("Full name is required. Phone is required.", summary);
     }
 
     [Fact]

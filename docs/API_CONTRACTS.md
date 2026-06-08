@@ -69,7 +69,7 @@ Server-set NOT NULL columns (populated on insert, not required in the request bo
 | `employee_code` | Generated |
 | `tenant_id`, `org_id` | Trove headers |
 | `full_name` | `identity.full_name` (may be cleared after `cp_users` link) |
-| `lifecycle_state`, `lifecycle_status`, `is_draft` | Draft defaults |
+| `lifecycle_state`, `lifecycle_status`, `is_draft` | Internal draft defaults (not exposed on aggregate read/list) |
 | `employment_status` | `Draft` until finalise |
 | `custom_fields_data`, `document_ids` | `{}` / `[]` |
 
@@ -79,9 +79,7 @@ Send **only** sections/fields you are changing. At least one top-level field or 
 
 | Field | Notes |
 |-------|-------|
-| `status` | Set to `finalised` to complete a draft (same rules as finalise above). |
 | `identity`, `employment`, `compensation` | Partial objects — omitted keys are left unchanged. Include `identity.profile_url` to set or clear photo. |
-| `lifecycle_state` | Update only. |
 | `education` / `certifications` | Array items: include `id` from GET to update; omit to add. `sync_*` + full array to replace. |
 | `delete_education_ids` / `delete_certification_ids` | UUID arrays. |
 | `document_ids` / `delete_document_ids` | Append or remove file-registry IDs. |
@@ -90,11 +88,9 @@ Send **only** sections/fields you are changing. At least one top-level field or 
 
 | Field | Create | Update | Notes |
 |-------|--------|--------|-------|
-| `status` | yes | no | Create only: `draft` \| `finalised` |
 | `identity` | object | optional | See identity table below |
 | `employment` | optional | optional | Job, dept, branch, manager, etc. |
 | `compensation` | optional | optional | Salary, SSNIT, TIN, bank |
-| `lifecycle_state` | no | optional | e.g. `pre_hire`, `active`, `terminated` |
 | `education` | array | optional | Each item has `id` on read; include `id` on update |
 | `certifications` | array | optional | Same as education |
 | `sync_education` | no | optional | Default `false`. `true` + full `education` = replace |
@@ -256,7 +252,9 @@ Full guide: **[FILE_MANAGEMENT.md](FILE_MANAGEMENT.md)** — MyStoreGuard shapes
 | Module | Pattern |
 |--------|---------|
 | Lifecycle | `GET /statistics`, `GET /list`, `GET /get?lifecycle_event_id=`, `POST /add`, `PUT /update?lifecycle_event_id=`, `DELETE /delete?lifecycle_event_id=` |
-| Audit | Read-only list/get + `GET /statistics` |
+| Audit logs | `GET /api/v1/audit-logs/statistics`, `GET /api/v1/audit-logs/list`, `GET /api/v1/audit-logs/get?audit_log_id=` (read-only; appended on employee create/update) |
+
+Audit list filters: `search` (min 3 chars), `action`, `severity` (`Low|Medium|High|all`), `actor` (user id or name substring).
 
 ---
 

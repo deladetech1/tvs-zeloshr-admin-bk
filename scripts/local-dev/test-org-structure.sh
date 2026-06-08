@@ -36,14 +36,46 @@ paths=(
   "/api/v1/org-structure/branches/list?page=1&size=5&include_archived=false"
 )
 
+chart_blank_names=0
+
 echo "ZelosHR base: ${BASE}"
 echo ""
 
 for path in "${paths[@]}"; do
   body=$(curl -sS -w "\n%{http_code}" -H "accept: application/json" "${curl_headers[@]}" "${BASE}${path}")
   code=$(echo "$body" | tail -1)
-  json=$(echo "$body" | sed '$d' | head -c 400)
-  printf "GET %s\n  HTTP %s\n  %s\n\n" "$path" "$code" "$json"
+  json=$(echo "$body" | sed '$d')
+  printf "GET %s\n  HTTP %s\n" "$path" "$code"
+
+  if [[ "$path" == "/api/v1/org-structure/chart" && "$code" == "200" ]]; then
+    chart_blank_names=$(echo "$json" | python3 -c "
+import json, sys
+data = json.load(sys.stdin).get('data') or {}
+roots = data.get('roots') or []
+blank = []
+
+def walk(nodes):
+    for n in nodes:
+        name = (n.get('full_name') or '').strip()
+        if not name:
+            blank.append(n.get('id'))
+        walk(n.get('children') or [])
+
+walk(roots)
+print(len(blank))
+if blank:
+    print('BLANK_IDS:' + ','.join(blank), file=sys.stderr)
+" 2>&1)
+    printf "  chart nodes with blank full_name: %s\n" "$chart_blank_names"
+    if [[ "${chart_blank_names}" != "0" ]]; then
+      echo "$json" | head -c 800
+      echo ""
+      exit 1
+    fi
+  else
+    echo "  $(echo "$json" | head -c 400)"
+  fi
+  echo ""
 done
 
 dept_body='{"name":"Sprint Test Department","parent_department_id":null,"head_of_department_id":null,"description":"Schema smoke test"}'

@@ -7,7 +7,6 @@ public sealed class CreateEmployeeControllerReadDto
     public required string FirstName { get; init; }
     public string? MiddleName { get; init; }
     public required string LastName { get; init; }
-    public required string LifecycleState { get; init; }
 }
 
 public sealed class EmployeeListItemControllerReadDto
@@ -15,7 +14,6 @@ public sealed class EmployeeListItemControllerReadDto
     public required string EmployeeId { get; init; }
     public required string EmployeeCode { get; init; }
     public required string FullName { get; init; }
-    public required string LifecycleState { get; init; }
 }
 
 public sealed class GetEmployeesControllerReadDto
@@ -30,7 +28,6 @@ public sealed class CreateEmployeeServiceReadDto
     public required string FirstName { get; init; }
     public string? MiddleName { get; init; }
     public required string LastName { get; init; }
-    public required string LifecycleState { get; init; }
 }
 
 public sealed class EmployeeListItemServiceReadDto
@@ -38,7 +35,6 @@ public sealed class EmployeeListItemServiceReadDto
     public required Guid Id { get; init; }
     public required string EmployeeCode { get; init; }
     public required string FullName { get; init; }
-    public required string LifecycleState { get; init; }
 }
 
 public sealed class GetEmployeesServiceReadDto
