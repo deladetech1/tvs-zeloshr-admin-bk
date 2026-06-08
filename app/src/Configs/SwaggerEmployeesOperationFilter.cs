@@ -167,20 +167,24 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
             return;
 
         var key = statusCode.ToString();
-        if (!operation.Responses.TryGetValue(key, out var response))
+        if (operation.Responses.TryGetValue(key, out var existing)
+            && existing.Content is not null
+            && existing.Content.TryGetValue("application/json", out var media))
         {
-            response = new OpenApiResponse { Description = DescribeStatusCode(statusCode) };
-            operation.Responses[key] = response;
+            SwaggerMediaExamples.SetSingleExample(media, example);
+            return;
         }
 
-        response.Content ??= new Dictionary<string, OpenApiMediaType>();
-        if (!response.Content.TryGetValue("application/json", out var media))
+        var newMedia = new OpenApiMediaType();
+        SwaggerMediaExamples.SetSingleExample(newMedia, example);
+        operation.Responses[key] = new OpenApiResponse
         {
-            media = new OpenApiMediaType();
-            response.Content["application/json"] = media;
-        }
-
-        SwaggerMediaExamples.SetSingleExample(media, example);
+            Description = existing?.Description ?? DescribeStatusCode(statusCode),
+            Content = new Dictionary<string, OpenApiMediaType>
+            {
+                ["application/json"] = newMedia,
+            },
+        };
     }
 
     private static string DescribeStatusCode(int statusCode) => statusCode switch
