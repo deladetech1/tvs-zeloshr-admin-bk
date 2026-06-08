@@ -74,7 +74,9 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
         if (method.Equals("POST", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/employees/import", StringComparison.OrdinalIgnoreCase))
         {
             SetJsonRequestExample(operation, SwaggerExamples.ImportEmployeesRequestBody());
-            SetJsonResponseExample(operation, 200, SwaggerExamples.ImportEmployeesResponse());
+            SetJsonResponseExample(operation, 200, SwaggerExamples.ImportEmployeesAllSucceededResponse());
+            SetJsonResponseExample(operation, 207, SwaggerExamples.ImportEmployeesPartialResponse());
+            SetJsonResponseExample(operation, 422, SwaggerExamples.ImportEmployeesAllFailedResponse());
             return;
         }
 
@@ -136,9 +138,12 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
 
         if (method.Equals("POST", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/employees/bulk", StringComparison.OrdinalIgnoreCase))
         {
-            SetJsonResponseExample(operation, 200, SwaggerExamples.EnvelopeFor(typeof(Respons<EmployeeBulkImportResult>), 200));
+            SetJsonResponseExample(operation, 200, SwaggerExamples.BatchImportAllSucceededEnvelope());
+            SetJsonResponseExample(operation, 207, SwaggerExamples.BatchImportPartialEnvelope());
+            SetJsonResponseExample(operation, 422, SwaggerExamples.BatchImportAllFailedEnvelope());
             AppendParameterDescription(operation, "status",
-                $"Import status for all CSV rows. Allowed: {SwaggerExampleHints.Status}.");
+                $"Import status for all CSV rows. Allowed: {SwaggerExampleHints.Status}. " +
+                "HTTP 200 when every row succeeds; 207 when some rows fail; 422 when no rows succeed.");
         }
     }
 

@@ -14,6 +14,7 @@ public static class ResponsExtensions
             StatusCodes.Status403Forbidden => new ObjectResult(result) { StatusCode = StatusCodes.Status403Forbidden },
             StatusCodes.Status404NotFound => new NotFoundObjectResult(result),
             StatusCodes.Status409Conflict => new ConflictObjectResult(result),
+            StatusCodes.Status207MultiStatus => new ObjectResult(result) { StatusCode = StatusCodes.Status207MultiStatus },
             StatusCodes.Status422UnprocessableEntity => new UnprocessableEntityObjectResult(result),
             _ => new ObjectResult(result) { StatusCode = result.StatusCode },
         };

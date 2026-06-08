@@ -147,12 +147,13 @@ public sealed class EmployeeBulkImportService
         }
 
         var successCount = rows.Count(r => r.Success);
-        return Respons<EmployeeBulkImportResult>.Ok(new EmployeeBulkImportResult
+        var result = new EmployeeBulkImportResult
         {
             Rows = rows,
             SuccessCount = successCount,
             FailureCount = rows.Count - successCount,
-        });
+        };
+        return BatchResultResponse.FromRowCounts(result, successCount, result.FailureCount, "Bulk import");
     }
 
     private static bool HasEmployment(IReadOnlyDictionary<string, string?> map) =>

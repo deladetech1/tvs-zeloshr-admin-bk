@@ -8,6 +8,7 @@ using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Entities.OrgStructure;
 using ZelosHR.Api.Entities.Shared;
+using ZelosHR.Api.Shared.Validation;
 
 namespace ZelosHR.Api.Configs;
 
@@ -228,7 +229,7 @@ internal static class SwaggerExamples
             nameof(CustomFieldSectionsDto) => EnvelopeOk(CustomFieldSectionsData()),
             nameof(CustomFieldDefinitionListDto) => EnvelopeOk(CustomFieldDefinitionListData(), SamplePagination()),
             nameof(CustomFieldsSummaryDto) => EnvelopeOk(CustomFieldsSummaryData()),
-            nameof(EmployeeBulkImportResult) => EnvelopeOk(BulkImportData()),
+            nameof(EmployeeBulkImportResult) => EnvelopeOk(BulkImportData(successCount: 2, failureCount: 0)),
             nameof(ImportEmployeesResult) => EnvelopeOk(ImportEmployeesData()),
             nameof(EmployeeDirectorySummaryDto) => EmployeeDirectoryStatisticsResponse(),
             nameof(EmployeeRegistrationReadDto) => EmployeeRegistrationImportResponse(),
@@ -401,23 +402,50 @@ internal static class SwaggerExamples
         CustomFieldDefinitionItem(EmployeeCustomFieldSections.Education, "honors", "Honors"),
         CustomFieldDefinitionItem(EmployeeCustomFieldSections.Certification, "verified", "Verified"));
 
-    private static JsonObject BulkImportData() => new()
+    private static JsonObject BulkImportData(int successCount, int failureCount, bool allFailed = false) => new()
     {
-        ["rows"] = new JsonArray(
-            new JsonObject
-            {
-                ["index"] = 1,
-                ["success"] = true,
-                ["employee_id"] = SampleEmployeeId.ToString(),
-            },
-            new JsonObject
-            {
-                ["index"] = 2,
-                ["success"] = false,
-                ["error"] = "Row 2: work_email is already registered for another employee.",
-            }),
-        ["success_count"] = 1,
-        ["failure_count"] = 1,
+        ["rows"] = allFailed
+            ? new JsonArray(
+                new JsonObject
+                {
+                    ["index"] = 0,
+                    ["success"] = false,
+                    ["error"] = EmployeeErrorMessages.WorkEmailLinkedToAnotherEmployee,
+                })
+            : new JsonArray(
+                new JsonObject
+                {
+                    ["index"] = 1,
+                    ["success"] = true,
+                    ["employee_id"] = SampleEmployeeId.ToString(),
+                },
+                new JsonObject
+                {
+                    ["index"] = 2,
+                    ["success"] = false,
+                    ["error"] = "Row 2: work_email is already registered for another employee.",
+                }),
+        ["success_count"] = successCount,
+        ["failure_count"] = failureCount,
+    };
+
+    internal static JsonObject BatchImportAllSucceededEnvelope() =>
+        EnvelopeOkConcrete(BulkImportData(successCount: 2, failureCount: 0));
+
+    internal static JsonObject BatchImportPartialEnvelope() => new()
+    {
+        ["success"] = false,
+        ["status_code"] = 207,
+        ["detail"] = "Bulk import completed with 1 successful and 1 failed row(s).",
+        ["data"] = BulkImportData(successCount: 1, failureCount: 1),
+    };
+
+    internal static JsonObject BatchImportAllFailedEnvelope() => new()
+    {
+        ["success"] = false,
+        ["status_code"] = 422,
+        ["detail"] = "Bulk import completed with no successful rows.",
+        ["data"] = BulkImportData(successCount: 0, failureCount: 3, allFailed: true),
     };
 
     internal static JsonObject EmployeeDirectorySummaryData() => new()
@@ -456,28 +484,58 @@ internal static class SwaggerExamples
         ["user_ids"] = new JsonArray("usr_cp_abc123", "usr_cp_def456"),
     };
 
-    internal static JsonObject ImportEmployeesData() => new()
+    internal static JsonObject ImportEmployeesData(
+        int successCount = 1,
+        int failureCount = 1,
+        bool allFailed = false) => new()
     {
-        ["items"] = new JsonArray(
-            new JsonObject
-            {
-                ["user_id"] = "usr_cp_abc123",
-                ["success"] = true,
-                ["employee_id"] = SampleEmployeeId.ToString(),
-                ["employee_code"] = "EMP-000042",
-                ["full_name"] = "Ada Lovelace",
-            },
-            new JsonObject
-            {
-                ["user_id"] = "usr_cp_def456",
-                ["success"] = false,
-                ["error"] = "User is already linked to an employee.",
-            }),
-        ["success_count"] = 1,
-        ["failure_count"] = 1,
+        ["items"] = allFailed
+            ? new JsonArray(
+                new JsonObject
+                {
+                    ["user_id"] = "usr_cp_def456",
+                    ["success"] = false,
+                    ["error"] = "User is already linked to an employee.",
+                })
+            : new JsonArray(
+                new JsonObject
+                {
+                    ["user_id"] = "usr_cp_abc123",
+                    ["success"] = true,
+                    ["employee_id"] = SampleEmployeeId.ToString(),
+                    ["employee_code"] = "EMP-000042",
+                    ["full_name"] = "Ada Lovelace",
+                },
+                new JsonObject
+                {
+                    ["user_id"] = "usr_cp_def456",
+                    ["success"] = false,
+                    ["error"] = "User is already linked to an employee.",
+                }),
+        ["success_count"] = successCount,
+        ["failure_count"] = failureCount,
     };
 
     internal static JsonObject ImportEmployeesResponse() => EnvelopeOk(ImportEmployeesData());
+
+    internal static JsonObject ImportEmployeesAllSucceededResponse() =>
+        EnvelopeOkConcrete(ImportEmployeesData(successCount: 2, failureCount: 0));
+
+    internal static JsonObject ImportEmployeesPartialResponse() => new()
+    {
+        ["success"] = false,
+        ["status_code"] = 207,
+        ["detail"] = "Import completed with 1 successful and 1 failed row(s).",
+        ["data"] = ImportEmployeesData(successCount: 1, failureCount: 1),
+    };
+
+    internal static JsonObject ImportEmployeesAllFailedResponse() => new()
+    {
+        ["success"] = false,
+        ["status_code"] = 422,
+        ["detail"] = "Import completed with no successful rows.",
+        ["data"] = ImportEmployeesData(successCount: 0, failureCount: 1, allFailed: true),
+    };
 
     internal static JsonArray CurrencyListData() => new JsonArray(CurrencyItem(), CurrencyItemUsd());
 

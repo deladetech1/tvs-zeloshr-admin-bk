@@ -112,7 +112,9 @@ public class EmployeesController : ControllerBase
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeCreate)]
     [HttpPost("import")]
     [ProducesResponseType(typeof(Respons<ImportEmployeesResult>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<ImportEmployeesResult>), StatusCodes.Status207MultiStatus)]
     [ProducesResponseType(typeof(Respons<ImportEmployeesResult>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(Respons<ImportEmployeesResult>), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult<Respons<ImportEmployeesResult>>> Import(
         [FromBody] ImportEmployeesRequest body,
         CancellationToken ct)
@@ -140,6 +142,9 @@ public class EmployeesController : ControllerBase
     [HttpPost("bulk")]
     [RequestSizeLimit(5 * 1024 * 1024)]
     [ProducesResponseType(typeof(Respons<EmployeeBulkImportResult>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<EmployeeBulkImportResult>), StatusCodes.Status207MultiStatus)]
+    [ProducesResponseType(typeof(Respons<EmployeeBulkImportResult>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(Respons<EmployeeBulkImportResult>), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult<Respons<EmployeeBulkImportResult>>> BulkImport(
         IFormFile file,
         [FromQuery]

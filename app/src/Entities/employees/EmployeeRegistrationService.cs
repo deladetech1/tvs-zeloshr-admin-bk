@@ -171,12 +171,13 @@ public sealed class EmployeeRegistrationService
         }
 
         var successCount = rows.Count(r => r.Success);
-        return Respons<ImportEmployeesResult>.Ok(new ImportEmployeesResult
+        var result = new ImportEmployeesResult
         {
             Items = rows,
             SuccessCount = successCount,
             FailureCount = rows.Count - successCount,
-        });
+        };
+        return BatchResultResponse.FromRowCounts(result, successCount, result.FailureCount, "Import");
     }
 
     public async Task<Respons<EmployeeRegistrationReadDto>> UpdatePersonalContactAsync(
