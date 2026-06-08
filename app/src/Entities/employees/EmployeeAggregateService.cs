@@ -361,13 +361,14 @@ public sealed class EmployeeAggregateService
                 var existingEducationRows = existingEducation.Success && existingEducation.Data is not null
                     ? existingEducation.Data
                     : Array.Empty<EmployeeEducationDto>();
+                var existingEducationIds = existingEducationRows.Select(r => r.Id).ToHashSet();
                 var preservedEducationIds = new HashSet<Guid>();
 
                 for (var i = 0; i < request.Education.Count; i++)
                 {
                     var edu = request.Education[i];
                     var write = EmployeeAggregateMapper.ToEducationWrite(edu);
-                    var result = EmployeeSubResourceUpsertRules.HasPersistedId(edu.Id)
+                    var result = EmployeeSubResourceUpsertRules.ShouldUpdateExisting(edu.Id, existingEducationIds)
                         ? await _subResources.UpdateEducationAsync(employeeId, edu.Id!.Value, write, ct)
                         : await _subResources.AddEducationAsync(employeeId, write, ct);
                     if (!result.Success)
@@ -429,13 +430,14 @@ public sealed class EmployeeAggregateService
                 var existingCertificationRows = existingCertifications.Success && existingCertifications.Data is not null
                     ? existingCertifications.Data
                     : Array.Empty<EmployeeCertificationDto>();
+                var existingCertificationIds = existingCertificationRows.Select(r => r.Id).ToHashSet();
                 var preservedCertificationIds = new HashSet<Guid>();
 
                 for (var i = 0; i < request.Certifications.Count; i++)
                 {
                     var cert = request.Certifications[i];
                     var write = EmployeeAggregateMapper.ToCertificationWrite(cert);
-                    var result = EmployeeSubResourceUpsertRules.HasPersistedId(cert.Id)
+                    var result = EmployeeSubResourceUpsertRules.ShouldUpdateExisting(cert.Id, existingCertificationIds)
                         ? await _subResources.UpdateCertificationAsync(employeeId, cert.Id!.Value, write, ct)
                         : await _subResources.AddCertificationAsync(employeeId, write, ct);
                     if (!result.Success)

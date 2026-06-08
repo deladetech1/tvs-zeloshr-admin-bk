@@ -80,7 +80,7 @@ Send **only** sections/fields you are changing. At least one top-level field or 
 | Field | Notes |
 |-------|-------|
 | `identity`, `employment`, `compensation` | Partial objects — omitted keys are left unchanged. Include `identity.profile_url` to set or clear photo. |
-| `education` / `certifications` | Array items: include `id` from GET to update; omit to add. `sync_*` + full array to replace. |
+| `education` / `certifications` | Array items: include `id` from GET to update; omit to add. Client-generated `id` values not on the employee are treated as **add**. `sync_*` + full array to replace. |
 | `delete_education_ids` / `delete_certification_ids` | UUID arrays. |
 | `document_ids` / `delete_document_ids` | Append or remove file-registry IDs. |
 

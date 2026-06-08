@@ -20,6 +20,29 @@ public sealed class EmployeeSubResourceUpsertRulesTests
     }
 
     [Fact]
+    public void HasPersistedId_false_when_empty_guid()
+    {
+        EmployeeSubResourceUpsertRules.HasPersistedId(Guid.Empty).Should().BeFalse();
+    }
+
+    [Fact]
+    public void ShouldUpdateExisting_false_for_client_generated_id()
+    {
+        var existing = new HashSet<Guid> { EducationId };
+        var clientId = Guid.Parse("77777777-7777-7777-7777-777777777701");
+
+        EmployeeSubResourceUpsertRules.ShouldUpdateExisting(clientId, existing).Should().BeFalse();
+    }
+
+    [Fact]
+    public void ShouldUpdateExisting_true_when_id_on_employee()
+    {
+        var existing = new HashSet<Guid> { EducationId };
+
+        EmployeeSubResourceUpsertRules.ShouldUpdateExisting(EducationId, existing).Should().BeTrue();
+    }
+
+    [Fact]
     public void ValidateDuplicateIds_education_rejects_repeated_id()
     {
         var items = new[]

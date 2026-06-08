@@ -5,6 +5,10 @@ internal static class EmployeeSubResourceUpsertRules
 {
     internal static bool HasPersistedId(Guid? id) => id is { } value && value != Guid.Empty;
 
+    /// <summary>Update only when <paramref name="id"/> matches a row already on the employee (from GET).</summary>
+    internal static bool ShouldUpdateExisting(Guid? id, IReadOnlySet<Guid> existingIds) =>
+        HasPersistedId(id) && existingIds.Contains(id!.Value);
+
     internal static Dictionary<string, string>? ValidateDuplicateIds(
         IReadOnlyList<EmployeeEducationUpsertDto> items)
     {
