@@ -91,19 +91,52 @@ public class AuditLogsServiceTests
     }
 
     [Fact]
-    public async Task Purge_deletes_entries_older_than_three_months()
+    public async Task Purge_deletes_entries_older_than_retention_window()
     {
         _repo.PurgeOlderThanScopedAsync(
                 "t1",
                 "o1",
-                Arg.Is<DateTimeOffset>(d => d < DateTimeOffset.UtcNow.AddMonths(-2).AddDays(-20)),
+                Arg.Is<DateTimeOffset>(d => d < DateTimeOffset.UtcNow.AddDays(-80)),
                 Arg.Any<CancellationToken>())
             .Returns(7);
 
-        var result = await _sut.PurgeOldAsync("t1", "o1");
+        var result = await _sut.PurgeOldAsync(
+            new AuditLogPurgeQuery { RetentionWindow = 90 }, "t1", "o1");
 
         result.Success.Should().BeTrue();
         result.Data!.DeletedCount.Should().Be(7);
-        result.Data.CutoffBefore.Should().BeBefore(DateTimeOffset.UtcNow.AddMonths(-2).AddDays(5));
+        result.Data.RetentionWindow.Should().Be(90);
+        result.Data.CutoffBefore.Should().BeBefore(DateTimeOffset.UtcNow.AddDays(-80).AddDays(2));
+    }
+
+    [Fact]
+    public async Task Purge_rejects_invalid_retention_window()
+    {
+        var result = await _sut.PurgeOldAsync(
+            new AuditLogPurgeQuery { RetentionWindow = 30 }, "t1", "o1");
+
+        result.Success.Should().BeFalse();
+        result.StatusCode.Should().Be(400);
+        result.FieldErrors.Should().ContainKey("retention_window");
+        await _repo.DidNotReceive().PurgeOlderThanScopedAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task PreviewPurge_returns_eligible_count()
+    {
+        _repo.CountOlderThanScopedAsync(
+                "t1",
+                "o1",
+                Arg.Is<DateTimeOffset>(d => d < DateTimeOffset.UtcNow.AddDays(-170)),
+                Arg.Any<CancellationToken>())
+            .Returns(847);
+
+        var result = await _sut.PreviewPurgeAsync(
+            new AuditLogPurgeQuery { RetentionWindow = 180 }, "t1", "o1");
+
+        result.Success.Should().BeTrue();
+        result.Data!.EligibleCount.Should().Be(847);
+        result.Data.RetentionWindow.Should().Be(180);
     }
 }

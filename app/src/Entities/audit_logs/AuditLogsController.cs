@@ -75,14 +75,36 @@ public class AuditLogsController : ControllerBase
         return File(result.Data, "text/csv", fileName);
     }
 
-    /// <summary>Delete audit log entries older than three months for the current org.</summary>
+    /// <summary>Count audit log entries eligible for purge (does not delete).</summary>
+    /// <remarks>Use before confirming purge in the UI. Same <c>retention_window</c> as <c>DELETE /audit-logs/purge</c>.</remarks>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
+    [HttpGet("purge/preview")]
+    [ProducesResponseType(typeof(Respons<AuditLogPurgePreviewDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<AuditLogPurgePreviewDto>), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<Respons<AuditLogPurgePreviewDto>>> PurgePreview(
+        [FromQuery] AuditLogPurgeQuery query,
+        CancellationToken ct = default)
+    {
+        var ctx = _tenant.Current;
+        var result = await _service.PreviewPurgeAsync(query, ctx.TenantId, ctx.OrgId, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    /// <summary>Delete audit log entries older than the retention window for the current org.</summary>
+    /// <remarks>
+    /// <c>retention_window</c> — days (90, 180, or 365). Default 90.
+    /// Entries with <c>occurred_at</c> strictly before the cutoff are permanently removed.
+    /// </remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpDelete("purge")]
     [ProducesResponseType(typeof(Respons<AuditLogPurgeResultDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<Respons<AuditLogPurgeResultDto>>> Purge(CancellationToken ct)
+    [ProducesResponseType(typeof(Respons<AuditLogPurgeResultDto>), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<Respons<AuditLogPurgeResultDto>>> Purge(
+        [FromQuery] AuditLogPurgeQuery query,
+        CancellationToken ct = default)
     {
         var ctx = _tenant.Current;
-        var result = await _service.PurgeOldAsync(ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.PurgeOldAsync(query, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 

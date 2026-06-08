@@ -5,8 +5,6 @@ namespace ZelosHR.Api.Entities.AuditLogs;
 
 public class AuditLogsService
 {
-    private const int RetentionMonths = 3;
-
     private readonly IAuditLogRepository _auditLogs;
 
     public AuditLogsService(IAuditLogRepository auditLogs) => _auditLogs = auditLogs;
@@ -70,16 +68,46 @@ public class AuditLogsService
         return Respons<byte[]>.Ok(AuditLogCsvExport.Build(rows));
     }
 
-    public async Task<Respons<AuditLogPurgeResultDto>> PurgeOldAsync(
+    public async Task<Respons<AuditLogPurgePreviewDto>> PreviewPurgeAsync(
+        AuditLogPurgeQuery query,
         string tenantId,
         string orgId,
         CancellationToken ct = default)
     {
-        var cutoff = DateTimeOffset.UtcNow.AddMonths(-RetentionMonths);
+        if (!AuditLogRetention.TryResolveWindowDays(query.RetentionWindow, out var days, out var error))
+        {
+            return Respons<AuditLogPurgePreviewDto>.ValidationError(
+                new Dictionary<string, string> { ["retention_window"] = error! });
+        }
+
+        var cutoff = AuditLogRetention.CutoffBefore(days);
+        var eligible = await _auditLogs.CountOlderThanScopedAsync(tenantId, orgId, cutoff, ct);
+        return Respons<AuditLogPurgePreviewDto>.Ok(new AuditLogPurgePreviewDto
+        {
+            EligibleCount = eligible,
+            RetentionWindow = days,
+            CutoffBefore = cutoff,
+        });
+    }
+
+    public async Task<Respons<AuditLogPurgeResultDto>> PurgeOldAsync(
+        AuditLogPurgeQuery query,
+        string tenantId,
+        string orgId,
+        CancellationToken ct = default)
+    {
+        if (!AuditLogRetention.TryResolveWindowDays(query.RetentionWindow, out var days, out var error))
+        {
+            return Respons<AuditLogPurgeResultDto>.ValidationError(
+                new Dictionary<string, string> { ["retention_window"] = error! });
+        }
+
+        var cutoff = AuditLogRetention.CutoffBefore(days);
         var deleted = await _auditLogs.PurgeOlderThanScopedAsync(tenantId, orgId, cutoff, ct);
         return Respons<AuditLogPurgeResultDto>.Ok(new AuditLogPurgeResultDto
         {
             DeletedCount = deleted,
+            RetentionWindow = days,
             CutoffBefore = cutoff,
         });
     }

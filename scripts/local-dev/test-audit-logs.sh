@@ -35,6 +35,8 @@ paths=(
   "/api/v1/audit-logs/list?page=1&size=5&severity=Medium&actor=all&action=all"
   "/api/v1/audit-logs/list?page=1&size=5&start_date=2026-01-01&end_date=2026-12-31"
   "/api/v1/audit-logs/export?severity=all&actor=all&action=all"
+  "/api/v1/audit-logs/purge/preview?retention_window=90"
+  "/api/v1/audit-logs/purge/preview?retention_window=180"
 )
 
 for path in "${paths[@]}"; do

@@ -83,8 +83,9 @@ public static class SwaggerConfiguration
                     1. **KPI cards** — `GET /api/v1/audit-logs/statistics`
                     2. **Table** — `GET /api/v1/audit-logs/list` (`search`, `action`, `severity`, `actor`, `start_date`, `end_date`)
                     3. **Export** — `GET /api/v1/audit-logs/export` (same filters as list)
-                    4. **Purge** — `DELETE /api/v1/audit-logs/purge` (removes entries older than 3 months)
-                    5. **Detail** — `GET /api/v1/audit-logs/get?audit_log_id=`
+                    4. **Purge preview** — `GET /api/v1/audit-logs/purge/preview?retention_window=` (90, 180, or 365 days)
+                    5. **Purge** — `DELETE /api/v1/audit-logs/purge?retention_window=` (permanent delete)
+                    6. **Detail** — `GET /api/v1/audit-logs/get?audit_log_id=`
 
                     Entries append automatically on employee create/update.
 

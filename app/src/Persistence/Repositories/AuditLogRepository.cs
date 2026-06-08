@@ -59,14 +59,24 @@ public sealed class AuditLogRepository(ZelosHrDbContext db) : IAuditLogRepositor
             .ToListAsync(ct);
     }
 
+    private IQueryable<AuditLogEntity> OlderThan(
+        string tenantId, string orgId, DateTimeOffset cutoffBefore) =>
+        db.AuditLogs
+            .Where(a => a.TenantId == tenantId && a.OrgId == orgId && a.OccurredAt < cutoffBefore);
+
+    public Task<int> CountOlderThanScopedAsync(
+        string tenantId,
+        string orgId,
+        DateTimeOffset cutoffBefore,
+        CancellationToken ct = default) =>
+        OlderThan(tenantId, orgId, cutoffBefore).CountAsync(ct);
+
     public Task<int> PurgeOlderThanScopedAsync(
         string tenantId,
         string orgId,
         DateTimeOffset cutoffBefore,
         CancellationToken ct = default) =>
-        db.AuditLogs
-            .Where(a => a.TenantId == tenantId && a.OrgId == orgId && a.OccurredAt < cutoffBefore)
-            .ExecuteDeleteAsync(ct);
+        OlderThan(tenantId, orgId, cutoffBefore).ExecuteDeleteAsync(ct);
 
     public async Task<AuditLogListRow?> GetByIdScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default)

@@ -22,6 +22,12 @@ public interface IAuditLogRepository
     Task<AuditLogListRow?> GetByIdScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default);
 
+    Task<int> CountOlderThanScopedAsync(
+        string tenantId,
+        string orgId,
+        DateTimeOffset cutoffBefore,
+        CancellationToken ct = default);
+
     Task<int> PurgeOlderThanScopedAsync(
         string tenantId,
         string orgId,

@@ -1288,10 +1288,20 @@ internal static class SwaggerExamples
     internal static JsonObject AuditLogPurgeData() => new()
     {
         ["deleted_count"] = 42,
+        ["retention_window"] = 90,
         ["cutoff_before"] = "2026-03-05T12:00:00+00:00",
     };
 
+    internal static JsonObject AuditLogPurgePreviewData() => new()
+    {
+        ["eligible_count"] = 847,
+        ["retention_window"] = 180,
+        ["cutoff_before"] = "2025-12-10T12:00:00+00:00",
+    };
+
     internal static JsonObject AuditLogPurgeResponse() => EnvelopeOk(AuditLogPurgeData());
+
+    internal static JsonObject AuditLogPurgePreviewResponse() => EnvelopeOk(AuditLogPurgePreviewData());
 
     internal static JsonObject PlatformUserListItemData() => new()
     {

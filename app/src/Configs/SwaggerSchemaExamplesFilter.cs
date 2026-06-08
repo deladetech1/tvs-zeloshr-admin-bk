@@ -93,6 +93,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(AuditLogListItemDto) => SwaggerExamples.AuditLogListItemData(),
             nameof(AuditLogListDto) => SwaggerExamples.AuditLogListData(),
             nameof(AuditLogPurgeResultDto) => SwaggerExamples.AuditLogPurgeData(),
+            nameof(AuditLogPurgePreviewDto) => SwaggerExamples.AuditLogPurgePreviewData(),
             nameof(PlatformUserListItemDto) => SwaggerExamples.PlatformUserListItemData(),
             nameof(AuditLogEmployeeRefDto) => new JsonObject
             {
@@ -156,7 +157,9 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(AuditLogListItemDto) => AppendDescription(schema.Description,
                 $"Table row. category: {SwaggerExampleHints.AuditCategory}. severity: {SwaggerExampleHints.AuditSeverity}. actor_id is platform user id when known."),
             nameof(AuditLogPurgeResultDto) => AppendDescription(schema.Description,
-                "Purge result: deleted_count and cutoff_before (occurred_at strictly before this instant were removed)."),
+                "Purge result: deleted_count, retention_window (days), and cutoff_before."),
+            nameof(AuditLogPurgePreviewDto) => AppendDescription(schema.Description,
+                "Purge preview: eligible_count for retention_window without deleting."),
             nameof(PlatformUserListItemDto) => AppendDescription(schema.Description,
                 "Trovesuite cp_users row (joined to cp_members). profile_pic is stored path; Core Platform may return a presigned URL."),
             _ => schema.Description,

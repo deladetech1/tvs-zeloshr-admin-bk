@@ -49,13 +49,28 @@ public sealed class SwaggerAuditLogsOperationFilter : IOperationFilter
             return;
         }
 
+        if (method.Equals("GET", StringComparison.OrdinalIgnoreCase)
+            && path.Equals("api/v1/audit-logs/purge/preview", StringComparison.OrdinalIgnoreCase))
+        {
+            SetJsonResponseExample(operation, 200, SwaggerExamples.AuditLogPurgePreviewResponse());
+            operation.Summary ??= "Purge preview";
+            operation.Description = SwaggerOptionFormat.Append(operation.Description,
+                "Returns eligible_count for the retention window without deleting. Use before confirming purge in the UI.");
+            AppendParameterDescription(operation, "retention_window",
+                $"Days before cutoff. Allowed: {string.Join(", ", AuditLogFieldOptions.RetentionWindowDays)}. Default 90.");
+            return;
+        }
+
         if (method.Equals("DELETE", StringComparison.OrdinalIgnoreCase)
             && path.Equals("api/v1/audit-logs/purge", StringComparison.OrdinalIgnoreCase))
         {
             SetJsonResponseExample(operation, 200, SwaggerExamples.AuditLogPurgeResponse());
             operation.Summary ??= "Purge old audit logs";
             operation.Description = SwaggerOptionFormat.Append(operation.Description,
-                "Hard-deletes audit log entries with occurred_at older than three months for the current tenant/org. Returns deleted_count and cutoff_before.");
+                "Hard-deletes audit log entries with occurred_at older than retention_window (days) for the current tenant/org. "
+                + "Returns deleted_count, retention_window, and cutoff_before.");
+            AppendParameterDescription(operation, "retention_window",
+                $"Days before cutoff. Allowed: {string.Join(", ", AuditLogFieldOptions.RetentionWindowDays)}. Default 90.");
             return;
         }
 

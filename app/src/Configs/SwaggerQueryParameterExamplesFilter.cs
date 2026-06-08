@@ -274,6 +274,21 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
         }
 
         if (context.ParameterInfo?.Member.DeclaringType?.FullName?.Contains(
+                "AuditLogPurgeQuery",
+                StringComparison.Ordinal) == true)
+        {
+            if (name.Equals("retention_window", StringComparison.OrdinalIgnoreCase))
+            {
+                schema.Example = 90;
+                parameter.Description = SwaggerOptionFormat.Append(
+                    parameter.Description,
+                    "Days before cutoff. Allowed: 90, 180, 365. Default 90.");
+            }
+
+            return;
+        }
+
+        if (context.ParameterInfo?.Member.DeclaringType?.FullName?.Contains(
                 ".Entities.Users.",
                 StringComparison.Ordinal) == true)
         {
