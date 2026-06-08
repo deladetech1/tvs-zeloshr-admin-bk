@@ -17,6 +17,8 @@ internal static class SwaggerExampleHints
     internal static string IdType => SwaggerOptionFormat.JoinPipe(EmployeeFieldOptions.IdTypes);
     internal static string EmploymentType => SwaggerOptionFormat.JoinPipe(EmployeeFieldOptions.EmploymentTypes);
     internal static string EmploymentStatus => SwaggerOptionFormat.JoinPipe(EmployeeFieldOptions.EmploymentStatuses);
+    internal static string Engagement => SwaggerOptionFormat.JoinPipe(EmployeeFieldOptions.Engagements);
+    internal static string WorkState => SwaggerOptionFormat.JoinPipe(EmployeeFieldOptions.WorkStates);
     internal static string ContractType => SwaggerOptionFormat.JoinPipe(EmployeeFieldOptions.ContractTypes);
     internal static string WorkArrangement => SwaggerOptionFormat.JoinPipe(EmployeeFieldOptions.WorkArrangements);
     internal static string LifecycleState => SwaggerOptionFormat.JoinPipe(EmployeeFieldOptions.LifecycleStatesAll);

@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Mvc;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Files;
 
@@ -234,8 +235,18 @@ public sealed class EmployeeListQuery
 {
     public string? Search { get; init; }
 
-    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.EmploymentStatuses))]
+    [FromQuery(Name = "employment_status")]
+    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.EmploymentStatuses),
+        Description = "Legacy exact match. Prefer engagement + work_states.")]
     public string? EmploymentStatus { get; init; }
+
+    [FromQuery(Name = "engagement")]
+    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.Engagements))]
+    public string? Engagement { get; init; }
+
+    [FromQuery(Name = "work_states")]
+    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.WorkStates))]
+    public string[]? WorkStates { get; init; }
 
     public Guid? DepartmentId { get; init; }
     public Guid? BranchId { get; init; }
@@ -273,6 +284,11 @@ public sealed class EmployeeListItemDto
 
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.EmploymentStatuses))]
     public string? EmploymentStatus { get; init; }
+
+    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.Engagements))]
+    public string? Engagement { get; init; }
+
+    public IReadOnlyList<string> WorkStates { get; init; } = [];
 
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.EmploymentTypes))]
     public string? EmploymentType { get; init; }

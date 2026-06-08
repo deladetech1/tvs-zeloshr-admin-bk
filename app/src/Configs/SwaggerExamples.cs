@@ -331,6 +331,8 @@ internal static class SwaggerExamples
             ["branch_name"] = "Accra HQ",
             ["work_location"] = "Accra HQ",
             ["employment_status"] = "Active",
+            ["engagement"] = "active",
+            ["work_states"] = new JsonArray("probation"),
             ["employment_type"] = "Full-time",
             ["profile_url"] = EmployeeDocumentItem(SampleDocumentId1, "Employee profile photo"),
         }),

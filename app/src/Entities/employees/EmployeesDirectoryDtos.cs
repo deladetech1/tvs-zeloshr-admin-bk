@@ -1,3 +1,5 @@
+using ZelosHR.Api.Configs;
+
 namespace ZelosHR.Api.Entities.Employees;
 
 public sealed class EmployeeDirectorySummaryDto
@@ -23,6 +25,11 @@ public sealed class EmployeeDirectoryItemDto
     public string? ManagerId { get; init; }
     public string? ManagerName { get; init; }
     public required string Status { get; init; }
+
+    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.Engagements))]
+    public string? Engagement { get; init; }
+
+    public IReadOnlyList<string> WorkStates { get; init; } = [];
 }
 
 public sealed class EmployeeDirectoryListDto
@@ -37,7 +44,12 @@ public sealed class EmployeeFilterOptionsDto
     public IReadOnlyList<FilterOptionDto> Departments { get; init; } = [];
     public IReadOnlyList<FilterOptionDto> Branches { get; init; } = [];
     public IReadOnlyList<string> EmploymentTypes { get; init; } = [];
+
+    /// <summary>Legacy single-value status list (exact employment_status match).</summary>
     public IReadOnlyList<string> Statuses { get; init; } = [];
+
+    public IReadOnlyList<string> Engagements { get; init; } = [];
+    public IReadOnlyList<string> WorkStates { get; init; } = [];
 }
 
 public sealed class FilterOptionDto

@@ -73,6 +73,24 @@ public class EmployeeDirectoryQueryBuilderTests
         Assert.DoesNotContain("NOT IN ('Terminated'", where);
     }
 
+    [Fact]
+    public void Build_applies_engagement_and_work_state_filters()
+    {
+        var (where, parameters) = EmployeeDirectoryQueryBuilder.Build(
+            new EmployeeDirectoryQuery
+            {
+                Engagement = "active",
+                WorkStates = ["probation"],
+            },
+            Table,
+            TestDefaults.TenantId,
+            TestDefaults.OrgId);
+
+        Assert.Contains("e.lifecycle_state IN ('Active', 'On Leave')", where);
+        Assert.Contains("e.employment_status = 'Probation'", where);
+        Assert.True(parameters.ContainsKey("StatusFilterToday"));
+    }
+
     [Theory]
     [InlineData("name", "asc", "e.last_name, e.first_name")]
     [InlineData("employeeCode", "desc", "e.employee_code")]

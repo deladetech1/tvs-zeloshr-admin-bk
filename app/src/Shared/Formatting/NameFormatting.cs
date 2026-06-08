@@ -17,12 +17,21 @@ public static class NameFormatting
         return firstName?.Trim() ?? lastName?.Trim() ?? string.Empty;
     }
 
-    public static string BuildFullName(string firstName, string? middleName, string lastName)
+    public static string BuildFullName(string? firstName, string? middleName, string? lastName)
     {
-        if (string.IsNullOrWhiteSpace(middleName))
-            return $"{firstName.Trim()} {lastName.Trim()}";
+        var first = firstName?.Trim() ?? string.Empty;
+        var last = lastName?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(first) && string.IsNullOrEmpty(last))
+            return string.Empty;
+        if (string.IsNullOrEmpty(first))
+            return last;
+        if (string.IsNullOrEmpty(last))
+            return first;
 
-        return $"{firstName.Trim()} {middleName.Trim()} {lastName.Trim()}";
+        if (string.IsNullOrWhiteSpace(middleName))
+            return $"{first} {last}";
+
+        return $"{first} {middleName.Trim()} {last}";
     }
 
     public static string BuildInitials(string firstName, string lastName)

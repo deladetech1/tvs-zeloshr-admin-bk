@@ -93,6 +93,8 @@ public class EmployeesDirectoryService
                 .ToList(),
             EmploymentTypes = EmployeeFieldOptions.EmploymentTypes.ToList(),
             Statuses = EmployeeFieldOptions.DirectoryEmploymentStatuses.ToList(),
+            Engagements = EmployeeFieldOptions.Engagements.ToList(),
+            WorkStates = EmployeeFieldOptions.WorkStates.ToList(),
         });
     }
 
@@ -126,6 +128,19 @@ public class EmployeesDirectoryService
             ManagerId = row.ManagerId?.ToString(),
             ManagerName = managerName,
             Status = row.Status,
+            Engagement = EmployeeStatusFilter.ResolveEngagement(ToStatusEntity(row)),
+            WorkStates = EmployeeStatusFilter.ResolveWorkStates(
+                ToStatusEntity(row), DateOnly.FromDateTime(DateTime.UtcNow)),
+        };
+    }
+
+    private static EmployeeEntity ToStatusEntity(EmployeeDirectoryListRow row) =>
+        new()
+        {
+            EmploymentStatus = row.Status,
+            LifecycleState = row.LifecycleState,
+            IsDraft = row.IsDraft,
+            ProbationEndDate = row.ProbationEndDate,
         };
     }
 }

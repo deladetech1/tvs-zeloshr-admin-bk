@@ -30,4 +30,7 @@ public sealed record EmployeeDirectoryListRow(
     string? ManagerUserId,
     string? ManagerFirstName,
     string? ManagerLastName,
-    string Status);
+    string Status,
+    string LifecycleState,
+    bool IsDraft,
+    DateOnly? ProbationEndDate);

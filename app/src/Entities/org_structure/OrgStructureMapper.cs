@@ -2,7 +2,6 @@ using ZelosHR.Api.Entities.Branches;
 using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Shared;
-using ZelosHR.Api.Shared.Formatting;
 
 namespace ZelosHR.Api.Entities.OrgStructure;
 
@@ -18,15 +17,7 @@ internal static class OrgStructureMapper
             Description = row.Description,
             ParentDepartmentId = row.ParentDepartmentId?.ToString(),
             ParentDepartmentName = row.ParentDepartmentName,
-            HeadOfDepartment = row.HeadId is null
-                ? null
-                : new DepartmentHeadDto
-                {
-                    EmployeeId = row.HeadId.Value.ToString(),
-                    FullName = NameFormatting.BuildFullName(row.HeadFirstName!, null, row.HeadLastName!),
-                    JobTitle = row.HeadJobTitle,
-                    Initials = NameFormatting.BuildInitials(row.HeadFirstName!, row.HeadLastName!),
-                },
+            HeadOfDepartment = DepartmentHeadMapper.Map(row, users),
             EmployeeCount = row.EmployeeCount,
             HeadcountCapacity = row.HeadcountCapacity,
             IsArchived = row.IsArchived,
@@ -94,7 +85,8 @@ internal static class OrgStructureMapper
         };
 
     internal static IEnumerable<string> CollectUserIds(IEnumerable<DepartmentListRow> rows) =>
-        ResourceAuditMapper.CollectUserIds(rows.Select(r => new[] { r.CreatedBy, r.UpdatedBy }));
+        ResourceAuditMapper.CollectUserIds(
+            rows.SelectMany(r => new[] { r.CreatedBy, r.UpdatedBy, r.HeadUserId }));
 
     internal static IEnumerable<string> CollectUserIds(IEnumerable<BranchListRow> rows) =>
         ResourceAuditMapper.CollectUserIds(rows.Select(r => new[] { r.CreatedBy, r.UpdatedBy }));

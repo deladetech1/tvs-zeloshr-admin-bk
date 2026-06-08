@@ -240,6 +240,35 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
             return;
         }
 
+        if (name.Equals("engagement", StringComparison.OrdinalIgnoreCase))
+        {
+            schema.Example = EmployeeEngagementValues.Active;
+            parameter.Description = SwaggerOptionFormat.Append(
+                parameter.Description,
+                $"Primary workforce relationship. Allowed: {SwaggerExampleHints.Engagement}. AND-combined with work_states.");
+            return;
+        }
+
+        if (name.Equals("work_states", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("workStates", StringComparison.OrdinalIgnoreCase))
+        {
+            schema.Example = EmployeeWorkStateValues.Probation;
+            parameter.Description = SwaggerOptionFormat.Append(
+                parameter.Description,
+                $"Overlay work state(s). Allowed: {SwaggerExampleHints.WorkState}. Repeat param for OR within overlays (e.g. active + on probation).");
+            return;
+        }
+
+        if (name.Equals("employment_status", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("employmentStatus", StringComparison.OrdinalIgnoreCase))
+        {
+            schema.Example = EmploymentStatusValues.Active;
+            parameter.Description = SwaggerOptionFormat.Append(
+                parameter.Description,
+                $"Legacy exact match on employment_status. Prefer engagement + work_states for composite filters. Allowed: {SwaggerExampleHints.EmploymentStatus}.");
+            return;
+        }
+
         if (context.ParameterInfo?.Member.DeclaringType?.FullName?.Contains(
                 "AuditLogs",
                 StringComparison.Ordinal) != true)

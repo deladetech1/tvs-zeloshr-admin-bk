@@ -58,7 +58,10 @@ public sealed class EmployeeDirectoryRepository(ZelosHrDbContext db) : IEmployee
                 e.Manager != null ? e.Manager.UserId : null,
                 e.Manager != null ? e.Manager.FirstName : null,
                 e.Manager != null ? e.Manager.LastName : null,
-                e.EmploymentStatus))
+                e.EmploymentStatus,
+                e.LifecycleState,
+                e.IsDraft,
+                e.ProbationEndDate))
             .ToListAsync(ct);
 
         return (rows, total);

@@ -37,6 +37,24 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
         if (method.Equals("GET", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/employees/list", StringComparison.OrdinalIgnoreCase))
         {
             SetJsonResponseExample(operation, 200, SwaggerExamples.EnvelopeFor(typeof(Respons<EmployeeListDto>), 200));
+            operation.Description = AppendDescription(operation.Description,
+                """
+                Composite status filters (preferred over legacy employment_status):
+                • engagement — primary workforce relationship (active, pre_hire, terminated, …)
+                • work_states — overlay tags combinable with engagement (probation, on_leave). Repeat param for OR within overlays.
+
+                Examples:
+                • GET /employees/list?engagement=active&work_states=probation — active employees on probation
+                • GET /employees/list?engagement=active&work_states=on_leave — active employees on leave
+
+                Each item includes employment_status (legacy column), engagement, and work_states[] for display.
+                """);
+            AppendParameterDescription(operation, "engagement",
+                $"Primary workforce filter. Allowed: {SwaggerExampleHints.Engagement}. AND-combined with work_states.");
+            AppendParameterDescription(operation, "work_states",
+                $"Overlay filter(s). Allowed: {SwaggerExampleHints.WorkState}. Repeat for OR (e.g. probation + on_leave).");
+            AppendParameterDescription(operation, "employment_status",
+                "Legacy exact match on employment_status column. Omit when using engagement + work_states.");
             return;
         }
 
@@ -68,7 +86,12 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
             operation.Description = SwaggerOptionFormat.Append(operation.Description,
                 $"Returns CSV with columns: {string.Join(", ", EmployeeCsvExport.Headers)}. "
                 + "Filter by employment start using start_date and end_date (YYYY-MM-DD). "
-                + "Optional filters match GET /employees/list (search, employment_status, department_id, branch_id, employment_type, work_location, include_inactive).");
+                + "Optional filters match GET /employees/list (search, engagement, work_states, employment_status, department_id, branch_id, employment_type, work_location, include_inactive). "
+                + "Prefer engagement + work_states over legacy employment_status for composite status (e.g. active + probation).");
+            AppendParameterDescription(operation, "engagement",
+                $"Primary workforce filter. Allowed: {SwaggerExampleHints.Engagement}.");
+            AppendParameterDescription(operation, "work_states",
+                $"Overlay filter(s). Allowed: {SwaggerExampleHints.WorkState}. Repeat query param for OR within overlays.");
             AppendParameterDescription(operation, "start_date",
                 "Employment start on or after this date (uses start_date or employment_start_date on the employee record).");
             AppendParameterDescription(operation, "end_date",

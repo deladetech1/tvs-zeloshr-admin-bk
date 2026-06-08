@@ -690,6 +690,8 @@ public sealed class EmployeeAggregateService
                 BranchName = e.Branch?.Name,
                 WorkLocation = e.WorkLocation,
                 EmploymentStatus = e.EmploymentStatus,
+                Engagement = EmployeeStatusFilter.ResolveEngagement(e),
+                WorkStates = EmployeeStatusFilter.ResolveWorkStates(e, DateOnly.FromDateTime(DateTime.UtcNow)),
                 EmploymentType = e.EmploymentType,
                 ProfileUrl = profileUrl,
             };

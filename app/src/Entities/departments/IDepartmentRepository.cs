@@ -62,6 +62,8 @@ public sealed record DepartmentListRow(
     string? ParentDepartmentName,
     bool IsArchived,
     Guid? HeadId,
+    string? HeadUserId,
+    string? HeadFullName,
     string? HeadFirstName,
     string? HeadLastName,
     string? HeadJobTitle,

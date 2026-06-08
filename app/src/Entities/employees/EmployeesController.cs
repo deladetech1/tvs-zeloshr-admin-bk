@@ -161,7 +161,8 @@ public class EmployeesController : ControllerBase
     /// <summary>Export employees as CSV.</summary>
     /// <remarks>
     /// Optional <c>start_date</c> / <c>end_date</c> filter by employment start (<c>start_date</c> or <c>employment_start_date</c> on the record).
-    /// Same org filters as <c>GET /employees/list</c>: <c>search</c>, <c>employment_status</c>, <c>department_id</c>, <c>branch_id</c>, etc.
+    /// Same org filters as <c>GET /employees/list</c>: <c>search</c>, <c>engagement</c>, <c>work_states</c>, <c>employment_status</c>, <c>department_id</c>, <c>branch_id</c>, etc.
+    /// Prefer <c>engagement</c> + <c>work_states</c> for composite status (e.g. active + probation).
     /// </remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("export")]
@@ -312,6 +313,12 @@ public class EmployeesController : ControllerBase
     }
 
     /// <summary>Paginated employee list with search and org filters.</summary>
+    /// <remarks>
+    /// Composite status filters: <c>engagement</c> (primary relationship) + repeatable <c>work_states</c> (overlays).
+    /// Example: <c>?engagement=active&amp;work_states=probation</c> for active employees on probation.
+    /// Legacy <c>employment_status</c> exact match still works when engagement/work_states are omitted.
+    /// Each item returns <c>employment_status</c>, <c>engagement</c>, and <c>work_states[]</c>.
+    /// </remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("list")]
     [ProducesResponseType(typeof(Respons<EmployeeListDto>), StatusCodes.Status200OK)]

@@ -1,6 +1,5 @@
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Shared;
-using ZelosHR.Api.Shared.Formatting;
 using ZelosHR.Api.Shared.Pagination;
 
 namespace ZelosHR.Api.Entities.Departments;
@@ -41,7 +40,8 @@ public class DepartmentsService
             tenantId, orgId, search, sortBy, sortOrder, includeArchived, paging.Page, paging.Size, ct);
 
         var users = await _cpUsers.GetByIdsAsync(
-            ResourceAuditMapper.CollectUserIds(rows.Select(r => new[] { r.CreatedBy, r.UpdatedBy })),
+            ResourceAuditMapper.CollectUserIds(
+                rows.SelectMany(r => new[] { r.CreatedBy, r.UpdatedBy, r.HeadUserId })),
             tenantId,
             ct);
 
@@ -52,15 +52,7 @@ public class DepartmentsService
             Description = r.Description,
             ParentDepartmentId = r.ParentDepartmentId?.ToString(),
             ParentDepartmentName = r.ParentDepartmentName,
-            HeadOfDepartment = r.HeadId is null
-                ? null
-                : new DepartmentHeadDto
-                {
-                    EmployeeId = r.HeadId.Value.ToString(),
-                    FullName = NameFormatting.BuildFullName(r.HeadFirstName!, null, r.HeadLastName!),
-                    JobTitle = r.HeadJobTitle,
-                    Initials = NameFormatting.BuildInitials(r.HeadFirstName!, r.HeadLastName!),
-                },
+            HeadOfDepartment = DepartmentHeadMapper.Map(r, users),
             EmployeeCount = r.EmployeeCount,
             IsArchived = r.IsArchived,
             HierarchyLevel = r.ParentDepartmentId is null ? 0 : 1,

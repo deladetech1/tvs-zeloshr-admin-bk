@@ -44,7 +44,7 @@ public static class EmployeeFieldOptions
         EmploymentStatusValues.Inactive,
     ];
 
-    /// <summary>Employment-status values used in list filters and directory KPIs.</summary>
+    /// <summary>Employment-status values used in legacy list filters and directory KPIs.</summary>
     public static readonly IReadOnlyList<string> DirectoryEmploymentStatuses =
     [
         EmploymentStatusValues.Active,
@@ -54,6 +54,12 @@ public static class EmployeeFieldOptions
         EmploymentStatusValues.Resigned,
         EmploymentStatusValues.Terminated,
     ];
+
+    /// <summary>Primary workforce filters for <c>GET /employees/list</c> and directory.</summary>
+    public static readonly IReadOnlyList<string> Engagements = EmployeeStatusFilter.Engagements;
+
+    /// <summary>Overlay filters combinable with <see cref="Engagements"/>.</summary>
+    public static readonly IReadOnlyList<string> WorkStates = EmployeeStatusFilter.WorkStates;
 
     public static readonly IReadOnlyList<string> EmploymentTypes =
         ["Full-time", "Part-time", "Contractor", "Casual"];
