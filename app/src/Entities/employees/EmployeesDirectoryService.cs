@@ -1,6 +1,7 @@
 using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Branches;
 using ZelosHR.Api.Entities.Shared;
+using ZelosHR.Api.Persistence.Entities;
 using ZelosHR.Api.Shared.Formatting;
 using ZelosHR.Api.Shared.Pagination;
 
