@@ -67,7 +67,12 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
         {
             SetJsonResponseExample(operation, 200, SwaggerExamples.ImportSearchResponse());
             AppendParameterDescription(operation, "query",
-                "Search text matched against cp_users full name or email. Returns users not already linked to an employee.");
+                "Search text matched against cp_users full name or email (min 1 character). Returns up to 20 users not already linked to an employee.");
+            operation.Description = AppendDescription(operation.Description,
+                """
+                Trovesuite platform user picker for HR import. Reads `core_platform.cp_users` for the current tenant.
+                For a full paginated user directory with filters, use Core Platform `GET /api/v1/users/get-users` (separate API / Swagger).
+                """);
             return;
         }
 
@@ -77,6 +82,11 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
             SetJsonResponseExample(operation, 200, SwaggerExamples.ImportEmployeesAllSucceededResponse());
             SetJsonResponseExample(operation, 207, SwaggerExamples.ImportEmployeesPartialResponse());
             SetJsonResponseExample(operation, 422, SwaggerExamples.ImportEmployeesAllFailedResponse());
+            operation.Description = AppendDescription(operation.Description,
+                """
+                Responses: **200** all rows succeeded; **207** partial; **422** none succeeded.
+                Per-row outcomes in `data.items[]` (`success`, `error`).
+                """);
             return;
         }
 
@@ -142,8 +152,12 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
             SetJsonResponseExample(operation, 207, SwaggerExamples.BatchImportPartialEnvelope());
             SetJsonResponseExample(operation, 422, SwaggerExamples.BatchImportAllFailedEnvelope());
             AppendParameterDescription(operation, "status",
-                $"Import status for all CSV rows. Allowed: {SwaggerExampleHints.Status}. " +
-                "HTTP 200 when every row succeeds; 207 when some rows fail; 422 when no rows succeed.");
+                $"Import status for all CSV rows. Allowed: {SwaggerExampleHints.Status}.");
+            operation.Description = AppendDescription(operation.Description,
+                """
+                Responses: **200** all rows succeeded (`success: true`); **207** partial (`success: false`, see `data.rows`);
+                **422** none succeeded (`success: false`). Per-row errors stay in `data.rows[].error`.
+                """);
         }
     }
 
@@ -151,15 +165,30 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
     {
         if (example is null)
             return;
-        var key = statusCode.ToString();
-        if (!operation.Responses.TryGetValue(key, out var response) || response.Content is null)
-            return;
 
+        var key = statusCode.ToString();
+        if (!operation.Responses.TryGetValue(key, out var response))
+        {
+            response = new OpenApiResponse { Description = DescribeStatusCode(statusCode) };
+            operation.Responses[key] = response;
+        }
+
+        response.Content ??= new Dictionary<string, OpenApiMediaType>();
         if (!response.Content.TryGetValue("application/json", out var media))
-            return;
+        {
+            media = new OpenApiMediaType();
+            response.Content["application/json"] = media;
+        }
 
         SwaggerMediaExamples.SetSingleExample(media, example);
     }
+
+    private static string DescribeStatusCode(int statusCode) => statusCode switch
+    {
+        207 => "Batch completed with some row failures (envelope success false; see data.rows).",
+        422 => "Batch completed with no successful rows (envelope success false; see data.rows).",
+        _ => "Response",
+    };
 
     private static void SetJsonRequestExample(OpenApiOperation operation, JsonObject example)
     {
