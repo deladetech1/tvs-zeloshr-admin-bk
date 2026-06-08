@@ -55,6 +55,10 @@ public static class EmployeeDirectoryQueryBuilder
 {
     public const int MinimumSearchLength = 3;
 
+    /// <summary>Join required when <see cref="Build"/> search filter is used (links platform identity).</summary>
+    public const string PlatformUserSearchJoin =
+        "LEFT JOIN core_platform.cp_users cu ON cu.id = e.user_id AND cu.tenant_id = e.tenant_id";
+
     public static (string WhereClause, Dictionary<string, object?> Parameters) Build(
         EmployeeDirectoryQuery query,
         string employeesTable,
@@ -81,9 +85,16 @@ public static class EmployeeDirectoryQueryBuilder
                 (
                     e.first_name ILIKE @Search OR
                     e.last_name ILIKE @Search OR
+                    e.middle_name ILIKE @Search OR
+                    COALESCE(e.full_name, '') ILIKE @Search OR
                     e.employee_code ILIKE @Search OR
                     COALESCE(e.job_title, '') ILIKE @Search OR
-                    TRIM(CONCAT(e.first_name, ' ', COALESCE(e.middle_name || ' ', ''), e.last_name)) ILIKE @Search
+                    COALESCE(e.work_email, '') ILIKE @Search OR
+                    COALESCE(e.personal_email, '') ILIKE @Search OR
+                    TRIM(CONCAT(e.first_name, ' ', COALESCE(e.middle_name || ' ', ''), e.last_name)) ILIKE @Search OR
+                    cu.fullname ILIKE @Search OR
+                    cu.email ILIKE @Search OR
+                    cu.contact ILIKE @Search
                 )
                 """);
             parameters["Search"] = $"%{query.Search.Trim()}%";
@@ -162,7 +173,9 @@ public static class EmployeeDirectoryQueryBuilder
     }
 
     public static IQueryable<EmployeeEntity> ApplyFilters(
-        IQueryable<EmployeeEntity> query, EmployeeDirectoryQuery directoryQuery)
+        IQueryable<EmployeeEntity> query,
+        EmployeeDirectoryQuery directoryQuery,
+        IQueryable<CpUserEntity>? platformUsers = null)
     {
         if (!string.IsNullOrWhiteSpace(directoryQuery.Search)
             && directoryQuery.Search.Trim().Length >= MinimumSearchLength)
@@ -172,8 +185,17 @@ public static class EmployeeDirectoryQueryBuilder
                 EF.Functions.ILike(e.FullName, pattern)
                 || (e.FirstName != null && EF.Functions.ILike(e.FirstName, pattern))
                 || (e.LastName != null && EF.Functions.ILike(e.LastName, pattern))
+                || (e.MiddleName != null && EF.Functions.ILike(e.MiddleName, pattern))
                 || EF.Functions.ILike(e.EmployeeCode, pattern)
-                || (e.JobTitle != null && EF.Functions.ILike(e.JobTitle, pattern)));
+                || (e.JobTitle != null && EF.Functions.ILike(e.JobTitle, pattern))
+                || (e.WorkEmail != null && EF.Functions.ILike(e.WorkEmail, pattern))
+                || (e.PersonalEmail != null && EF.Functions.ILike(e.PersonalEmail, pattern))
+                || (e.UserId != null && platformUsers != null && platformUsers.Any(u =>
+                    u.Id == e.UserId
+                    && u.TenantId == e.TenantId
+                    && (EF.Functions.ILike(u.Fullname, pattern)
+                        || EF.Functions.ILike(u.Email, pattern)
+                        || EF.Functions.ILike(u.Contact, pattern)))));
         }
 
         if (directoryQuery.DepartmentId.HasValue)

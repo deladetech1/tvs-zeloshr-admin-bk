@@ -43,6 +43,7 @@ public class EmployeeDirectoryQueryBuilderTests
             TestDefaults.OrgId);
 
         Assert.Contains("ILIKE @Search", where);
+        Assert.Contains("cu.fullname ILIKE @Search", where);
         Assert.Equal("%Ama%", parameters["Search"]);
     }
 
