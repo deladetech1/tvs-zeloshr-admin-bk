@@ -135,7 +135,7 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
                 ["root_department"] = Example(
                     SwaggerExamples.CreateDepartmentRoot(),
                     "Root department",
-                    "Top-level department with optional head_of_department_id (employee UUID) and headcount_capacity for org-chart badge."),
+                    "Top-level department. Send head as head_of_department_id (UUID) or nested head_of_department.employee_id from list round-trip."),
                 ["child_department"] = Example(
                     SwaggerExamples.CreateDepartmentChild(),
                     "Child department",

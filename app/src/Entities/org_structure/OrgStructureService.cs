@@ -127,8 +127,9 @@ public class OrgStructureService
 
         try
         {
+            var headId = request.ResolveHeadOfDepartmentId();
             var id = await _departmentRepo.CreateScopedAsync(
-                tenantId, orgId, request.Name, request.ParentDepartmentId, request.HeadOfDepartmentId,
+                tenantId, orgId, request.Name, request.ParentDepartmentId, headId,
                 request.Description, request.HeadcountCapacity, CurrentUserId, ct);
 
             var created = await _departmentRepo.GetActiveScopedAsync(id, tenantId, orgId, ct);
@@ -159,7 +160,8 @@ public class OrgStructureService
 
         var hasName = !string.IsNullOrWhiteSpace(request.Name);
         var hasParent = request.ParentDepartmentId.HasValue;
-        var hasHead = request.HeadOfDepartmentId.HasValue;
+        var resolvedHeadId = request.ResolveHeadOfDepartmentId();
+        var hasHead = request.HasHeadOfDepartmentChange();
         var hasDescription = request.Description is not null;
         var hasHeadcountCapacity = request.HeadcountCapacity.HasValue;
         if (!hasName && !hasParent && !hasHead && !hasDescription && !hasHeadcountCapacity)
@@ -188,7 +190,7 @@ public class OrgStructureService
             orgId,
             hasName ? request.Name : null,
             hasParent ? request.ParentDepartmentId : null,
-            hasHead ? request.HeadOfDepartmentId : null,
+            hasHead ? resolvedHeadId : null,
             request.Description,
             hasDescription,
             request.HeadcountCapacity,

@@ -79,6 +79,34 @@ public class OrgStructureServiceTests
     }
 
     [Fact]
+    public async Task CreateDepartment_passes_resolved_head_id_to_repository()
+    {
+        var headId = Guid.NewGuid();
+        _departmentRepo.CreateScopedAsync(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+                Arg.Any<Guid?>(), headId, Arg.Any<string?>(), Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(Guid.NewGuid());
+        _departmentRepo.GetActiveScopedAsync(Arg.Any<Guid>(), "t1", "o1", Arg.Any<CancellationToken>())
+            .Returns(new DepartmentListRow(
+                Guid.NewGuid(), "Eng", null, null, null, false, headId, null, null, null, null, null, 0, null,
+                DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, null, null));
+
+        var result = await _sut.CreateDepartmentAsync(
+            new CreateDepartmentRequestDto
+            {
+                Name = "Eng",
+                HeadOfDepartment = new DepartmentHeadReferenceDto { EmployeeId = headId.ToString() },
+                Description = "Platform",
+            },
+            "t1",
+            "o1");
+
+        result.Success.Should().BeTrue();
+        await _departmentRepo.Received(1).CreateScopedAsync(
+            "t1", "o1", "Eng", null, headId, "Platform", null, Arg.Any<string?>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task CreateDepartment_requires_name()
     {
         var result = await _sut.CreateDepartmentAsync(

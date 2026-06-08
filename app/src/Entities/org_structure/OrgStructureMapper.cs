@@ -58,6 +58,7 @@ internal static class OrgStructureMapper
             DepartmentId = row.Id.ToString(),
             Name = row.Name,
             Description = row.Description,
+            HeadOfDepartment = DepartmentHeadMapper.Map(row, users),
             CreatedAt = row.CreatedAt,
             UpdatedAt = row.UpdatedAt,
             CreatedById = row.CreatedBy,

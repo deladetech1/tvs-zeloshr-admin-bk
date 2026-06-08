@@ -773,6 +773,7 @@ internal static class SwaggerExamples
         ["department_id"] = SampleDepartmentId.ToString(),
         ["name"] = "Engineering",
         ["description"] = "Product engineering and platform",
+        ["head_of_department"] = DepartmentHeadExample(),
         ["created_at"] = "2025-01-15T10:30:00+00:00",
         ["updated_at"] = "2025-06-01T14:00:00+00:00",
         ["created_by_id"] = "uid_sample_user",
@@ -795,7 +796,11 @@ internal static class SwaggerExamples
         ["name"] = "Engineering",
         ["parent_department_id"] = null,
         ["head_of_department_id"] = SampleEmployeeId.ToString(),
-        ["description"] = null,
+        ["head_of_department"] = new JsonObject
+        {
+            ["employee_id"] = SampleEmployeeId.ToString(),
+        },
+        ["description"] = "Product engineering and platform",
         ["headcount_capacity"] = 10,
     };
 

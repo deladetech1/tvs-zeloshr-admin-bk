@@ -144,6 +144,7 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
         Guid id, string tenantId, string orgId, CancellationToken ct = default)
     {
         var entity = await db.Departments.AsNoTracking()
+            .Include(d => d.HeadOfDepartment)
             .FirstOrDefaultAsync(
                 d => d.Id == id && d.TenantId == tenantId && d.OrgId == orgId && !d.IsArchived, ct);
         if (entity is null)
@@ -164,11 +165,11 @@ public sealed class DepartmentRepository(ZelosHrDbContext db) : IDepartmentRepos
             null,
             entity.IsArchived,
             entity.HeadOfDepartmentId,
-            HeadUserId: null,
-            HeadFullName: null,
-            null,
-            null,
-            null,
+            entity.HeadOfDepartment?.UserId,
+            entity.HeadOfDepartment?.FullName,
+            entity.HeadOfDepartment?.FirstName,
+            entity.HeadOfDepartment?.LastName,
+            entity.HeadOfDepartment?.JobTitle,
             employeeCount,
             entity.HeadcountCapacity,
             entity.CreatedAt,
