@@ -142,5 +142,4 @@ public class EmployeesDirectoryService
             IsDraft = row.IsDraft,
             ProbationEndDate = row.ProbationEndDate,
         };
-    }
 }
