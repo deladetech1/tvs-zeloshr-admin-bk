@@ -65,7 +65,7 @@ public class EmployeesController : ControllerBase
         [FromBody] CreateEmployeeAggregateRequest body,
         CancellationToken ct)
     {
-        var result = await _aggregate.CreateAsync(body, ct);
+        var result = await _aggregate.CreateAsync(body, ct: ct);
         return StatusCode(result.StatusCode, result);
     }
 
