@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Persistence;
@@ -107,9 +108,9 @@ public sealed class EmployeeRegistrationService
         {
             entity.EmployeeCode = EmployeeCodeAllocation.Format(startSeq, attempt);
             var savepoint = $"draft_code_{attempt}";
-            var inTransaction = _db.Database.CurrentTransaction is not null;
-            if (inTransaction)
-                await _db.Database.CreateSavepointAsync(savepoint, ct);
+            var transaction = _db.Database.CurrentTransaction;
+            if (transaction is not null)
+                await transaction.CreateSavepointAsync(savepoint, ct);
 
             try
             {
@@ -118,8 +119,8 @@ public sealed class EmployeeRegistrationService
             }
             catch (DbUpdateException ex) when (PostgresUniqueViolation.IsEmployeeCode(ex))
             {
-                if (inTransaction)
-                    await _db.Database.RollbackToSavepointAsync(savepoint, ct);
+                if (transaction is not null)
+                    await transaction.RollbackToSavepointAsync(savepoint, ct);
                 _db.Entry(entity).State = EntityState.Detached;
                 entity = NewDraftEntity(userId, draftDisplayName, now);
 
