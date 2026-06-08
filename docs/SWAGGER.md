@@ -64,6 +64,16 @@ Tree shape comes from employee `reports_to_id`. Department badge requires `head_
 
 Entries are appended automatically when employees are created or updated (Phase 1). `actor_id` is the platform user id from the JWT when available.
 
+### Employee CSV export (`GET /api/v1/employees/export`)
+
+| Query param | Purpose |
+|-------------|---------|
+| `start_date` | Employment start on or after (`YYYY-MM-DD`; uses `start_date` or `employment_start_date`) |
+| `end_date` | Employment start on or before |
+| `search`, `employment_status`, `department_id`, `branch_id`, … | Same filters as `GET /employees/list` |
+
+Returns `text/csv` with columns aligned to bulk import plus `employee_id`, `employee_code`, `department_name`, `branch_name`, `employment_status`, `start_date`.
+
 ## Required on every API change (MUST)
 
 Any PR that changes request/response shapes, query params, routes, or workflows **must** update Swagger in the same commit. Do not merge API code without matching OpenAPI docs.

@@ -220,6 +220,26 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
             return;
         }
 
+        if (name.Equals("start_date", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("startDate", StringComparison.OrdinalIgnoreCase))
+        {
+            schema.Example = "2025-01-01";
+            parameter.Description = SwaggerOptionFormat.Append(
+                parameter.Description,
+                "Employment start on or after this date (YYYY-MM-DD). Uses start_date or employment_start_date on the employee record.");
+            return;
+        }
+
+        if (name.Equals("end_date", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("endDate", StringComparison.OrdinalIgnoreCase))
+        {
+            schema.Example = "2025-12-31";
+            parameter.Description = SwaggerOptionFormat.Append(
+                parameter.Description,
+                "Employment start on or before this date (YYYY-MM-DD). Must be on or after start_date when both are set.");
+            return;
+        }
+
         if (context.ParameterInfo?.Member.DeclaringType?.FullName?.Contains(
                 "AuditLogs",
                 StringComparison.Ordinal) != true)

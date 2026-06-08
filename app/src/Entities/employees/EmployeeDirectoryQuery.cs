@@ -33,6 +33,12 @@ public sealed class EmployeeDirectoryQuery
 
     /// <summary>When false, Terminated/Resigned are excluded unless status filter is set.</summary>
     public bool IncludeInactive { get; init; }
+
+    /// <summary>Employment start on or after this date (uses start_date or employment_start_date).</summary>
+    public DateOnly? StartDate { get; init; }
+
+    /// <summary>Employment start on or before this date (uses start_date or employment_start_date).</summary>
+    public DateOnly? EndDate { get; init; }
 }
 
 public static class EmployeeDirectoryQueryBuilder
@@ -176,6 +182,22 @@ public static class EmployeeDirectoryQueryBuilder
         else if (!directoryQuery.IncludeInactive)
             query = query.Where(e => e.EmploymentStatus != EmploymentStatusValues.Terminated
                 && e.EmploymentStatus != EmploymentStatusValues.Resigned);
+
+        if (directoryQuery.StartDate.HasValue)
+        {
+            var from = directoryQuery.StartDate.Value;
+            query = query.Where(e =>
+                (e.StartDate ?? e.EmploymentStartDate) != null
+                && (e.StartDate ?? e.EmploymentStartDate)! >= from);
+        }
+
+        if (directoryQuery.EndDate.HasValue)
+        {
+            var to = directoryQuery.EndDate.Value;
+            query = query.Where(e =>
+                (e.StartDate ?? e.EmploymentStartDate) != null
+                && (e.StartDate ?? e.EmploymentStartDate)! <= to);
+        }
 
         return query;
     }

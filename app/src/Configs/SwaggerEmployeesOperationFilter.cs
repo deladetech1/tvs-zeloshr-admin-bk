@@ -62,6 +62,20 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
             return;
         }
 
+        if (method.Equals("GET", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/employees/export", StringComparison.OrdinalIgnoreCase))
+        {
+            operation.Summary ??= "Export employees CSV";
+            operation.Description = SwaggerOptionFormat.Append(operation.Description,
+                $"Returns CSV with columns: {string.Join(", ", EmployeeCsvExport.Headers)}. "
+                + "Filter by employment start using start_date and end_date (YYYY-MM-DD). "
+                + "Optional filters match GET /employees/list (search, employment_status, department_id, branch_id, employment_type, work_location, include_inactive).");
+            AppendParameterDescription(operation, "start_date",
+                "Employment start on or after this date (uses start_date or employment_start_date on the employee record).");
+            AppendParameterDescription(operation, "end_date",
+                "Employment start on or before this date (uses start_date or employment_start_date on the employee record).");
+            return;
+        }
+
         if (method.Equals("DELETE", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/employees/delete", StringComparison.OrdinalIgnoreCase))
         {
             SetJsonResponseExample(operation, 200, SwaggerExamples.DeleteEmployeeSuccessResponse());

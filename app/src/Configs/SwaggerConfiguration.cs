@@ -64,6 +64,7 @@ public static class SwaggerConfiguration
                     4. **Create** — `POST /api/v1/employees/add` (finalises automatically when `identity.work_email` is set)
                     5. **Read / update** — `GET /api/v1/employees/get?employee_id=` (`documents[]` with presigned URLs on read) · `PUT /api/v1/employees/update?employee_id=` (string `document_ids` / `delete_document_ids` on write)
                     6. **Bulk import** — `GET /api/v1/employees/bulk/template` → fill CSV → `POST /api/v1/employees/bulk?status=`
+                    7. **Export** — `GET /api/v1/employees/export` (`start_date`, `end_date`, and list filters)
 
                     ---
 

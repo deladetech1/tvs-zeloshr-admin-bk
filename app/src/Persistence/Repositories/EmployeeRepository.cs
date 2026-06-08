@@ -150,6 +150,38 @@ public sealed class EmployeeRepository(ZelosHrDbContext db) : IEmployeeRepositor
         return (items, total);
     }
 
+    public async Task<IReadOnlyList<EmployeeEntity>> ExportListScopedAsync(
+        EmployeeExportQuery exportQuery,
+        string tenantId,
+        string orgId,
+        CancellationToken ct = default)
+    {
+        var directoryQuery = new EmployeeDirectoryQuery
+        {
+            Search = exportQuery.Search,
+            DepartmentId = exportQuery.DepartmentId,
+            BranchId = exportQuery.BranchId,
+            EmploymentType = exportQuery.EmploymentType,
+            WorkLocation = exportQuery.WorkLocation,
+            Status = exportQuery.EmploymentStatus,
+            IncludeInactive = exportQuery.IncludeInactive,
+            StartDate = exportQuery.StartDate,
+            EndDate = exportQuery.EndDate,
+        };
+
+        var query = db.Employees.AsNoTracking()
+            .Include(e => e.Department)
+            .Include(e => e.Branch)
+            .Where(e => e.TenantId == tenantId && e.OrgId == orgId && !e.IsDeleted);
+
+        query = EmployeeDirectoryQueryBuilder.ApplyFilters(query, directoryQuery);
+
+        return await query
+            .OrderBy(e => e.LastName)
+            .ThenBy(e => e.FirstName)
+            .ToListAsync(ct);
+    }
+
     public async Task<EmployeeEntity> AddAsync(EmployeeEntity entity, CancellationToken ct = default)
     {
         EmployeeEntityInsertDefaults.EnsureRequiredColumns(entity);

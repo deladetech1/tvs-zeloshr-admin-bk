@@ -37,6 +37,8 @@ paths=(
   "/api/v1/employees/list?page=1&size=5"
   "/api/v1/employees/import/search?query=a"
   "/api/v1/employees/bulk/template"
+  "/api/v1/employees/export"
+  "/api/v1/employees/export?start_date=2025-01-01&end_date=2025-12-31"
 )
 
 echo "ZelosHR base: ${BASE}"
@@ -45,9 +47,10 @@ echo ""
 for path in "${paths[@]}"; do
   accept="application/json"
   [[ "$path" == *bulk/template* ]] && accept="text/csv,application/json"
+  [[ "$path" == *employees/export* ]] && accept="text/csv,application/json"
   body=$(curl -sS -w "\n%{http_code}" -H "accept: ${accept}" "${curl_headers[@]}" "${BASE}${path}")
   code=$(echo "$body" | tail -1)
-  if [[ "$path" == *bulk/template* && "$code" == "200" ]]; then
+  if [[ "$path" == *bulk/template* && "$code" == "200" ]] || [[ "$path" == *employees/export* && "$code" == "200" ]]; then
     bytes=$(echo "$body" | sed '$d' | wc -c | tr -d ' ')
     printf "GET %s\n  HTTP %s\n  (CSV body, %s bytes)\n\n" "$path" "$code" "$bytes"
   else

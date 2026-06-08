@@ -21,6 +21,7 @@ public class EmployeesController : ControllerBase
     private readonly EmployeeSubResourcesService _subResources;
     private readonly EmployeeAggregateService _aggregate;
     private readonly EmployeeBulkImportService _bulkImport;
+    private readonly EmployeeExportService _export;
     private readonly ITenantContextAccessor _tenant;
 
     public EmployeesController(
@@ -30,6 +31,7 @@ public class EmployeesController : ControllerBase
         EmployeeSubResourcesService subResources,
         EmployeeAggregateService aggregate,
         EmployeeBulkImportService bulkImport,
+        EmployeeExportService export,
         ITenantContextAccessor tenant)
     {
         _service = service;
@@ -38,6 +40,7 @@ public class EmployeesController : ControllerBase
         _subResources = subResources;
         _aggregate = aggregate;
         _bulkImport = bulkImport;
+        _export = export;
         _tenant = tenant;
     }
 
@@ -153,6 +156,28 @@ public class EmployeesController : ControllerBase
         await using var stream = file.OpenReadStream();
         var result = await _bulkImport.ImportCsvAsync(stream, status, ct);
         return StatusCode(result.StatusCode, result);
+    }
+
+    /// <summary>Export employees as CSV.</summary>
+    /// <remarks>
+    /// Optional <c>start_date</c> / <c>end_date</c> filter by employment start (<c>start_date</c> or <c>employment_start_date</c> on the record).
+    /// Same org filters as <c>GET /employees/list</c>: <c>search</c>, <c>employment_status</c>, <c>department_id</c>, <c>branch_id</c>, etc.
+    /// </remarks>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
+    [HttpGet("export")]
+    [Produces("text/csv")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<object>), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ExportEmployees(
+        [FromQuery] EmployeeExportQuery query,
+        CancellationToken ct = default)
+    {
+        var result = await _export.ExportCsvAsync(query, ct);
+        if (!result.Success || result.Data is null)
+            return StatusCode(result.StatusCode, result);
+
+        var fileName = $"employees_export_{DateTime.UtcNow:yyyyMMdd}.csv";
+        return File(result.Data, "text/csv", fileName);
     }
 
     /// <summary>Remove uploaded wizard document. Prefer <c>DELETE /file/delete</c>.</summary>

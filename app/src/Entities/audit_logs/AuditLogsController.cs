@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Shared;
+using ZelosHR.Api.Shared.Authorization;
 using ZelosHR.Api.Shared.Constants;
 using ZelosHR.Api.Shared.Tenant;
+using ZelosHR.Api.Shared.Validation;
 
 namespace ZelosHR.Api.Entities.AuditLogs;
 
@@ -22,7 +24,10 @@ public class AuditLogsController : ControllerBase
         _tenant = tenant;
     }
 
+    /// <summary>Audit log KPI cards.</summary>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("statistics")]
+    [ProducesResponseType(typeof(Respons<AuditLogSummaryDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<AuditLogSummaryDto>>> Statistics(CancellationToken ct)
     {
         var ctx = _tenant.Current;
@@ -30,7 +35,10 @@ public class AuditLogsController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Paginated audit log table.</summary>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("list")]
+    [ProducesResponseType(typeof(Respons<AuditLogListDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<AuditLogListDto>>> List(
         [FromQuery] string? search,
         [FromQuery] string? action,
@@ -46,11 +54,19 @@ public class AuditLogsController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Single audit log entry.</summary>
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("get")]
+    [ProducesResponseType(typeof(Respons<AuditLogListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<AuditLogListItemDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<AuditLogListItemDto>>> Get(
         [FromQuery(Name = PlatformQueryParams.AuditLogId)] Guid auditLogId,
         CancellationToken ct)
     {
+        if (QueryParamValidation.BadRequestIfEmptyGuid<AuditLogListItemDto>(
+                auditLogId, PlatformQueryParams.AuditLogId) is { } missingAuditLogId)
+            return missingAuditLogId;
+
         var ctx = _tenant.Current;
         var result = await _service.GetByIdAsync(auditLogId, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);

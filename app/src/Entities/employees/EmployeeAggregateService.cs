@@ -32,6 +32,7 @@ public sealed class EmployeeAggregateService
     private readonly HrDocumentPresignedUrlService _profileUrls;
     private readonly IAuditLogWriter _auditLogs;
     private readonly ITenantContext _tenant;
+    private readonly ILogger<EmployeeAggregateService> _logger;
 
     public EmployeeAggregateService(
         ZelosHrDbContext db,
@@ -47,7 +48,8 @@ public sealed class EmployeeAggregateService
         ICpCurrencyRepository currencies,
         HrDocumentPresignedUrlService profileUrls,
         IAuditLogWriter auditLogs,
-        ITenantContext tenant)
+        ITenantContext tenant,
+        ILogger<EmployeeAggregateService> logger)
     {
         _db = db;
         _registration = registration;
@@ -63,6 +65,7 @@ public sealed class EmployeeAggregateService
         _profileUrls = profileUrls;
         _auditLogs = auditLogs;
         _tenant = tenant;
+        _logger = logger;
     }
 
     public async Task<Respons<EmployeeAggregateReadDto>> CreateAsync(
@@ -207,14 +210,14 @@ public sealed class EmployeeAggregateService
                 }
             }
 
-            await RecordEmployeeCreateAuditAsync(employeeId, isFinalised, ct);
-
             await transaction.CommitAsync(ct);
+            await TryRecordEmployeeCreateAuditAsync(employeeId, isFinalised, ct);
             return await GetAsync(employeeId, ct);
         }
-        catch
+        catch (Exception ex)
         {
             await transaction.RollbackAsync(ct);
+            _logger.LogError(ex, "Employee create failed for tenant {TenantId} org {OrgId}", _tenant.TenantId, _tenant.OrgId);
             throw;
         }
     }
@@ -507,14 +510,14 @@ public sealed class EmployeeAggregateService
                 }
             }
 
-            await RecordEmployeeUpdateAuditAsync(employeeId, request, ct);
-
             await transaction.CommitAsync(ct);
+            await TryRecordEmployeeUpdateAuditAsync(employeeId, request, ct);
             return await GetAsync(employeeId, ct);
         }
-        catch
+        catch (Exception ex)
         {
             await transaction.RollbackAsync(ct);
+            _logger.LogError(ex, "Employee update failed for {EmployeeId}", employeeId);
             throw;
         }
     }
@@ -827,6 +830,40 @@ public sealed class EmployeeAggregateService
 
     private static Respons<T> Fail<T>(int statusCode, string? error, string? detail) =>
         Respons<T>.Fail(error ?? detail ?? "Request failed.", statusCode: statusCode);
+
+    private async Task TryRecordEmployeeCreateAuditAsync(
+        Guid employeeId,
+        bool isFinalised,
+        CancellationToken ct)
+    {
+        try
+        {
+            await RecordEmployeeCreateAuditAsync(employeeId, isFinalised, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Audit log append failed after employee create {EmployeeId}; employee was saved.",
+                employeeId);
+        }
+    }
+
+    private async Task TryRecordEmployeeUpdateAuditAsync(
+        Guid employeeId,
+        UpdateEmployeeAggregateRequest request,
+        CancellationToken ct)
+    {
+        try
+        {
+            await RecordEmployeeUpdateAuditAsync(employeeId, request, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Audit log append failed after employee update {EmployeeId}; employee was saved.",
+                employeeId);
+        }
+    }
 
     private async Task RecordEmployeeCreateAuditAsync(
         Guid employeeId,

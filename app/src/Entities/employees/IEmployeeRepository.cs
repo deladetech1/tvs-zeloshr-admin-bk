@@ -28,6 +28,12 @@ public interface IEmployeeRepository : IRepository<EmployeeEntity, Guid>
         int pageSize,
         CancellationToken ct = default);
 
+    Task<IReadOnlyList<EmployeeEntity>> ExportListScopedAsync(
+        EmployeeExportQuery query,
+        string tenantId,
+        string orgId,
+        CancellationToken ct = default);
+
     Task<(IReadOnlyList<EmployeeEntity> Items, int TotalCount)> SearchScopedAsync(
         string? nameQuery,
         Guid? departmentId,
