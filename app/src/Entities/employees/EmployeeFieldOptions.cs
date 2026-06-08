@@ -61,6 +61,9 @@ public static class EmployeeFieldOptions
     /// <summary>Overlay filters combinable with <see cref="Engagements"/>.</summary>
     public static readonly IReadOnlyList<string> WorkStates = EmployeeStatusFilter.WorkStates;
 
+    /// <summary>Simple list/export filter commands (<c>status=active</c>, <c>status=probation</c>, …).</summary>
+    public static readonly IReadOnlyList<string> ListStatusFilters = EmployeeStatusFilter.ListStatusFilters;
+
     public static readonly IReadOnlyList<string> EmploymentTypes =
         ["Full-time", "Part-time", "Contractor", "Casual"];
 

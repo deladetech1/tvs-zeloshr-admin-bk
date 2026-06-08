@@ -18,16 +18,13 @@ public sealed class EmployeeExportQuery
 
     [FromQuery(Name = "employment_status")]
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.EmploymentStatuses),
-        Description = "Legacy exact match. Prefer engagement + work_states.")]
+        Description = "Exact match on stored employment_status (Draft, Active, Probation, …).")]
     public string? EmploymentStatus { get; init; }
 
-    [FromQuery(Name = "engagement")]
-    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.Engagements))]
-    public string? Engagement { get; init; }
-
-    [FromQuery(Name = "work_states")]
-    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.WorkStates))]
-    public string[]? WorkStates { get; init; }
+    [FromQuery(Name = "status")]
+    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.ListStatusFilters),
+        Description = "Smart filter using simple commands (active, probation, on_leave, …). Ignored when employment_status is set.")]
+    public string? Status { get; init; }
 
     [FromQuery(Name = "department_id")]
     public Guid? DepartmentId { get; init; }

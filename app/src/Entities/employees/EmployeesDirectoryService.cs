@@ -93,9 +93,8 @@ public class EmployeesDirectoryService
                 .Select(b => new FilterOptionDto { Id = b.Id.ToString(), Name = b.Name })
                 .ToList(),
             EmploymentTypes = EmployeeFieldOptions.EmploymentTypes.ToList(),
-            Statuses = EmployeeFieldOptions.DirectoryEmploymentStatuses.ToList(),
-            Engagements = EmployeeFieldOptions.Engagements.ToList(),
-            WorkStates = EmployeeFieldOptions.WorkStates.ToList(),
+            Statuses = EmployeeFieldOptions.EmploymentStatuses.ToList(),
+            StatusFilters = EmployeeFieldOptions.ListStatusFilters.ToList(),
         });
     }
 

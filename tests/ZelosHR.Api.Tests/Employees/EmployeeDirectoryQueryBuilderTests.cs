@@ -74,6 +74,19 @@ public class EmployeeDirectoryQueryBuilderTests
     }
 
     [Fact]
+    public void Build_applies_status_filter_command()
+    {
+        var (where, parameters) = EmployeeDirectoryQueryBuilder.Build(
+            new EmployeeDirectoryQuery { StatusFilter = "probation" },
+            Table,
+            TestDefaults.TenantId,
+            TestDefaults.OrgId);
+
+        Assert.Contains("e.employment_status = 'Probation'", where);
+        Assert.True(parameters.ContainsKey("StatusFilterToday"));
+    }
+
+    [Fact]
     public void Build_applies_engagement_and_work_state_filters()
     {
         var (where, parameters) = EmployeeDirectoryQueryBuilder.Build(

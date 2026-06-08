@@ -90,7 +90,8 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
             return;
         }
 
-        if (name.Equals("query", StringComparison.OrdinalIgnoreCase))
+        if (name.Equals("query", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(context.ParameterInfo?.Member.Name, "ImportSearch", StringComparison.Ordinal))
         {
             schema.Example = "ada";
             parameter.Description = SwaggerOptionFormat.Append(
@@ -240,22 +241,25 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
             return;
         }
 
-        if (name.Equals("engagement", StringComparison.OrdinalIgnoreCase))
+        if (name.Equals("status", StringComparison.OrdinalIgnoreCase)
+            && context.ParameterInfo?.Member.DeclaringType?.FullName?.Contains(
+                "EmployeeListQuery", StringComparison.Ordinal) == true)
         {
             schema.Example = EmployeeEngagementValues.Active;
             parameter.Description = SwaggerOptionFormat.Append(
                 parameter.Description,
-                $"Primary workforce relationship. Allowed: {SwaggerExampleHints.Engagement}. AND-combined with work_states.");
+                $"Smart workforce filter. Allowed: {SwaggerExampleHints.ListStatusFilter}. Ignored when employment_status is set.");
             return;
         }
 
-        if (name.Equals("work_states", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("workStates", StringComparison.OrdinalIgnoreCase))
+        if (name.Equals("status", StringComparison.OrdinalIgnoreCase)
+            && context.ParameterInfo?.Member.DeclaringType?.FullName?.Contains(
+                "EmployeeExportQuery", StringComparison.Ordinal) == true)
         {
-            schema.Example = EmployeeWorkStateValues.Probation;
+            schema.Example = EmployeeEngagementValues.Active;
             parameter.Description = SwaggerOptionFormat.Append(
                 parameter.Description,
-                $"Overlay work state(s). Allowed: {SwaggerExampleHints.WorkState}. Repeat param for OR within overlays (e.g. active + on probation).");
+                $"Smart workforce filter. Allowed: {SwaggerExampleHints.ListStatusFilter}.");
             return;
         }
 
@@ -265,7 +269,7 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
             schema.Example = EmploymentStatusValues.Active;
             parameter.Description = SwaggerOptionFormat.Append(
                 parameter.Description,
-                $"Legacy exact match on employment_status. Prefer engagement + work_states for composite filters. Allowed: {SwaggerExampleHints.EmploymentStatus}.");
+                $"Exact match on stored employment_status. Allowed: {SwaggerExampleHints.EmploymentStatus}. Use status= for smart filtering.");
             return;
         }
 

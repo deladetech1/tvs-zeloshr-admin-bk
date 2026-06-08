@@ -161,8 +161,8 @@ public class EmployeesController : ControllerBase
     /// <summary>Export employees as CSV.</summary>
     /// <remarks>
     /// Optional <c>start_date</c> / <c>end_date</c> filter by employment start (<c>start_date</c> or <c>employment_start_date</c> on the record).
-    /// Same org filters as <c>GET /employees/list</c>: <c>search</c>, <c>engagement</c>, <c>work_states</c>, <c>employment_status</c>, <c>department_id</c>, <c>branch_id</c>, etc.
-    /// Prefer <c>engagement</c> + <c>work_states</c> for composite status (e.g. active + probation).
+    /// Same org filters as <c>GET /employees/list</c>: <c>search</c>, <c>status</c>, <c>employment_status</c>, <c>department_id</c>, <c>branch_id</c>, etc.
+    /// Use <c>status=active|probation|on_leave</c> for smart filtering, or <c>employment_status</c> for exact column match.
     /// </remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("export")]
@@ -314,9 +314,8 @@ public class EmployeesController : ControllerBase
 
     /// <summary>Paginated employee list with search and org filters.</summary>
     /// <remarks>
-    /// Composite status filters: <c>engagement</c> (primary relationship) + repeatable <c>work_states</c> (overlays).
-    /// Example: <c>?engagement=active&amp;work_states=probation</c> for active employees on probation.
-    /// Legacy <c>employment_status</c> exact match still works when engagement/work_states are omitted.
+    /// Status filtering: use <c>status</c> with simple commands (<c>active</c>, <c>probation</c>, <c>on_leave</c>, …)
+    /// or <c>employment_status</c> for exact match on stored values (Active, Probation, On Leave, …). Do not combine both.
     /// Each item returns <c>employment_status</c>, <c>engagement</c>, and <c>work_states[]</c>.
     /// </remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]

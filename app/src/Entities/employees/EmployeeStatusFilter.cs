@@ -25,6 +25,71 @@ public static class EmployeeStatusFilter
         EmployeeWorkStateValues.OnLeave,
     ];
 
+    /// <summary>Simple filter commands for <c>GET /employees/list?status=</c>.</summary>
+    public static readonly IReadOnlyList<string> ListStatusFilters =
+    [
+        EmployeeEngagementValues.Active,
+        EmployeeWorkStateValues.Probation,
+        EmployeeWorkStateValues.OnLeave,
+        EmployeeEngagementValues.PreHire,
+        EmployeeEngagementValues.Draft,
+        EmployeeEngagementValues.Suspended,
+        EmployeeEngagementValues.Terminated,
+        EmployeeEngagementValues.Resigned,
+        EmployeeEngagementValues.Inactive,
+    ];
+
+    public sealed record ResolvedStatusFilters(
+        string? ExactEmploymentStatus,
+        string? Engagement,
+        IReadOnlyList<string> WorkStates);
+
+    public static ResolvedStatusFilters ResolveDirectoryFilters(
+        string? exactEmploymentStatus,
+        string? statusFilter,
+        string? engagement,
+        IEnumerable<string>? workStates)
+    {
+        if (!string.IsNullOrWhiteSpace(exactEmploymentStatus))
+            return new ResolvedStatusFilters(exactEmploymentStatus.Trim(), null, []);
+
+        var resolvedEngagement = NormalizeEngagement(engagement);
+        var resolvedWorkStates = ParseWorkStates(workStates);
+
+        if (resolvedEngagement is null
+            && resolvedWorkStates.Count == 0
+            && !string.IsNullOrWhiteSpace(statusFilter))
+        {
+            var (cmdEngagement, cmdWorkStates) = ResolveStatusCommand(statusFilter);
+            resolvedEngagement = cmdEngagement ?? resolvedEngagement;
+            if (cmdWorkStates.Count > 0)
+                resolvedWorkStates = cmdWorkStates;
+        }
+
+        return new ResolvedStatusFilters(null, resolvedEngagement, resolvedWorkStates);
+    }
+
+    public static (string? Engagement, IReadOnlyList<string> WorkStates) ResolveStatusCommand(string? statusFilter)
+    {
+        if (string.IsNullOrWhiteSpace(statusFilter))
+            return (null, []);
+
+        var normalized = statusFilter.Trim().Replace('-', '_').Replace(' ', '_').ToLowerInvariant();
+        return normalized switch
+        {
+            "active" => (EmployeeEngagementValues.Active, []),
+            "probation" or "on_probation" => (EmployeeEngagementValues.Active, [EmployeeWorkStateValues.Probation]),
+            "on_leave" or "leave" => (EmployeeEngagementValues.Active, [EmployeeWorkStateValues.OnLeave]),
+            "pre_hire" or "prehire" => (EmployeeEngagementValues.PreHire, []),
+            "draft" => (EmployeeEngagementValues.Draft, []),
+            "suspended" => (EmployeeEngagementValues.Suspended, []),
+            "terminated" => (EmployeeEngagementValues.Terminated, []),
+            "resigned" => (EmployeeEngagementValues.Resigned, []),
+            "inactive" => (EmployeeEngagementValues.Inactive, []),
+            _ => (null, []),
+        };
+    }
+
     public static IReadOnlyList<string> ParseWorkStates(IEnumerable<string>? values)
     {
         if (values is null)

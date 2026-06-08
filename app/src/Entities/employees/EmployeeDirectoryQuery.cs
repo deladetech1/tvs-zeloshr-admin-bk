@@ -19,22 +19,18 @@ public sealed class EmployeeDirectoryQuery
 
     public string? WorkLocation { get; init; }
 
-    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.DirectoryEmploymentStatuses),
-        Description = "Legacy exact match on employment_status. Prefer engagement + work_states.")]
+    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.EmploymentStatuses),
+        Description = "Exact match on stored employment_status (Draft, Active, Probation, …).")]
     public string? Status { get; init; }
 
-    /// <summary>
-    /// Primary workforce relationship — e.g. <c>active</c>, <c>pre_hire</c>, <c>terminated</c>.
-    /// Combines with <see cref="WorkStates"/> (AND): <c>engagement=active&amp;work_states=probation</c>.
-    /// </summary>
-    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.Engagements))]
+    /// <summary>Smart filter using simple commands — e.g. <c>active</c>, <c>probation</c>, <c>on_leave</c>.</summary>
+    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.ListStatusFilters))]
+    public string? StatusFilter { get; init; }
+
+    /// <summary>Advanced composite filter (internal / tests). Prefer <see cref="StatusFilter"/> on list API.</summary>
     public string? Engagement { get; init; }
 
-    /// <summary>
-    /// Overlay work states (OR within this list, AND with engagement): <c>probation</c>, <c>on_leave</c>.
-    /// Repeat query param: <c>work_states=probation&amp;work_states=on_leave</c>.
-    /// </summary>
-    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.WorkStates))]
+    /// <summary>Advanced overlay filter (internal / tests). Prefer <see cref="StatusFilter"/> on list API.</summary>
     public string[]? WorkStates { get; init; }
 
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.DirectorySortBy))]
@@ -123,21 +119,22 @@ public static class EmployeeDirectoryQueryBuilder
             parameters["WorkLocation"] = $"%{query.WorkLocation.Trim()}%";
         }
 
-        if (!string.IsNullOrWhiteSpace(query.Status)
-            && EmployeeStatusFilter.NormalizeEngagement(query.Engagement) is null
-            && EmployeeStatusFilter.ParseWorkStates(query.WorkStates).Count == 0)
+        var statusFilters = EmployeeStatusFilter.ResolveDirectoryFilters(
+            query.Status, query.StatusFilter, query.Engagement, query.WorkStates);
+
+        if (!string.IsNullOrWhiteSpace(statusFilters.ExactEmploymentStatus))
         {
             conditions.Add("e.employment_status = @EmploymentStatus");
-            parameters["EmploymentStatus"] = query.Status.Trim();
+            parameters["EmploymentStatus"] = statusFilters.ExactEmploymentStatus;
         }
         else if (!query.IncludeInactive
-                 && EmployeeStatusFilter.NormalizeEngagement(query.Engagement) is null
-                 && EmployeeStatusFilter.ParseWorkStates(query.WorkStates).Count == 0)
+                 && statusFilters.Engagement is null
+                 && statusFilters.WorkStates.Count == 0)
         {
             conditions.Add("e.employment_status NOT IN ('Terminated', 'Resigned')");
         }
 
-        AppendCompositeStatusSql(conditions, parameters, query);
+        AppendCompositeStatusSql(conditions, parameters, statusFilters);
 
         var whereClause = string.Join(" AND ", conditions);
         return (whereClause, parameters);
@@ -197,22 +194,26 @@ public static class EmployeeDirectoryQueryBuilder
             query = query.Where(e => e.WorkLocation != null && EF.Functions.ILike(e.WorkLocation, $"%{loc}%"));
         }
 
-        if (!string.IsNullOrWhiteSpace(directoryQuery.Status)
-            && EmployeeStatusFilter.NormalizeEngagement(directoryQuery.Engagement) is null
-            && EmployeeStatusFilter.ParseWorkStates(directoryQuery.WorkStates).Count == 0)
+        var statusFilters = EmployeeStatusFilter.ResolveDirectoryFilters(
+            directoryQuery.Status,
+            directoryQuery.StatusFilter,
+            directoryQuery.Engagement,
+            directoryQuery.WorkStates);
+
+        if (!string.IsNullOrWhiteSpace(statusFilters.ExactEmploymentStatus))
         {
-            var status = directoryQuery.Status.Trim();
-            query = query.Where(e => e.EmploymentStatus == status);
+            var exact = statusFilters.ExactEmploymentStatus;
+            query = query.Where(e => e.EmploymentStatus == exact);
         }
         else if (!directoryQuery.IncludeInactive
-                 && EmployeeStatusFilter.NormalizeEngagement(directoryQuery.Engagement) is null
-                 && EmployeeStatusFilter.ParseWorkStates(directoryQuery.WorkStates).Count == 0)
+                 && statusFilters.Engagement is null
+                 && statusFilters.WorkStates.Count == 0)
         {
             query = query.Where(e => e.EmploymentStatus != EmploymentStatusValues.Terminated
                 && e.EmploymentStatus != EmploymentStatusValues.Resigned);
         }
 
-        query = ApplyCompositeStatusFilters(query, directoryQuery);
+        query = ApplyCompositeStatusFilters(query, statusFilters);
 
         if (directoryQuery.StartDate.HasValue)
         {
@@ -234,19 +235,19 @@ public static class EmployeeDirectoryQueryBuilder
     }
 
     private static IQueryable<EmployeeEntity> ApplyCompositeStatusFilters(
-        IQueryable<EmployeeEntity> query, EmployeeDirectoryQuery directoryQuery)
+        IQueryable<EmployeeEntity> query, EmployeeStatusFilter.ResolvedStatusFilters statusFilters)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var engagement = EmployeeStatusFilter.NormalizeEngagement(directoryQuery.Engagement);
-        if (engagement is not null)
+        if (statusFilters.Engagement is { } engagement)
             query = query.Where(e => MatchesEngagement(e, engagement, today));
 
-        var workStates = EmployeeStatusFilter.ParseWorkStates(directoryQuery.WorkStates);
-        if (workStates.Count == 0)
+        if (statusFilters.WorkStates.Count == 0)
             return query;
 
-        var wantsProbation = workStates.Contains(EmployeeWorkStateValues.Probation, StringComparer.OrdinalIgnoreCase);
-        var wantsOnLeave = workStates.Contains(EmployeeWorkStateValues.OnLeave, StringComparer.OrdinalIgnoreCase);
+        var wantsProbation = statusFilters.WorkStates.Contains(
+            EmployeeWorkStateValues.Probation, StringComparer.OrdinalIgnoreCase);
+        var wantsOnLeave = statusFilters.WorkStates.Contains(
+            EmployeeWorkStateValues.OnLeave, StringComparer.OrdinalIgnoreCase);
         return query.Where(e =>
             (wantsProbation && IsOnProbation(e, today))
             || (wantsOnLeave && IsOnLeave(e)));
@@ -255,21 +256,21 @@ public static class EmployeeDirectoryQueryBuilder
     private static void AppendCompositeStatusSql(
         List<string> conditions,
         Dictionary<string, object?> parameters,
-        EmployeeDirectoryQuery query)
+        EmployeeStatusFilter.ResolvedStatusFilters statusFilters)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         parameters["StatusFilterToday"] = today;
 
-        var engagement = EmployeeStatusFilter.NormalizeEngagement(query.Engagement);
-        if (engagement is not null)
+        if (statusFilters.Engagement is { } engagement)
             conditions.Add(BuildEngagementSql(engagement));
 
-        var workStates = EmployeeStatusFilter.ParseWorkStates(query.WorkStates);
-        if (workStates.Count == 0)
+        if (statusFilters.WorkStates.Count == 0)
             return;
 
-        var wantsProbation = workStates.Contains(EmployeeWorkStateValues.Probation, StringComparer.OrdinalIgnoreCase);
-        var wantsOnLeave = workStates.Contains(EmployeeWorkStateValues.OnLeave, StringComparer.OrdinalIgnoreCase);
+        var wantsProbation = statusFilters.WorkStates.Contains(
+            EmployeeWorkStateValues.Probation, StringComparer.OrdinalIgnoreCase);
+        var wantsOnLeave = statusFilters.WorkStates.Contains(
+            EmployeeWorkStateValues.OnLeave, StringComparer.OrdinalIgnoreCase);
         conditions.Add(BuildWorkStatesSql(wantsProbation, wantsOnLeave));
     }
 

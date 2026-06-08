@@ -45,4 +45,20 @@ public class EmployeeStatusFilterTests
 
         EmployeeStatusFilter.IsActiveEngagement(employee).Should().BeTrue();
     }
+
+    [Theory]
+    [InlineData("probation", "active", "probation")]
+    [InlineData("active", "active", null)]
+    [InlineData("on_leave", "active", "on_leave")]
+    public void ResolveStatusCommand_MapsListFilterCommands(
+        string command, string expectedEngagement, string? expectedWorkState)
+    {
+        var (engagement, workStates) = EmployeeStatusFilter.ResolveStatusCommand(command);
+
+        engagement.Should().Be(expectedEngagement);
+        if (expectedWorkState is null)
+            workStates.Should().BeEmpty();
+        else
+            workStates.Should().Contain(expectedWorkState);
+    }
 }

@@ -45,11 +45,11 @@ public sealed class EmployeeFilterOptionsDto
     public IReadOnlyList<FilterOptionDto> Branches { get; init; } = [];
     public IReadOnlyList<string> EmploymentTypes { get; init; } = [];
 
-    /// <summary>Legacy single-value status list (exact employment_status match).</summary>
+    /// <summary>Exact employment_status values for legacy/exact-match filters.</summary>
     public IReadOnlyList<string> Statuses { get; init; } = [];
 
-    public IReadOnlyList<string> Engagements { get; init; } = [];
-    public IReadOnlyList<string> WorkStates { get; init; } = [];
+    /// <summary>Simple list filter commands (active, probation, on_leave, …).</summary>
+    public IReadOnlyList<string> StatusFilters { get; init; } = [];
 }
 
 public sealed class FilterOptionDto
