@@ -13,8 +13,16 @@ Secrets stay in **gitignored** files — never commit `live-session.env`, `live-
 
 ```bash
 cp scripts/local-dev/live-session.example.env scripts/local-dev/live-session.env
-# After Trove login: copy Bearer + org/bus/loc from DevTools → Network → any
-# request to zeloshr.app.backend.dev.trovesuite.com (not the Next.js frontend host)
+
+# Option 1 — browser token (always works after Trove login on dev)
+./scripts/local-dev/generate-live-session.sh 'eyJhbG...'
+
+# Option 2 — auto-mint (needs Key Vault access for JWT secret sync)
+./scripts/local-dev/pull-azure-dev-env.sh
+./scripts/local-dev/generate-live-session.sh --sync-secret
+./scripts/local-dev/generate-live-session.sh --mint --user lntori
+
+# Legacy
 ./scripts/local-dev/refresh-live-session.sh 'eyJhbG...'
 
 ./scripts/local-dev/smoke-dev.sh smoke
@@ -25,6 +33,9 @@ cp scripts/local-dev/live-session.example.env scripts/local-dev/live-session.env
 
 # Employees (statistics, list, import search, bulk template, optional get by id)
 ./scripts/local-dev/test-employees.sh
+
+# Education + certification id upsert (GET → sync → update → repeat save)
+./scripts/local-dev/test-employee-edu-cert.sh
 
 # Organisation / org chart (GET reads)
 ./scripts/local-dev/test-org-structure.sh
@@ -79,7 +90,7 @@ chmod +x scripts/local-dev/*.sh
 |------|---------|
 | `live-session.env` | Bearer token, org/bus/loc, API bases |
 | `live-db.env` | `APP__CONNECTION_STRING` from Azure (+ optional local API base) |
-| `.jwt-secret.local` | Dev JWT signing key (same as Container App) |
+| `.jwt-secret.local` | Dev JWT signing key — sync via `generate-live-session.sh --sync-secret` |
 
 ## Bases
 
