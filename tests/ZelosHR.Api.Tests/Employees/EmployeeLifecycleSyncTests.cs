@@ -1,4 +1,5 @@
 using FluentAssertions;
+using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Persistence.Entities;
 
 namespace ZelosHR.Api.Tests.Employees;
