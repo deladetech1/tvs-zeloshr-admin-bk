@@ -132,6 +132,14 @@ public sealed class EmployeeAggregateService
                     await transaction.RollbackAsync(ct);
                     return MapError<EmployeeAggregateReadDto>(employment);
                 }
+
+                var employmentExtrasError = await ApplyEmploymentExtrasIfNeededAsync(
+                    employeeId, request.Employment, ct);
+                if (employmentExtrasError is not null)
+                {
+                    await transaction.RollbackAsync(ct);
+                    return employmentExtrasError;
+                }
             }
 
             if (request.Compensation is not null)
@@ -313,17 +321,13 @@ public sealed class EmployeeAggregateService
 
                 if (request.Employment.EmploymentStatus is not null || request.Employment.ContractType is not null)
                 {
-                    var entity = await _employees.GetByIdScopedForUpdateAsync(
-                        employeeId, _tenant.TenantId, _tenant.OrgId, ct);
-                    if (entity is null)
+                    var employmentExtrasError = await ApplyEmploymentExtrasIfNeededAsync(
+                        employeeId, request.Employment, ct);
+                    if (employmentExtrasError is not null)
                     {
                         await transaction.RollbackAsync(ct);
-                        return Respons<EmployeeAggregateReadDto>.Fail("Employee not found.", statusCode: 404);
+                        return employmentExtrasError;
                     }
-
-                    EmployeeRegistrationService.ApplyEmploymentExtras(entity, request.Employment);
-                    entity.UpdatedAt = DateTimeOffset.UtcNow;
-                    await _employees.UpdateAsync(entity, ct);
                 }
             }
 
@@ -816,6 +820,25 @@ public sealed class EmployeeAggregateService
             errors["certifications"] = $"At most {MaxCertifications} certification records allowed per request.";
 
         return errors.Count == 0 ? null : errors;
+    }
+
+    private async Task<Respons<EmployeeAggregateReadDto>?> ApplyEmploymentExtrasIfNeededAsync(
+        Guid employeeId,
+        EmployeeAggregateEmploymentDto employment,
+        CancellationToken ct)
+    {
+        if (employment.EmploymentStatus is null && employment.ContractType is null)
+            return null;
+
+        var entity = await _employees.GetByIdScopedForUpdateAsync(
+            employeeId, _tenant.TenantId, _tenant.OrgId, ct);
+        if (entity is null)
+            return Respons<EmployeeAggregateReadDto>.Fail("Employee not found.", statusCode: 404);
+
+        EmployeeRegistrationService.ApplyEmploymentExtras(entity, employment);
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+        await _employees.UpdateAsync(entity, ct);
+        return null;
     }
 
     private static Respons<T> MapError<T>(Respons<EmployeeRegistrationReadDto> source)

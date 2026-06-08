@@ -281,9 +281,7 @@ public sealed class EmployeeRegistrationService
         e.UserId = userLink.UserId;
         ClearCpUserIdentityFromEmployee(e);
         e.IsDraft = false;
-        e.LifecycleStatus = "pre_hire";
-        e.LifecycleState = EmployeeLifecycleStates.PreHire;
-        e.EmploymentStatus = EmploymentStatusValues.PreHire;
+        EmployeeLifecycleSync.ApplyPostFinaliseDefaults(e);
         e.UpdatedAt = DateTimeOffset.UtcNow;
         e.UpdatedBy = _currentUser.UserId?.ToString();
         await _employees.UpdateAsync(e, ct);

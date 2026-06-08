@@ -266,6 +266,44 @@ public class EmployeeRegistrationTests
     }
 
     [Fact]
+    public async Task FinaliseEmployee_WhenEmploymentStatusActive_PreservesActive()
+    {
+        var id = Guid.NewGuid();
+        var entity = new EmployeeEntity
+        {
+            Id = id,
+            TenantId = TestDefaults.TenantId,
+            OrgId = TestDefaults.OrgId,
+            FullName = "Ada",
+            WorkEmail = "ada@corp.com",
+            EmploymentStatus = EmploymentStatusValues.Active,
+            IsDraft = true,
+        };
+        _employees.GetByIdScopedForUpdateAsync(id, TestDefaults.TenantId, TestDefaults.OrgId, Arg.Any<CancellationToken>())
+            .Returns(entity);
+        _cpUsers.FindByEmailAsync("ada@corp.com", TestDefaults.TenantId, Arg.Any<CancellationToken>())
+            .Returns(new CpUserDto("u-ada", "Ada", "ada@corp.com", null, true));
+        _cpUsers.IsLinkedToEmployeeAsync("u-ada", TestDefaults.TenantId, Arg.Any<CancellationToken>())
+            .Returns(false);
+        _cpUsers.EnsureHrMembershipAsync("u-ada", TestDefaults.TenantId, Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        _cpUsers.UpdateIdentityAsync("u-ada", TestDefaults.TenantId, Arg.Any<CpUserIdentityData>(), Arg.Any<CancellationToken>())
+            .Returns(new CpUserDto("u-ada", "Ada", "ada@corp.com", null, true));
+        _cpUsers.EnsureUserLocationAsync(
+            "u-ada", TestDefaults.TenantId, TestDefaults.OrgId, TestDefaults.BusId, TestDefaults.LocId, Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        _cpUsers.GetByIdAsync("u-ada", TestDefaults.TenantId, Arg.Any<CancellationToken>())
+            .Returns(new CpUserDto("u-ada", "Ada", "ada@corp.com", null, true));
+
+        var result = await _sut.FinaliseAsync(id);
+
+        result.Success.Should().BeTrue();
+        entity.EmploymentStatus.Should().Be(EmploymentStatusValues.Active);
+        entity.LifecycleState.Should().Be(EmployeeLifecycleStates.Active);
+        entity.LifecycleStatus.Should().Be("active");
+    }
+
+    [Fact]
     public async Task FinaliseEmployee_LinksCpUser_ByWorkEmail_WhenUserIdUnset()
     {
         var id = Guid.NewGuid();
