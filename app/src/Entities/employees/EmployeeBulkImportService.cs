@@ -1,5 +1,7 @@
 using System.Text;
+using Microsoft.EntityFrameworkCore;
 using ZelosHR.Api.Entities.Shared;
+using ZelosHR.Api.Persistence;
 
 namespace ZelosHR.Api.Entities.Employees;
 
@@ -20,9 +22,14 @@ public sealed class EmployeeBulkImportResult
 
 public sealed class EmployeeBulkImportService
 {
+    private readonly ZelosHrDbContext _db;
     private readonly EmployeeAggregateService _aggregate;
 
-    public EmployeeBulkImportService(EmployeeAggregateService aggregate) => _aggregate = aggregate;
+    public EmployeeBulkImportService(ZelosHrDbContext db, EmployeeAggregateService aggregate)
+    {
+        _db = db;
+        _aggregate = aggregate;
+    }
 
     public async Task<Respons<EmployeeBulkImportResult>> ImportCsvAsync(
         Stream csvStream,
@@ -104,14 +111,30 @@ public sealed class EmployeeBulkImportService
                     : null,
             };
 
-            var created = await _aggregate.CreateAsync(request, isFinalised, ct);
-            rows.Add(new EmployeeBulkImportRowResult
+            EmployeeBulkImportRowResult rowResult;
+            try
             {
-                Index = lineIndex,
-                Success = created.Success,
-                EmployeeId = created.Data?.Id,
-                Error = created.Success ? null : created.Error ?? created.Detail,
-            });
+                var created = await _aggregate.CreateAsync(request, isFinalised, ct);
+                rowResult = new EmployeeBulkImportRowResult
+                {
+                    Index = lineIndex,
+                    Success = created.Success,
+                    EmployeeId = created.Data?.Id,
+                    Error = created.Success ? null : created.Error ?? created.Detail,
+                };
+            }
+            catch (DbUpdateException)
+            {
+                _db.ChangeTracker.Clear();
+                rowResult = new EmployeeBulkImportRowResult
+                {
+                    Index = lineIndex,
+                    Success = false,
+                    Error = "Could not save employee record. Please retry.",
+                };
+            }
+
+            rows.Add(rowResult);
             lineIndex++;
         }
 

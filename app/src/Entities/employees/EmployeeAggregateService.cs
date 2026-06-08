@@ -92,7 +92,7 @@ public sealed class EmployeeAggregateService
                 ct);
             if (!draft.Success || draft.Data is null)
             {
-                await transaction.RollbackAsync(ct);
+                await RollbackCreateTransactionAsync(transaction, ct);
                 return Respons<EmployeeAggregateReadDto>.Fail(
                     draft.Error ?? draft.Detail ?? "Could not create employee.",
                     statusCode: draft.StatusCode);
@@ -104,7 +104,7 @@ public sealed class EmployeeAggregateService
             var personal = await _registration.UpdatePersonalContactAsync(employeeId, wizard, ct);
             if (!personal.Success)
             {
-                await transaction.RollbackAsync(ct);
+                await RollbackCreateTransactionAsync(transaction, ct);
                 return MapError<EmployeeAggregateReadDto>(personal);
             }
 
@@ -113,7 +113,7 @@ public sealed class EmployeeAggregateService
                 if (request.Employment.DepartmentId is { } deptId
                     && !await _departments.ExistsActiveScopedAsync(deptId, _tenant.TenantId, _tenant.OrgId, ct))
                 {
-                    await transaction.RollbackAsync(ct);
+                    await RollbackCreateTransactionAsync(transaction, ct);
                     return Respons<EmployeeAggregateReadDto>.ValidationError(
                         new Dictionary<string, string> { ["employment.department_id"] = "Department not found." });
                 }
@@ -121,7 +121,7 @@ public sealed class EmployeeAggregateService
                 if (request.Employment.BranchId is { } branchId
                     && !await _branches.ExistsActiveScopedAsync(branchId, _tenant.TenantId, _tenant.OrgId, ct))
                 {
-                    await transaction.RollbackAsync(ct);
+                    await RollbackCreateTransactionAsync(transaction, ct);
                     return Respons<EmployeeAggregateReadDto>.ValidationError(
                         new Dictionary<string, string> { ["employment.branch_id"] = "Branch not found." });
                 }
@@ -129,7 +129,7 @@ public sealed class EmployeeAggregateService
                 var employment = await _registration.UpdateEmploymentDetailsAsync(employeeId, wizard, ct);
                 if (!employment.Success)
                 {
-                    await transaction.RollbackAsync(ct);
+                    await RollbackCreateTransactionAsync(transaction, ct);
                     return MapError<EmployeeAggregateReadDto>(employment);
                 }
 
@@ -137,7 +137,7 @@ public sealed class EmployeeAggregateService
                     employeeId, request.Employment, ct);
                 if (employmentExtrasError is not null)
                 {
-                    await transaction.RollbackAsync(ct);
+                    await RollbackCreateTransactionAsync(transaction, ct);
                     return employmentExtrasError;
                 }
             }
@@ -147,7 +147,7 @@ public sealed class EmployeeAggregateService
                 var compensation = await _registration.UpdateCompensationAsync(employeeId, wizard, ct);
                 if (!compensation.Success)
                 {
-                    await transaction.RollbackAsync(ct);
+                    await RollbackCreateTransactionAsync(transaction, ct);
                     return MapError<EmployeeAggregateReadDto>(compensation);
                 }
             }
@@ -158,7 +158,7 @@ public sealed class EmployeeAggregateService
                     employeeId, _tenant.TenantId, _tenant.OrgId, ct);
                 if (entity is null)
                 {
-                    await transaction.RollbackAsync(ct);
+                    await RollbackCreateTransactionAsync(transaction, ct);
                     return Respons<EmployeeAggregateReadDto>.Fail("Employee not found.", statusCode: 404);
                 }
 
@@ -178,7 +178,7 @@ public sealed class EmployeeAggregateService
                 var added = await _subResources.AddEducationAsync(employeeId, edu, ct);
                 if (!added.Success)
                 {
-                    await transaction.RollbackAsync(ct);
+                    await RollbackCreateTransactionAsync(transaction, ct);
                     return MapError<EmployeeAggregateReadDto>(added);
                 }
             }
@@ -188,7 +188,7 @@ public sealed class EmployeeAggregateService
                 var added = await _subResources.AddCertificationAsync(employeeId, cert, ct);
                 if (!added.Success)
                 {
-                    await transaction.RollbackAsync(ct);
+                    await RollbackCreateTransactionAsync(transaction, ct);
                     return MapError<EmployeeAggregateReadDto>(added);
                 }
             }
@@ -199,14 +199,14 @@ public sealed class EmployeeAggregateService
                     employeeId, _tenant.TenantId, _tenant.OrgId, ct);
                 if (entity is null)
                 {
-                    await transaction.RollbackAsync(ct);
+                    await RollbackCreateTransactionAsync(transaction, ct);
                     return Respons<EmployeeAggregateReadDto>.Fail("Employee not found.", statusCode: 404);
                 }
 
                 var docErrors = await ValidateAndApplyDocumentIdsAsync(entity, request.DocumentIds, ct);
                 if (docErrors is not null)
                 {
-                    await transaction.RollbackAsync(ct);
+                    await RollbackCreateTransactionAsync(transaction, ct);
                     return Respons<EmployeeAggregateReadDto>.ValidationError(docErrors);
                 }
             }
@@ -216,7 +216,7 @@ public sealed class EmployeeAggregateService
                 var finalised = await _registration.FinaliseAsync(employeeId, ct);
                 if (!finalised.Success)
                 {
-                    await transaction.RollbackAsync(ct);
+                    await RollbackCreateTransactionAsync(transaction, ct);
                     return MapError<EmployeeAggregateReadDto>(finalised);
                 }
             }
@@ -227,13 +227,13 @@ public sealed class EmployeeAggregateService
         }
         catch (PlatformUserConflictException ex)
         {
-            await transaction.RollbackAsync(ct);
+            await RollbackCreateTransactionAsync(transaction, ct);
             return Respons<EmployeeAggregateReadDto>.ValidationError(
                 new Dictionary<string, string> { [ex.FieldKey] = ex.Message });
         }
         catch (DbUpdateException ex) when (PostgresUniqueViolation.IsCpUserEmail(ex))
         {
-            await transaction.RollbackAsync(ct);
+            await RollbackCreateTransactionAsync(transaction, ct);
             return Respons<EmployeeAggregateReadDto>.ValidationError(
                 new Dictionary<string, string>
                 {
@@ -242,19 +242,35 @@ public sealed class EmployeeAggregateService
         }
         catch (DbUpdateException ex) when (PostgresUniqueViolation.IsCpUserContact(ex))
         {
-            await transaction.RollbackAsync(ct);
+            await RollbackCreateTransactionAsync(transaction, ct);
             return Respons<EmployeeAggregateReadDto>.ValidationError(
                 new Dictionary<string, string>
                 {
                     ["identity.phone"] = EmployeeErrorMessages.PhoneAlreadyRegistered,
                 });
         }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            await RollbackCreateTransactionAsync(transaction, ct);
+            _logger.LogWarning(ex, "Employee create concurrency conflict for tenant {TenantId} org {OrgId}",
+                _tenant.TenantId, _tenant.OrgId);
+            return Respons<EmployeeAggregateReadDto>.Fail(
+                "Could not save employee record. Please retry.", statusCode: 409);
+        }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync(ct);
+            await RollbackCreateTransactionAsync(transaction, ct);
             _logger.LogError(ex, "Employee create failed for tenant {TenantId} org {OrgId}", _tenant.TenantId, _tenant.OrgId);
             throw;
         }
+    }
+
+    private async Task RollbackCreateTransactionAsync(
+        Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction,
+        CancellationToken ct)
+    {
+        await transaction.RollbackAsync(ct);
+        _db.ChangeTracker.Clear();
     }
 
     public async Task<Respons<EmployeeAggregateReadDto>> UpdateAsync(

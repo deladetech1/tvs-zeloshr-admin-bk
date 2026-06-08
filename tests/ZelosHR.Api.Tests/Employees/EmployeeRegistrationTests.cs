@@ -6,6 +6,7 @@ using Npgsql;
 using NSubstitute;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Files;
+using ZelosHR.Api.Persistence;
 using ZelosHR.Api.Persistence.Entities;
 using ZelosHR.Api.Persistence.Repositories;
 using ZelosHR.Api.Shared.Abstractions;
@@ -38,7 +39,12 @@ public class EmployeeRegistrationTests
             Options.Create(new AzureStorageOptions()));
         var profileUrls = new HrDocumentPresignedUrlService(
             _blobs, _documents, storageConfig, _tenant);
+        var db = new ZelosHrDbContext(
+            new DbContextOptionsBuilder<ZelosHrDbContext>()
+                .UseInMemoryDatabase(Guid.NewGuid().ToString())
+                .Options);
         _sut = new EmployeeRegistrationService(
+            db,
             _employees,
             _cpUsers,
             _currencies,

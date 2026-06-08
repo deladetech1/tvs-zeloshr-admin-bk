@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Entities.Shared;
+using ZelosHR.Api.Persistence;
 using ZelosHR.Api.Persistence.Entities;
 using ZelosHR.Api.Persistence.Repositories;
 using ZelosHR.Api.Shared.Abstractions;
@@ -12,6 +13,7 @@ namespace ZelosHR.Api.Entities.Employees;
 
 public sealed class EmployeeRegistrationService
 {
+    private readonly ZelosHrDbContext _db;
     private readonly IEmployeeRepository _employees;
     private readonly ICpUserRepository _cpUsers;
     private readonly ICpCurrencyRepository _currencies;
@@ -23,6 +25,7 @@ public sealed class EmployeeRegistrationService
     private readonly ICurrentUserService _currentUser;
 
     public EmployeeRegistrationService(
+        ZelosHrDbContext db,
         IEmployeeRepository employees,
         ICpUserRepository cpUsers,
         ICpCurrencyRepository currencies,
@@ -33,6 +36,7 @@ public sealed class EmployeeRegistrationService
         ITenantContext tenant,
         ICurrentUserService currentUser)
     {
+        _db = db;
         _employees = employees;
         _cpUsers = cpUsers;
         _currencies = currencies;
@@ -95,28 +99,17 @@ public sealed class EmployeeRegistrationService
         }
 
         var now = DateTimeOffset.UtcNow;
-        var entity = new EmployeeEntity
-        {
-            Id = Guid.NewGuid(),
-            TenantId = _tenant.TenantId,
-            OrgId = _tenant.OrgId,
-            UserId = userId,
-            FullName = draftDisplayName,
-            LifecycleState = EmployeeLifecycleStates.Draft,
-            LifecycleStatus = "draft",
-            IsDraft = true,
-            EmploymentStatus = EmploymentStatusValues.Draft,
-            ContractType = null,
-            CreatedAt = now,
-            UpdatedAt = now,
-            CreatedBy = _currentUser.UserId?.ToString(),
-        };
+        var entity = NewDraftEntity(userId, draftDisplayName, now);
 
         const int maxAttempts = EmployeeCodeAllocation.MaxAttempts;
         var startSeq = await _employees.GetNextEmployeeSequenceAsync(_tenant.TenantId, _tenant.OrgId, ct);
         for (var attempt = 0; attempt < maxAttempts; attempt++)
         {
             entity.EmployeeCode = EmployeeCodeAllocation.Format(startSeq, attempt);
+            var savepoint = $"draft_code_{attempt}";
+            var inTransaction = _db.Database.CurrentTransaction is not null;
+            if (inTransaction)
+                await _db.Database.CreateSavepointAsync(savepoint, ct);
 
             try
             {
@@ -125,6 +118,11 @@ public sealed class EmployeeRegistrationService
             }
             catch (DbUpdateException ex) when (PostgresUniqueViolation.IsEmployeeCode(ex))
             {
+                if (inTransaction)
+                    await _db.Database.RollbackToSavepointAsync(savepoint, ct);
+                _db.Entry(entity).State = EntityState.Detached;
+                entity = NewDraftEntity(userId, draftDisplayName, now);
+
                 if (attempt == maxAttempts - 1)
                 {
                     return Respons<EmployeeRegistrationReadDto>.Fail(
@@ -715,6 +713,24 @@ public sealed class EmployeeRegistrationService
         entity.CurrencyId = defaultCurrency.Id;
         return null;
     }
+
+    private EmployeeEntity NewDraftEntity(string? userId, string draftDisplayName, DateTimeOffset now) =>
+        new()
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenant.TenantId,
+            OrgId = _tenant.OrgId,
+            UserId = userId,
+            FullName = draftDisplayName,
+            LifecycleState = EmployeeLifecycleStates.Draft,
+            LifecycleStatus = "draft",
+            IsDraft = true,
+            EmploymentStatus = EmploymentStatusValues.Draft,
+            ContractType = null,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = _currentUser.UserId?.ToString(),
+        };
 
     private async Task<EmployeeRegistrationReadDto> ToReadDtoAsync(EmployeeEntity e, CancellationToken ct)
     {
