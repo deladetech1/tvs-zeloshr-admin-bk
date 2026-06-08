@@ -84,7 +84,6 @@ public sealed class EmployeeBulkImportService
 
             var request = new CreateEmployeeAggregateRequest
             {
-                Status = isFinalised ? "finalised" : "draft",
                 Identity = new EmployeeAggregateIdentityDto
                 {
                     FullName = map["full_name"]!.Trim(),
@@ -105,7 +104,7 @@ public sealed class EmployeeBulkImportService
                     : null,
             };
 
-            var created = await _aggregate.CreateAsync(request, ct);
+            var created = await _aggregate.CreateAsync(request, isFinalised, ct);
             rows.Add(new EmployeeBulkImportRowResult
             {
                 Index = lineIndex,

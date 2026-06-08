@@ -66,13 +66,16 @@ public sealed class EmployeeAggregateService
     }
 
     public async Task<Respons<EmployeeAggregateReadDto>> CreateAsync(
-        CreateEmployeeAggregateRequest request, CancellationToken ct = default)
+        CreateEmployeeAggregateRequest request,
+        bool? finaliseOverride = null,
+        CancellationToken ct = default)
     {
         var validation = EmployeeAggregateCreateValidator.Validate(request);
         if (validation is not null)
             return Respons<EmployeeAggregateReadDto>.ValidationError(validation);
 
-        var isFinalised = !string.IsNullOrWhiteSpace(request.Identity.WorkEmail);
+        var isFinalised = finaliseOverride
+            ?? !string.IsNullOrWhiteSpace(request.Identity.WorkEmail);
 
         await using var transaction = await _db.Database.BeginTransactionAsync(ct);
         try
