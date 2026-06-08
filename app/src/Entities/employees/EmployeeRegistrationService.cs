@@ -8,6 +8,8 @@ using ZelosHR.Api.Shared.Formatting;
 using ZelosHR.Api.Shared.Infrastructure;
 using ZelosHR.Api.Shared.Validation;
 
+namespace ZelosHR.Api.Entities.Employees;
+
 public sealed class EmployeeRegistrationService
 {
     private readonly IEmployeeRepository _employees;
