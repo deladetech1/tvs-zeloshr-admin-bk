@@ -7,6 +7,7 @@ on:
       - dev
     paths:
       - "app/**"
+      - "tests/**"
       - "func/**"
       - "scripts/ci/**"
       - "nuget.config"
@@ -53,6 +54,7 @@ jobs:
           filters: |
             app:
               - 'app/**'
+              - 'tests/**'
               - 'scripts/ci/**'
               - 'nuget.config'
               - '.github/workflows/build-and-deploy.yml'
