@@ -47,6 +47,17 @@ public class EmployeeDirectoryQueryBuilderTests
         Assert.Equal("%Ama%", parameters["Search"]);
     }
 
+    [Theory]
+    [InlineData("larry", true)]
+    [InlineData("am", false)]
+    [InlineData(null, false)]
+    [InlineData("  bob  ", true)]
+    public void HasActiveSearch_requires_three_or_more_non_whitespace_characters(string? search, bool expected)
+    {
+        Assert.Equal(expected, EmployeeDirectoryQueryBuilder.HasActiveSearch(
+            new EmployeeDirectoryQuery { Search = search }));
+    }
+
     [Fact]
     public void Build_ignores_search_shorter_than_three_characters()
     {

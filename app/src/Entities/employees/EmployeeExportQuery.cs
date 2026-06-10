@@ -14,6 +14,7 @@ public sealed class EmployeeExportQuery
     [FromQuery(Name = "end_date")]
     public DateOnly? EndDate { get; init; }
 
+    [FromQuery(Name = "search")]
     public string? Search { get; init; }
 
     [FromQuery(Name = "employment_status")]

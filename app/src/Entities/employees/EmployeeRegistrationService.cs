@@ -96,6 +96,7 @@ public sealed class EmployeeRegistrationService
             }
 
             userId = cp.Id;
+            draftDisplayName = cp.FullName?.Trim() ?? string.Empty;
         }
         else
         {

@@ -170,57 +170,20 @@ public static class EmployeeDirectoryQueryBuilder
             : $"ORDER BY {column} {direction} NULLS LAST";
     }
 
-    public static async Task<IReadOnlyList<string>> ResolveSearchMatchingUserIdsAsync(
-        IQueryable<CpUserEntity> platformUsers,
-        string? search,
-        string tenantId,
-        CancellationToken ct = default)
-    {
-        if (string.IsNullOrWhiteSpace(search) || search.Trim().Length < MinimumSearchLength)
-            return [];
-
-        var pattern = $"%{search.Trim()}%";
-        return await platformUsers.AsNoTracking()
-            .Where(u => u.TenantId == tenantId
-                && (EF.Functions.ILike(u.Fullname, pattern)
-                    || EF.Functions.ILike(u.Email, pattern)
-                    || EF.Functions.ILike(u.Contact, pattern)))
-            .Select(u => u.Id)
-            .ToListAsync(ct);
-    }
-
-    public static async Task<IQueryable<EmployeeEntity>> ApplyFiltersAsync(
-        IQueryable<EmployeeEntity> query,
-        EmployeeDirectoryQuery directoryQuery,
-        IQueryable<CpUserEntity> platformUsers,
-        string tenantId,
-        CancellationToken ct = default)
-    {
-        var searchUserIds = await ResolveSearchMatchingUserIdsAsync(
-            platformUsers, directoryQuery.Search, tenantId, ct);
-        return ApplyFilters(query, directoryQuery, searchUserIds);
-    }
+    internal static bool HasActiveSearch(EmployeeDirectoryQuery directoryQuery) =>
+        !string.IsNullOrWhiteSpace(directoryQuery.Search)
+        && directoryQuery.Search.Trim().Length >= MinimumSearchLength;
 
     public static IQueryable<EmployeeEntity> ApplyFilters(
         IQueryable<EmployeeEntity> query,
         EmployeeDirectoryQuery directoryQuery,
-        IReadOnlyList<string>? searchMatchingUserIds = null)
+        IQueryable<CpUserEntity>? platformUsers = null,
+        string? tenantId = null)
     {
-        if (!string.IsNullOrWhiteSpace(directoryQuery.Search)
-            && directoryQuery.Search.Trim().Length >= MinimumSearchLength)
+        if (HasActiveSearch(directoryQuery))
         {
-            var pattern = $"%{directoryQuery.Search.Trim()}%";
-            var matchingUserIds = searchMatchingUserIds ?? [];
-            query = query.Where(e =>
-                EF.Functions.ILike(e.FullName, pattern)
-                || (e.FirstName != null && EF.Functions.ILike(e.FirstName, pattern))
-                || (e.LastName != null && EF.Functions.ILike(e.LastName, pattern))
-                || (e.MiddleName != null && EF.Functions.ILike(e.MiddleName, pattern))
-                || EF.Functions.ILike(e.EmployeeCode, pattern)
-                || (e.JobTitle != null && EF.Functions.ILike(e.JobTitle, pattern))
-                || (e.WorkEmail != null && EF.Functions.ILike(e.WorkEmail, pattern))
-                || (e.PersonalEmail != null && EF.Functions.ILike(e.PersonalEmail, pattern))
-                || (e.UserId != null && matchingUserIds.Contains(e.UserId)));
+            var pattern = $"%{directoryQuery.Search!.Trim()}%";
+            query = ApplySearchFilter(query, platformUsers, tenantId, pattern);
         }
 
         if (directoryQuery.DepartmentId.HasValue)
@@ -252,13 +215,15 @@ public static class EmployeeDirectoryQueryBuilder
             var exact = statusFilters.ExactEmploymentStatus;
             query = query.Where(e => e.EmploymentStatus == exact);
         }
-        else if (!directoryQuery.IncludeInactive && !statusFilters.HasCompositeFilter)
+        else if (!directoryQuery.IncludeInactive
+                 && (!statusFilters.HasCompositeFilter || HasActiveSearch(directoryQuery)))
         {
             query = query.Where(e => e.EmploymentStatus != EmploymentStatusValues.Terminated
                 && e.EmploymentStatus != EmploymentStatusValues.Resigned);
         }
 
-        query = ApplyCompositeStatusFilters(query, statusFilters);
+        if (!HasActiveSearch(directoryQuery))
+            query = ApplyCompositeStatusFilters(query, statusFilters);
 
         if (directoryQuery.StartDate.HasValue)
         {
@@ -277,6 +242,54 @@ public static class EmployeeDirectoryQueryBuilder
         }
 
         return query;
+    }
+
+    private static IQueryable<EmployeeEntity> ApplySearchFilter(
+        IQueryable<EmployeeEntity> query,
+        IQueryable<CpUserEntity>? platformUsers,
+        string? tenantId,
+        string pattern)
+    {
+        if (platformUsers is not null && !string.IsNullOrWhiteSpace(tenantId))
+        {
+            var platformUserIds = platformUsers
+                .Where(u => u.TenantId == tenantId
+                    && (EF.Functions.ILike(u.Fullname, pattern)
+                        || EF.Functions.ILike(u.Email, pattern)
+                        || EF.Functions.ILike(u.Contact, pattern)))
+                .Select(u => u.Id);
+
+            return query.Where(e =>
+                (e.FullName != "" && EF.Functions.ILike(e.FullName, pattern))
+                || (e.FirstName != null && EF.Functions.ILike(e.FirstName, pattern))
+                || (e.LastName != null && EF.Functions.ILike(e.LastName, pattern))
+                || (e.MiddleName != null && EF.Functions.ILike(e.MiddleName, pattern))
+                || EF.Functions.ILike(e.EmployeeCode, pattern)
+                || (e.JobTitle != null && EF.Functions.ILike(e.JobTitle, pattern))
+                || (e.WorkEmail != null && EF.Functions.ILike(e.WorkEmail, pattern))
+                || (e.PersonalEmail != null && EF.Functions.ILike(e.PersonalEmail, pattern))
+                || (e.PersonalPhone != null && EF.Functions.ILike(e.PersonalPhone, pattern))
+                || (e.Phone != null && EF.Functions.ILike(e.Phone, pattern))
+                || EF.Functions.ILike(
+                    (e.FirstName ?? "") + " " + (e.MiddleName != null ? e.MiddleName + " " : "") + (e.LastName ?? ""),
+                    pattern)
+                || (e.UserId != null && platformUserIds.Contains(e.UserId)));
+        }
+
+        return query.Where(e =>
+            (e.FullName != "" && EF.Functions.ILike(e.FullName, pattern))
+            || (e.FirstName != null && EF.Functions.ILike(e.FirstName, pattern))
+            || (e.LastName != null && EF.Functions.ILike(e.LastName, pattern))
+            || (e.MiddleName != null && EF.Functions.ILike(e.MiddleName, pattern))
+            || EF.Functions.ILike(e.EmployeeCode, pattern)
+            || (e.JobTitle != null && EF.Functions.ILike(e.JobTitle, pattern))
+            || (e.WorkEmail != null && EF.Functions.ILike(e.WorkEmail, pattern))
+            || (e.PersonalEmail != null && EF.Functions.ILike(e.PersonalEmail, pattern))
+            || (e.PersonalPhone != null && EF.Functions.ILike(e.PersonalPhone, pattern))
+            || (e.Phone != null && EF.Functions.ILike(e.Phone, pattern))
+            || EF.Functions.ILike(
+                (e.FirstName ?? "") + " " + (e.MiddleName != null ? e.MiddleName + " " : "") + (e.LastName ?? ""),
+                pattern));
     }
 
     private static IQueryable<EmployeeEntity> ApplyCompositeStatusFilters(

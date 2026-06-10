@@ -233,6 +233,7 @@ public sealed class EmployeeAggregateCompensationReadDto : EmployeeAggregateComp
 
 public sealed class EmployeeListQuery
 {
+    [FromQuery(Name = "search")]
     public string? Search { get; init; }
 
     [FromQuery(Name = "employment_status")]
