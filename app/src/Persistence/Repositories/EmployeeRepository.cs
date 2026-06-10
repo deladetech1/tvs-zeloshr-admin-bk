@@ -141,7 +141,8 @@ public sealed class EmployeeRepository(ZelosHrDbContext db) : IEmployeeRepositor
             .Include(e => e.Branch)
             .Where(e => e.TenantId == tenantId && e.OrgId == orgId && !e.IsDeleted);
 
-        query = EmployeeDirectoryQueryBuilder.ApplyFilters(query, directoryQuery, db.CpUsers);
+        query = await EmployeeDirectoryQueryBuilder.ApplyFiltersAsync(
+            query, directoryQuery, db.CpUsers, tenantId, ct);
 
         var total = await query.CountAsync(ct);
         var ordered = EmployeeDirectoryQueryBuilder.ApplySort(query, listQuery.SortBy, listQuery.SortOrder);
@@ -178,7 +179,8 @@ public sealed class EmployeeRepository(ZelosHrDbContext db) : IEmployeeRepositor
             .Include(e => e.Branch)
             .Where(e => e.TenantId == tenantId && e.OrgId == orgId && !e.IsDeleted);
 
-        query = EmployeeDirectoryQueryBuilder.ApplyFilters(query, directoryQuery, db.CpUsers);
+        query = await EmployeeDirectoryQueryBuilder.ApplyFiltersAsync(
+            query, directoryQuery, db.CpUsers, tenantId, ct);
 
         return await query
             .OrderBy(e => e.LastName)

@@ -39,10 +39,17 @@ public static class EmployeeStatusFilter
         EmployeeEngagementValues.Inactive,
     ];
 
+    public sealed record StatusOrBranch(string? Engagement, IReadOnlyList<string> WorkStates);
+
     public sealed record ResolvedStatusFilters(
         string? ExactEmploymentStatus,
         string? Engagement,
-        IReadOnlyList<string> WorkStates);
+        IReadOnlyList<string> WorkStates,
+        IReadOnlyList<StatusOrBranch> OrBranches)
+    {
+        public bool HasCompositeFilter =>
+            Engagement is not null || WorkStates.Count > 0 || OrBranches.Count > 0;
+    }
 
     public static ResolvedStatusFilters ResolveDirectoryFilters(
         string? exactEmploymentStatus,
@@ -51,7 +58,7 @@ public static class EmployeeStatusFilter
         IEnumerable<string>? workStates)
     {
         if (!string.IsNullOrWhiteSpace(exactEmploymentStatus))
-            return new ResolvedStatusFilters(exactEmploymentStatus.Trim(), null, []);
+            return new ResolvedStatusFilters(exactEmploymentStatus.Trim(), null, [], []);
 
         var resolvedEngagement = NormalizeEngagement(engagement);
         var resolvedWorkStates = ParseWorkStates(workStates);
@@ -60,14 +67,62 @@ public static class EmployeeStatusFilter
             && resolvedWorkStates.Count == 0
             && !string.IsNullOrWhiteSpace(statusFilter))
         {
-            var (cmdEngagement, cmdWorkStates) = ResolveStatusCommand(statusFilter);
-            resolvedEngagement = cmdEngagement ?? resolvedEngagement;
-            if (cmdWorkStates.Count > 0)
-                resolvedWorkStates = cmdWorkStates;
+            if (statusFilter.Contains(',', StringComparison.Ordinal))
+            {
+                if (IsDefaultWorkforceTabFilter(statusFilter))
+                {
+                    return new ResolvedStatusFilters(null, null, [], DefaultWorkforceTabOrBranches);
+                }
+
+                var branches = ParseStatusFilterBranches(statusFilter);
+                if (branches.Count > 0)
+                    return new ResolvedStatusFilters(null, null, [], branches);
+            }
+            else
+            {
+                var (cmdEngagement, cmdWorkStates) = ResolveStatusCommand(statusFilter);
+                resolvedEngagement = cmdEngagement ?? resolvedEngagement;
+                if (cmdWorkStates.Count > 0)
+                    resolvedWorkStates = cmdWorkStates;
+            }
         }
 
-        return new ResolvedStatusFilters(null, resolvedEngagement, resolvedWorkStates);
+        return new ResolvedStatusFilters(null, resolvedEngagement, resolvedWorkStates, []);
     }
+
+    /// <summary>
+    /// Default directory tab: active + probation + on leave + pre-hire collapses to active ∪ pre_hire
+    /// (probation and on leave are subsets of active engagement).
+    /// </summary>
+    public static readonly IReadOnlyList<StatusOrBranch> DefaultWorkforceTabOrBranches =
+    [
+        new(EmployeeEngagementValues.Active, []),
+        new(EmployeeEngagementValues.PreHire, []),
+    ];
+
+    public static bool IsDefaultWorkforceTabFilter(string statusFilter)
+    {
+        var tokens = statusFilter
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(token => token.Trim().Replace('-', '_').Replace(' ', '_').ToLowerInvariant())
+            .ToHashSet(StringComparer.Ordinal);
+
+        return tokens.SetEquals(new HashSet<string>(StringComparer.Ordinal)
+        {
+            "active",
+            "probation",
+            "on_leave",
+            "pre_hire",
+        });
+    }
+
+    public static IReadOnlyList<StatusOrBranch> ParseStatusFilterBranches(string statusFilter) =>
+        statusFilter
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(ResolveStatusCommand)
+            .Where(b => b.Engagement is not null || b.WorkStates.Count > 0)
+            .Select(b => new StatusOrBranch(b.Engagement, b.WorkStates))
+            .ToList();
 
     public static (string? Engagement, IReadOnlyList<string> WorkStates) ResolveStatusCommand(string? statusFilter)
     {

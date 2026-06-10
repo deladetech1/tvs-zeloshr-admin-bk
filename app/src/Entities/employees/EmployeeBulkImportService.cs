@@ -153,7 +153,9 @@ public sealed class EmployeeBulkImportService
             SuccessCount = successCount,
             FailureCount = rows.Count - successCount,
         };
-        return BatchResultResponse.FromRowCounts(result, successCount, result.FailureCount, "Bulk import");
+        var failureMessages = rows.Where(r => !r.Success).Select(r => r.Error).ToList();
+        return BatchResultResponse.FromRowCounts(
+            result, successCount, result.FailureCount, "Bulk import", failureMessages);
     }
 
     private static bool HasEmployment(IReadOnlyDictionary<string, string?> map) =>

@@ -51,7 +51,12 @@ public class ExceptionHandlerMiddleware
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogInformation(ex, "Invalid operation");
+            if (ClientSafeErrors.IsEntityFrameworkQueryTranslationError(ex.Message))
+                _logger.LogError(ex, "EF query translation failed on {Method} {Path}",
+                    context.Request.Method, context.Request.Path);
+            else
+                _logger.LogInformation(ex, "Invalid operation");
+
             if (ex.Message.Contains("Platform user already exists", StringComparison.OrdinalIgnoreCase)
                 || ex.Message.Contains("Platform user not found", StringComparison.OrdinalIgnoreCase))
             {
@@ -63,10 +68,10 @@ public class ExceptionHandlerMiddleware
                 return;
             }
 
-            await WriteResponsAsync(context, Respons<object>.ValidationError(new Dictionary<string, string>
-            {
-                ["request"] = ex.Message.TrimEnd('.') + ".",
-            }));
+            var clientMessage = ClientSafeErrors.SanitizeInvalidOperationMessage(ex.Message);
+            await WriteResponsAsync(context, Respons<object>.ValidationError(
+                new Dictionary<string, string> { ["request"] = clientMessage },
+                summary: clientMessage));
         }
         catch (ArgumentException ex)
         {

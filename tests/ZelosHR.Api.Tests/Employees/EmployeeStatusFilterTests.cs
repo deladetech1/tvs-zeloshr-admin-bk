@@ -61,4 +61,31 @@ public class EmployeeStatusFilterTests
         else
             workStates.Should().Contain(expectedWorkState);
     }
+
+    [Fact]
+    public void ResolveDirectoryFilters_CollapsesDefaultWorkforceTabToActiveAndPreHire()
+    {
+        var resolved = EmployeeStatusFilter.ResolveDirectoryFilters(
+            exactEmploymentStatus: null,
+            statusFilter: "active,probation,on_leave,pre_hire",
+            engagement: null,
+            workStates: null);
+
+        resolved.OrBranches.Should().BeEquivalentTo(EmployeeStatusFilter.DefaultWorkforceTabOrBranches);
+        resolved.HasCompositeFilter.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ResolveDirectoryFilters_ParsesOtherCommaSeparatedStatusCommands()
+    {
+        var resolved = EmployeeStatusFilter.ResolveDirectoryFilters(
+            exactEmploymentStatus: null,
+            statusFilter: "terminated,resigned",
+            engagement: null,
+            workStates: null);
+
+        resolved.OrBranches.Should().HaveCount(2);
+        resolved.OrBranches[0].Engagement.Should().Be(EmployeeEngagementValues.Terminated);
+        resolved.OrBranches[1].Engagement.Should().Be(EmployeeEngagementValues.Resigned);
+    }
 }

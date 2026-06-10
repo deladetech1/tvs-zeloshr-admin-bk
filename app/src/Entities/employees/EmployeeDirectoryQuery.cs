@@ -138,9 +138,7 @@ public static class EmployeeDirectoryQueryBuilder
             conditions.Add("e.employment_status = @EmploymentStatus");
             parameters["EmploymentStatus"] = statusFilters.ExactEmploymentStatus;
         }
-        else if (!query.IncludeInactive
-                 && statusFilters.Engagement is null
-                 && statusFilters.WorkStates.Count == 0)
+        else if (!query.IncludeInactive && !statusFilters.HasCompositeFilter)
         {
             conditions.Add("e.employment_status NOT IN ('Terminated', 'Resigned')");
         }
@@ -172,15 +170,47 @@ public static class EmployeeDirectoryQueryBuilder
             : $"ORDER BY {column} {direction} NULLS LAST";
     }
 
+    public static async Task<IReadOnlyList<string>> ResolveSearchMatchingUserIdsAsync(
+        IQueryable<CpUserEntity> platformUsers,
+        string? search,
+        string tenantId,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(search) || search.Trim().Length < MinimumSearchLength)
+            return [];
+
+        var pattern = $"%{search.Trim()}%";
+        return await platformUsers.AsNoTracking()
+            .Where(u => u.TenantId == tenantId
+                && (EF.Functions.ILike(u.Fullname, pattern)
+                    || EF.Functions.ILike(u.Email, pattern)
+                    || EF.Functions.ILike(u.Contact, pattern)))
+            .Select(u => u.Id)
+            .ToListAsync(ct);
+    }
+
+    public static async Task<IQueryable<EmployeeEntity>> ApplyFiltersAsync(
+        IQueryable<EmployeeEntity> query,
+        EmployeeDirectoryQuery directoryQuery,
+        IQueryable<CpUserEntity> platformUsers,
+        string tenantId,
+        CancellationToken ct = default)
+    {
+        var searchUserIds = await ResolveSearchMatchingUserIdsAsync(
+            platformUsers, directoryQuery.Search, tenantId, ct);
+        return ApplyFilters(query, directoryQuery, searchUserIds);
+    }
+
     public static IQueryable<EmployeeEntity> ApplyFilters(
         IQueryable<EmployeeEntity> query,
         EmployeeDirectoryQuery directoryQuery,
-        IQueryable<CpUserEntity>? platformUsers = null)
+        IReadOnlyList<string>? searchMatchingUserIds = null)
     {
         if (!string.IsNullOrWhiteSpace(directoryQuery.Search)
             && directoryQuery.Search.Trim().Length >= MinimumSearchLength)
         {
             var pattern = $"%{directoryQuery.Search.Trim()}%";
+            var matchingUserIds = searchMatchingUserIds ?? [];
             query = query.Where(e =>
                 EF.Functions.ILike(e.FullName, pattern)
                 || (e.FirstName != null && EF.Functions.ILike(e.FirstName, pattern))
@@ -190,12 +220,7 @@ public static class EmployeeDirectoryQueryBuilder
                 || (e.JobTitle != null && EF.Functions.ILike(e.JobTitle, pattern))
                 || (e.WorkEmail != null && EF.Functions.ILike(e.WorkEmail, pattern))
                 || (e.PersonalEmail != null && EF.Functions.ILike(e.PersonalEmail, pattern))
-                || (e.UserId != null && platformUsers != null && platformUsers.Any(u =>
-                    u.Id == e.UserId
-                    && u.TenantId == e.TenantId
-                    && (EF.Functions.ILike(u.Fullname, pattern)
-                        || EF.Functions.ILike(u.Email, pattern)
-                        || EF.Functions.ILike(u.Contact, pattern)))));
+                || (e.UserId != null && matchingUserIds.Contains(e.UserId)));
         }
 
         if (directoryQuery.DepartmentId.HasValue)
@@ -227,9 +252,7 @@ public static class EmployeeDirectoryQueryBuilder
             var exact = statusFilters.ExactEmploymentStatus;
             query = query.Where(e => e.EmploymentStatus == exact);
         }
-        else if (!directoryQuery.IncludeInactive
-                 && statusFilters.Engagement is null
-                 && statusFilters.WorkStates.Count == 0)
+        else if (!directoryQuery.IncludeInactive && !statusFilters.HasCompositeFilter)
         {
             query = query.Where(e => e.EmploymentStatus != EmploymentStatusValues.Terminated
                 && e.EmploymentStatus != EmploymentStatusValues.Resigned);
@@ -260,19 +283,161 @@ public static class EmployeeDirectoryQueryBuilder
         IQueryable<EmployeeEntity> query, EmployeeStatusFilter.ResolvedStatusFilters statusFilters)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        if (statusFilters.Engagement is { } engagement)
-            query = query.Where(e => MatchesEngagement(e, engagement, today));
 
-        if (statusFilters.WorkStates.Count == 0)
+        if (statusFilters.OrBranches.Count > 0)
+            return ApplyOrBranchesEf(query, statusFilters.OrBranches, today);
+
+        if (statusFilters.Engagement is { } engagement)
+            query = WhereEngagementEf(query, engagement);
+
+        if (statusFilters.WorkStates.Count > 0)
+            query = WhereWorkStatesEf(query, statusFilters.WorkStates, today);
+
+        return query;
+    }
+
+    private static IQueryable<EmployeeEntity> ApplyOrBranchesEf(
+        IQueryable<EmployeeEntity> query,
+        IReadOnlyList<EmployeeStatusFilter.StatusOrBranch> branches,
+        DateOnly today)
+    {
+        if (IsActiveAndPreHireOrBranches(branches))
+            return WhereActiveOrPreHireEf(query);
+
+        if (branches.Count == 1)
+            return WhereStatusBranchEf(query, branches[0], today);
+
+        IQueryable<EmployeeEntity>? combined = null;
+        foreach (var branch in branches)
+        {
+            var branchQuery = WhereStatusBranchEf(query, branch, today);
+            combined = combined is null ? branchQuery : combined.Union(branchQuery);
+        }
+
+        return combined ?? query;
+    }
+
+    private static bool IsActiveAndPreHireOrBranches(IReadOnlyList<EmployeeStatusFilter.StatusOrBranch> branches) =>
+        branches.Count == 2
+        && branches.Any(branch =>
+            branch.Engagement == EmployeeEngagementValues.Active && branch.WorkStates.Count == 0)
+        && branches.Any(branch =>
+            branch.Engagement == EmployeeEngagementValues.PreHire && branch.WorkStates.Count == 0);
+
+    private static IQueryable<EmployeeEntity> WhereActiveOrPreHireEf(IQueryable<EmployeeEntity> query) =>
+        query.Where(e =>
+            e.LifecycleState == EmployeeLifecycleStates.PreHire
+            || e.EmploymentStatus == EmploymentStatusValues.PreHire
+            || (
+                !e.IsDraft
+                && e.LifecycleState != EmployeeLifecycleStates.PreHire
+                && e.EmploymentStatus != EmploymentStatusValues.PreHire
+                && e.LifecycleState != EmployeeLifecycleStates.Terminated
+                && e.EmploymentStatus != EmploymentStatusValues.Terminated
+                && e.LifecycleState != EmployeeLifecycleStates.Resigned
+                && e.EmploymentStatus != EmploymentStatusValues.Resigned
+                && e.LifecycleState != EmployeeLifecycleStates.Suspended
+                && e.EmploymentStatus != EmploymentStatusValues.Suspended
+                && e.EmploymentStatus != EmploymentStatusValues.Inactive
+                && e.EmploymentStatus != EmploymentStatusValues.Draft
+                && (
+                    e.LifecycleState == EmployeeLifecycleStates.Active
+                    || e.LifecycleState == EmployeeLifecycleStates.OnLeave
+                    || e.EmploymentStatus == EmploymentStatusValues.Active
+                    || e.EmploymentStatus == EmploymentStatusValues.Probation
+                    || e.EmploymentStatus == EmploymentStatusValues.OnLeave)));
+
+    private static IQueryable<EmployeeEntity> WhereStatusBranchEf(
+        IQueryable<EmployeeEntity> query,
+        EmployeeStatusFilter.StatusOrBranch branch,
+        DateOnly today)
+    {
+        if (branch.Engagement is { } engagement)
+            query = WhereEngagementEf(query, engagement);
+
+        if (branch.WorkStates.Count > 0)
+            query = WhereWorkStatesEf(query, branch.WorkStates, today);
+
+        return query;
+    }
+
+    private static IQueryable<EmployeeEntity> WhereEngagementEf(
+        IQueryable<EmployeeEntity> query, string engagement) =>
+        engagement switch
+        {
+            EmployeeEngagementValues.Draft => query.Where(e =>
+                e.IsDraft || e.EmploymentStatus == EmploymentStatusValues.Draft),
+            EmployeeEngagementValues.PreHire => query.Where(e =>
+                e.LifecycleState == EmployeeLifecycleStates.PreHire
+                || e.EmploymentStatus == EmploymentStatusValues.PreHire),
+            EmployeeEngagementValues.Active => query.Where(e =>
+                !e.IsDraft
+                && e.LifecycleState != EmployeeLifecycleStates.PreHire
+                && e.EmploymentStatus != EmploymentStatusValues.PreHire
+                && e.LifecycleState != EmployeeLifecycleStates.Terminated
+                && e.EmploymentStatus != EmploymentStatusValues.Terminated
+                && e.LifecycleState != EmployeeLifecycleStates.Resigned
+                && e.EmploymentStatus != EmploymentStatusValues.Resigned
+                && e.LifecycleState != EmployeeLifecycleStates.Suspended
+                && e.EmploymentStatus != EmploymentStatusValues.Suspended
+                && e.EmploymentStatus != EmploymentStatusValues.Inactive
+                && e.EmploymentStatus != EmploymentStatusValues.Draft
+                && (
+                    e.LifecycleState == EmployeeLifecycleStates.Active
+                    || e.LifecycleState == EmployeeLifecycleStates.OnLeave
+                    || e.EmploymentStatus == EmploymentStatusValues.Active
+                    || e.EmploymentStatus == EmploymentStatusValues.Probation
+                    || e.EmploymentStatus == EmploymentStatusValues.OnLeave)),
+            EmployeeEngagementValues.Suspended => query.Where(e =>
+                e.LifecycleState == EmployeeLifecycleStates.Suspended
+                || e.EmploymentStatus == EmploymentStatusValues.Suspended),
+            EmployeeEngagementValues.Terminated => query.Where(e =>
+                e.LifecycleState == EmployeeLifecycleStates.Terminated
+                || e.EmploymentStatus == EmploymentStatusValues.Terminated),
+            EmployeeEngagementValues.Resigned => query.Where(e =>
+                e.LifecycleState == EmployeeLifecycleStates.Resigned
+                || e.EmploymentStatus == EmploymentStatusValues.Resigned),
+            EmployeeEngagementValues.Inactive => query.Where(e =>
+                e.EmploymentStatus == EmploymentStatusValues.Inactive),
+            _ => query,
+        };
+
+    private static IQueryable<EmployeeEntity> WhereWorkStatesEf(
+        IQueryable<EmployeeEntity> query,
+        IReadOnlyList<string> workStates,
+        DateOnly today)
+    {
+        var wantsProbation = workStates.Contains(
+            EmployeeWorkStateValues.Probation, StringComparer.OrdinalIgnoreCase);
+        var wantsOnLeave = workStates.Contains(
+            EmployeeWorkStateValues.OnLeave, StringComparer.OrdinalIgnoreCase);
+
+        if (!wantsProbation && !wantsOnLeave)
             return query;
 
-        var wantsProbation = statusFilters.WorkStates.Contains(
-            EmployeeWorkStateValues.Probation, StringComparer.OrdinalIgnoreCase);
-        var wantsOnLeave = statusFilters.WorkStates.Contains(
-            EmployeeWorkStateValues.OnLeave, StringComparer.OrdinalIgnoreCase);
+        if (wantsProbation && wantsOnLeave)
+        {
+            return query.Where(e =>
+                e.EmploymentStatus == EmploymentStatusValues.Probation
+                || (e.ProbationEndDate != null
+                    && e.ProbationEndDate >= today
+                    && e.LifecycleState == EmployeeLifecycleStates.Active)
+                || e.LifecycleState == EmployeeLifecycleStates.OnLeave
+                || e.EmploymentStatus == EmploymentStatusValues.OnLeave);
+        }
+
+        if (wantsProbation)
+        {
+            return query.Where(e =>
+                e.EmploymentStatus == EmploymentStatusValues.Probation
+                || (e.ProbationEndDate != null
+                    && e.ProbationEndDate >= today
+                    && e.LifecycleState == EmployeeLifecycleStates.Active));
+        }
+
         return query.Where(e =>
-            (wantsProbation && IsOnProbation(e, today))
-            || (wantsOnLeave && IsOnLeave(e)));
+            e.LifecycleState == EmployeeLifecycleStates.OnLeave
+            || e.EmploymentStatus == EmploymentStatusValues.OnLeave);
     }
 
     private static void AppendCompositeStatusSql(
@@ -282,6 +447,15 @@ public static class EmployeeDirectoryQueryBuilder
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         parameters["StatusFilterToday"] = today;
+
+        if (statusFilters.OrBranches.Count > 0)
+        {
+            var branchSql = statusFilters.OrBranches
+                .Select(branch => BuildBranchSql(branch))
+                .ToList();
+            conditions.Add($"({string.Join(" OR ", branchSql)})");
+            return;
+        }
 
         if (statusFilters.Engagement is { } engagement)
             conditions.Add(BuildEngagementSql(engagement));
@@ -294,6 +468,29 @@ public static class EmployeeDirectoryQueryBuilder
         var wantsOnLeave = statusFilters.WorkStates.Contains(
             EmployeeWorkStateValues.OnLeave, StringComparer.OrdinalIgnoreCase);
         conditions.Add(BuildWorkStatesSql(wantsProbation, wantsOnLeave));
+    }
+
+    private static string BuildBranchSql(EmployeeStatusFilter.StatusOrBranch branch)
+    {
+        var parts = new List<string>();
+        if (branch.Engagement is { } engagement)
+            parts.Add(BuildEngagementSql(engagement));
+
+        if (branch.WorkStates.Count > 0)
+        {
+            var wantsProbation = branch.WorkStates.Contains(
+                EmployeeWorkStateValues.Probation, StringComparer.OrdinalIgnoreCase);
+            var wantsOnLeave = branch.WorkStates.Contains(
+                EmployeeWorkStateValues.OnLeave, StringComparer.OrdinalIgnoreCase);
+            parts.Add(BuildWorkStatesSql(wantsProbation, wantsOnLeave));
+        }
+
+        return parts.Count switch
+        {
+            0 => "TRUE",
+            1 => parts[0],
+            _ => $"({string.Join(" AND ", parts)})",
+        };
     }
 
     private static string BuildEngagementSql(string engagement) => engagement switch
@@ -351,35 +548,6 @@ public static class EmployeeDirectoryQueryBuilder
 
         return "(e.lifecycle_state = 'On Leave' OR e.employment_status = 'On Leave')";
     }
-
-    private static bool MatchesEngagement(EmployeeEntity e, string engagement, DateOnly today) =>
-        engagement switch
-        {
-            EmployeeEngagementValues.Draft => e.IsDraft
-                || string.Equals(e.EmploymentStatus, EmploymentStatusValues.Draft, StringComparison.OrdinalIgnoreCase),
-            EmployeeEngagementValues.PreHire =>
-                string.Equals(e.LifecycleState, EmployeeLifecycleStates.PreHire, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(e.EmploymentStatus, EmploymentStatusValues.PreHire, StringComparison.OrdinalIgnoreCase),
-            EmployeeEngagementValues.Active => EmployeeStatusFilter.IsActiveEngagement(e),
-            EmployeeEngagementValues.Suspended =>
-                string.Equals(e.LifecycleState, EmployeeLifecycleStates.Suspended, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(e.EmploymentStatus, EmploymentStatusValues.Suspended, StringComparison.OrdinalIgnoreCase),
-            EmployeeEngagementValues.Terminated =>
-                string.Equals(e.LifecycleState, EmployeeLifecycleStates.Terminated, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(e.EmploymentStatus, EmploymentStatusValues.Terminated, StringComparison.OrdinalIgnoreCase),
-            EmployeeEngagementValues.Resigned =>
-                string.Equals(e.LifecycleState, EmployeeLifecycleStates.Resigned, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(e.EmploymentStatus, EmploymentStatusValues.Resigned, StringComparison.OrdinalIgnoreCase),
-            EmployeeEngagementValues.Inactive =>
-                string.Equals(e.EmploymentStatus, EmploymentStatusValues.Inactive, StringComparison.OrdinalIgnoreCase),
-            _ => true,
-        };
-
-    private static bool IsOnProbation(EmployeeEntity e, DateOnly today) =>
-        EmployeeStatusFilter.IsOnProbation(e, today);
-
-    private static bool IsOnLeave(EmployeeEntity e) =>
-        EmployeeStatusFilter.IsOnLeave(e);
 
     public static IQueryable<EmployeeEntity> ApplySort(
         IQueryable<EmployeeEntity> query, string? sortBy, string? sortOrder)

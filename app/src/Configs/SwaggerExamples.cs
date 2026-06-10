@@ -436,7 +436,7 @@ internal static class SwaggerExamples
     {
         ["success"] = false,
         ["status_code"] = 207,
-        ["detail"] = "Bulk import completed with 1 successful and 1 failed row(s).",
+        ["detail"] = "Row 2: work_email is already registered for another employee.",
         ["data"] = BulkImportData(successCount: 1, failureCount: 1),
     };
 
@@ -444,7 +444,7 @@ internal static class SwaggerExamples
     {
         ["success"] = false,
         ["status_code"] = 422,
-        ["detail"] = "Bulk import completed with no successful rows.",
+        ["detail"] = EmployeeErrorMessages.WorkEmailLinkedToAnotherEmployee,
         ["data"] = BulkImportData(successCount: 0, failureCount: 3, allFailed: true),
     };
 
@@ -525,7 +525,7 @@ internal static class SwaggerExamples
     {
         ["success"] = false,
         ["status_code"] = 207,
-        ["detail"] = "Import completed with 1 successful and 1 failed row(s).",
+        ["detail"] = EmployeeErrorMessages.UserAlreadyLinkedToEmployee,
         ["data"] = ImportEmployeesData(successCount: 1, failureCount: 1),
     };
 
@@ -533,7 +533,7 @@ internal static class SwaggerExamples
     {
         ["success"] = false,
         ["status_code"] = 422,
-        ["detail"] = "Import completed with no successful rows.",
+        ["detail"] = EmployeeErrorMessages.UserAlreadyLinkedToEmployee,
         ["data"] = ImportEmployeesData(successCount: 0, failureCount: 1, allFailed: true),
     };
 

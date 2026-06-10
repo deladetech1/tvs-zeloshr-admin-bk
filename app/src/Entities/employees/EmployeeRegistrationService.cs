@@ -206,7 +206,9 @@ public sealed class EmployeeRegistrationService
             SuccessCount = successCount,
             FailureCount = rows.Count - successCount,
         };
-        return BatchResultResponse.FromRowCounts(result, successCount, result.FailureCount, "Import");
+        var failureMessages = rows.Where(r => !r.Success).Select(r => r.Error).ToList();
+        return BatchResultResponse.FromRowCounts(
+            result, successCount, result.FailureCount, "Import", failureMessages);
     }
 
     public async Task<Respons<EmployeeRegistrationReadDto>> UpdatePersonalContactAsync(

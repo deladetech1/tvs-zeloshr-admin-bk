@@ -88,6 +88,34 @@ public class EmployeeDirectoryQueryBuilderTests
     }
 
     [Fact]
+    public void Build_applies_comma_separated_status_filter_commands()
+    {
+        var (where, parameters) = EmployeeDirectoryQueryBuilder.Build(
+            new EmployeeDirectoryQuery { StatusFilter = "active,probation,on_leave,pre_hire" },
+            Table,
+            TestDefaults.TenantId,
+            TestDefaults.OrgId);
+
+        Assert.Contains("e.lifecycle_state IN ('Active', 'On Leave')", where);
+        Assert.Contains("e.lifecycle_state = 'Pre-hire'", where);
+        Assert.DoesNotContain("NOT IN ('Terminated'", where);
+        Assert.True(parameters.ContainsKey("StatusFilterToday"));
+    }
+
+    [Fact]
+    public void Build_applies_other_comma_separated_status_filter_commands()
+    {
+        var (where, _) = EmployeeDirectoryQueryBuilder.Build(
+            new EmployeeDirectoryQuery { StatusFilter = "terminated,resigned" },
+            Table,
+            TestDefaults.TenantId,
+            TestDefaults.OrgId);
+
+        Assert.Contains("e.lifecycle_state = 'Terminated'", where);
+        Assert.Contains("e.lifecycle_state = 'Resigned'", where);
+    }
+
+    [Fact]
     public void Build_applies_engagement_and_work_state_filters()
     {
         var (where, parameters) = EmployeeDirectoryQueryBuilder.Build(
