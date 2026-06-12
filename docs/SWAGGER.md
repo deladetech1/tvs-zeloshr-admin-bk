@@ -29,11 +29,11 @@ Tenant scope is taken from the JWT claim `tenant_id` (read without DB validation
 
 ## What Swagger includes
 
-**Current sprint scope:** **Employees**, **Custom Fields**, **File Management**, **Currencies**, **Organisation** (org chart), **Lifecycle Events**, and **Audit Logs** appear in Swagger. Other controllers stay in the codebase with `[ApiExplorerSettings(IgnoreApi = true)]` and are excluded via `SwaggerGroups.VisibleInSwagger` — remove `IgnoreApi` and add the group to that set when a module ships.
+**Current sprint scope:** **Employees**, **Custom Fields**, **File Management**, **Currencies**, **Organisation** (org chart), **Leave**, **Lifecycle Events**, and **Audit Logs** appear in Swagger. Other controllers stay in the codebase with `[ApiExplorerSettings(IgnoreApi = true)]` and are excluded via `SwaggerGroups.VisibleInSwagger` — remove `IgnoreApi` and add the group to that set when a module ships.
 
 | Feature | Description |
 |---------|-------------|
-| **Tags** | Employees · Custom Fields · File Management · Currencies · Organisation · Lifecycle Events · Audit Logs (active); other modules hidden |
+| **Tags** | Employees · Custom Fields · File Management · Currencies · Organisation · Leave · Lifecycle Events · Audit Logs (active); other modules hidden |
 | **File Management** | Upload / list / delete — see [FILE_MANAGEMENT.md](FILE_MANAGEMENT.md) for `DocumentReadDto` vs write `document_ids` |
 | **Bearer JWT** | Authorize — sets `authorization: Bearer …` |
 | **Trove headers** | `app-id`, `bus-id`, `loc-id`, `org-id` on each operation (pre-filled for local demo) |
@@ -53,6 +53,20 @@ Response is a **reporting-line tree** (`data.roots[]`), not a department hierarc
 | `children` | Direct reports (nested sub-levels) |
 
 Tree shape comes from employee `reports_to_id`. Department badge requires `head_of_department_id` on the department row.
+
+### Leave Management (`/api/v1/leave/*`)
+
+| Area | Key routes |
+|------|------------|
+| Dashboard | `GET /leave/statistics` (KPI cards) · `GET /leave/dashboard` (widgets) |
+| Admin requests | `GET /leave/requests/list` · `GET /leave/requests/get` · `POST /requests/add` · `POST /requests/approve` · `POST /requests/reject` |
+| My Leave | `GET /leave/my/summary` · `GET /leave/my/requests/list` · `POST /leave/my/requests/add` |
+| Balances | `GET /leave/balances/list` · admin CRUD on `/leave/balances/*` |
+| Settings | Leave types `/leave/types/*` · public holidays `/leave/holidays/*` |
+
+List responses use **`data.items[]`** (not `requests[]`). Rows include nested `employee`, `leave_type`, `prior_approvers`, and `waiting_hours` when pending.
+
+Three-stage approval: `line_manager` → `head_of_department` → `final`. Final queue: `?approval_stage=pending_final&status=Pending`. Mutations and `GET /requests/get` return **`LeaveRequestDetailDto`** with `balance_impact` and `approval_trail`.
 
 ### Audit logs (read-only)
 

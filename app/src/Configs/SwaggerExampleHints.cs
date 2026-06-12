@@ -40,5 +40,6 @@ internal static class SwaggerExampleHints
     internal static string AuditSeverity => SwaggerOptionFormat.JoinPipe(AuditLogFieldOptions.Severities);
     internal static string AuditFilterAll => SwaggerOptionFormat.JoinPipe(AuditLogFieldOptions.FilterAll);
     internal static string LeaveRequestStatus => SwaggerOptionFormat.JoinPipe(LeaveFieldOptions.RequestStatuses);
+    internal static string LeaveApprovalStage => SwaggerOptionFormat.JoinPipe(LeaveFieldOptions.ApprovalStages);
     internal static string LeaveTypeName => SwaggerOptionFormat.JoinPipe(LeaveFieldOptions.DefaultLeaveTypeNames);
 }

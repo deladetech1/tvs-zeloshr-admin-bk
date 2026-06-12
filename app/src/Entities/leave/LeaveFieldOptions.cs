@@ -10,6 +10,15 @@ public static class LeaveFieldOptions
         LeaveRequestStatuses.Cancelled,
     ];
 
+    public static readonly IReadOnlyList<string> ApprovalStages =
+    [
+        LeaveApprovalStages.PendingLineManager,
+        LeaveApprovalStages.PendingHeadOfDepartment,
+        LeaveApprovalStages.PendingFinal,
+        LeaveApprovalStages.Approved,
+        LeaveApprovalStages.Rejected,
+    ];
+
     public static readonly IReadOnlyList<string> DefaultLeaveTypeNames =
     [
         "Annual Leave",
@@ -27,4 +36,34 @@ public static class LeaveRequestStatuses
     public const string Approved = "Approved";
     public const string Rejected = "Rejected";
     public const string Cancelled = "Cancelled";
+}
+
+public static class LeaveApprovalStages
+{
+    public const string PendingLineManager = "pending_line_manager";
+    public const string PendingHeadOfDepartment = "pending_head_of_department";
+    public const string PendingFinal = "pending_final";
+    public const string Approved = "approved";
+    public const string Rejected = "rejected";
+}
+
+public static class LeaveApprovalStepLabels
+{
+    public const string LineManager = "line_manager";
+    public const string HeadOfDepartment = "head_of_department";
+    public const string Final = "final";
+}
+
+public sealed record LeaveRequestListQuery
+{
+    public string? Search { get; init; }
+    public string? Status { get; init; }
+    public string? ApprovalStage { get; init; }
+    public Guid? LeaveTypeId { get; init; }
+    public Guid? EmployeeId { get; init; }
+    public Guid? DepartmentId { get; init; }
+    public DateOnly? FromDate { get; init; }
+    public DateOnly? ToDate { get; init; }
+    public int Page { get; init; } = 1;
+    public int Size { get; init; } = 20;
 }

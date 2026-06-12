@@ -12,6 +12,10 @@ internal static class EmployeeIdentityResolver
             ? employee.FullName
             : NameFormatting.ResolveFullName(employee.FullName, employee.FirstName, employee.MiddleName, employee.LastName));
 
+    public static string ResolveFullName(EmployeeLeaveContextRow row, CpUserDto? platformUser) =>
+        platformUser?.FullName
+        ?? (!string.IsNullOrWhiteSpace(row.FullName) ? row.FullName : row.EmployeeCode);
+
     public static string? ResolveWorkEmail(EmployeeEntity employee, CpUserDto? platformUser) =>
         platformUser?.Email ?? employee.WorkEmail;
 

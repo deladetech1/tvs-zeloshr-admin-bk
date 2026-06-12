@@ -263,4 +263,37 @@ public sealed class EmployeeRepository(ZelosHrDbContext db) : IEmployeeRepositor
 
         return max + 1;
     }
+
+    public async Task<IReadOnlyList<EmployeeLeaveContextRow>> ListLeaveContextsScopedAsync(
+        IReadOnlyCollection<Guid> employeeIds,
+        string tenantId,
+        string orgId,
+        CancellationToken ct = default)
+    {
+        if (employeeIds.Count == 0)
+            return [];
+
+        var entities = await db.Employees.AsNoTracking()
+            .Include(e => e.Department)
+            .Where(e => employeeIds.Contains(e.Id)
+                        && e.TenantId == tenantId
+                        && e.OrgId == orgId
+                        && !e.IsDeleted)
+            .ToListAsync(ct);
+
+        return entities
+            .Select(e => new EmployeeLeaveContextRow(
+                e.Id,
+                e.UserId,
+                e.FullName,
+                e.EmployeeCode,
+                e.JobTitle,
+                e.DepartmentId,
+                e.Department?.Name,
+                e.ReportsToId,
+                e.ManagerId,
+                e.Department?.HeadOfDepartmentId,
+                e.ProfilePhotoUrl))
+            .ToList();
+    }
 }

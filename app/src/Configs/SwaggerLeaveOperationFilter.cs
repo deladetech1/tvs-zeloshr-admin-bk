@@ -27,28 +27,42 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveStatisticsResponse());
                 operation.Summary ??= "Leave dashboard statistics";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
-                    "Admin KPI cards: pending_requests · approved_this_month · on_leave_today · total_requests.");
+                    "Admin KPI cards: pending_requests · pending_final_approvals · on_leave_today · leaving_this_week · low_balance_alert · total_requests.");
+                return;
+
+            case "api/v1/leave/dashboard" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
+                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveDashboardResponse());
+                operation.Summary ??= "Leave Management dashboard";
+                operation.Description = SwaggerOptionFormat.Append(operation.Description,
+                    "Dashboard widgets: summary · on_leave_today[] · pending_approvals[] (final stage) · leaving_this_week[]. Rows include nested employee, leave_type, waiting_hours.");
                 return;
 
             case "api/v1/leave/requests/list" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveListResponse());
-                operation.Summary ??= "Leave Management list";
+                operation.Summary ??= "Leave Management / Approvals list";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
                     """
-                    Paginated admin list. Response `data`: summary · requests[].
-                    Each request includes `remaining_days` when a balance row exists for employee + leave_type_id.
-                    Query `status`: Pending|Approved|Rejected|Cancelled or `all`. `search` min 3 chars (matches stored employee name server-side; not returned on rows).
+                    Paginated admin list. Response `data`: summary · items[].
+                    Each row includes nested `employee`, `leave_type`, `prior_approvers`, `waiting_hours`, and `employee.profile_url` (DocumentReadDto) when pending.
+                    Use `approval_stage=pending_final` for the final approver queue (LM+HoD cleared).
+                    Filters: department_id · from_date/to_date (overlap) · leave_type_id · employee_id · search (name, code, job title).
                     Balances: GET /leave/balances/list.
                     """);
                 AppendParameterDescription(operation, "status", $"Filter by status. Allowed: {SwaggerExampleHints.LeaveRequestStatus}, all.");
+                AppendParameterDescription(operation, "approval_stage", $"Workflow stage filter. Allowed: {SwaggerExampleHints.LeaveApprovalStage}, all.");
                 AppendParameterDescription(operation, "leave_type_id", "Optional leave type UUID filter.");
                 AppendParameterDescription(operation, "employee_id", "Optional employee UUID filter.");
+                AppendParameterDescription(operation, "department_id", "Optional department UUID filter.");
+                AppendParameterDescription(operation, "from_date", "Include requests ending on or after this date.");
+                AppendParameterDescription(operation, "to_date", "Include requests starting on or before this date.");
                 return;
 
             case "api/v1/leave/requests/get" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveRequestGetResponse());
-                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveRequestListItemDto>), 404));
-                operation.Summary ??= "Get leave request";
+                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveRequestDetailDto>), 404));
+                operation.Summary ??= "Get leave request detail";
+                operation.Description = SwaggerOptionFormat.Append(operation.Description,
+                    "Detail modal payload: working_days · public_holidays_in_range · balance_impact · approval_trail.");
                 AppendParameterDescription(operation, "leave_request_id", "Leave request UUID from list or create.");
                 return;
 
@@ -69,30 +83,34 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
 
             case "api/v1/leave/requests/approve" when method.Equals("POST", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveRequestApprovedResponse());
-                SetJsonResponseExample(operation, 409, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveRequestListItemDto>), 409));
-                operation.Summary ??= "Approve leave request";
+                SetJsonResponseExample(operation, 409, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveRequestDetailDto>), 409));
+                operation.Summary ??= "Advance leave approval";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
-                    "Pending only. Decrements matching balance `remaining_days` when a balance row exists. `approver_id` is set from the authenticated platform user — no request body.");
+                    """
+                    Three-stage workflow: line_manager → head_of_department → final.
+                    Each call advances one stage when the authenticated user's employee matches the expected approver.
+                    Final stage sets status Approved and decrements balance. `approver_id` is the platform user id.
+                    """);
                 AppendParameterDescription(operation, "leave_request_id", "Pending leave request UUID.");
                 return;
 
             case "api/v1/leave/requests/reject" when method.Equals("POST", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveRequestRejectedResponse());
-                SetJsonResponseExample(operation, 409, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveRequestListItemDto>), 409));
+                SetJsonResponseExample(operation, 409, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveRequestDetailDto>), 409));
                 operation.Summary ??= "Reject leave request";
                 AppendParameterDescription(operation, "leave_request_id", "Pending leave request UUID.");
                 return;
 
             case "api/v1/leave/requests/delete" when method.Equals("DELETE", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveDeleteRequestResponse());
-                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveRequestListItemDto>), 404));
+                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveRequestDetailDto>), 404));
                 operation.Summary ??= "Delete pending leave request";
                 AppendParameterDescription(operation, "leave_request_id", "Only Pending requests can be deleted.");
                 return;
 
             case "api/v1/leave/my/summary" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveMySummaryResponse());
-                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveRequestListItemDto>), 404));
+                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveMySummaryDto>), 404));
                 operation.Summary ??= "My Leave summary";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
                     "Employee self-service for logged-in platform user: total_remaining_days · pending_requests · approved_this_year · balances[].");
@@ -107,7 +125,7 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                 return;
 
             case "api/v1/leave/my/balances/list" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
-                SetJsonResponseExample(operation, 200, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveBalanceListDto>), 200));
+                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveBalanceListResponse());
                 operation.Summary ??= "My Leave balances";
                 return;
 
@@ -119,32 +137,32 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                 return;
 
             case "api/v1/leave/balances/list" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
-                SetJsonResponseExample(operation, 200, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveBalanceListDto>), 200));
+                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveBalanceListResponse());
                 operation.Summary ??= "List leave balances";
                 AppendParameterDescription(operation, "employee_id", "Optional employee UUID filter.");
                 AppendParameterDescription(operation, "leave_type_id", "Optional leave type UUID filter.");
                 return;
 
             case "api/v1/leave/balances/get" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
-                SetJsonResponseExample(operation, 200, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveBalanceListItemDto>), 200));
-                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveRequestListItemDto>), 404));
+                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveBalanceGetResponse());
+                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveBalanceListItemDto>), 404));
                 operation.Summary ??= "Get leave balance";
                 AppendParameterDescription(operation, "leave_balance_id", "Balance row UUID.");
                 return;
 
             case "api/v1/leave/balances/add" when method.Equals("POST", StringComparison.OrdinalIgnoreCase):
-                SetJsonResponseExample(operation, 200, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveBalanceListItemDto>), 200));
+                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveBalanceGetResponse());
                 operation.Summary ??= "Create leave balance (admin)";
                 return;
 
             case "api/v1/leave/balances/update" when method.Equals("PUT", StringComparison.OrdinalIgnoreCase):
-                SetJsonResponseExample(operation, 200, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveBalanceListItemDto>), 200));
+                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveBalanceGetResponse());
                 operation.Summary ??= "Update leave balance (admin)";
                 AppendParameterDescription(operation, "leave_balance_id", "Balance row UUID.");
                 return;
 
             case "api/v1/leave/types/list" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
-                SetJsonResponseExample(operation, 200, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveTypeListDto>), 200));
+                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveTypeListResponse());
                 operation.Summary ??= "Leave types (Settings)";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
                     "Configurable leave types. Filter by ISO country_code (GH, KE, …) or omit for all. `active_only` defaults true.");
@@ -153,26 +171,26 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                 return;
 
             case "api/v1/leave/types/get" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
-                SetJsonResponseExample(operation, 200, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveTypeListItemDto>), 200));
-                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveRequestListItemDto>), 404));
+                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveTypeGetResponse());
+                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveTypeListItemDto>), 404));
                 operation.Summary ??= "Get leave type";
                 AppendParameterDescription(operation, "leave_type_id", "Leave type UUID.");
                 return;
 
             case "api/v1/leave/types/add" when method.Equals("POST", StringComparison.OrdinalIgnoreCase):
-                SetJsonResponseExample(operation, 200, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveTypeListItemDto>), 200));
+                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveTypeGetResponse());
                 operation.Summary ??= "Create leave type (admin)";
                 return;
 
             case "api/v1/leave/types/update" when method.Equals("PUT", StringComparison.OrdinalIgnoreCase):
-                SetJsonResponseExample(operation, 200, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveTypeListItemDto>), 200));
+                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveTypeGetResponse());
                 operation.Summary ??= "Update leave type (admin)";
                 AppendParameterDescription(operation, "leave_type_id", "Leave type UUID.");
                 return;
 
             case "api/v1/leave/types/delete" when method.Equals("DELETE", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveDeleteTypeResponse());
-                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveRequestListItemDto>), 404));
+                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveTypeListItemDto>), 404));
                 operation.Summary ??= "Delete or deactivate leave type (admin)";
                 AppendParameterDescription(operation, "leave_type_id", "Soft-deactivates when type is referenced by requests/balances.");
                 return;
@@ -188,26 +206,26 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                 return;
 
             case "api/v1/leave/holidays/get" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
-                SetJsonResponseExample(operation, 200, SwaggerExamples.EnvelopeFor(typeof(Respons<PublicHolidayListItemDto>), 200));
-                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveRequestListItemDto>), 404));
+                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveHolidayGetResponse());
+                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<PublicHolidayListItemDto>), 404));
                 operation.Summary ??= "Get public holiday";
                 AppendParameterDescription(operation, "holiday_id", "Holiday UUID.");
                 return;
 
             case "api/v1/leave/holidays/add" when method.Equals("POST", StringComparison.OrdinalIgnoreCase):
-                SetJsonResponseExample(operation, 200, SwaggerExamples.EnvelopeFor(typeof(Respons<PublicHolidayListItemDto>), 200));
+                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveHolidayGetResponse());
                 operation.Summary ??= "Create public holiday (admin)";
                 return;
 
             case "api/v1/leave/holidays/update" when method.Equals("PUT", StringComparison.OrdinalIgnoreCase):
-                SetJsonResponseExample(operation, 200, SwaggerExamples.EnvelopeFor(typeof(Respons<PublicHolidayListItemDto>), 200));
+                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveHolidayGetResponse());
                 operation.Summary ??= "Update public holiday (admin)";
                 AppendParameterDescription(operation, "holiday_id", "Holiday UUID.");
                 return;
 
             case "api/v1/leave/holidays/delete" when method.Equals("DELETE", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveDeleteHolidayResponse());
-                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveRequestListItemDto>), 404));
+                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<PublicHolidayListItemDto>), 404));
                 operation.Summary ??= "Remove public holiday (admin)";
                 AppendParameterDescription(operation, "holiday_id", "Soft-deactivates the holiday row.");
                 return;

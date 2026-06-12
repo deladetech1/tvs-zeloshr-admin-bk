@@ -288,6 +288,109 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
             return;
         }
 
+        if (IsLeaveParameter(context))
+        {
+            if (name.Equals(PlatformQueryParams.LeaveRequestId, StringComparison.OrdinalIgnoreCase)
+                || name.Equals("leaveRequestId", StringComparison.OrdinalIgnoreCase))
+            {
+                schema.Example = SwaggerExamples.SampleLeaveRequestId.ToString();
+                parameter.Description = "Leave request UUID from list, create, or dashboard.";
+                return;
+            }
+
+            if (name.Equals(PlatformQueryParams.LeaveBalanceId, StringComparison.OrdinalIgnoreCase)
+                || name.Equals("leaveBalanceId", StringComparison.OrdinalIgnoreCase))
+            {
+                schema.Example = SwaggerExamples.SampleLeaveBalanceId.ToString();
+                parameter.Description = "Leave balance UUID from GET /leave/balances/list.";
+                return;
+            }
+
+            if (name.Equals(PlatformQueryParams.LeaveTypeId, StringComparison.OrdinalIgnoreCase)
+                || name.Equals("leaveTypeId", StringComparison.OrdinalIgnoreCase))
+            {
+                schema.Example = SwaggerExamples.SampleLeaveTypeId.ToString();
+                parameter.Description = "Leave type UUID from GET /leave/types/list.";
+                return;
+            }
+
+            if (name.Equals(PlatformQueryParams.HolidayId, StringComparison.OrdinalIgnoreCase)
+                || name.Equals("holidayId", StringComparison.OrdinalIgnoreCase))
+            {
+                schema.Example = SwaggerExamples.SampleHolidayId.ToString();
+                parameter.Description = "Public holiday UUID from GET /leave/holidays/list.";
+                return;
+            }
+
+            if (name.Equals("approval_stage", StringComparison.OrdinalIgnoreCase))
+            {
+                schema.Example = "pending_final";
+                parameter.Description = SwaggerOptionFormat.Append(
+                    parameter.Description,
+                    $"Workflow stage filter. Allowed: {SwaggerExampleHints.LeaveApprovalStage}, all.");
+                return;
+            }
+
+            if (name.Equals("from_date", StringComparison.OrdinalIgnoreCase))
+            {
+                schema.Example = "2026-06-01";
+                parameter.Description = SwaggerOptionFormat.Append(
+                    parameter.Description,
+                    "Include requests ending on or after this date (YYYY-MM-DD).");
+                return;
+            }
+
+            if (name.Equals("to_date", StringComparison.OrdinalIgnoreCase))
+            {
+                schema.Example = "2026-12-31";
+                parameter.Description = SwaggerOptionFormat.Append(
+                    parameter.Description,
+                    "Include requests starting on or before this date (YYYY-MM-DD).");
+                return;
+            }
+
+            if (name.Equals("status", StringComparison.OrdinalIgnoreCase))
+            {
+                schema.Example = "Pending";
+                parameter.Description = SwaggerOptionFormat.Append(
+                    parameter.Description,
+                    $"Filter by status. Allowed: {SwaggerExampleHints.LeaveRequestStatus}, all.");
+                return;
+            }
+
+            if (name.Equals("search", StringComparison.OrdinalIgnoreCase))
+            {
+                schema.Example = "kwame";
+                parameter.Description = "Optional name, employee code, or job title filter (minimum 2 characters).";
+                return;
+            }
+
+            if (name.Equals("country_code", StringComparison.OrdinalIgnoreCase))
+            {
+                schema.Example = "GH";
+                parameter.Description = "ISO 3166-1 alpha-2 country code (GH, KE, NG, …).";
+                return;
+            }
+
+            if (name.Equals("year", StringComparison.OrdinalIgnoreCase))
+            {
+                schema.Example = 2026;
+                parameter.Description = "Calendar year for public holiday lookup.";
+                return;
+            }
+
+            if (name.Equals("active_only", StringComparison.OrdinalIgnoreCase))
+            {
+                schema.Example = SwaggerExampleHints.BooleanPipe;
+                parameter.Description = SwaggerOptionFormat.Append(
+                    parameter.Description,
+                    $"Return only active leave types. Allowed: {SwaggerExampleHints.BooleanPipe}.");
+                return;
+            }
+
+            return;
+        }
+
         if (context.ParameterInfo?.Member.DeclaringType?.FullName?.Contains(
                 ".Entities.Users.",
                 StringComparison.Ordinal) == true)
@@ -379,4 +482,9 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
             parameter.Description = "Audit log UUID from GET /api/v1/audit-logs/list.";
         }
     }
+
+    private static bool IsLeaveParameter(ParameterFilterContext context) =>
+        context.ParameterInfo?.Member.DeclaringType?.FullName?.Contains(
+            ".Entities.Leave.",
+            StringComparison.Ordinal) == true;
 }

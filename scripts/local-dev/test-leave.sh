@@ -31,7 +31,9 @@ curl_headers=(
 
 paths=(
   "/api/v1/leave/statistics"
+  "/api/v1/leave/dashboard"
   "/api/v1/leave/requests/list?page=1&size=5"
+  "/api/v1/leave/requests/list?approval_stage=pending_final&page=1&size=5"
   "/api/v1/leave/balances/list"
   "/api/v1/leave/types/list?active_only=true"
   "/api/v1/leave/holidays/list?page=1&size=10"

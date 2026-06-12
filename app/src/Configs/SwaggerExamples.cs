@@ -250,9 +250,11 @@ internal static class SwaggerExamples
             nameof(LeaveSummaryDto) => EnvelopeOk(LeaveSummaryData()),
             nameof(LeaveMySummaryDto) => EnvelopeOk(LeaveMySummaryData()),
             nameof(LeaveListDto) => LeaveListResponse(),
+            nameof(LeaveDashboardDto) => LeaveDashboardResponse(),
             nameof(LeaveMyRequestListDto) => LeaveMyRequestListResponse(),
             nameof(LeaveRequestListItemDto) => EnvelopeOk(LeaveRequestItemData()),
-            nameof(LeaveBalanceListDto) => EnvelopeOk(LeaveBalanceListData()),
+            nameof(LeaveRequestDetailDto) => LeaveRequestGetResponse(),
+            nameof(LeaveBalanceListDto) => LeaveBalanceListResponse(),
             nameof(LeaveBalanceListItemDto) => EnvelopeOk(LeaveBalanceItemData()),
             nameof(LeaveTypeListDto) => EnvelopeOk(LeaveTypeListData()),
             nameof(LeaveTypeListItemDto) => EnvelopeOk(LeaveTypeItemData()),
@@ -1348,9 +1350,35 @@ internal static class SwaggerExamples
     internal static JsonObject LeaveSummaryData() => new()
     {
         ["pending_requests"] = 4,
+        ["pending_final_approvals"] = 2,
         ["approved_this_month"] = 12,
         ["on_leave_today"] = 2,
+        ["leaving_this_week"] = 7,
+        ["low_balance_alert"] = 1,
         ["total_requests"] = 86,
+    };
+
+    internal static JsonObject LeaveEmployeeRefData() => new()
+    {
+        ["employee_id"] = SampleEmployeeId.ToString(),
+        ["full_name"] = "Ama Asante",
+        ["employee_code"] = "EMP-001",
+        ["job_title"] = "Senior Product Designer",
+        ["department_id"] = SampleDepartmentId.ToString(),
+        ["department_name"] = "Data & Insights",
+        ["profile_url"] = EmployeeDocumentItem(SampleDocumentId1, "Employee profile photo", "profile.jpg"),
+    };
+
+    internal static JsonObject LeaveTypeRefData() => new()
+    {
+        ["leave_type_id"] = SampleLeaveTypeId.ToString(),
+        ["name"] = "Annual Leave",
+    };
+
+    internal static JsonObject LeaveApproverRefData() => new()
+    {
+        ["approver_id"] = "cp-user-demo-admin",
+        ["full_name"] = "Fiifi Boakye",
     };
 
     internal static JsonObject LeaveRequestItemData(
@@ -1360,14 +1388,88 @@ internal static class SwaggerExamples
         ["leave_request_id"] = SampleLeaveRequestId.ToString(),
         ["employee_id"] = SampleEmployeeId.ToString(),
         ["leave_type_id"] = SampleLeaveTypeId.ToString(),
+        ["employee"] = LeaveEmployeeRefData(),
+        ["leave_type"] = LeaveTypeRefData(),
         ["start_date"] = "2026-07-07",
         ["end_date"] = "2026-07-11",
         ["days_requested"] = 5,
         ["status"] = status,
+        ["approval_stage"] = status == "Approved" ? "approved" : "pending_final",
         ["approver_id"] = status is "Approved" or "Rejected" ? "cp-user-demo-admin" : null,
+        ["approver"] = status is "Approved" or "Rejected" ? LeaveApproverRefData() : null,
+        ["prior_approvers"] = new JsonArray(
+            new JsonObject
+            {
+                ["stage"] = "line_manager",
+                ["status"] = "approved",
+                ["approver"] = LeaveApproverRefData(),
+                ["decided_at"] = "2026-06-09T10:00:00+00:00",
+            },
+            new JsonObject
+            {
+                ["stage"] = "head_of_department",
+                ["status"] = "approved",
+                ["approver"] = LeaveApproverRefData(),
+                ["decided_at"] = "2026-06-09T14:30:00+00:00",
+            }),
         ["notes"] = status == "Rejected" ? "Team coverage required during sprint." : "Family visit.",
         ["remaining_days"] = remainingDays,
+        ["waiting_hours"] = status == "Pending" ? 53 : null,
         ["submitted_at"] = "2026-06-10T09:15:00+00:00",
+        ["decided_at"] = status is "Approved" or "Rejected" ? "2026-06-11T16:20:00+00:00" : null,
+    };
+
+    internal static JsonObject LeaveRequestDetailData(
+        string status = "Pending",
+        string approvalStage = "pending_final") => new()
+    {
+        ["leave_request_id"] = SampleLeaveRequestId.ToString(),
+        ["employee_id"] = SampleEmployeeId.ToString(),
+        ["leave_type_id"] = SampleLeaveTypeId.ToString(),
+        ["employee"] = LeaveEmployeeRefData(),
+        ["leave_type"] = LeaveTypeRefData(),
+        ["start_date"] = "2026-07-07",
+        ["end_date"] = "2026-07-11",
+        ["days_requested"] = 5,
+        ["working_days"] = 5,
+        ["public_holidays_in_range"] = 0,
+        ["status"] = status,
+        ["approval_stage"] = approvalStage,
+        ["approver_id"] = status is "Approved" or "Rejected" ? "cp-user-demo-admin" : null,
+        ["approver"] = status is "Approved" or "Rejected" ? LeaveApproverRefData() : null,
+        ["approval_trail"] = new JsonArray(
+            new JsonObject
+            {
+                ["stage"] = "line_manager",
+                ["status"] = "approved",
+                ["approver"] = LeaveApproverRefData(),
+                ["decided_at"] = "2026-06-09T10:00:00+00:00",
+            },
+            new JsonObject
+            {
+                ["stage"] = "head_of_department",
+                ["status"] = "approved",
+                ["approver"] = LeaveApproverRefData(),
+                ["decided_at"] = "2026-06-09T14:30:00+00:00",
+            },
+            new JsonObject
+            {
+                ["stage"] = "final",
+                ["status"] = status == "Approved" ? "approved" : status == "Rejected" ? "rejected" : "pending",
+                ["approver"] = status is "Approved" or "Rejected" ? LeaveApproverRefData() : null,
+                ["decided_at"] = status is "Approved" or "Rejected" ? "2026-06-11T16:20:00+00:00" : null,
+            }),
+        ["notes"] = status == "Rejected" ? "Conflicts with audit period." : "Family visit.",
+        ["remaining_days"] = 14,
+        ["balance_impact"] = new JsonObject
+        {
+            ["current"] = 14,
+            ["after"] = 9,
+            ["deduction"] = 5,
+        },
+        ["waiting_hours"] = status == "Pending" ? 53 : null,
+        ["submitted_at"] = "2026-06-10T09:15:00+00:00",
+        ["decided_at"] = status is "Approved" or "Rejected" ? "2026-06-11T16:20:00+00:00" : null,
     };
 
     internal static JsonObject LeaveBalanceItemData() => new()
@@ -1375,6 +1477,7 @@ internal static class SwaggerExamples
         ["leave_balance_id"] = SampleLeaveBalanceId.ToString(),
         ["employee_id"] = SampleEmployeeId.ToString(),
         ["leave_type_id"] = SampleLeaveTypeId.ToString(),
+        ["leave_type"] = LeaveTypeRefData(),
         ["entitled_days"] = 21,
         ["used_days"] = 7,
         ["remaining_days"] = 14,
@@ -1387,6 +1490,11 @@ internal static class SwaggerExamples
             ["leave_balance_id"] = "a2222222-2222-2222-2222-222222222205",
             ["employee_id"] = SampleEmployeeId.ToString(),
             ["leave_type_id"] = "a2222222-2222-2222-2222-222222222206",
+            ["leave_type"] = new JsonObject
+            {
+                ["leave_type_id"] = "a2222222-2222-2222-2222-222222222206",
+                ["name"] = "Sick Leave",
+            },
             ["entitled_days"] = 10,
             ["used_days"] = 2,
             ["remaining_days"] = 8,
@@ -1400,17 +1508,37 @@ internal static class SwaggerExamples
     internal static JsonObject LeaveListData() => new()
     {
         ["summary"] = LeaveSummaryData(),
-        ["requests"] = new JsonArray(
+        ["items"] = new JsonArray(
             LeaveRequestItemData("Pending", 14),
             LeaveRequestItemData("Approved", 9)),
     };
+
+    internal static JsonObject LeaveDashboardData() => new()
+    {
+        ["summary"] = LeaveSummaryData(),
+        ["on_leave_today"] = new JsonArray(LeaveRequestItemData("Approved", 9)),
+        ["pending_approvals"] = new JsonArray(LeaveRequestItemData("Pending", 14)),
+        ["leaving_this_week"] = new JsonArray(LeaveRequestItemData("Approved", 12)),
+    };
+
+    internal static JsonObject LeaveDashboardResponse() => EnvelopeOk(LeaveDashboardData());
+
+    internal static JsonObject LeaveBalanceListResponse() => EnvelopeOk(LeaveBalanceListData());
+
+    internal static JsonObject LeaveBalanceGetResponse() => EnvelopeOk(LeaveBalanceItemData());
+
+    internal static JsonObject LeaveTypeListResponse() => EnvelopeOk(LeaveTypeListData());
+
+    internal static JsonObject LeaveTypeGetResponse() => EnvelopeOk(LeaveTypeItemData());
+
+    internal static JsonObject LeaveHolidayGetResponse() => EnvelopeOk(PublicHolidayItemData());
 
     internal static JsonObject LeaveListResponse() =>
         EnvelopeOk(LeaveListData(), LeaveListPagination());
 
     internal static JsonObject LeaveMyRequestListData() => new()
     {
-        ["requests"] = new JsonArray(
+        ["items"] = new JsonArray(
             LeaveRequestItemData("Pending", 14),
             LeaveRequestItemData("Approved", 9)),
     };
@@ -1441,13 +1569,13 @@ internal static class SwaggerExamples
 
     internal static JsonObject LeaveMySummaryResponse() => EnvelopeOk(LeaveMySummaryData());
 
-    internal static JsonObject LeaveRequestGetResponse() => EnvelopeOk(LeaveRequestItemData());
+    internal static JsonObject LeaveRequestGetResponse() => EnvelopeOk(LeaveRequestDetailData());
 
     internal static JsonObject LeaveRequestApprovedResponse() =>
-        EnvelopeOk(LeaveRequestItemData("Approved", 9), detail: "Leave request approved.");
+        EnvelopeOk(LeaveRequestDetailData("Approved", "approved"), detail: "Leave request approved.");
 
     internal static JsonObject LeaveRequestRejectedResponse() =>
-        EnvelopeOk(LeaveRequestItemData("Rejected", 14), detail: "Leave request rejected.");
+        EnvelopeOk(LeaveRequestDetailData("Rejected", "rejected"), detail: "Leave request rejected.");
 
     internal static JsonObject LeaveTypeItemData() => new()
     {
@@ -1457,6 +1585,8 @@ internal static class SwaggerExamples
         ["default_entitled_days"] = 21,
         ["is_paid"] = true,
         ["is_active"] = true,
+        ["created_at"] = "2026-01-15T08:00:00+00:00",
+        ["updated_at"] = "2026-06-01T12:00:00+00:00",
     };
 
     internal static JsonObject LeaveTypeListData() => new()
@@ -1471,6 +1601,8 @@ internal static class SwaggerExamples
                 ["default_entitled_days"] = 10,
                 ["is_paid"] = true,
                 ["is_active"] = true,
+                ["created_at"] = "2026-01-15T08:00:00+00:00",
+                ["updated_at"] = "2026-06-01T12:00:00+00:00",
             }),
     };
 
@@ -1483,6 +1615,8 @@ internal static class SwaggerExamples
         ["is_recurring"] = true,
         ["branch_id"] = null,
         ["is_active"] = true,
+        ["created_at"] = "2026-01-10T09:00:00+00:00",
+        ["updated_at"] = "2026-01-10T09:00:00+00:00",
     };
 
     internal static JsonObject PublicHolidayListData() => new()
@@ -1498,6 +1632,8 @@ internal static class SwaggerExamples
                 ["is_recurring"] = true,
                 ["branch_id"] = null,
                 ["is_active"] = true,
+                ["created_at"] = "2026-01-10T09:00:00+00:00",
+                ["updated_at"] = "2026-01-10T09:00:00+00:00",
             }),
     };
 

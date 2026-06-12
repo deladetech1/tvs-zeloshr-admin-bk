@@ -1,3 +1,5 @@
+using ZelosHR.Api.Entities.Employees;
+
 namespace ZelosHR.Api.Entities.Leave;
 
 public interface ILeaveRepository
@@ -12,19 +14,32 @@ public interface ILeaveRepository
         DateOnly? fromDate,
         CancellationToken ct = default);
 
-    Task<(IReadOnlyList<LeaveRequestListItemDto> Requests, int Total)> ListRequestsScopedAsync(
+    Task<(IReadOnlyList<LeaveRequestRawRow> Requests, int Total)> ListRequestsScopedAsync(
         string tenantId,
         string orgId,
-        string? search,
-        string? status,
-        Guid? leaveTypeId,
-        Guid? employeeId,
-        int page,
-        int pageSize,
+        LeaveRequestListQuery query,
         CancellationToken ct = default);
 
-    Task<LeaveRequestListItemDto?> GetRequestByIdScopedAsync(
+    Task<LeaveRequestRawRow?> GetRequestRawByIdScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default);
+
+    Task<IReadOnlyList<LeaveRequestRawRow>> ListOnLeaveTodayScopedAsync(
+        string tenantId, string orgId, int limit, CancellationToken ct = default);
+
+    Task<IReadOnlyList<LeaveRequestRawRow>> ListPendingFinalApprovalsScopedAsync(
+        string tenantId, string orgId, int limit, CancellationToken ct = default);
+
+    Task<IReadOnlyList<LeaveRequestRawRow>> ListLeavingThisWeekScopedAsync(
+        string tenantId, string orgId, int limit, CancellationToken ct = default);
+
+    Task<HashSet<DateOnly>> GetPublicHolidayDatesInRangeScopedAsync(
+        string tenantId,
+        string orgId,
+        DateOnly start,
+        DateOnly end,
+        string? countryCode,
+        Guid? branchId,
+        CancellationToken ct = default);
 
     Task<Guid> CreateRequestScopedAsync(
         string tenantId,
@@ -37,9 +52,10 @@ public interface ILeaveRepository
         DateOnly endDate,
         decimal daysRequested,
         string? notes,
+        string initialApprovalStage,
         CancellationToken ct = default);
 
-    Task<LeaveRequestListItemDto?> UpdateRequestScopedAsync(
+    Task<LeaveRequestRawRow?> UpdateRequestScopedAsync(
         Guid id,
         string tenantId,
         string orgId,
@@ -47,10 +63,16 @@ public interface ILeaveRepository
         string? notes,
         CancellationToken ct = default);
 
-    Task<LeaveRequestListItemDto?> ApproveRequestScopedAsync(
-        Guid id, string tenantId, string orgId, string approverId, CancellationToken ct = default);
+    Task<LeaveRequestRawRow?> AdvanceApprovalScopedAsync(
+        Guid id,
+        string tenantId,
+        string orgId,
+        string approverPlatformUserId,
+        Guid? approverEmployeeId,
+        EmployeeLeaveContext requestEmployee,
+        CancellationToken ct = default);
 
-    Task<LeaveRequestListItemDto?> RejectRequestScopedAsync(
+    Task<LeaveRequestRawRow?> RejectRequestScopedAsync(
         Guid id, string tenantId, string orgId, string approverId, string? notes, CancellationToken ct = default);
 
     Task<bool> DeletePendingRequestScopedAsync(

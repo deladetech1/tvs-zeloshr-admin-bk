@@ -369,6 +369,43 @@ public partial class EmployeesService : IEmployeesService, IEmployeeLookup
             entity.EmployeeCode);
     }
 
+    public async Task<IReadOnlyDictionary<Guid, EmployeeLeaveContext>> ResolveLeaveContextsAsync(
+        IEnumerable<Guid> employeeIds, string tenantId, string orgId, CancellationToken ct = default)
+    {
+        var ids = employeeIds.Distinct().ToList();
+        if (ids.Count == 0)
+            return new Dictionary<Guid, EmployeeLeaveContext>();
+
+        var rows = await _employees.ListLeaveContextsScopedAsync(ids, tenantId, orgId, ct);
+        if (rows.Count == 0)
+            return new Dictionary<Guid, EmployeeLeaveContext>();
+
+        var userIds = rows
+            .Select(r => r.UserId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id!)
+            .Distinct();
+        var platformUsers = await _cpUsers.GetByIdsAsync(userIds, tenantId, ct);
+
+        return rows.ToDictionary(
+            r => r.Id,
+            r =>
+            {
+                platformUsers.TryGetValue(r.UserId ?? string.Empty, out var cp);
+                var storedProfileRef = cp?.ProfilePic ?? r.ProfilePhotoUrl;
+                return new EmployeeLeaveContext(
+                    r.Id,
+                    EmployeeIdentityResolver.ResolveFullName(r, cp),
+                    r.EmployeeCode,
+                    r.JobTitle,
+                    r.DepartmentId,
+                    r.DepartmentName,
+                    r.ReportsToId ?? r.ManagerId,
+                    r.HeadOfDepartmentId,
+                    string.IsNullOrWhiteSpace(storedProfileRef) ? null : storedProfileRef.Trim());
+            });
+    }
+
     private async Task<EmployeeDetailDto> MapDetailAsync(EmployeeEntity row, string tenantId, CancellationToken ct)
     {
         CpUserDto? cp = null;

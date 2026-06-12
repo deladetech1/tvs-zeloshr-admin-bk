@@ -55,4 +55,10 @@ public interface IEmployeeRepository : IRepository<EmployeeEntity, Guid>
 
     Task<bool> ExistsActiveScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default);
+
+    Task<IReadOnlyList<EmployeeLeaveContextRow>> ListLeaveContextsScopedAsync(
+        IReadOnlyCollection<Guid> employeeIds,
+        string tenantId,
+        string orgId,
+        CancellationToken ct = default);
 }
