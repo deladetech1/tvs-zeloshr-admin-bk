@@ -40,6 +40,9 @@ cp scripts/local-dev/live-session.example.env scripts/local-dev/live-session.env
 # Organisation / org chart (GET reads)
 ./scripts/local-dev/test-org-structure.sh
 
+# Leave management — admin list, balances, types, holidays, My Leave (GET reads)
+./scripts/local-dev/test-leave.sh
+
 # Full live smoke — GET + POST + PUT + DELETE with cleanup (Swagger-shipped modules)
 ./scripts/local-dev/test-live-all.sh
 

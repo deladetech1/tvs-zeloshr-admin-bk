@@ -23,6 +23,16 @@ public sealed class EmployeeRepository(ZelosHrDbContext db) : IEmployeeRepositor
                 e => e.Id == id && e.TenantId == tenantId && e.OrgId == orgId && !e.IsDeleted,
                 ct);
 
+    public async Task<EmployeeEntity?> GetByPlatformUserIdScopedAsync(
+        string platformUserId, string tenantId, string orgId, CancellationToken ct = default) =>
+        await db.Employees.AsNoTracking()
+            .FirstOrDefaultAsync(
+                e => e.UserId == platformUserId
+                     && e.TenantId == tenantId
+                     && e.OrgId == orgId
+                     && !e.IsDeleted,
+                ct);
+
     public async Task<EmployeeEntity?> GetByIdScopedForUpdateAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default) =>
         await db.Employees

@@ -14,6 +14,7 @@ public static class SwaggerGroups
         LifecycleEvents,
         AuditLogs,
         Users,
+        Leave,
     };
 
     public static bool IsVisibleInSwagger(string? groupName) =>

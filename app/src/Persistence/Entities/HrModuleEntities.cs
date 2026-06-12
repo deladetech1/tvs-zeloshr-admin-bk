@@ -31,6 +31,7 @@ public sealed class LeaveRequestEntity
     public decimal DaysRequested { get; set; }
     public string Status { get; set; } = default!;
     public string? ApproverName { get; set; }
+    public string? Notes { get; set; }
     public DateTimeOffset SubmittedAt { get; set; }
 }
 
@@ -45,6 +46,35 @@ public sealed class LeaveBalanceEntity
     public decimal EntitledDays { get; set; }
     public decimal UsedDays { get; set; }
     public decimal RemainingDays { get; set; }
+}
+
+public sealed class LeaveTypeEntity
+{
+    public Guid Id { get; set; }
+    public string TenantId { get; set; } = default!;
+    public string OrgId { get; set; } = default!;
+    public string Name { get; set; } = default!;
+    public string? CountryCode { get; set; }
+    public decimal DefaultEntitledDays { get; set; }
+    public bool IsPaid { get; set; } = true;
+    public bool IsActive { get; set; } = true;
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
+public sealed class PublicHolidayEntity
+{
+    public Guid Id { get; set; }
+    public string TenantId { get; set; } = default!;
+    public string OrgId { get; set; } = default!;
+    public string CountryCode { get; set; } = default!;
+    public string Name { get; set; } = default!;
+    public DateOnly HolidayDate { get; set; }
+    public bool IsRecurring { get; set; }
+    public Guid? BranchId { get; set; }
+    public bool IsActive { get; set; } = true;
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
 }
 
 public sealed class JobPostingEntity

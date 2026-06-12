@@ -10,6 +10,9 @@ public static class PlatformQueryParams
     public const string DocumentId = "document_id";
     public const string AttendanceId = "attendance_id";
     public const string LeaveRequestId = "leave_request_id";
+    public const string LeaveBalanceId = "leave_balance_id";
+    public const string LeaveTypeId = "leave_type_id";
+    public const string HolidayId = "holiday_id";
     public const string LifecycleEventId = "lifecycle_event_id";
     public const string AuditLogId = "audit_log_id";
     public const string RecruitmentId = "recruitment_id";

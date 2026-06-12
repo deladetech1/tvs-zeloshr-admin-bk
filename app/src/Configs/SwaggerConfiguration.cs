@@ -138,6 +138,7 @@ public static class SwaggerConfiguration
             options.OperationFilter<SwaggerCurrenciesOperationFilter>();
             options.OperationFilter<SwaggerFileManagementOperationFilter>();
             options.OperationFilter<SwaggerOrgStructureOperationFilter>();
+            options.OperationFilter<SwaggerLeaveOperationFilter>();
             options.OperationFilter<SwaggerAuditLogsOperationFilter>();
             options.OperationFilter<SwaggerUsersOperationFilter>();
             options.OperationFilter<SwaggerResponseExamplesOperationFilter>();

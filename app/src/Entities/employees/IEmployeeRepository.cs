@@ -8,6 +8,9 @@ public interface IEmployeeRepository : IRepository<EmployeeEntity, Guid>
     Task<EmployeeEntity?> GetByIdScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default);
 
+    Task<EmployeeEntity?> GetByPlatformUserIdScopedAsync(
+        string platformUserId, string tenantId, string orgId, CancellationToken ct = default);
+
     Task<EmployeeEntity?> GetByIdScopedForUpdateAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default);
 

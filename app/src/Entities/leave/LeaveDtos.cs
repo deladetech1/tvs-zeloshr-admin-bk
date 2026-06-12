@@ -8,6 +8,14 @@ public sealed class LeaveSummaryDto
     public int TotalRequests { get; init; }
 }
 
+public sealed class LeaveMySummaryDto
+{
+    public decimal TotalRemainingDays { get; init; }
+    public int PendingRequests { get; init; }
+    public int ApprovedThisYear { get; init; }
+    public IReadOnlyList<LeaveBalanceListItemDto> Balances { get; init; } = [];
+}
+
 public sealed class LeaveRequestListItemDto
 {
     public required string LeaveRequestId { get; init; }
@@ -19,10 +27,14 @@ public sealed class LeaveRequestListItemDto
     public decimal DaysRequested { get; init; }
     public required string Status { get; init; }
     public string? ApproverName { get; init; }
+    public string? Notes { get; init; }
+    public decimal? RemainingDays { get; init; }
+    public DateTimeOffset SubmittedAt { get; init; }
 }
 
 public sealed class LeaveBalanceListItemDto
 {
+    public required string LeaveBalanceId { get; init; }
     public required string EmployeeId { get; init; }
     public required string EmployeeFullName { get; init; }
     public required string LeaveType { get; init; }
@@ -36,4 +48,40 @@ public sealed class LeaveListDto
     public LeaveSummaryDto Summary { get; init; } = new();
     public IReadOnlyList<LeaveRequestListItemDto> Requests { get; init; } = [];
     public IReadOnlyList<LeaveBalanceListItemDto> Balances { get; init; } = [];
+}
+
+public sealed class LeaveBalanceListDto
+{
+    public IReadOnlyList<LeaveBalanceListItemDto> Items { get; init; } = [];
+}
+
+public sealed class LeaveTypeListItemDto
+{
+    public required string LeaveTypeId { get; init; }
+    public required string Name { get; init; }
+    public string? CountryCode { get; init; }
+    public decimal DefaultEntitledDays { get; init; }
+    public bool IsPaid { get; init; }
+    public bool IsActive { get; init; }
+}
+
+public sealed class LeaveTypeListDto
+{
+    public IReadOnlyList<LeaveTypeListItemDto> Items { get; init; } = [];
+}
+
+public sealed class PublicHolidayListItemDto
+{
+    public required string HolidayId { get; init; }
+    public required string CountryCode { get; init; }
+    public required string Name { get; init; }
+    public DateOnly HolidayDate { get; init; }
+    public bool IsRecurring { get; init; }
+    public string? BranchId { get; init; }
+    public bool IsActive { get; init; }
+}
+
+public sealed class PublicHolidayListDto
+{
+    public IReadOnlyList<PublicHolidayListItemDto> Items { get; init; } = [];
 }

@@ -5,6 +5,9 @@ public interface IEmployeeLookup
 {
     Task<EmployeeDisplayInfo?> ResolveEmployeeDisplayAsync(
         Guid employeeId, string tenantId, string orgId, CancellationToken ct = default);
+
+    Task<(Guid EmployeeId, EmployeeDisplayInfo Display)?> ResolveByPlatformUserAsync(
+        string platformUserId, string tenantId, string orgId, CancellationToken ct = default);
 }
 
 public sealed record EmployeeDisplayInfo(string FullName, string? EmployeeCode);

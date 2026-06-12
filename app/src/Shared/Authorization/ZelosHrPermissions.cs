@@ -20,4 +20,10 @@ public static class ZelosHrPermissions
     public const string CustomFieldValuesAdmin = "permission-zeloshr-custom-field-values-admin";
 
     public const string SensitiveFieldsReveal = "permission-zeloshr-sensitive-fields-reveal";
+
+    public const string LeaveGet = "permission-zeloshr-leave-get";
+    public const string LeaveCreate = "permission-zeloshr-leave-create";
+    public const string LeaveUpdate = "permission-zeloshr-leave-update";
+    public const string LeaveDelete = "permission-zeloshr-leave-delete";
+    public const string LeaveAdmin = "permission-zeloshr-leave-admin";
 }

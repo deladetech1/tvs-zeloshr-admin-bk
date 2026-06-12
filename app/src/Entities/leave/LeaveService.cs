@@ -23,12 +23,12 @@ public class LeaveService
     }
 
     public async Task<Respons<LeaveListDto>> ListAsync(
-        string? search, string? status, string? leaveType,
+        string? search, string? status, string? leaveType, Guid? employeeId,
         int page, int size, string tenantId, string orgId, CancellationToken ct = default)
     {
         var paging = PagedQuery.From(page, size);
         var (requests, balances, total) = await _leave.ListScopedAsync(
-            tenantId, orgId, search, status, leaveType, paging.Page, paging.Size, ct);
+            tenantId, orgId, search, status, leaveType, employeeId, paging.Page, paging.Size, ct);
         var summary = await _leave.GetSummaryScopedAsync(tenantId, orgId, ct);
 
         return Respons<LeaveListDto>.Ok(
@@ -57,14 +57,19 @@ public class LeaveService
         string orgId,
         CancellationToken ct = default)
     {
-        if (data.EndDate < data.StartDate)
-            return Respons<LeaveRequestListItemDto>.ValidationError(
-                new Dictionary<string, string> { ["endDate"] = "End date must be on or after start date." });
+        var validation = ValidateRequestDates(data.StartDate, data.EndDate, data.DaysRequested);
+        if (validation is not null)
+            return validation;
 
         var employee = await _employees.ResolveEmployeeDisplayAsync(data.EmployeeId, tenantId, orgId, ct);
         if (employee is null)
             return Respons<LeaveRequestListItemDto>.ValidationError(
                 new Dictionary<string, string> { ["employeeId"] = "Employee not found." });
+
+        var balanceCheck = await ValidateSufficientBalanceAsync(
+            tenantId, orgId, data.EmployeeId, data.LeaveType!.Trim(), data.DaysRequested, ct);
+        if (balanceCheck is not null)
+            return balanceCheck;
 
         var id = await _leave.CreateRequestScopedAsync(
             tenantId,
@@ -75,6 +80,7 @@ public class LeaveService
             data.StartDate,
             data.EndDate,
             data.DaysRequested,
+            data.Notes,
             ct);
 
         return await GetRequestByIdAsync(id, tenantId, orgId, ct);
@@ -87,15 +93,16 @@ public class LeaveService
         string orgId,
         CancellationToken ct = default)
     {
-        var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            { "Pending", "Approved", "Rejected", "Cancelled" };
-        if (!string.IsNullOrWhiteSpace(data.Status) && !allowed.Contains(data.Status))
+        if (!string.IsNullOrWhiteSpace(data.Status)
+            && !LeaveFieldOptions.RequestStatuses.Any(
+                s => s.Equals(data.Status, StringComparison.OrdinalIgnoreCase)))
             return Respons<LeaveRequestListItemDto>.ValidationError(
                 new Dictionary<string, string> { ["status"] = "Invalid status." });
 
         var hasStatus = !string.IsNullOrWhiteSpace(data.Status);
         var hasApprover = data.ApproverName is not null;
-        if (!hasStatus && !hasApprover)
+        var hasNotes = data.Notes is not null;
+        if (!hasStatus && !hasApprover && !hasNotes)
             return Respons<LeaveRequestListItemDto>.EmptyUpdateRequest();
 
         var updated = await _leave.UpdateRequestScopedAsync(
@@ -104,6 +111,7 @@ public class LeaveService
             orgId,
             hasStatus ? data.Status : null,
             hasApprover ? data.ApproverName : null,
+            hasNotes ? data.Notes : null,
             ct);
 
         if (updated is null)
@@ -117,6 +125,49 @@ public class LeaveService
         return Respons<LeaveRequestListItemDto>.Ok(updated);
     }
 
+    public async Task<Respons<LeaveRequestListItemDto>> ApproveRequestAsync(
+        Guid id, string approverName, string tenantId, string orgId, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(approverName))
+            return Respons<LeaveRequestListItemDto>.ValidationError(
+                new Dictionary<string, string> { ["approverName"] = "Approver name is required." });
+
+        var existing = await _leave.GetRequestByIdScopedAsync(id, tenantId, orgId, ct);
+        if (existing is null)
+            return Respons<LeaveRequestListItemDto>.Fail("Leave request not found.", statusCode: 404);
+        if (!existing.Status.Equals(LeaveRequestStatuses.Pending, StringComparison.OrdinalIgnoreCase))
+            return Respons<LeaveRequestListItemDto>.Fail("Only pending requests can be approved.", statusCode: 409);
+
+        var balanceCheck = await ValidateSufficientBalanceAsync(
+            tenantId, orgId, Guid.Parse(existing.EmployeeId), existing.LeaveType, existing.DaysRequested, ct);
+        if (balanceCheck is not null)
+            return balanceCheck;
+
+        var updated = await _leave.ApproveRequestScopedAsync(id, tenantId, orgId, approverName.Trim(), ct);
+        return updated is null
+            ? Respons<LeaveRequestListItemDto>.Fail("Leave request could not be approved.", statusCode: 409)
+            : Respons<LeaveRequestListItemDto>.Ok(updated, "Leave request approved.");
+    }
+
+    public async Task<Respons<LeaveRequestListItemDto>> RejectRequestAsync(
+        Guid id, string approverName, string? notes, string tenantId, string orgId, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(approverName))
+            return Respons<LeaveRequestListItemDto>.ValidationError(
+                new Dictionary<string, string> { ["approverName"] = "Approver name is required." });
+
+        var existing = await _leave.GetRequestByIdScopedAsync(id, tenantId, orgId, ct);
+        if (existing is null)
+            return Respons<LeaveRequestListItemDto>.Fail("Leave request not found.", statusCode: 404);
+        if (!existing.Status.Equals(LeaveRequestStatuses.Pending, StringComparison.OrdinalIgnoreCase))
+            return Respons<LeaveRequestListItemDto>.Fail("Only pending requests can be rejected.", statusCode: 409);
+
+        var updated = await _leave.RejectRequestScopedAsync(id, tenantId, orgId, approverName.Trim(), notes, ct);
+        return updated is null
+            ? Respons<LeaveRequestListItemDto>.Fail("Leave request could not be rejected.", statusCode: 409)
+            : Respons<LeaveRequestListItemDto>.Ok(updated, "Leave request rejected.");
+    }
+
     public async Task<Respons<object>> DeleteRequestAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default)
     {
@@ -124,5 +175,290 @@ public class LeaveService
             return Respons<object>.Fail("Leave request not found or cannot be deleted (only Pending).", statusCode: 404);
 
         return Respons<object>.Ok(new { leaveRequestId = id.ToString() }, "Leave request deleted.");
+    }
+
+    public async Task<Respons<LeaveMySummaryDto>> GetMySummaryAsync(
+        string? platformUserId, string tenantId, string orgId, CancellationToken ct = default)
+    {
+        var employee = await ResolveMyEmployeeAsync(platformUserId, tenantId, orgId, ct);
+        if (employee is null)
+            return Respons<LeaveMySummaryDto>.Fail("No employee profile linked to this user.", statusCode: 404);
+
+        var balances = await _leave.ListBalancesScopedAsync(tenantId, orgId, employee.Value.EmployeeId, null, ct);
+        var pendingTotal = await _leave.CountEmployeeRequestsScopedAsync(
+            tenantId, orgId, employee.Value.EmployeeId, LeaveRequestStatuses.Pending, null, ct);
+        var yearStart = new DateOnly(DateTime.UtcNow.Year, 1, 1);
+        var approvedThisYear = await _leave.CountEmployeeRequestsScopedAsync(
+            tenantId, orgId, employee.Value.EmployeeId, LeaveRequestStatuses.Approved, yearStart, ct);
+
+        return Respons<LeaveMySummaryDto>.Ok(new LeaveMySummaryDto
+        {
+            TotalRemainingDays = balances.Sum(b => b.RemainingDays),
+            PendingRequests = pendingTotal,
+            ApprovedThisYear = approvedThisYear,
+            Balances = balances,
+        });
+    }
+
+    public async Task<Respons<LeaveListDto>> ListMyRequestsAsync(
+        string? platformUserId, string? status, int page, int size,
+        string tenantId, string orgId, CancellationToken ct = default)
+    {
+        var employee = await ResolveMyEmployeeAsync(platformUserId, tenantId, orgId, ct);
+        if (employee is null)
+            return Respons<LeaveListDto>.Fail("No employee profile linked to this user.", statusCode: 404);
+
+        return await ListAsync(null, status, null, employee.Value.EmployeeId, page, size, tenantId, orgId, ct);
+    }
+
+    public async Task<Respons<LeaveBalanceListDto>> ListMyBalancesAsync(
+        string? platformUserId, string tenantId, string orgId, CancellationToken ct = default)
+    {
+        var employee = await ResolveMyEmployeeAsync(platformUserId, tenantId, orgId, ct);
+        if (employee is null)
+            return Respons<LeaveBalanceListDto>.Fail("No employee profile linked to this user.", statusCode: 404);
+
+        var items = await _leave.ListBalancesScopedAsync(tenantId, orgId, employee.Value.EmployeeId, null, ct);
+        return Respons<LeaveBalanceListDto>.Ok(new LeaveBalanceListDto { Items = items });
+    }
+
+    public async Task<Respons<LeaveRequestListItemDto>> CreateMyRequestAsync(
+        CreateLeaveRequestDto data,
+        string? platformUserId,
+        string tenantId,
+        string orgId,
+        CancellationToken ct = default)
+    {
+        var employee = await ResolveMyEmployeeAsync(platformUserId, tenantId, orgId, ct);
+        if (employee is null)
+            return Respons<LeaveRequestListItemDto>.Fail("No employee profile linked to this user.", statusCode: 404);
+
+        data.EmployeeId = employee.Value.EmployeeId;
+        return await CreateRequestAsync(data, tenantId, orgId, ct);
+    }
+
+    public async Task<Respons<LeaveBalanceListDto>> ListBalancesAsync(
+        Guid? employeeId, string? leaveType, string tenantId, string orgId, CancellationToken ct = default)
+    {
+        var items = await _leave.ListBalancesScopedAsync(tenantId, orgId, employeeId, leaveType, ct);
+        return Respons<LeaveBalanceListDto>.Ok(new LeaveBalanceListDto { Items = items });
+    }
+
+    public async Task<Respons<LeaveBalanceListItemDto>> GetBalanceByIdAsync(
+        Guid id, string tenantId, string orgId, CancellationToken ct = default)
+    {
+        var row = await _leave.GetBalanceScopedAsync(id, tenantId, orgId, ct);
+        return row is null
+            ? Respons<LeaveBalanceListItemDto>.Fail("Leave balance not found.", statusCode: 404)
+            : Respons<LeaveBalanceListItemDto>.Ok(row);
+    }
+
+    public async Task<Respons<LeaveBalanceListItemDto>> CreateBalanceAsync(
+        CreateLeaveBalanceDto data, string tenantId, string orgId, CancellationToken ct = default)
+    {
+        var employee = await _employees.ResolveEmployeeDisplayAsync(data.EmployeeId, tenantId, orgId, ct);
+        if (employee is null)
+            return Respons<LeaveBalanceListItemDto>.ValidationError(
+                new Dictionary<string, string> { ["employeeId"] = "Employee not found." });
+
+        if (data.UsedDays > data.EntitledDays)
+            return Respons<LeaveBalanceListItemDto>.ValidationError(
+                new Dictionary<string, string> { ["usedDays"] = "Used days cannot exceed entitled days." });
+
+        var existing = await _leave.GetBalanceForEmployeeScopedAsync(
+            tenantId, orgId, data.EmployeeId, data.LeaveType!.Trim(), ct);
+        if (existing is not null)
+            return Respons<LeaveBalanceListItemDto>.ValidationError(
+                new Dictionary<string, string> { ["leaveType"] = "A balance for this employee and leave type already exists." });
+
+        var id = await _leave.CreateBalanceScopedAsync(
+            tenantId,
+            orgId,
+            data.EmployeeId,
+            employee.FullName,
+            data.LeaveType!.Trim(),
+            data.EntitledDays,
+            data.UsedDays,
+            ct);
+
+        return await GetBalanceByIdAsync(id, tenantId, orgId, ct);
+    }
+
+    public async Task<Respons<LeaveBalanceListItemDto>> UpdateBalanceAsync(
+        Guid id, UpdateLeaveBalanceDto data, string tenantId, string orgId, CancellationToken ct = default)
+    {
+        if (!data.EntitledDays.HasValue && !data.UsedDays.HasValue)
+            return Respons<LeaveBalanceListItemDto>.EmptyUpdateRequest();
+
+        var current = await _leave.GetBalanceScopedAsync(id, tenantId, orgId, ct);
+        if (current is null)
+            return Respons<LeaveBalanceListItemDto>.Fail("Leave balance not found.", statusCode: 404);
+
+        var entitled = data.EntitledDays ?? current.EntitledDays;
+        var used = data.UsedDays ?? current.UsedDays;
+        if (used > entitled)
+            return Respons<LeaveBalanceListItemDto>.ValidationError(
+                new Dictionary<string, string> { ["usedDays"] = "Used days cannot exceed entitled days." });
+
+        var updated = await _leave.UpdateBalanceScopedAsync(id, tenantId, orgId, data.EntitledDays, data.UsedDays, ct);
+        return updated is null
+            ? Respons<LeaveBalanceListItemDto>.EmptyUpdateRequest()
+            : Respons<LeaveBalanceListItemDto>.Ok(updated);
+    }
+
+    public async Task<Respons<LeaveTypeListDto>> ListTypesAsync(
+        string? countryCode, bool activeOnly, string tenantId, string orgId, CancellationToken ct = default)
+    {
+        var items = await _leave.ListTypesScopedAsync(tenantId, orgId, countryCode, activeOnly, ct);
+        return Respons<LeaveTypeListDto>.Ok(new LeaveTypeListDto { Items = items });
+    }
+
+    public async Task<Respons<LeaveTypeListItemDto>> GetTypeByIdAsync(
+        Guid id, string tenantId, string orgId, CancellationToken ct = default)
+    {
+        var row = await _leave.GetTypeByIdScopedAsync(id, tenantId, orgId, ct);
+        return row is null
+            ? Respons<LeaveTypeListItemDto>.Fail("Leave type not found.", statusCode: 404)
+            : Respons<LeaveTypeListItemDto>.Ok(row);
+    }
+
+    public async Task<Respons<LeaveTypeListItemDto>> CreateTypeAsync(
+        CreateLeaveTypeDto data, string tenantId, string orgId, CancellationToken ct = default)
+    {
+        var name = data.Name!.Trim();
+        if (await _leave.TypeNameExistsScopedAsync(tenantId, orgId, name, null, ct))
+            return Respons<LeaveTypeListItemDto>.ValidationError(
+                new Dictionary<string, string> { ["name"] = "A leave type with this name already exists." });
+
+        var id = await _leave.CreateTypeScopedAsync(tenantId, orgId, data, ct);
+        return await GetTypeByIdAsync(id, tenantId, orgId, ct);
+    }
+
+    public async Task<Respons<LeaveTypeListItemDto>> UpdateTypeAsync(
+        Guid id, UpdateLeaveTypeDto data, string tenantId, string orgId, CancellationToken ct = default)
+    {
+        if (!string.IsNullOrWhiteSpace(data.Name)
+            && await _leave.TypeNameExistsScopedAsync(tenantId, orgId, data.Name.Trim(), id, ct))
+            return Respons<LeaveTypeListItemDto>.ValidationError(
+                new Dictionary<string, string> { ["name"] = "A leave type with this name already exists." });
+
+        var updated = await _leave.UpdateTypeScopedAsync(id, tenantId, orgId, data, ct);
+        if (updated is null)
+        {
+            var exists = await _leave.GetTypeByIdScopedAsync(id, tenantId, orgId, ct);
+            return exists is null
+                ? Respons<LeaveTypeListItemDto>.Fail("Leave type not found.", statusCode: 404)
+                : Respons<LeaveTypeListItemDto>.EmptyUpdateRequest();
+        }
+
+        return Respons<LeaveTypeListItemDto>.Ok(updated);
+    }
+
+    public async Task<Respons<object>> DeleteTypeAsync(
+        Guid id, string tenantId, string orgId, CancellationToken ct = default)
+    {
+        if (!await _leave.DeleteTypeScopedAsync(id, tenantId, orgId, ct))
+            return Respons<object>.Fail("Leave type not found.", statusCode: 404);
+
+        return Respons<object>.Ok(new { leaveTypeId = id.ToString() }, "Leave type removed or deactivated.");
+    }
+
+    public async Task<Respons<PublicHolidayListDto>> ListHolidaysAsync(
+        string? countryCode, int? year, Guid? branchId, int page, int size,
+        string tenantId, string orgId, CancellationToken ct = default)
+    {
+        var paging = PagedQuery.From(page, size);
+        var (items, total) = await _leave.ListHolidaysScopedAsync(
+            tenantId, orgId, countryCode, year, branchId, paging.Page, paging.Size, ct);
+
+        return Respons<PublicHolidayListDto>.Ok(
+            new PublicHolidayListDto { Items = items },
+            pagination: new PaginationMeta
+            {
+                Page = paging.Page,
+                Size = paging.Size,
+                Total = total,
+                HasNext = paging.Offset + items.Count < total,
+            });
+    }
+
+    public async Task<Respons<PublicHolidayListItemDto>> GetHolidayByIdAsync(
+        Guid id, string tenantId, string orgId, CancellationToken ct = default)
+    {
+        var row = await _leave.GetHolidayByIdScopedAsync(id, tenantId, orgId, ct);
+        return row is null
+            ? Respons<PublicHolidayListItemDto>.Fail("Public holiday not found.", statusCode: 404)
+            : Respons<PublicHolidayListItemDto>.Ok(row);
+    }
+
+    public async Task<Respons<PublicHolidayListItemDto>> CreateHolidayAsync(
+        CreatePublicHolidayDto data, string tenantId, string orgId, CancellationToken ct = default)
+    {
+        var id = await _leave.CreateHolidayScopedAsync(tenantId, orgId, data, ct);
+        return await GetHolidayByIdAsync(id, tenantId, orgId, ct);
+    }
+
+    public async Task<Respons<PublicHolidayListItemDto>> UpdateHolidayAsync(
+        Guid id, UpdatePublicHolidayDto data, string tenantId, string orgId, CancellationToken ct = default)
+    {
+        var updated = await _leave.UpdateHolidayScopedAsync(id, tenantId, orgId, data, ct);
+        if (updated is null)
+        {
+            var exists = await _leave.GetHolidayByIdScopedAsync(id, tenantId, orgId, ct);
+            return exists is null
+                ? Respons<PublicHolidayListItemDto>.Fail("Public holiday not found.", statusCode: 404)
+                : Respons<PublicHolidayListItemDto>.EmptyUpdateRequest();
+        }
+
+        return Respons<PublicHolidayListItemDto>.Ok(updated);
+    }
+
+    public async Task<Respons<object>> DeleteHolidayAsync(
+        Guid id, string tenantId, string orgId, CancellationToken ct = default)
+    {
+        if (!await _leave.DeleteHolidayScopedAsync(id, tenantId, orgId, ct))
+            return Respons<object>.Fail("Public holiday not found.", statusCode: 404);
+
+        return Respons<object>.Ok(new { holidayId = id.ToString() }, "Public holiday removed.");
+    }
+
+    private async Task<(Guid EmployeeId, EmployeeDisplayInfo Display)?> ResolveMyEmployeeAsync(
+        string? platformUserId, string tenantId, string orgId, CancellationToken ct) =>
+        string.IsNullOrWhiteSpace(platformUserId)
+            ? null
+            : await _employees.ResolveByPlatformUserAsync(platformUserId, tenantId, orgId, ct);
+
+    private static Respons<LeaveRequestListItemDto>? ValidateRequestDates(
+        DateOnly startDate, DateOnly endDate, decimal daysRequested)
+    {
+        if (endDate < startDate)
+            return Respons<LeaveRequestListItemDto>.ValidationError(
+                new Dictionary<string, string> { ["endDate"] = "End date must be on or after start date." });
+        if (daysRequested <= 0)
+            return Respons<LeaveRequestListItemDto>.ValidationError(
+                new Dictionary<string, string> { ["daysRequested"] = "Days requested must be greater than zero." });
+        return null;
+    }
+
+    private async Task<Respons<LeaveRequestListItemDto>?> ValidateSufficientBalanceAsync(
+        string tenantId,
+        string orgId,
+        Guid employeeId,
+        string leaveType,
+        decimal daysRequested,
+        CancellationToken ct)
+    {
+        var balance = await _leave.GetBalanceForEmployeeScopedAsync(tenantId, orgId, employeeId, leaveType, ct);
+        if (balance is null)
+            return null;
+
+        if (balance.RemainingDays < daysRequested)
+            return Respons<LeaveRequestListItemDto>.ValidationError(
+                new Dictionary<string, string>
+                {
+                    ["daysRequested"] = $"Insufficient leave balance. Remaining: {balance.RemainingDays} day(s).",
+                });
+
+        return null;
     }
 }

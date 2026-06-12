@@ -19,6 +19,8 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
     public DbSet<AttendanceRecordEntity> AttendanceRecords => Set<AttendanceRecordEntity>();
     public DbSet<LeaveRequestEntity> LeaveRequests => Set<LeaveRequestEntity>();
     public DbSet<LeaveBalanceEntity> LeaveBalances => Set<LeaveBalanceEntity>();
+    public DbSet<LeaveTypeEntity> LeaveTypes => Set<LeaveTypeEntity>();
+    public DbSet<PublicHolidayEntity> PublicHolidays => Set<PublicHolidayEntity>();
     public DbSet<JobPostingEntity> JobPostings => Set<JobPostingEntity>();
     public DbSet<OnboardingTaskEntity> OnboardingTasks => Set<OnboardingTaskEntity>();
     public DbSet<PerformanceReviewEntity> PerformanceReviews => Set<PerformanceReviewEntity>();
@@ -180,8 +182,38 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
         modelBuilder.Entity<AuditLogEntity>(b => { b.ToTable("zhr_audit_logs"); b.HasKey(x => x.Id); });
         modelBuilder.Entity<LifecycleEventEntity>(b => { b.ToTable("zhr_lifecycle_events"); b.HasKey(x => x.Id); });
         modelBuilder.Entity<AttendanceRecordEntity>(b => { b.ToTable("zhr_attendance_records"); b.HasKey(x => x.Id); });
-        modelBuilder.Entity<LeaveRequestEntity>(b => { b.ToTable("zhr_leave_requests"); b.HasKey(x => x.Id); });
-        modelBuilder.Entity<LeaveBalanceEntity>(b => { b.ToTable("zhr_leave_balances"); b.HasKey(x => x.Id); });
+        modelBuilder.Entity<LeaveRequestEntity>(b =>
+        {
+            b.ToTable("zhr_leave_requests");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.DaysRequested).HasPrecision(4, 1);
+        });
+        modelBuilder.Entity<LeaveBalanceEntity>(b =>
+        {
+            b.ToTable("zhr_leave_balances");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.EntitledDays).HasPrecision(5, 1);
+            b.Property(x => x.UsedDays).HasPrecision(5, 1);
+            b.Property(x => x.RemainingDays).HasPrecision(5, 1);
+            b.HasIndex(x => new { x.TenantId, x.OrgId, x.EmployeeId, x.LeaveType }).IsUnique();
+        });
+        modelBuilder.Entity<LeaveTypeEntity>(b =>
+        {
+            b.ToTable("zhr_leave_types");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Name).HasMaxLength(80);
+            b.Property(x => x.CountryCode).HasMaxLength(2);
+            b.Property(x => x.DefaultEntitledDays).HasPrecision(5, 1);
+            b.HasIndex(x => new { x.TenantId, x.OrgId, x.Name }).IsUnique();
+        });
+        modelBuilder.Entity<PublicHolidayEntity>(b =>
+        {
+            b.ToTable("zhr_public_holidays");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.CountryCode).HasMaxLength(2);
+            b.Property(x => x.Name).HasMaxLength(200);
+            b.HasIndex(x => new { x.TenantId, x.OrgId, x.CountryCode, x.HolidayDate, x.Name });
+        });
         modelBuilder.Entity<JobPostingEntity>(b => { b.ToTable("zhr_job_postings"); b.HasKey(x => x.Id); });
         modelBuilder.Entity<OnboardingTaskEntity>(b => { b.ToTable("zhr_onboarding_tasks"); b.HasKey(x => x.Id); });
         modelBuilder.Entity<PerformanceReviewEntity>(b => { b.ToTable("zhr_performance_reviews"); b.HasKey(x => x.Id); });
