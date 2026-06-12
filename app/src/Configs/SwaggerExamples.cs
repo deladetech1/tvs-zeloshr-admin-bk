@@ -6,6 +6,7 @@ using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Files;
+using ZelosHR.Api.Entities.Leave;
 using ZelosHR.Api.Entities.OrgStructure;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Shared.Validation;
@@ -26,6 +27,10 @@ internal static class SwaggerExamples
     internal static readonly Guid SampleCertificationRowId = Guid.Parse("66666666-6666-6666-6666-666666666601");
     internal static readonly Guid SampleReportsToId = Guid.Parse("33333333-3333-3333-3333-333333333301");
     internal static readonly Guid SampleAuditLogId = Guid.Parse("a1111111-1111-1111-1111-111111111101");
+    internal static readonly Guid SampleLeaveRequestId = Guid.Parse("a2222222-2222-2222-2222-222222222201");
+    internal static readonly Guid SampleLeaveBalanceId = Guid.Parse("a2222222-2222-2222-2222-222222222202");
+    internal static readonly Guid SampleLeaveTypeId = Guid.Parse("a2222222-2222-2222-2222-222222222203");
+    internal static readonly Guid SampleHolidayId = Guid.Parse("a2222222-2222-2222-2222-222222222204");
 
     internal const string SampleCurrencyId = "cur_ghs_default";
     internal const string SampleDocumentId1 = "doc_contract_a1b2c3";
@@ -80,13 +85,13 @@ internal static class SwaggerExamples
 
     internal static JsonObject FileDeleteResponse() => EnvelopeOk(FileDeleteData());
 
-    private static JsonObject EnvelopeOk(JsonNode data, JsonObject? pagination = null)
+    private static JsonObject EnvelopeOk(JsonNode data, JsonObject? pagination = null, string? detail = null)
     {
         var envelope = new JsonObject
         {
             ["success"] = SwaggerExampleHints.EnvelopeSuccessPipe,
             ["status_code"] = SwaggerExampleHints.EnvelopeStatusCodePipe,
-            ["detail"] = SwaggerExampleHints.EnvelopeDetailPipe,
+            ["detail"] = detail ?? SwaggerExampleHints.EnvelopeDetailPipe,
             ["data"] = data,
         };
 
@@ -242,6 +247,16 @@ internal static class SwaggerExamples
             nameof(AuditLogSummaryDto) => EnvelopeOk(AuditLogSummaryData()),
             nameof(AuditLogListDto) => AuditLogListResponse(),
             nameof(AuditLogListItemDto) => AuditLogGetResponse(),
+            nameof(LeaveSummaryDto) => EnvelopeOk(LeaveSummaryData()),
+            nameof(LeaveMySummaryDto) => EnvelopeOk(LeaveMySummaryData()),
+            nameof(LeaveListDto) => LeaveListResponse(),
+            nameof(LeaveRequestListItemDto) => EnvelopeOk(LeaveRequestItemData()),
+            nameof(LeaveBalanceListDto) => EnvelopeOk(LeaveBalanceListData()),
+            nameof(LeaveBalanceListItemDto) => EnvelopeOk(LeaveBalanceItemData()),
+            nameof(LeaveTypeListDto) => EnvelopeOk(LeaveTypeListData()),
+            nameof(LeaveTypeListItemDto) => EnvelopeOk(LeaveTypeItemData()),
+            nameof(PublicHolidayListDto) => LeaveHolidayListResponse(),
+            nameof(PublicHolidayListItemDto) => EnvelopeOk(PublicHolidayItemData()),
             _ when dataType == typeof(string) => EnvelopeOk(JsonValue.Create("Operation completed successfully.")),
             _ when dataType == typeof(object) => EnvelopeOk(new JsonObject()),
             _ => EnvelopeOk(new JsonObject()),
@@ -1326,4 +1341,286 @@ internal static class SwaggerExamples
 
     internal static JsonObject PlatformUsersListResponse() =>
         EnvelopeOk(new JsonArray(PlatformUserListItemData()), SamplePagination());
+
+    // ── Leave management ─────────────────────────────────────────────────────
+
+    internal static JsonObject LeaveSummaryData() => new()
+    {
+        ["pending_requests"] = 4,
+        ["approved_this_month"] = 12,
+        ["on_leave_today"] = 2,
+        ["total_requests"] = 86,
+    };
+
+    internal static JsonObject LeaveRequestItemData(
+        string status = "Pending",
+        decimal? remainingDays = 14) => new()
+    {
+        ["leave_request_id"] = SampleLeaveRequestId.ToString(),
+        ["employee_id"] = SampleEmployeeId.ToString(),
+        ["employee_full_name"] = "Ama Mensah",
+        ["leave_type"] = "Annual Leave",
+        ["start_date"] = "2026-07-07",
+        ["end_date"] = "2026-07-11",
+        ["days_requested"] = 5,
+        ["status"] = status,
+        ["approver_name"] = status is "Approved" or "Rejected" ? "Kofi Admin" : null,
+        ["notes"] = status == "Rejected" ? "Team coverage required during sprint." : "Family visit.",
+        ["remaining_days"] = remainingDays,
+        ["submitted_at"] = "2026-06-10T09:15:00+00:00",
+    };
+
+    internal static JsonObject LeaveBalanceItemData() => new()
+    {
+        ["leave_balance_id"] = SampleLeaveBalanceId.ToString(),
+        ["employee_id"] = SampleEmployeeId.ToString(),
+        ["employee_full_name"] = "Ama Mensah",
+        ["leave_type"] = "Annual Leave",
+        ["entitled_days"] = 21,
+        ["used_days"] = 7,
+        ["remaining_days"] = 14,
+    };
+
+    internal static JsonObject LeaveBalanceListData() => new()
+    {
+        ["items"] = new JsonArray(
+            LeaveBalanceItemData(),
+            new JsonObject
+            {
+                ["leave_balance_id"] = "a2222222-2222-2222-2222-222222222205",
+                ["employee_id"] = SampleEmployeeId.ToString(),
+                ["employee_full_name"] = "Ama Mensah",
+                ["leave_type"] = "Sick Leave",
+                ["entitled_days"] = 10,
+                ["used_days"] = 2,
+                ["remaining_days"] = 8,
+            }),
+    };
+
+    internal static JsonObject LeaveListData() => new()
+    {
+        ["summary"] = LeaveSummaryData(),
+        ["requests"] = new JsonArray(
+            LeaveRequestItemData("Pending", 14),
+            LeaveRequestItemData("Approved", 9)),
+        ["balances"] = LeaveBalanceListData()["items"],
+    };
+
+    internal static JsonObject LeaveListResponse() =>
+        EnvelopeOk(LeaveListData(), LeaveListPagination());
+
+    internal static JsonObject LeaveListPagination() => new()
+    {
+        ["page"] = 1,
+        ["size"] = 20,
+        ["total"] = 24,
+        ["has_next"] = SwaggerExampleHints.BooleanPipe,
+        ["page_size"] = 20,
+        ["total_count"] = 24,
+        ["total_pages"] = 2,
+    };
+
+    internal static JsonObject LeaveMySummaryData() => new()
+    {
+        ["total_remaining_days"] = 22,
+        ["pending_requests"] = 1,
+        ["approved_this_year"] = 3,
+        ["balances"] = LeaveBalanceListData()["items"],
+    };
+
+    internal static JsonObject LeaveStatisticsResponse() => EnvelopeOk(LeaveSummaryData());
+
+    internal static JsonObject LeaveMySummaryResponse() => EnvelopeOk(LeaveMySummaryData());
+
+    internal static JsonObject LeaveRequestGetResponse() => EnvelopeOk(LeaveRequestItemData());
+
+    internal static JsonObject LeaveRequestApprovedResponse() =>
+        EnvelopeOk(LeaveRequestItemData("Approved", 9), detail: "Leave request approved.");
+
+    internal static JsonObject LeaveRequestRejectedResponse() =>
+        EnvelopeOk(LeaveRequestItemData("Rejected", 14), detail: "Leave request rejected.");
+
+    internal static JsonObject LeaveTypeItemData() => new()
+    {
+        ["leave_type_id"] = SampleLeaveTypeId.ToString(),
+        ["name"] = "Annual Leave",
+        ["country_code"] = "GH",
+        ["default_entitled_days"] = 21,
+        ["is_paid"] = true,
+        ["is_active"] = true,
+    };
+
+    internal static JsonObject LeaveTypeListData() => new()
+    {
+        ["items"] = new JsonArray(
+            LeaveTypeItemData(),
+            new JsonObject
+            {
+                ["leave_type_id"] = "a2222222-2222-2222-2222-222222222206",
+                ["name"] = "Sick Leave",
+                ["country_code"] = null,
+                ["default_entitled_days"] = 10,
+                ["is_paid"] = true,
+                ["is_active"] = true,
+            }),
+    };
+
+    internal static JsonObject PublicHolidayItemData() => new()
+    {
+        ["holiday_id"] = SampleHolidayId.ToString(),
+        ["country_code"] = "GH",
+        ["name"] = "Independence Day",
+        ["holiday_date"] = "2026-03-06",
+        ["is_recurring"] = true,
+        ["branch_id"] = null,
+        ["is_active"] = true,
+    };
+
+    internal static JsonObject PublicHolidayListData() => new()
+    {
+        ["items"] = new JsonArray(
+            PublicHolidayItemData(),
+            new JsonObject
+            {
+                ["holiday_id"] = "a2222222-2222-2222-2222-222222222207",
+                ["country_code"] = "KE",
+                ["name"] = "Madaraka Day",
+                ["holiday_date"] = "2026-06-01",
+                ["is_recurring"] = true,
+                ["branch_id"] = null,
+                ["is_active"] = true,
+            }),
+    };
+
+    internal static JsonObject LeaveHolidayListResponse() =>
+        EnvelopeOk(PublicHolidayListData(), LeaveHolidayListPagination());
+
+    internal static JsonObject LeaveHolidayListPagination() => new()
+    {
+        ["page"] = 1,
+        ["size"] = 50,
+        ["total"] = 12,
+        ["has_next"] = SwaggerExampleHints.BooleanPipe,
+        ["page_size"] = 50,
+        ["total_count"] = 12,
+        ["total_pages"] = 1,
+    };
+
+    internal static JsonObject LeaveDeleteRequestResponse() => EnvelopeOk(new JsonObject
+    {
+        ["leave_request_id"] = SampleLeaveRequestId.ToString(),
+    }, detail: "Leave request deleted.");
+
+    internal static JsonObject LeaveDeleteTypeResponse() => EnvelopeOk(new JsonObject
+    {
+        ["leave_type_id"] = SampleLeaveTypeId.ToString(),
+    }, detail: "Leave type removed or deactivated.");
+
+    internal static JsonObject LeaveDeleteHolidayResponse() => EnvelopeOk(new JsonObject
+    {
+        ["holiday_id"] = SampleHolidayId.ToString(),
+    }, detail: "Public holiday removed.");
+
+    internal static JsonObject CreateLeaveRequestBody() => new()
+    {
+        ["employee_id"] = SampleEmployeeId.ToString(),
+        ["leave_type"] = "Annual Leave",
+        ["start_date"] = "2026-07-07",
+        ["end_date"] = "2026-07-11",
+        ["days_requested"] = 5,
+        ["notes"] = "Family visit — advance notice given to manager.",
+    };
+
+    internal static JsonObject CreateLeaveRequestMyBody() => new()
+    {
+        ["employee_id"] = SampleEmployeeId.ToString(),
+        ["leave_type"] = "Annual Leave",
+        ["start_date"] = "2026-08-04",
+        ["end_date"] = "2026-08-08",
+        ["days_requested"] = 5,
+        ["notes"] = "Personal travel (My Leave — employee_id ignored; scoped to logged-in user).",
+    };
+
+    internal static JsonObject UpdateLeaveRequestBody() => new()
+    {
+        ["status"] = SwaggerExampleHints.LeaveRequestStatus,
+        ["approver_name"] = "Kofi Admin",
+        ["notes"] = "Approved after coverage confirmed.",
+    };
+
+    internal static JsonObject ApproveLeaveRequestBody() => new()
+    {
+        ["approver_name"] = "Kofi Admin",
+    };
+
+    internal static JsonObject RejectLeaveRequestBody() => new()
+    {
+        ["approver_name"] = "Kofi Admin",
+        ["notes"] = "Insufficient team coverage during sprint deadline.",
+    };
+
+    internal static JsonObject CreateLeaveBalanceBody() => new()
+    {
+        ["employee_id"] = SampleEmployeeId.ToString(),
+        ["leave_type"] = "Annual Leave",
+        ["entitled_days"] = 21,
+        ["used_days"] = 0,
+    };
+
+    internal static JsonObject UpdateLeaveBalanceBody() => new()
+    {
+        ["entitled_days"] = 25,
+        ["used_days"] = 7,
+    };
+
+    internal static JsonObject CreateLeaveTypeBody() => new()
+    {
+        ["name"] = "Annual Leave",
+        ["country_code"] = "GH",
+        ["default_entitled_days"] = 21,
+        ["is_paid"] = true,
+        ["is_active"] = true,
+    };
+
+    internal static JsonObject CreateLeaveTypeGlobalBody() => new()
+    {
+        ["name"] = "Compassionate Leave",
+        ["country_code"] = null,
+        ["default_entitled_days"] = 5,
+        ["is_paid"] = true,
+        ["is_active"] = true,
+    };
+
+    internal static JsonObject UpdateLeaveTypeBody() => new()
+    {
+        ["default_entitled_days"] = 24,
+        ["is_active"] = true,
+    };
+
+    internal static JsonObject CreatePublicHolidayBody() => new()
+    {
+        ["country_code"] = "GH",
+        ["name"] = "Independence Day",
+        ["holiday_date"] = "2026-03-06",
+        ["is_recurring"] = true,
+        ["branch_id"] = null,
+        ["is_active"] = true,
+    };
+
+    internal static JsonObject CreatePublicHolidayBranchBody() => new()
+    {
+        ["country_code"] = "GH",
+        ["name"] = "Regional Founders Day",
+        ["holiday_date"] = "2026-08-04",
+        ["is_recurring"] = false,
+        ["branch_id"] = SampleBranchId.ToString(),
+        ["is_active"] = true,
+    };
+
+    internal static JsonObject UpdatePublicHolidayBody() => new()
+    {
+        ["name"] = "Independence Day (observed)",
+        ["holiday_date"] = "2026-03-07",
+        ["is_active"] = true,
+    };
 }

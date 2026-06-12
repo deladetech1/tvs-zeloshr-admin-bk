@@ -1,6 +1,7 @@
 using ZelosHR.Api.Entities.AuditLogs;
 using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Employees;
+using ZelosHR.Api.Entities.Leave;
 using ZelosHR.Api.Entities.OrgStructure;
 
 namespace ZelosHR.Api.Configs;
@@ -38,4 +39,6 @@ internal static class SwaggerExampleHints
     internal static string AuditCategory => SwaggerOptionFormat.JoinPipe(AuditLogFieldOptions.Categories);
     internal static string AuditSeverity => SwaggerOptionFormat.JoinPipe(AuditLogFieldOptions.Severities);
     internal static string AuditFilterAll => SwaggerOptionFormat.JoinPipe(AuditLogFieldOptions.FilterAll);
+    internal static string LeaveRequestStatus => SwaggerOptionFormat.JoinPipe(LeaveFieldOptions.RequestStatuses);
+    internal static string LeaveTypeName => SwaggerOptionFormat.JoinPipe(LeaveFieldOptions.DefaultLeaveTypeNames);
 }

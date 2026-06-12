@@ -10,6 +10,7 @@ using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Files;
+using ZelosHR.Api.Entities.Leave;
 using ZelosHR.Api.Entities.OrgStructure;
 using ZelosHR.Api.Entities.Shared;
 
@@ -95,6 +96,26 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(AuditLogPurgeResultDto) => SwaggerExamples.AuditLogPurgeData(),
             nameof(AuditLogPurgePreviewDto) => SwaggerExamples.AuditLogPurgePreviewData(),
             nameof(PlatformUserListItemDto) => SwaggerExamples.PlatformUserListItemData(),
+            nameof(LeaveSummaryDto) => SwaggerExamples.LeaveSummaryData(),
+            nameof(LeaveMySummaryDto) => SwaggerExamples.LeaveMySummaryData(),
+            nameof(LeaveListDto) => SwaggerExamples.LeaveListData(),
+            nameof(LeaveRequestListItemDto) => SwaggerExamples.LeaveRequestItemData(),
+            nameof(LeaveBalanceListDto) => SwaggerExamples.LeaveBalanceListData(),
+            nameof(LeaveBalanceListItemDto) => SwaggerExamples.LeaveBalanceItemData(),
+            nameof(LeaveTypeListDto) => SwaggerExamples.LeaveTypeListData(),
+            nameof(LeaveTypeListItemDto) => SwaggerExamples.LeaveTypeItemData(),
+            nameof(PublicHolidayListDto) => SwaggerExamples.PublicHolidayListData(),
+            nameof(PublicHolidayListItemDto) => SwaggerExamples.PublicHolidayItemData(),
+            nameof(CreateLeaveRequestDto) => SwaggerExamples.CreateLeaveRequestBody(),
+            nameof(UpdateLeaveRequestDto) => SwaggerExamples.UpdateLeaveRequestBody(),
+            nameof(ApproveLeaveRequestDto) => SwaggerExamples.ApproveLeaveRequestBody(),
+            nameof(RejectLeaveRequestDto) => SwaggerExamples.RejectLeaveRequestBody(),
+            nameof(CreateLeaveBalanceDto) => SwaggerExamples.CreateLeaveBalanceBody(),
+            nameof(UpdateLeaveBalanceDto) => SwaggerExamples.UpdateLeaveBalanceBody(),
+            nameof(CreateLeaveTypeDto) => SwaggerExamples.CreateLeaveTypeBody(),
+            nameof(UpdateLeaveTypeDto) => SwaggerExamples.UpdateLeaveTypeBody(),
+            nameof(CreatePublicHolidayDto) => SwaggerExamples.CreatePublicHolidayBody(),
+            nameof(UpdatePublicHolidayDto) => SwaggerExamples.UpdatePublicHolidayBody(),
             nameof(AuditLogEmployeeRefDto) => new JsonObject
             {
                 ["employee_id"] = SwaggerExamples.SampleEmployeeId.ToString(),
@@ -162,6 +183,30 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 "Purge preview: eligible_count for retention_window without deleting."),
             nameof(PlatformUserListItemDto) => AppendDescription(schema.Description,
                 "Trovesuite cp_users row (joined to cp_members). profile_pic is stored path; Core Platform may return a presigned URL."),
+            nameof(LeaveSummaryDto) => AppendDescription(schema.Description,
+                "Admin dashboard KPIs for Leave Management tab."),
+            nameof(LeaveMySummaryDto) => AppendDescription(schema.Description,
+                "My Leave header: total_remaining_days · pending_requests · approved_this_year · balances[] for logged-in employee."),
+            nameof(LeaveListDto) => AppendDescription(schema.Description,
+                "Admin list payload: summary · requests[] (with remaining_days) · balances[]."),
+            nameof(LeaveRequestListItemDto) => AppendDescription(schema.Description,
+                $"Single request row. status: {SwaggerExampleHints.LeaveRequestStatus}. remaining_days null when no balance row."),
+            nameof(LeaveBalanceListItemDto) => AppendDescription(schema.Description,
+                "Entitlement snapshot: entitled_days · used_days · remaining_days (entitled − used)."),
+            nameof(LeaveTypeListItemDto) => AppendDescription(schema.Description,
+                "Settings leave type. country_code null = global; ISO alpha-2 when country-scoped."),
+            nameof(PublicHolidayListItemDto) => AppendDescription(schema.Description,
+                "Public holiday for leave calendar. branch_id null = org-wide; set for branch-only observance."),
+            nameof(CreateLeaveRequestDto) => AppendDescription(schema.Description,
+                "Admin or My Leave create. leave_type must match a configured type name. days_requested validated against balance when present."),
+            nameof(UpdateLeaveRequestDto) => AppendDescription(schema.Description,
+                $"Partial update. Prefer POST /requests/approve or /reject for workflow. status: {SwaggerExampleHints.LeaveRequestStatus}."),
+            nameof(CreateLeaveBalanceDto) => AppendDescription(schema.Description,
+                "Admin assigns entitlement. Unique per employee + leave_type."),
+            nameof(CreateLeaveTypeDto) => AppendDescription(schema.Description,
+                "Settings → Leave Types. default_entitled_days seeds new balance rows."),
+            nameof(CreatePublicHolidayDto) => AppendDescription(schema.Description,
+                "International holidays module. country_code ISO alpha-2 (GH, KE, NG, …)."),
             _ => schema.Description,
         };
     }

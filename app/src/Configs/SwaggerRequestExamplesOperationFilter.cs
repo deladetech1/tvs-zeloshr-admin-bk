@@ -183,6 +183,146 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
             };
         }
 
+        if (method.Equals("POST", StringComparison.OrdinalIgnoreCase)
+            && path.Equals("api/v1/leave/requests/add", StringComparison.OrdinalIgnoreCase))
+        {
+            return new Dictionary<string, IOpenApiExample>
+            {
+                ["annual_leave"] = Example(
+                    SwaggerExamples.CreateLeaveRequestBody(),
+                    "Annual leave request",
+                    "Admin creates on behalf of employee. Validates balance when a balance row exists."),
+            };
+        }
+
+        if (method.Equals("POST", StringComparison.OrdinalIgnoreCase)
+            && path.Equals("api/v1/leave/my/requests/add", StringComparison.OrdinalIgnoreCase))
+        {
+            return new Dictionary<string, IOpenApiExample>
+            {
+                ["my_request"] = Example(
+                    SwaggerExamples.CreateLeaveRequestMyBody(),
+                    "My Leave submission",
+                    "employee_id in body is ignored — request is scoped to the logged-in platform user's employee profile."),
+            };
+        }
+
+        if (method.Equals("PUT", StringComparison.OrdinalIgnoreCase)
+            && path.Equals("api/v1/leave/requests/update", StringComparison.OrdinalIgnoreCase))
+        {
+            return new Dictionary<string, IOpenApiExample>
+            {
+                ["status_and_notes"] = Example(
+                    SwaggerExamples.UpdateLeaveRequestBody(),
+                    "Update status / approver / notes",
+                    "Send only fields to change. leave_request_id is required on the query string."),
+            };
+        }
+
+        if (method.Equals("POST", StringComparison.OrdinalIgnoreCase)
+            && path.Equals("api/v1/leave/requests/approve", StringComparison.OrdinalIgnoreCase))
+        {
+            return new Dictionary<string, IOpenApiExample>
+            {
+                ["approve"] = Example(
+                    SwaggerExamples.ApproveLeaveRequestBody(),
+                    "Approve pending request",
+                    "Decrements balance remaining_days when a matching balance row exists."),
+            };
+        }
+
+        if (method.Equals("POST", StringComparison.OrdinalIgnoreCase)
+            && path.Equals("api/v1/leave/requests/reject", StringComparison.OrdinalIgnoreCase))
+        {
+            return new Dictionary<string, IOpenApiExample>
+            {
+                ["reject"] = Example(
+                    SwaggerExamples.RejectLeaveRequestBody(),
+                    "Reject with reason",
+                    "Optional notes explain rejection to the employee."),
+            };
+        }
+
+        if (method.Equals("POST", StringComparison.OrdinalIgnoreCase)
+            && path.Equals("api/v1/leave/balances/add", StringComparison.OrdinalIgnoreCase))
+        {
+            return new Dictionary<string, IOpenApiExample>
+            {
+                ["new_balance"] = Example(
+                    SwaggerExamples.CreateLeaveBalanceBody(),
+                    "Assign entitlement",
+                    "One balance row per employee + leave_type. used_days defaults to 0."),
+            };
+        }
+
+        if (method.Equals("PUT", StringComparison.OrdinalIgnoreCase)
+            && path.Equals("api/v1/leave/balances/update", StringComparison.OrdinalIgnoreCase))
+        {
+            return new Dictionary<string, IOpenApiExample>
+            {
+                ["adjust_entitlement"] = Example(
+                    SwaggerExamples.UpdateLeaveBalanceBody(),
+                    "Adjust entitled / used days",
+                    "leave_balance_id required on query string. remaining_days is recalculated."),
+            };
+        }
+
+        if (method.Equals("POST", StringComparison.OrdinalIgnoreCase)
+            && path.Equals("api/v1/leave/types/add", StringComparison.OrdinalIgnoreCase))
+        {
+            return new Dictionary<string, IOpenApiExample>
+            {
+                ["country_specific"] = Example(
+                    SwaggerExamples.CreateLeaveTypeBody(),
+                    "Country-specific type",
+                    "ISO country_code scopes type to GH, KE, etc."),
+                ["global"] = Example(
+                    SwaggerExamples.CreateLeaveTypeGlobalBody(),
+                    "Global leave type",
+                    "Omit country_code for org-wide type available in all countries."),
+            };
+        }
+
+        if (method.Equals("PUT", StringComparison.OrdinalIgnoreCase)
+            && path.Equals("api/v1/leave/types/update", StringComparison.OrdinalIgnoreCase))
+        {
+            return new Dictionary<string, IOpenApiExample>
+            {
+                ["adjust_entitlement"] = Example(
+                    SwaggerExamples.UpdateLeaveTypeBody(),
+                    "Update default entitlement",
+                    "leave_type_id required on query string."),
+            };
+        }
+
+        if (method.Equals("POST", StringComparison.OrdinalIgnoreCase)
+            && path.Equals("api/v1/leave/holidays/add", StringComparison.OrdinalIgnoreCase))
+        {
+            return new Dictionary<string, IOpenApiExample>
+            {
+                ["national"] = Example(
+                    SwaggerExamples.CreatePublicHolidayBody(),
+                    "National recurring holiday",
+                    "is_recurring=true matches the holiday every year on month/day."),
+                ["branch_specific"] = Example(
+                    SwaggerExamples.CreatePublicHolidayBranchBody(),
+                    "Branch-only holiday",
+                    "Set branch_id to limit holiday to one location; omit for org-wide."),
+            };
+        }
+
+        if (method.Equals("PUT", StringComparison.OrdinalIgnoreCase)
+            && path.Equals("api/v1/leave/holidays/update", StringComparison.OrdinalIgnoreCase))
+        {
+            return new Dictionary<string, IOpenApiExample>
+            {
+                ["rename_or_reschedule"] = Example(
+                    SwaggerExamples.UpdatePublicHolidayBody(),
+                    "Rename or move date",
+                    "holiday_id required on query string."),
+            };
+        }
+
         return [];
     }
 

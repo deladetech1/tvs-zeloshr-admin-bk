@@ -26,6 +26,7 @@ public class LeaveController : ControllerBase
     /// <summary>Admin dashboard counts (pending, on leave today, etc.).</summary>
     [HttpGet("statistics")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
+    [ProducesResponseType(typeof(Respons<LeaveSummaryDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<LeaveSummaryDto>>> Statistics(CancellationToken ct)
     {
         var ctx = _tenant.Current;
@@ -36,6 +37,7 @@ public class LeaveController : ControllerBase
     /// <summary>List leave requests and balances (admin Leave Management tab).</summary>
     [HttpGet("requests/list")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
+    [ProducesResponseType(typeof(Respons<LeaveListDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<LeaveListDto>>> ListRequests(
         [FromQuery] string? search,
         [FromQuery]
@@ -53,8 +55,11 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Get a single leave request by id.</summary>
     [HttpGet("requests/get")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
+    [ProducesResponseType(typeof(Respons<LeaveRequestListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<LeaveRequestListItemDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<LeaveRequestListItemDto>>> GetRequest(
         [FromQuery(Name = PlatformQueryParams.LeaveRequestId)] Guid leaveRequestId,
         CancellationToken ct)
@@ -64,8 +69,11 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Create a leave request on behalf of an employee (admin).</summary>
     [HttpPost("requests/add")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveCreate)]
+    [ProducesResponseType(typeof(Respons<LeaveRequestListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<LeaveRequestListItemDto>), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<Respons<LeaveRequestListItemDto>>> CreateRequest(
         [FromBody] CreateLeaveRequestDto body,
         CancellationToken ct)
@@ -75,8 +83,11 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Partial update of leave request status, approver, or notes.</summary>
     [HttpPut("requests/update")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveUpdate)]
+    [ProducesResponseType(typeof(Respons<LeaveRequestListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<LeaveRequestListItemDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<LeaveRequestListItemDto>>> UpdateRequest(
         [FromQuery(Name = PlatformQueryParams.LeaveRequestId)] Guid leaveRequestId,
         [FromBody] UpdateLeaveRequestDto body,
@@ -87,8 +98,12 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Approve a pending leave request and decrement balance.</summary>
     [HttpPost("requests/approve")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveUpdate)]
+    [ProducesResponseType(typeof(Respons<LeaveRequestListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<LeaveRequestListItemDto>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(Respons<LeaveRequestListItemDto>), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<Respons<LeaveRequestListItemDto>>> ApproveRequest(
         [FromQuery(Name = PlatformQueryParams.LeaveRequestId)] Guid leaveRequestId,
         [FromBody] ApproveLeaveRequestDto body,
@@ -100,8 +115,12 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Reject a pending leave request.</summary>
     [HttpPost("requests/reject")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveUpdate)]
+    [ProducesResponseType(typeof(Respons<LeaveRequestListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<LeaveRequestListItemDto>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(Respons<LeaveRequestListItemDto>), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<Respons<LeaveRequestListItemDto>>> RejectRequest(
         [FromQuery(Name = PlatformQueryParams.LeaveRequestId)] Guid leaveRequestId,
         [FromBody] RejectLeaveRequestDto body,
@@ -113,8 +132,11 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Delete a pending leave request.</summary>
     [HttpDelete("requests/delete")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveDelete)]
+    [ProducesResponseType(typeof(Respons<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<object>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<object>>> DeleteRequest(
         [FromQuery(Name = PlatformQueryParams.LeaveRequestId)] Guid leaveRequestId,
         CancellationToken ct)
@@ -127,6 +149,8 @@ public class LeaveController : ControllerBase
     /// <summary>My Leave summary — remaining days and personal counts.</summary>
     [HttpGet("my/summary")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
+    [ProducesResponseType(typeof(Respons<LeaveMySummaryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<LeaveMySummaryDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<LeaveMySummaryDto>>> MySummary(CancellationToken ct)
     {
         var ctx = _tenant.Current;
@@ -134,8 +158,11 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>List leave requests for the logged-in employee (My Leave).</summary>
     [HttpGet("my/requests/list")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
+    [ProducesResponseType(typeof(Respons<LeaveListDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<LeaveListDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<LeaveListDto>>> MyRequests(
         [FromQuery]
         [SwaggerAllowedValues(typeof(LeaveFieldOptions), nameof(LeaveFieldOptions.RequestStatuses))]
@@ -149,8 +176,11 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>List leave balances for the logged-in employee (My Leave).</summary>
     [HttpGet("my/balances/list")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
+    [ProducesResponseType(typeof(Respons<LeaveBalanceListDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<LeaveBalanceListDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<LeaveBalanceListDto>>> MyBalances(CancellationToken ct)
     {
         var ctx = _tenant.Current;
@@ -158,8 +188,12 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Submit a leave request for the logged-in employee (My Leave).</summary>
     [HttpPost("my/requests/add")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveCreate)]
+    [ProducesResponseType(typeof(Respons<LeaveRequestListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<LeaveRequestListItemDto>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(Respons<LeaveRequestListItemDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<LeaveRequestListItemDto>>> CreateMyRequest(
         [FromBody] CreateLeaveRequestDto body,
         CancellationToken ct)
@@ -169,8 +203,10 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>List leave balances (admin), optionally filtered by employee or type.</summary>
     [HttpGet("balances/list")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
+    [ProducesResponseType(typeof(Respons<LeaveBalanceListDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<LeaveBalanceListDto>>> ListBalances(
         [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid? employeeId,
         [FromQuery] string? leaveType,
@@ -181,8 +217,11 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Get a single leave balance row.</summary>
     [HttpGet("balances/get")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
+    [ProducesResponseType(typeof(Respons<LeaveBalanceListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<LeaveBalanceListItemDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<LeaveBalanceListItemDto>>> GetBalance(
         [FromQuery(Name = PlatformQueryParams.LeaveBalanceId)] Guid leaveBalanceId,
         CancellationToken ct)
@@ -192,8 +231,11 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Assign leave entitlement to an employee (admin).</summary>
     [HttpPost("balances/add")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveAdmin)]
+    [ProducesResponseType(typeof(Respons<LeaveBalanceListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<LeaveBalanceListItemDto>), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<Respons<LeaveBalanceListItemDto>>> CreateBalance(
         [FromBody] CreateLeaveBalanceDto body,
         CancellationToken ct)
@@ -203,8 +245,11 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Adjust entitled or used days on a balance row (admin).</summary>
     [HttpPut("balances/update")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveAdmin)]
+    [ProducesResponseType(typeof(Respons<LeaveBalanceListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<LeaveBalanceListItemDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<LeaveBalanceListItemDto>>> UpdateBalance(
         [FromQuery(Name = PlatformQueryParams.LeaveBalanceId)] Guid leaveBalanceId,
         [FromBody] UpdateLeaveBalanceDto body,
@@ -215,8 +260,10 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>List configured leave types (Settings).</summary>
     [HttpGet("types/list")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
+    [ProducesResponseType(typeof(Respons<LeaveTypeListDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<LeaveTypeListDto>>> ListTypes(
         [FromQuery] string? countryCode,
         [FromQuery] bool activeOnly = true,
@@ -227,8 +274,11 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Get a leave type by id.</summary>
     [HttpGet("types/get")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
+    [ProducesResponseType(typeof(Respons<LeaveTypeListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<LeaveTypeListItemDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<LeaveTypeListItemDto>>> GetType(
         [FromQuery(Name = PlatformQueryParams.LeaveTypeId)] Guid leaveTypeId,
         CancellationToken ct)
@@ -238,8 +288,11 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Create a leave type (admin).</summary>
     [HttpPost("types/add")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveAdmin)]
+    [ProducesResponseType(typeof(Respons<LeaveTypeListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<LeaveTypeListItemDto>), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<Respons<LeaveTypeListItemDto>>> CreateType(
         [FromBody] CreateLeaveTypeDto body,
         CancellationToken ct)
@@ -249,8 +302,11 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Update a leave type (admin).</summary>
     [HttpPut("types/update")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveAdmin)]
+    [ProducesResponseType(typeof(Respons<LeaveTypeListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<LeaveTypeListItemDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<LeaveTypeListItemDto>>> UpdateType(
         [FromQuery(Name = PlatformQueryParams.LeaveTypeId)] Guid leaveTypeId,
         [FromBody] UpdateLeaveTypeDto body,
@@ -261,8 +317,11 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Delete or deactivate a leave type (admin).</summary>
     [HttpDelete("types/delete")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveAdmin)]
+    [ProducesResponseType(typeof(Respons<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<object>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<object>>> DeleteType(
         [FromQuery(Name = PlatformQueryParams.LeaveTypeId)] Guid leaveTypeId,
         CancellationToken ct)
@@ -272,8 +331,10 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>List public holidays by country, year, and optional branch.</summary>
     [HttpGet("holidays/list")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
+    [ProducesResponseType(typeof(Respons<PublicHolidayListDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<PublicHolidayListDto>>> ListHolidays(
         [FromQuery] string? countryCode,
         [FromQuery] int? year,
@@ -288,8 +349,11 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Get a public holiday by id.</summary>
     [HttpGet("holidays/get")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
+    [ProducesResponseType(typeof(Respons<PublicHolidayListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<PublicHolidayListItemDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<PublicHolidayListItemDto>>> GetHoliday(
         [FromQuery(Name = PlatformQueryParams.HolidayId)] Guid holidayId,
         CancellationToken ct)
@@ -299,8 +363,10 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Create a public holiday (admin).</summary>
     [HttpPost("holidays/add")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveAdmin)]
+    [ProducesResponseType(typeof(Respons<PublicHolidayListItemDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<PublicHolidayListItemDto>>> CreateHoliday(
         [FromBody] CreatePublicHolidayDto body,
         CancellationToken ct)
@@ -310,8 +376,11 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Update a public holiday (admin).</summary>
     [HttpPut("holidays/update")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveAdmin)]
+    [ProducesResponseType(typeof(Respons<PublicHolidayListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<PublicHolidayListItemDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<PublicHolidayListItemDto>>> UpdateHoliday(
         [FromQuery(Name = PlatformQueryParams.HolidayId)] Guid holidayId,
         [FromBody] UpdatePublicHolidayDto body,
@@ -322,8 +391,11 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Remove a public holiday (admin).</summary>
     [HttpDelete("holidays/delete")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveAdmin)]
+    [ProducesResponseType(typeof(Respons<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<object>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<object>>> DeleteHoliday(
         [FromQuery(Name = PlatformQueryParams.HolidayId)] Guid holidayId,
         CancellationToken ct)
