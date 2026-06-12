@@ -35,12 +35,13 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                 operation.Summary ??= "Leave Management list";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
                     """
-                    Paginated admin list. Response `data`: summary · requests[] · balances[].
-                    Each request includes `remaining_days` when a balance row exists for employee + leave_type.
+                    Paginated admin list. Response `data`: summary · requests[].
+                    Each request includes `remaining_days` when a balance row exists for employee + leave_type_id.
                     Query `status`: Pending|Approved|Rejected|Cancelled or `all`. `search` min 3 chars (matches stored employee name server-side; not returned on rows).
+                    Balances: GET /leave/balances/list.
                     """);
                 AppendParameterDescription(operation, "status", $"Filter by status. Allowed: {SwaggerExampleHints.LeaveRequestStatus}, all.");
-                AppendParameterDescription(operation, "leave_type", $"Leave type name (exact match). Examples: {SwaggerExampleHints.LeaveTypeName}.");
+                AppendParameterDescription(operation, "leave_type_id", "Optional leave type UUID filter.");
                 AppendParameterDescription(operation, "employee_id", "Optional employee UUID filter.");
                 return;
 
@@ -71,7 +72,7 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                 SetJsonResponseExample(operation, 409, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveRequestListItemDto>), 409));
                 operation.Summary ??= "Approve leave request";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
-                    "Pending only. Decrements matching balance `remaining_days` when a balance row exists.");
+                    "Pending only. Decrements matching balance `remaining_days` when a balance row exists. `approver_id` is set from the authenticated platform user — no request body.");
                 AppendParameterDescription(operation, "leave_request_id", "Pending leave request UUID.");
                 return;
 
@@ -98,8 +99,10 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                 return;
 
             case "api/v1/leave/my/requests/list" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
-                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveListResponse());
+                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveMyRequestListResponse());
                 operation.Summary ??= "My Leave requests";
+                operation.Description = SwaggerOptionFormat.Append(operation.Description,
+                    "Paginated requests for the logged-in employee only. Use GET /leave/my/summary for balances and counts.");
                 AppendParameterDescription(operation, "status", $"Optional status filter. Allowed: {SwaggerExampleHints.LeaveRequestStatus}, all.");
                 return;
 
@@ -112,14 +115,14 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveRequestGetResponse());
                 operation.Summary ??= "Submit My Leave request";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
-                    "Creates a request for the employee linked to the logged-in platform user. `employee_id` in body is ignored.");
+                    "Creates a request for the employee linked to the logged-in platform user. Body uses `leave_type_id` only — no `employee_id`.");
                 return;
 
             case "api/v1/leave/balances/list" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveBalanceListDto>), 200));
                 operation.Summary ??= "List leave balances";
                 AppendParameterDescription(operation, "employee_id", "Optional employee UUID filter.");
-                AppendParameterDescription(operation, "leave_type", "Optional leave type name filter.");
+                AppendParameterDescription(operation, "leave_type_id", "Optional leave type UUID filter.");
                 return;
 
             case "api/v1/leave/balances/get" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):

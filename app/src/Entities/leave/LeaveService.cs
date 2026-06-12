@@ -23,16 +23,16 @@ public class LeaveService
     }
 
     public async Task<Respons<LeaveListDto>> ListAsync(
-        string? search, string? status, string? leaveType, Guid? employeeId,
+        string? search, string? status, Guid? leaveTypeId, Guid? employeeId,
         int page, int size, string tenantId, string orgId, CancellationToken ct = default)
     {
         var paging = PagedQuery.From(page, size);
-        var (requests, balances, total) = await _leave.ListScopedAsync(
-            tenantId, orgId, search, status, leaveType, employeeId, paging.Page, paging.Size, ct);
+        var (requests, total) = await _leave.ListRequestsScopedAsync(
+            tenantId, orgId, search, status, leaveTypeId, employeeId, paging.Page, paging.Size, ct);
         var summary = await _leave.GetSummaryScopedAsync(tenantId, orgId, ct);
 
         return Respons<LeaveListDto>.Ok(
-            new LeaveListDto { Summary = summary, Requests = requests, Balances = balances },
+            new LeaveListDto { Summary = summary, Requests = requests },
             pagination: new PaginationMeta
             {
                 Page = paging.Page,
@@ -61,13 +61,18 @@ public class LeaveService
         if (validation is not null)
             return validation;
 
+        var leaveType = await _leave.GetTypeByIdScopedAsync(data.LeaveTypeId, tenantId, orgId, ct);
+        if (leaveType is null)
+            return Respons<LeaveRequestListItemDto>.ValidationError(
+                new Dictionary<string, string> { ["leaveTypeId"] = "Leave type not found." });
+
         var employee = await _employees.ResolveEmployeeDisplayAsync(data.EmployeeId, tenantId, orgId, ct);
         if (employee is null)
             return Respons<LeaveRequestListItemDto>.ValidationError(
                 new Dictionary<string, string> { ["employeeId"] = "Employee not found." });
 
         var balanceCheck = await ValidateSufficientBalanceAsync(
-            tenantId, orgId, data.EmployeeId, data.LeaveType!.Trim(), data.DaysRequested, ct);
+            tenantId, orgId, data.EmployeeId, data.LeaveTypeId, data.DaysRequested, ct);
         if (balanceCheck is not null)
             return balanceCheck;
 
@@ -76,7 +81,8 @@ public class LeaveService
             orgId,
             data.EmployeeId,
             employee.FullName,
-            data.LeaveType!.Trim(),
+            data.LeaveTypeId,
+            leaveType.Name,
             data.StartDate,
             data.EndDate,
             data.DaysRequested,
@@ -100,9 +106,8 @@ public class LeaveService
                 new Dictionary<string, string> { ["status"] = "Invalid status." });
 
         var hasStatus = !string.IsNullOrWhiteSpace(data.Status);
-        var hasApprover = data.ApproverName is not null;
         var hasNotes = data.Notes is not null;
-        if (!hasStatus && !hasApprover && !hasNotes)
+        if (!hasStatus && !hasNotes)
             return Respons<LeaveRequestListItemDto>.EmptyUpdateRequest();
 
         var updated = await _leave.UpdateRequestScopedAsync(
@@ -110,7 +115,6 @@ public class LeaveService
             tenantId,
             orgId,
             hasStatus ? data.Status : null,
-            hasApprover ? data.ApproverName : null,
             hasNotes ? data.Notes : null,
             ct);
 
@@ -126,11 +130,10 @@ public class LeaveService
     }
 
     public async Task<Respons<LeaveRequestListItemDto>> ApproveRequestAsync(
-        Guid id, string approverName, string tenantId, string orgId, CancellationToken ct = default)
+        Guid id, string? approverId, string tenantId, string orgId, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(approverName))
-            return Respons<LeaveRequestListItemDto>.ValidationError(
-                new Dictionary<string, string> { ["approverName"] = "Approver name is required." });
+        if (string.IsNullOrWhiteSpace(approverId))
+            return Respons<LeaveRequestListItemDto>.Fail("Authenticated user id is required.", statusCode: 401);
 
         var existing = await _leave.GetRequestByIdScopedAsync(id, tenantId, orgId, ct);
         if (existing is null)
@@ -138,23 +141,26 @@ public class LeaveService
         if (!existing.Status.Equals(LeaveRequestStatuses.Pending, StringComparison.OrdinalIgnoreCase))
             return Respons<LeaveRequestListItemDto>.Fail("Only pending requests can be approved.", statusCode: 409);
 
+        if (!Guid.TryParse(existing.LeaveTypeId, out var leaveTypeId))
+            return Respons<LeaveRequestListItemDto>.ValidationError(
+                new Dictionary<string, string> { ["leaveTypeId"] = "Leave request has no leave type." });
+
         var balanceCheck = await ValidateSufficientBalanceAsync(
-            tenantId, orgId, Guid.Parse(existing.EmployeeId), existing.LeaveType, existing.DaysRequested, ct);
+            tenantId, orgId, Guid.Parse(existing.EmployeeId), leaveTypeId, existing.DaysRequested, ct);
         if (balanceCheck is not null)
             return balanceCheck;
 
-        var updated = await _leave.ApproveRequestScopedAsync(id, tenantId, orgId, approverName.Trim(), ct);
+        var updated = await _leave.ApproveRequestScopedAsync(id, tenantId, orgId, approverId.Trim(), ct);
         return updated is null
             ? Respons<LeaveRequestListItemDto>.Fail("Leave request could not be approved.", statusCode: 409)
             : Respons<LeaveRequestListItemDto>.Ok(updated, "Leave request approved.");
     }
 
     public async Task<Respons<LeaveRequestListItemDto>> RejectRequestAsync(
-        Guid id, string approverName, string? notes, string tenantId, string orgId, CancellationToken ct = default)
+        Guid id, string? approverId, string? notes, string tenantId, string orgId, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(approverName))
-            return Respons<LeaveRequestListItemDto>.ValidationError(
-                new Dictionary<string, string> { ["approverName"] = "Approver name is required." });
+        if (string.IsNullOrWhiteSpace(approverId))
+            return Respons<LeaveRequestListItemDto>.Fail("Authenticated user id is required.", statusCode: 401);
 
         var existing = await _leave.GetRequestByIdScopedAsync(id, tenantId, orgId, ct);
         if (existing is null)
@@ -162,7 +168,7 @@ public class LeaveService
         if (!existing.Status.Equals(LeaveRequestStatuses.Pending, StringComparison.OrdinalIgnoreCase))
             return Respons<LeaveRequestListItemDto>.Fail("Only pending requests can be rejected.", statusCode: 409);
 
-        var updated = await _leave.RejectRequestScopedAsync(id, tenantId, orgId, approverName.Trim(), notes, ct);
+        var updated = await _leave.RejectRequestScopedAsync(id, tenantId, orgId, approverId.Trim(), notes, ct);
         return updated is null
             ? Respons<LeaveRequestListItemDto>.Fail("Leave request could not be rejected.", statusCode: 409)
             : Respons<LeaveRequestListItemDto>.Ok(updated, "Leave request rejected.");
@@ -200,15 +206,27 @@ public class LeaveService
         });
     }
 
-    public async Task<Respons<LeaveListDto>> ListMyRequestsAsync(
+    public async Task<Respons<LeaveMyRequestListDto>> ListMyRequestsAsync(
         string? platformUserId, string? status, int page, int size,
         string tenantId, string orgId, CancellationToken ct = default)
     {
         var employee = await ResolveMyEmployeeAsync(platformUserId, tenantId, orgId, ct);
         if (employee is null)
-            return Respons<LeaveListDto>.Fail("No employee profile linked to this user.", statusCode: 404);
+            return Respons<LeaveMyRequestListDto>.Fail("No employee profile linked to this user.", statusCode: 404);
 
-        return await ListAsync(null, status, null, employee.Value.EmployeeId, page, size, tenantId, orgId, ct);
+        var paging = PagedQuery.From(page, size);
+        var (requests, total) = await _leave.ListRequestsScopedAsync(
+            tenantId, orgId, null, status, null, employee.Value.EmployeeId, paging.Page, paging.Size, ct);
+
+        return Respons<LeaveMyRequestListDto>.Ok(
+            new LeaveMyRequestListDto { Requests = requests },
+            pagination: new PaginationMeta
+            {
+                Page = paging.Page,
+                Size = paging.Size,
+                Total = total,
+                HasNext = paging.Offset + requests.Count < total,
+            });
     }
 
     public async Task<Respons<LeaveBalanceListDto>> ListMyBalancesAsync(
@@ -223,7 +241,7 @@ public class LeaveService
     }
 
     public async Task<Respons<LeaveRequestListItemDto>> CreateMyRequestAsync(
-        CreateLeaveRequestDto data,
+        CreateMyLeaveRequestDto data,
         string? platformUserId,
         string tenantId,
         string orgId,
@@ -233,14 +251,25 @@ public class LeaveService
         if (employee is null)
             return Respons<LeaveRequestListItemDto>.Fail("No employee profile linked to this user.", statusCode: 404);
 
-        data.EmployeeId = employee.Value.EmployeeId;
-        return await CreateRequestAsync(data, tenantId, orgId, ct);
+        return await CreateRequestAsync(
+            new CreateLeaveRequestDto
+            {
+                EmployeeId = employee.Value.EmployeeId,
+                LeaveTypeId = data.LeaveTypeId,
+                StartDate = data.StartDate,
+                EndDate = data.EndDate,
+                DaysRequested = data.DaysRequested,
+                Notes = data.Notes,
+            },
+            tenantId,
+            orgId,
+            ct);
     }
 
     public async Task<Respons<LeaveBalanceListDto>> ListBalancesAsync(
-        Guid? employeeId, string? leaveType, string tenantId, string orgId, CancellationToken ct = default)
+        Guid? employeeId, Guid? leaveTypeId, string tenantId, string orgId, CancellationToken ct = default)
     {
-        var items = await _leave.ListBalancesScopedAsync(tenantId, orgId, employeeId, leaveType, ct);
+        var items = await _leave.ListBalancesScopedAsync(tenantId, orgId, employeeId, leaveTypeId, ct);
         return Respons<LeaveBalanceListDto>.Ok(new LeaveBalanceListDto { Items = items });
     }
 
@@ -256,6 +285,11 @@ public class LeaveService
     public async Task<Respons<LeaveBalanceListItemDto>> CreateBalanceAsync(
         CreateLeaveBalanceDto data, string tenantId, string orgId, CancellationToken ct = default)
     {
+        var leaveType = await _leave.GetTypeByIdScopedAsync(data.LeaveTypeId, tenantId, orgId, ct);
+        if (leaveType is null)
+            return Respons<LeaveBalanceListItemDto>.ValidationError(
+                new Dictionary<string, string> { ["leaveTypeId"] = "Leave type not found." });
+
         var employee = await _employees.ResolveEmployeeDisplayAsync(data.EmployeeId, tenantId, orgId, ct);
         if (employee is null)
             return Respons<LeaveBalanceListItemDto>.ValidationError(
@@ -266,17 +300,18 @@ public class LeaveService
                 new Dictionary<string, string> { ["usedDays"] = "Used days cannot exceed entitled days." });
 
         var existing = await _leave.GetBalanceForEmployeeScopedAsync(
-            tenantId, orgId, data.EmployeeId, data.LeaveType!.Trim(), ct);
+            tenantId, orgId, data.EmployeeId, data.LeaveTypeId, ct);
         if (existing is not null)
             return Respons<LeaveBalanceListItemDto>.ValidationError(
-                new Dictionary<string, string> { ["leaveType"] = "A balance for this employee and leave type already exists." });
+                new Dictionary<string, string> { ["leaveTypeId"] = "A balance for this employee and leave type already exists." });
 
         var id = await _leave.CreateBalanceScopedAsync(
             tenantId,
             orgId,
             data.EmployeeId,
             employee.FullName,
-            data.LeaveType!.Trim(),
+            data.LeaveTypeId,
+            leaveType.Name,
             data.EntitledDays,
             data.UsedDays,
             ct);
@@ -444,11 +479,11 @@ public class LeaveService
         string tenantId,
         string orgId,
         Guid employeeId,
-        string leaveType,
+        Guid leaveTypeId,
         decimal daysRequested,
         CancellationToken ct)
     {
-        var balance = await _leave.GetBalanceForEmployeeScopedAsync(tenantId, orgId, employeeId, leaveType, ct);
+        var balance = await _leave.GetBalanceForEmployeeScopedAsync(tenantId, orgId, employeeId, leaveTypeId, ct);
         if (balance is null)
             return null;
 

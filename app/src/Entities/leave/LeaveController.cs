@@ -34,7 +34,7 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>List leave requests and balances (admin Leave Management tab).</summary>
+    /// <summary>List leave requests (admin Leave Management tab). Balances: GET /leave/balances/list.</summary>
     [HttpGet("requests/list")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
     [ProducesResponseType(typeof(Respons<LeaveListDto>), StatusCodes.Status200OK)]
@@ -43,7 +43,7 @@ public class LeaveController : ControllerBase
         [FromQuery]
         [SwaggerAllowedValues(typeof(LeaveFieldOptions), nameof(LeaveFieldOptions.RequestStatuses))]
         string? status,
-        [FromQuery] string? leaveType,
+        [FromQuery(Name = PlatformQueryParams.LeaveTypeId)] Guid? leaveTypeId,
         [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid? employeeId,
         [FromQuery] int page = 1,
         [FromQuery] int size = 20,
@@ -51,7 +51,7 @@ public class LeaveController : ControllerBase
     {
         var ctx = _tenant.Current;
         var result = await _service.ListAsync(
-            search, status, leaveType, employeeId, page, size, ctx.TenantId, ctx.OrgId, ct);
+            search, status, leaveTypeId, employeeId, page, size, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
@@ -83,7 +83,7 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Partial update of leave request status, approver, or notes.</summary>
+    /// <summary>Partial update of leave request status or notes.</summary>
     [HttpPut("requests/update")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveUpdate)]
     [ProducesResponseType(typeof(Respons<LeaveRequestListItemDto>), StatusCodes.Status200OK)]
@@ -98,7 +98,7 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Approve a pending leave request and decrement balance.</summary>
+    /// <summary>Approve a pending leave request and decrement balance. Approver is the authenticated user.</summary>
     [HttpPost("requests/approve")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveUpdate)]
     [ProducesResponseType(typeof(Respons<LeaveRequestListItemDto>), StatusCodes.Status200OK)]
@@ -106,16 +106,15 @@ public class LeaveController : ControllerBase
     [ProducesResponseType(typeof(Respons<LeaveRequestListItemDto>), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<Respons<LeaveRequestListItemDto>>> ApproveRequest(
         [FromQuery(Name = PlatformQueryParams.LeaveRequestId)] Guid leaveRequestId,
-        [FromBody] ApproveLeaveRequestDto body,
         CancellationToken ct)
     {
         var ctx = _tenant.Current;
         var result = await _service.ApproveRequestAsync(
-            leaveRequestId, body.ApproverName!, ctx.TenantId, ctx.OrgId, ct);
+            leaveRequestId, ctx.UserId, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Reject a pending leave request.</summary>
+    /// <summary>Reject a pending leave request. Approver is the authenticated user.</summary>
     [HttpPost("requests/reject")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveUpdate)]
     [ProducesResponseType(typeof(Respons<LeaveRequestListItemDto>), StatusCodes.Status200OK)]
@@ -123,12 +122,12 @@ public class LeaveController : ControllerBase
     [ProducesResponseType(typeof(Respons<LeaveRequestListItemDto>), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<Respons<LeaveRequestListItemDto>>> RejectRequest(
         [FromQuery(Name = PlatformQueryParams.LeaveRequestId)] Guid leaveRequestId,
-        [FromBody] RejectLeaveRequestDto body,
+        [FromBody] RejectLeaveRequestDto? body,
         CancellationToken ct)
     {
         var ctx = _tenant.Current;
         var result = await _service.RejectRequestAsync(
-            leaveRequestId, body.ApproverName!, body.Notes, ctx.TenantId, ctx.OrgId, ct);
+            leaveRequestId, ctx.UserId, body?.Notes, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
@@ -161,9 +160,9 @@ public class LeaveController : ControllerBase
     /// <summary>List leave requests for the logged-in employee (My Leave).</summary>
     [HttpGet("my/requests/list")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
-    [ProducesResponseType(typeof(Respons<LeaveListDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(Respons<LeaveListDto>), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<Respons<LeaveListDto>>> MyRequests(
+    [ProducesResponseType(typeof(Respons<LeaveMyRequestListDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<LeaveMyRequestListDto>), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<Respons<LeaveMyRequestListDto>>> MyRequests(
         [FromQuery]
         [SwaggerAllowedValues(typeof(LeaveFieldOptions), nameof(LeaveFieldOptions.RequestStatuses))]
         string? status,
@@ -195,7 +194,7 @@ public class LeaveController : ControllerBase
     [ProducesResponseType(typeof(Respons<LeaveRequestListItemDto>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(Respons<LeaveRequestListItemDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<LeaveRequestListItemDto>>> CreateMyRequest(
-        [FromBody] CreateLeaveRequestDto body,
+        [FromBody] CreateMyLeaveRequestDto body,
         CancellationToken ct)
     {
         var ctx = _tenant.Current;
@@ -209,11 +208,11 @@ public class LeaveController : ControllerBase
     [ProducesResponseType(typeof(Respons<LeaveBalanceListDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<LeaveBalanceListDto>>> ListBalances(
         [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid? employeeId,
-        [FromQuery] string? leaveType,
+        [FromQuery(Name = PlatformQueryParams.LeaveTypeId)] Guid? leaveTypeId,
         CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.ListBalancesAsync(employeeId, leaveType, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.ListBalancesAsync(employeeId, leaveTypeId, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 

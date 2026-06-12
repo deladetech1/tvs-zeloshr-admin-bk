@@ -20,12 +20,12 @@ public sealed class LeaveRequestListItemDto
 {
     public required string LeaveRequestId { get; init; }
     public required string EmployeeId { get; init; }
-    public required string LeaveType { get; init; }
+    public required string LeaveTypeId { get; init; }
     public DateOnly StartDate { get; init; }
     public DateOnly EndDate { get; init; }
     public decimal DaysRequested { get; init; }
     public required string Status { get; init; }
-    public string? ApproverName { get; init; }
+    public string? ApproverId { get; init; }
     public string? Notes { get; init; }
     public decimal? RemainingDays { get; init; }
     public DateTimeOffset SubmittedAt { get; init; }
@@ -35,7 +35,7 @@ public sealed class LeaveBalanceListItemDto
 {
     public required string LeaveBalanceId { get; init; }
     public required string EmployeeId { get; init; }
-    public required string LeaveType { get; init; }
+    public required string LeaveTypeId { get; init; }
     public decimal EntitledDays { get; init; }
     public decimal UsedDays { get; init; }
     public decimal RemainingDays { get; init; }
@@ -45,7 +45,11 @@ public sealed class LeaveListDto
 {
     public LeaveSummaryDto Summary { get; init; } = new();
     public IReadOnlyList<LeaveRequestListItemDto> Requests { get; init; } = [];
-    public IReadOnlyList<LeaveBalanceListItemDto> Balances { get; init; } = [];
+}
+
+public sealed class LeaveMyRequestListDto
+{
+    public IReadOnlyList<LeaveRequestListItemDto> Requests { get; init; } = [];
 }
 
 public sealed class LeaveBalanceListDto

@@ -12,12 +12,12 @@ public interface ILeaveRepository
         DateOnly? fromDate,
         CancellationToken ct = default);
 
-    Task<(IReadOnlyList<LeaveRequestListItemDto> Requests, IReadOnlyList<LeaveBalanceListItemDto> Balances, int Total)> ListScopedAsync(
+    Task<(IReadOnlyList<LeaveRequestListItemDto> Requests, int Total)> ListRequestsScopedAsync(
         string tenantId,
         string orgId,
         string? search,
         string? status,
-        string? leaveType,
+        Guid? leaveTypeId,
         Guid? employeeId,
         int page,
         int pageSize,
@@ -31,7 +31,8 @@ public interface ILeaveRepository
         string orgId,
         Guid employeeId,
         string employeeFullName,
-        string leaveType,
+        Guid leaveTypeId,
+        string leaveTypeName,
         DateOnly startDate,
         DateOnly endDate,
         decimal daysRequested,
@@ -43,15 +44,14 @@ public interface ILeaveRepository
         string tenantId,
         string orgId,
         string? status,
-        string? approverName,
         string? notes,
         CancellationToken ct = default);
 
     Task<LeaveRequestListItemDto?> ApproveRequestScopedAsync(
-        Guid id, string tenantId, string orgId, string approverName, CancellationToken ct = default);
+        Guid id, string tenantId, string orgId, string approverId, CancellationToken ct = default);
 
     Task<LeaveRequestListItemDto?> RejectRequestScopedAsync(
-        Guid id, string tenantId, string orgId, string approverName, string? notes, CancellationToken ct = default);
+        Guid id, string tenantId, string orgId, string approverId, string? notes, CancellationToken ct = default);
 
     Task<bool> DeletePendingRequestScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default);
@@ -60,21 +60,22 @@ public interface ILeaveRepository
         string tenantId,
         string orgId,
         Guid? employeeId,
-        string? leaveType,
+        Guid? leaveTypeId,
         CancellationToken ct = default);
 
     Task<LeaveBalanceListItemDto?> GetBalanceScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default);
 
     Task<LeaveBalanceListItemDto?> GetBalanceForEmployeeScopedAsync(
-        string tenantId, string orgId, Guid employeeId, string leaveType, CancellationToken ct = default);
+        string tenantId, string orgId, Guid employeeId, Guid leaveTypeId, CancellationToken ct = default);
 
     Task<Guid> CreateBalanceScopedAsync(
         string tenantId,
         string orgId,
         Guid employeeId,
         string employeeFullName,
-        string leaveType,
+        Guid leaveTypeId,
+        string leaveTypeName,
         decimal entitledDays,
         decimal usedDays,
         CancellationToken ct = default);

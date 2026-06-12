@@ -195,7 +195,7 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
             b.Property(x => x.EntitledDays).HasPrecision(5, 1);
             b.Property(x => x.UsedDays).HasPrecision(5, 1);
             b.Property(x => x.RemainingDays).HasPrecision(5, 1);
-            b.HasIndex(x => new { x.TenantId, x.OrgId, x.EmployeeId, x.LeaveType }).IsUnique();
+            b.HasIndex(x => new { x.TenantId, x.OrgId, x.EmployeeId, x.LeaveTypeId }).IsUnique();
         });
         modelBuilder.Entity<LeaveTypeEntity>(b =>
         {

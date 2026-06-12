@@ -250,6 +250,7 @@ internal static class SwaggerExamples
             nameof(LeaveSummaryDto) => EnvelopeOk(LeaveSummaryData()),
             nameof(LeaveMySummaryDto) => EnvelopeOk(LeaveMySummaryData()),
             nameof(LeaveListDto) => LeaveListResponse(),
+            nameof(LeaveMyRequestListDto) => LeaveMyRequestListResponse(),
             nameof(LeaveRequestListItemDto) => EnvelopeOk(LeaveRequestItemData()),
             nameof(LeaveBalanceListDto) => EnvelopeOk(LeaveBalanceListData()),
             nameof(LeaveBalanceListItemDto) => EnvelopeOk(LeaveBalanceItemData()),
@@ -1358,12 +1359,12 @@ internal static class SwaggerExamples
     {
         ["leave_request_id"] = SampleLeaveRequestId.ToString(),
         ["employee_id"] = SampleEmployeeId.ToString(),
-        ["leave_type"] = "Annual Leave",
+        ["leave_type_id"] = SampleLeaveTypeId.ToString(),
         ["start_date"] = "2026-07-07",
         ["end_date"] = "2026-07-11",
         ["days_requested"] = 5,
         ["status"] = status,
-        ["approver_name"] = status is "Approved" or "Rejected" ? "Kofi Admin" : null,
+        ["approver_id"] = status is "Approved" or "Rejected" ? "cp-user-demo-admin" : null,
         ["notes"] = status == "Rejected" ? "Team coverage required during sprint." : "Family visit.",
         ["remaining_days"] = remainingDays,
         ["submitted_at"] = "2026-06-10T09:15:00+00:00",
@@ -1373,7 +1374,7 @@ internal static class SwaggerExamples
     {
         ["leave_balance_id"] = SampleLeaveBalanceId.ToString(),
         ["employee_id"] = SampleEmployeeId.ToString(),
-        ["leave_type"] = "Annual Leave",
+        ["leave_type_id"] = SampleLeaveTypeId.ToString(),
         ["entitled_days"] = 21,
         ["used_days"] = 7,
         ["remaining_days"] = 14,
@@ -1385,7 +1386,7 @@ internal static class SwaggerExamples
         {
             ["leave_balance_id"] = "a2222222-2222-2222-2222-222222222205",
             ["employee_id"] = SampleEmployeeId.ToString(),
-            ["leave_type"] = "Sick Leave",
+            ["leave_type_id"] = "a2222222-2222-2222-2222-222222222206",
             ["entitled_days"] = 10,
             ["used_days"] = 2,
             ["remaining_days"] = 8,
@@ -1402,11 +1403,20 @@ internal static class SwaggerExamples
         ["requests"] = new JsonArray(
             LeaveRequestItemData("Pending", 14),
             LeaveRequestItemData("Approved", 9)),
-        ["balances"] = LeaveBalanceItemsArray(),
     };
 
     internal static JsonObject LeaveListResponse() =>
         EnvelopeOk(LeaveListData(), LeaveListPagination());
+
+    internal static JsonObject LeaveMyRequestListData() => new()
+    {
+        ["requests"] = new JsonArray(
+            LeaveRequestItemData("Pending", 14),
+            LeaveRequestItemData("Approved", 9)),
+    };
+
+    internal static JsonObject LeaveMyRequestListResponse() =>
+        EnvelopeOk(LeaveMyRequestListData(), LeaveListPagination());
 
     internal static JsonObject LeaveListPagination() => new()
     {
@@ -1523,7 +1533,7 @@ internal static class SwaggerExamples
     internal static JsonObject CreateLeaveRequestBody() => new()
     {
         ["employee_id"] = SampleEmployeeId.ToString(),
-        ["leave_type"] = "Annual Leave",
+        ["leave_type_id"] = SampleLeaveTypeId.ToString(),
         ["start_date"] = "2026-07-07",
         ["end_date"] = "2026-07-11",
         ["days_requested"] = 5,
@@ -1532,36 +1542,28 @@ internal static class SwaggerExamples
 
     internal static JsonObject CreateLeaveRequestMyBody() => new()
     {
-        ["employee_id"] = SampleEmployeeId.ToString(),
-        ["leave_type"] = "Annual Leave",
+        ["leave_type_id"] = SampleLeaveTypeId.ToString(),
         ["start_date"] = "2026-08-04",
         ["end_date"] = "2026-08-08",
         ["days_requested"] = 5,
-        ["notes"] = "Personal travel (My Leave — employee_id ignored; scoped to logged-in user).",
+        ["notes"] = "Personal travel — scoped to the logged-in employee profile.",
     };
 
     internal static JsonObject UpdateLeaveRequestBody() => new()
     {
         ["status"] = SwaggerExampleHints.LeaveRequestStatus,
-        ["approver_name"] = "Kofi Admin",
         ["notes"] = "Approved after coverage confirmed.",
-    };
-
-    internal static JsonObject ApproveLeaveRequestBody() => new()
-    {
-        ["approver_name"] = "Kofi Admin",
     };
 
     internal static JsonObject RejectLeaveRequestBody() => new()
     {
-        ["approver_name"] = "Kofi Admin",
         ["notes"] = "Insufficient team coverage during sprint deadline.",
     };
 
     internal static JsonObject CreateLeaveBalanceBody() => new()
     {
         ["employee_id"] = SampleEmployeeId.ToString(),
-        ["leave_type"] = "Annual Leave",
+        ["leave_type_id"] = SampleLeaveTypeId.ToString(),
         ["entitled_days"] = 21,
         ["used_days"] = 0,
     };

@@ -203,7 +203,7 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
                 ["my_request"] = Example(
                     SwaggerExamples.CreateLeaveRequestMyBody(),
                     "My Leave submission",
-                    "employee_id in body is ignored — request is scoped to the logged-in platform user's employee profile."),
+                    "Scoped to the logged-in platform user's employee profile. Requires leave_type_id only."),
             };
         }
 
@@ -214,20 +214,8 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
             {
                 ["status_and_notes"] = Example(
                     SwaggerExamples.UpdateLeaveRequestBody(),
-                    "Update status / approver / notes",
+                    "Update status / notes",
                     "Send only fields to change. leave_request_id is required on the query string."),
-            };
-        }
-
-        if (method.Equals("POST", StringComparison.OrdinalIgnoreCase)
-            && path.Equals("api/v1/leave/requests/approve", StringComparison.OrdinalIgnoreCase))
-        {
-            return new Dictionary<string, IOpenApiExample>
-            {
-                ["approve"] = Example(
-                    SwaggerExamples.ApproveLeaveRequestBody(),
-                    "Approve pending request",
-                    "Decrements balance remaining_days when a matching balance row exists."),
             };
         }
 
@@ -239,7 +227,7 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
                 ["reject"] = Example(
                     SwaggerExamples.RejectLeaveRequestBody(),
                     "Reject with reason",
-                    "Optional notes explain rejection to the employee."),
+                    "Optional notes explain rejection. Approver is the authenticated user — no body required for reject without notes."),
             };
         }
 
@@ -251,7 +239,7 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
                 ["new_balance"] = Example(
                     SwaggerExamples.CreateLeaveBalanceBody(),
                     "Assign entitlement",
-                    "One balance row per employee + leave_type. used_days defaults to 0."),
+                    "One balance row per employee + leave_type_id. used_days defaults to 0."),
             };
         }
 

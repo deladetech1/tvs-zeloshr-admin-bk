@@ -9,8 +9,26 @@ public sealed class CreateLeaveRequestDto
     public Guid EmployeeId { get; set; }
 
     [Required]
-    [MaxLength(80)]
-    public string? LeaveType { get; set; }
+    public Guid LeaveTypeId { get; set; }
+
+    [Required]
+    public DateOnly StartDate { get; set; }
+
+    [Required]
+    public DateOnly EndDate { get; set; }
+
+    [Required]
+    [Range(0.5, 365)]
+    public decimal DaysRequested { get; set; }
+
+    [MaxLength(2000)]
+    public string? Notes { get; set; }
+}
+
+public sealed class CreateMyLeaveRequestDto
+{
+    [Required]
+    public Guid LeaveTypeId { get; set; }
 
     [Required]
     public DateOnly StartDate { get; set; }
@@ -32,9 +50,6 @@ public sealed class UpdateLeaveRequestDto
     [SwaggerAllowedValues(typeof(LeaveFieldOptions), nameof(LeaveFieldOptions.RequestStatuses))]
     public string? Status { get; set; }
 
-    [MaxLength(200)]
-    public string? ApproverName { get; set; }
-
     [MaxLength(2000)]
     public string? Notes { get; set; }
 }
@@ -45,8 +60,7 @@ public sealed class CreateLeaveBalanceDto
     public Guid EmployeeId { get; set; }
 
     [Required]
-    [MaxLength(80)]
-    public string? LeaveType { get; set; }
+    public Guid LeaveTypeId { get; set; }
 
     [Required]
     [Range(0, 365)]
@@ -135,19 +149,8 @@ public sealed class UpdatePublicHolidayDto
     public bool? IsActive { get; set; }
 }
 
-public sealed class ApproveLeaveRequestDto
-{
-    [Required]
-    [MaxLength(200)]
-    public string? ApproverName { get; set; }
-}
-
 public sealed class RejectLeaveRequestDto
 {
-    [Required]
-    [MaxLength(200)]
-    public string? ApproverName { get; set; }
-
     [MaxLength(2000)]
     public string? Notes { get; set; }
 }
