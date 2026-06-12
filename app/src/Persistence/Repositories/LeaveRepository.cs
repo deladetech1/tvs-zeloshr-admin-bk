@@ -605,7 +605,6 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
     {
         LeaveRequestId = r.Id.ToString(),
         EmployeeId = r.EmployeeId.ToString(),
-        EmployeeFullName = r.EmployeeFullName,
         LeaveType = r.LeaveType,
         StartDate = r.StartDate,
         EndDate = r.EndDate,
@@ -621,7 +620,6 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
     {
         LeaveBalanceId = b.Id.ToString(),
         EmployeeId = b.EmployeeId.ToString(),
-        EmployeeFullName = b.EmployeeFullName,
         LeaveType = b.LeaveType,
         EntitledDays = b.EntitledDays,
         UsedDays = b.UsedDays,

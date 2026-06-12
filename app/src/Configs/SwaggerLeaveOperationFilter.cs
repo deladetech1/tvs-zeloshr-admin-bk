@@ -37,7 +37,7 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                     """
                     Paginated admin list. Response `data`: summary · requests[] · balances[].
                     Each request includes `remaining_days` when a balance row exists for employee + leave_type.
-                    Query `status`: Pending|Approved|Rejected|Cancelled or `all`. `search` min 3 chars on employee name.
+                    Query `status`: Pending|Approved|Rejected|Cancelled or `all`. `search` min 3 chars (matches stored employee name server-side; not returned on rows).
                     """);
                 AppendParameterDescription(operation, "status", $"Filter by status. Allowed: {SwaggerExampleHints.LeaveRequestStatus}, all.");
                 AppendParameterDescription(operation, "leave_type", $"Leave type name (exact match). Examples: {SwaggerExampleHints.LeaveTypeName}.");

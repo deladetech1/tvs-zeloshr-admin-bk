@@ -20,7 +20,6 @@ public sealed class LeaveRequestListItemDto
 {
     public required string LeaveRequestId { get; init; }
     public required string EmployeeId { get; init; }
-    public required string EmployeeFullName { get; init; }
     public required string LeaveType { get; init; }
     public DateOnly StartDate { get; init; }
     public DateOnly EndDate { get; init; }
@@ -36,7 +35,6 @@ public sealed class LeaveBalanceListItemDto
 {
     public required string LeaveBalanceId { get; init; }
     public required string EmployeeId { get; init; }
-    public required string EmployeeFullName { get; init; }
     public required string LeaveType { get; init; }
     public decimal EntitledDays { get; init; }
     public decimal UsedDays { get; init; }

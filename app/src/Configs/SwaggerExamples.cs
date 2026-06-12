@@ -1358,7 +1358,6 @@ internal static class SwaggerExamples
     {
         ["leave_request_id"] = SampleLeaveRequestId.ToString(),
         ["employee_id"] = SampleEmployeeId.ToString(),
-        ["employee_full_name"] = "Ama Mensah",
         ["leave_type"] = "Annual Leave",
         ["start_date"] = "2026-07-07",
         ["end_date"] = "2026-07-11",
@@ -1374,7 +1373,6 @@ internal static class SwaggerExamples
     {
         ["leave_balance_id"] = SampleLeaveBalanceId.ToString(),
         ["employee_id"] = SampleEmployeeId.ToString(),
-        ["employee_full_name"] = "Ama Mensah",
         ["leave_type"] = "Annual Leave",
         ["entitled_days"] = 21,
         ["used_days"] = 7,
@@ -1387,7 +1385,6 @@ internal static class SwaggerExamples
         {
             ["leave_balance_id"] = "a2222222-2222-2222-2222-222222222205",
             ["employee_id"] = SampleEmployeeId.ToString(),
-            ["employee_full_name"] = "Ama Mensah",
             ["leave_type"] = "Sick Leave",
             ["entitled_days"] = 10,
             ["used_days"] = 2,
