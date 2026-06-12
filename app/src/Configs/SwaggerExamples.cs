@@ -1381,20 +1381,22 @@ internal static class SwaggerExamples
         ["remaining_days"] = 14,
     };
 
+    internal static JsonArray LeaveBalanceItemsArray() => new(
+        LeaveBalanceItemData(),
+        new JsonObject
+        {
+            ["leave_balance_id"] = "a2222222-2222-2222-2222-222222222205",
+            ["employee_id"] = SampleEmployeeId.ToString(),
+            ["employee_full_name"] = "Ama Mensah",
+            ["leave_type"] = "Sick Leave",
+            ["entitled_days"] = 10,
+            ["used_days"] = 2,
+            ["remaining_days"] = 8,
+        });
+
     internal static JsonObject LeaveBalanceListData() => new()
     {
-        ["items"] = new JsonArray(
-            LeaveBalanceItemData(),
-            new JsonObject
-            {
-                ["leave_balance_id"] = "a2222222-2222-2222-2222-222222222205",
-                ["employee_id"] = SampleEmployeeId.ToString(),
-                ["employee_full_name"] = "Ama Mensah",
-                ["leave_type"] = "Sick Leave",
-                ["entitled_days"] = 10,
-                ["used_days"] = 2,
-                ["remaining_days"] = 8,
-            }),
+        ["items"] = LeaveBalanceItemsArray(),
     };
 
     internal static JsonObject LeaveListData() => new()
@@ -1403,7 +1405,7 @@ internal static class SwaggerExamples
         ["requests"] = new JsonArray(
             LeaveRequestItemData("Pending", 14),
             LeaveRequestItemData("Approved", 9)),
-        ["balances"] = LeaveBalanceListData()["items"],
+        ["balances"] = LeaveBalanceItemsArray(),
     };
 
     internal static JsonObject LeaveListResponse() =>
@@ -1425,7 +1427,7 @@ internal static class SwaggerExamples
         ["total_remaining_days"] = 22,
         ["pending_requests"] = 1,
         ["approved_this_year"] = 3,
-        ["balances"] = LeaveBalanceListData()["items"],
+        ["balances"] = LeaveBalanceItemsArray(),
     };
 
     internal static JsonObject LeaveStatisticsResponse() => EnvelopeOk(LeaveSummaryData());
