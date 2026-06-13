@@ -11,7 +11,8 @@ public sealed record CpUserDto(
     string? Gender = null,
     string? Dob = null,
     string? Address = null,
-    string? ProfilePic = null);
+    string? ProfilePic = null,
+    bool IsOwner = false);
 
 public sealed record CpUserCheckResult(
     bool Exists,

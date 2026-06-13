@@ -12,7 +12,7 @@ namespace ZelosHR.Api.Persistence.Repositories;
 public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
 {
     private static CpUserDto ToDto(CpUserEntity u) =>
-        new(u.Id, u.Fullname, u.Email, u.Contact, u.IsActive, u.Gender, u.Dob, u.Address, u.ProfilePic);
+        new(u.Id, u.Fullname, u.Email, u.Contact, u.IsActive, u.Gender, u.Dob, u.Address, u.ProfilePic, u.IsOwner);
 
     public async Task<CpUserDto?> FindByEmailAsync(string email, string tenantId, CancellationToken ct = default)
     {

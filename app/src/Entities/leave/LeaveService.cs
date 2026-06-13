@@ -277,7 +277,11 @@ public class LeaveService
     {
         var employee = await ResolveMyEmployeeAsync(platformUserId, tenantId, orgId, ct);
         if (employee is null)
+        {
+            if (await IsTenantOwnerWithoutEmployeeAsync(platformUserId, tenantId, ct))
+                return Respons<LeaveMySummaryDto>.Ok(EmptyMySummary());
             return Respons<LeaveMySummaryDto>.Fail("No employee profile linked to this user.", statusCode: 404);
+        }
 
         var balances = await EnrichBalancesAsync(
             await _leave.ListBalancesScopedAsync(tenantId, orgId, employee.Value.EmployeeId, null, ct),
@@ -305,7 +309,23 @@ public class LeaveService
     {
         var employee = await ResolveMyEmployeeAsync(platformUserId, tenantId, orgId, ct);
         if (employee is null)
+        {
+            if (await IsTenantOwnerWithoutEmployeeAsync(platformUserId, tenantId, ct))
+            {
+                var paging = PagedQuery.From(page, size);
+                return Respons<LeaveMyRequestListDto>.Ok(
+                    new LeaveMyRequestListDto(),
+                    pagination: new PaginationMeta
+                    {
+                        Page = paging.Page,
+                        Size = paging.Size,
+                        Total = 0,
+                        HasNext = false,
+                    });
+            }
+
             return Respons<LeaveMyRequestListDto>.Fail("No employee profile linked to this user.", statusCode: 404);
+        }
 
         var paging = PagedQuery.From(page, size);
         var (requests, total) = await _leave.ListRequestsScopedAsync(
@@ -337,7 +357,11 @@ public class LeaveService
     {
         var employee = await ResolveMyEmployeeAsync(platformUserId, tenantId, orgId, ct);
         if (employee is null)
+        {
+            if (await IsTenantOwnerWithoutEmployeeAsync(platformUserId, tenantId, ct))
+                return Respons<LeaveBalanceListDto>.Ok(new LeaveBalanceListDto());
             return Respons<LeaveBalanceListDto>.Fail("No employee profile linked to this user.", statusCode: 404);
+        }
 
         var items = await EnrichBalancesAsync(
             await _leave.ListBalancesScopedAsync(tenantId, orgId, employee.Value.EmployeeId, null, ct),
@@ -719,6 +743,25 @@ public class LeaveService
         string.IsNullOrWhiteSpace(platformUserId)
             ? null
             : await _employees.ResolveByPlatformUserAsync(platformUserId, tenantId, orgId, ct);
+
+    /// <summary>Tenant owners may use My Leave reads without a linked <c>zhr_employees</c> row.</summary>
+    private async Task<bool> IsTenantOwnerWithoutEmployeeAsync(
+        string? platformUserId, string tenantId, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(platformUserId))
+            return false;
+
+        var cpUser = await _cpUsers.GetByIdAsync(platformUserId, tenantId, ct);
+        return cpUser?.IsOwner == true;
+    }
+
+    private static LeaveMySummaryDto EmptyMySummary() => new()
+    {
+        TotalRemainingDays = 0,
+        PendingRequests = 0,
+        ApprovedThisYear = 0,
+        Balances = [],
+    };
 
     private static string ResolveInitialApprovalStage(EmployeeLeaveContext employee)
     {
