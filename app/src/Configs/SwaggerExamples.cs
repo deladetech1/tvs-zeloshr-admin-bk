@@ -248,7 +248,7 @@ internal static class SwaggerExamples
             nameof(AuditLogListDto) => AuditLogListResponse(),
             nameof(AuditLogListItemDto) => AuditLogGetResponse(),
             nameof(LeaveSummaryDto) => EnvelopeOk(LeaveSummaryData()),
-            nameof(LeaveMySummaryDto) => EnvelopeOk(LeaveMySummaryData()),
+            nameof(LeavePersonalSummaryDto) => EnvelopeOk(LeavePersonalSummaryData()),
             nameof(LeaveListDto) => LeaveListResponse(),
             nameof(LeaveDashboardDto) => LeaveDashboardResponse(),
             nameof(LeaveMyRequestListDto) => LeaveMyRequestListResponse(),
@@ -1640,26 +1640,17 @@ internal static class SwaggerExamples
         ["total_pages"] = 2,
     };
 
-    internal static JsonObject LeaveMySummaryData() => new()
+    internal static JsonObject LeavePersonalSummaryData() => new()
     {
-        ["summary"] = LeaveSummaryData(),
-        ["on_leave_today"] = new JsonArray(LeaveRequestItemData("Approved", 9)),
-        ["pending_approvals"] = new JsonArray(
-            LeaveRequestItemData("Pending", 14),
-            LeaveDashboardPendingApprovedDaysItem()),
-        ["leaving_this_week"] = new JsonArray(LeaveRequestItemData("Approved", 12)),
-        ["my"] = new JsonObject
-        {
-            ["total_remaining_days"] = 22,
-            ["pending_requests"] = 1,
-            ["approved_this_year"] = 3,
-            ["balances"] = LeaveBalanceItemsArray(),
-        },
+        ["total_remaining_days"] = 22,
+        ["pending_requests"] = 1,
+        ["approved_this_year"] = 3,
+        ["balances"] = LeaveBalanceItemsArray(),
     };
 
-    internal static JsonObject LeaveStatisticsResponse() => EnvelopeOk(LeaveSummaryData());
+    internal static JsonObject LeavePersonalSummaryResponse() => EnvelopeOk(LeavePersonalSummaryData());
 
-    internal static JsonObject LeaveMySummaryResponse() => EnvelopeOk(LeaveMySummaryData());
+    internal static JsonObject LeaveStatisticsResponse() => EnvelopeOk(LeaveSummaryData());
 
     internal static JsonObject LeaveRequestGetResponse() => EnvelopeOk(LeaveRequestDetailData());
 

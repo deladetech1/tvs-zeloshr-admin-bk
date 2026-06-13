@@ -35,14 +35,14 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Leave Management landing page — KPI cards, dashboard widgets, and logged-in employee balances.</summary>
+    /// <summary>Leave Management landing page — KPI cards and dashboard widgets (on leave today, pending approvals, leaving this week).</summary>
     [HttpGet("summary")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
-    [ProducesResponseType(typeof(Respons<LeaveMySummaryDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<Respons<LeaveMySummaryDto>>> Summary(CancellationToken ct)
+    [ProducesResponseType(typeof(Respons<LeaveDashboardDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<Respons<LeaveDashboardDto>>> Summary(CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.GetPageSummaryAsync(ctx.UserId, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.GetDashboardAsync(ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
@@ -219,11 +219,12 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Leave Management landing page (alias of GET /leave/summary) — KPIs, widgets, and personal balances under <c>my</c>.</summary>
+    /// <summary>My Leave — personal remaining days, counts, and balances for the logged-in employee.</summary>
     [HttpGet("my/summary")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
-    [ProducesResponseType(typeof(Respons<LeaveMySummaryDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<Respons<LeaveMySummaryDto>>> MySummary(CancellationToken ct)
+    [ProducesResponseType(typeof(Respons<LeavePersonalSummaryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<LeavePersonalSummaryDto>), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<Respons<LeavePersonalSummaryDto>>> MySummary(CancellationToken ct)
     {
         var ctx = _tenant.Current;
         var result = await _service.GetMySummaryAsync(ctx.UserId, ctx.TenantId, ctx.OrgId, ct);

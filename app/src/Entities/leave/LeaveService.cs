@@ -35,22 +35,6 @@ public class LeaveService
         string tenantId, string orgId, CancellationToken ct = default) =>
         Respons<LeaveDashboardDto>.Ok(await BuildDashboardAsync(tenantId, orgId, ct));
 
-    public async Task<Respons<LeaveMySummaryDto>> GetPageSummaryAsync(
-        string? platformUserId, string tenantId, string orgId, CancellationToken ct = default)
-    {
-        var dashboard = await BuildDashboardAsync(tenantId, orgId, ct);
-        var personal = await BuildPersonalSummaryAsync(platformUserId, tenantId, orgId, ct);
-
-        return Respons<LeaveMySummaryDto>.Ok(new LeaveMySummaryDto
-        {
-            Summary = dashboard.Summary,
-            OnLeaveToday = dashboard.OnLeaveToday,
-            PendingApprovals = dashboard.PendingApprovals,
-            LeavingThisWeek = dashboard.LeavingThisWeek,
-            My = personal,
-        });
-    }
-
     private async Task<LeaveDashboardDto> BuildDashboardAsync(
         string tenantId, string orgId, CancellationToken ct)
     {
@@ -319,9 +303,21 @@ public class LeaveService
         return Respons<object>.Ok(new { leaveRequestId = id.ToString() }, "Leave request deleted.");
     }
 
-    public async Task<Respons<LeaveMySummaryDto>> GetMySummaryAsync(
-        string? platformUserId, string tenantId, string orgId, CancellationToken ct = default) =>
-        await GetPageSummaryAsync(platformUserId, tenantId, orgId, ct);
+    public async Task<Respons<LeavePersonalSummaryDto>> GetMySummaryAsync(
+        string? platformUserId, string tenantId, string orgId, CancellationToken ct = default)
+    {
+        var employee = await ResolveMyEmployeeAsync(platformUserId, tenantId, orgId, ct);
+        if (employee is null)
+        {
+            if (await IsTenantOwnerWithoutEmployeeAsync(platformUserId, tenantId, ct))
+                return Respons<LeavePersonalSummaryDto>.Ok(EmptyPersonalSummary());
+            return Respons<LeavePersonalSummaryDto>.Fail(
+                "No employee profile linked to this user.", statusCode: 404);
+        }
+
+        return Respons<LeavePersonalSummaryDto>.Ok(
+            await BuildPersonalSummaryAsync(platformUserId, tenantId, orgId, ct));
+    }
 
     public async Task<Respons<LeaveMyRequestListDto>> ListMyRequestsAsync(
         string? platformUserId, string? status, int page, int size,

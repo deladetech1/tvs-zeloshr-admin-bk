@@ -63,27 +63,6 @@ public sealed class LeavePersonalSummaryDto
     public IReadOnlyList<LeaveBalanceListItemDto> Balances { get; init; } = [];
 }
 
-/// <summary>
-/// Leave Management landing page — org-wide dashboard widgets plus optional logged-in employee balances.
-/// </summary>
-public sealed class LeaveMySummaryDto
-{
-    /// <summary>Org-wide KPI cards (on leave today, pending approvals, leaving this week, etc.).</summary>
-    public LeaveSummaryDto Summary { get; init; } = new();
-
-    /// <summary>Approved leave active today (widget list, max 5).</summary>
-    public IReadOnlyList<LeaveRequestListItemDto> OnLeaveToday { get; init; } = [];
-
-    /// <summary>Pending approval queue, oldest first (widget list, max 5).</summary>
-    public IReadOnlyList<LeaveRequestListItemDto> PendingApprovals { get; init; } = [];
-
-    /// <summary>Leave starting in the next 7 days (widget list, max 10).</summary>
-    public IReadOnlyList<LeaveRequestListItemDto> LeavingThisWeek { get; init; } = [];
-
-    /// <summary>Logged-in employee personal leave (zeros/empty when not linked to <c>zhr_employees</c>).</summary>
-    public LeavePersonalSummaryDto My { get; init; } = new();
-}
-
 public sealed class LeaveRequestListItemDto
 {
     public required string LeaveRequestId { get; init; }

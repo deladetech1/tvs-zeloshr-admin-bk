@@ -118,16 +118,23 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                 return;
 
             case "api/v1/leave/summary" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
-            case "api/v1/leave/my/summary" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
-                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveMySummaryResponse());
-                operation.Summary ??= path.Contains("/my/", StringComparison.Ordinal)
-                    ? "Leave Management summary (my alias)"
-                    : "Leave Management summary";
+                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveDashboardResponse());
+                operation.Summary ??= "Leave Management summary";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
                     """
-                    Single payload for the Leave Management landing page:
-                    summary (KPI counts) · on_leave_today[] · pending_approvals[] · leaving_this_week[] · my (logged-in employee balances).
-                    Widget row fields match GET /leave/dashboard. Personal balances under `my` are empty when the user is not linked to zhr_employees.
+                    Leave Management landing page in one call: summary (KPI counts) · on_leave_today[] · pending_approvals[] · leaving_this_week[].
+                    Matches the admin dashboard widgets. Use GET /leave/my/summary for logged-in employee balances only.
+                    """);
+                return;
+
+            case "api/v1/leave/my/summary" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
+                SetJsonResponseExample(operation, 200, SwaggerExamples.LeavePersonalSummaryResponse());
+                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeavePersonalSummaryDto>), 404));
+                operation.Summary ??= "My Leave summary";
+                operation.Description = SwaggerOptionFormat.Append(operation.Description,
+                    """
+                    Personal leave for the logged-in employee: total_remaining_days · pending_requests · approved_this_year · balances[].
+                    Tenant owners without a linked zhr_employees row receive 200 with zeros. Others receive 404 when not linked.
                     """);
                 return;
 
@@ -135,7 +142,7 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveMyRequestListResponse());
                 operation.Summary ??= "My Leave requests";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
-                    "Paginated requests for the logged-in employee. Rows include nested `employee` and `leave_type`. Use GET /leave/my/summary for balances and counts.");
+                    "Paginated requests for the logged-in employee. Rows include nested `employee` and `leave_type`. Admin dashboard: GET /leave/summary.");
                 AppendParameterDescription(operation, "status", $"Optional status filter. Allowed: {SwaggerExampleHints.LeaveRequestStatus}, all.");
                 return;
 
