@@ -1476,6 +1476,7 @@ internal static class SwaggerExamples
     {
         ["leave_balance_id"] = SampleLeaveBalanceId.ToString(),
         ["employee_id"] = SampleEmployeeId.ToString(),
+        ["employee"] = LeaveEmployeeRefData(),
         ["leave_type_id"] = SampleLeaveTypeId.ToString(),
         ["leave_type"] = LeaveTypeRefData(),
         ["entitled_days"] = 21,
@@ -1489,6 +1490,7 @@ internal static class SwaggerExamples
         {
             ["leave_balance_id"] = "a2222222-2222-2222-2222-222222222205",
             ["employee_id"] = SampleEmployeeId.ToString(),
+            ["employee"] = LeaveEmployeeRefData(),
             ["leave_type_id"] = "a2222222-2222-2222-2222-222222222206",
             ["leave_type"] = new JsonObject
             {

@@ -64,7 +64,9 @@ Tree shape comes from employee `reports_to_id`. Department badge requires `head_
 | Balances | `GET /leave/balances/list` · admin CRUD on `/leave/balances/*` |
 | Settings | Leave types `/leave/types/*` · public holidays `/leave/holidays/*` |
 
-List responses use **`data.items[]`** (not `requests[]`). Rows include nested `employee`, `leave_type`, `prior_approvers`, and `waiting_hours` when pending.
+List responses use **`data.items[]`** (not `requests[]`). Rows include nested **`employee`** (`full_name`, `job_title`, `profile_url`) and **`leave_type`** (`name`) for display — keep flat `employee_id` / `leave_type_id` for filters and forms only.
+
+**Balances** (`GET /leave/my/summary`, `/leave/my/balances/list`, `/leave/balances/*`) use the same nested ref pattern on each balance row.
 
 Three-stage approval: `line_manager` → `head_of_department` → `final`. Final queue: `?approval_stage=pending_final&status=Pending`. Mutations and `GET /requests/get` return **`LeaveRequestDetailDto`** with `balance_impact` and `approval_trail`.
 

@@ -78,17 +78,17 @@ public interface ILeaveRepository
     Task<bool> DeletePendingRequestScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default);
 
-    Task<IReadOnlyList<LeaveBalanceListItemDto>> ListBalancesScopedAsync(
+    Task<IReadOnlyList<LeaveBalanceRawRow>> ListBalancesScopedAsync(
         string tenantId,
         string orgId,
         Guid? employeeId,
         Guid? leaveTypeId,
         CancellationToken ct = default);
 
-    Task<LeaveBalanceListItemDto?> GetBalanceScopedAsync(
+    Task<LeaveBalanceRawRow?> GetBalanceScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default);
 
-    Task<LeaveBalanceListItemDto?> GetBalanceForEmployeeScopedAsync(
+    Task<LeaveBalanceRawRow?> GetBalanceForEmployeeScopedAsync(
         string tenantId, string orgId, Guid employeeId, Guid leaveTypeId, CancellationToken ct = default);
 
     Task<Guid> CreateBalanceScopedAsync(
@@ -102,7 +102,7 @@ public interface ILeaveRepository
         decimal usedDays,
         CancellationToken ct = default);
 
-    Task<LeaveBalanceListItemDto?> UpdateBalanceScopedAsync(
+    Task<LeaveBalanceRawRow?> UpdateBalanceScopedAsync(
         Guid id, string tenantId, string orgId, decimal? entitledDays, decimal? usedDays, CancellationToken ct = default);
 
     Task<IReadOnlyList<LeaveTypeListItemDto>> ListTypesScopedAsync(

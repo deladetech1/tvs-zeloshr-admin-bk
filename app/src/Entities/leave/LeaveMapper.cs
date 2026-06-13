@@ -6,6 +6,7 @@ namespace ZelosHR.Api.Entities.Leave;
 public sealed record LeaveRequestRawRow(
     string LeaveRequestId,
     string EmployeeId,
+    string EmployeeFullName,
     string LeaveTypeId,
     string LeaveTypeName,
     DateOnly StartDate,
@@ -14,6 +15,7 @@ public sealed record LeaveRequestRawRow(
     string Status,
     string ApprovalStage,
     string? ApproverId,
+    string? ApproverName,
     string? LmApproverId,
     DateTimeOffset? LmDecidedAt,
     string? HodApproverId,
@@ -22,6 +24,16 @@ public sealed record LeaveRequestRawRow(
     decimal? RemainingDays,
     DateTimeOffset SubmittedAt,
     DateTimeOffset? DecidedAt);
+
+public sealed record LeaveBalanceRawRow(
+    string LeaveBalanceId,
+    string EmployeeId,
+    string EmployeeFullName,
+    string LeaveTypeId,
+    string LeaveTypeName,
+    decimal EntitledDays,
+    decimal UsedDays,
+    decimal RemainingDays);
 
 internal static class LeaveMapper
 {
@@ -68,19 +80,17 @@ internal static class LeaveMapper
             profileUrlsByEmployeeId.TryGetValue(employeeId, out profileUrl);
         }
 
-        LeaveTypeRefDto? leaveType = null;
-        if (Guid.TryParse(row.LeaveTypeId, out var leaveTypeId))
-            leaveTypes.TryGetValue(leaveTypeId, out leaveType);
-        else if (!string.IsNullOrWhiteSpace(row.LeaveTypeName))
-            leaveType = new LeaveTypeRefDto { LeaveTypeId = row.LeaveTypeId, Name = row.LeaveTypeName };
+        var leaveType = ResolveLeaveType(row.LeaveTypeId, row.LeaveTypeName, leaveTypes);
 
-        var finalApprover = ResolveApprover(row.ApproverId, approverNames);
+        var finalApprover = ResolveApprover(row.ApproverId, approverNames, row.ApproverName);
         var item = new LeaveRequestListItemDto
         {
             LeaveRequestId = row.LeaveRequestId,
             EmployeeId = row.EmployeeId,
             LeaveTypeId = row.LeaveTypeId,
-            Employee = employee is null ? null : ToEmployeeRef(employee, profileUrl),
+            Employee = employee is null
+                ? ToEmployeeFallback(row.EmployeeId, row.EmployeeFullName)
+                : ToEmployeeRef(employee, profileUrl),
             LeaveType = leaveType,
             StartDate = row.StartDate,
             EndDate = row.EndDate,
@@ -108,7 +118,7 @@ internal static class LeaveMapper
         LeaveBalanceImpactDto? balanceImpact,
         IReadOnlyDictionary<string, string> approverNames)
     {
-        var finalApprover = ResolveApprover(row.ApproverId, approverNames);
+        var finalApprover = ResolveApprover(row.ApproverId, approverNames, row.ApproverName);
         return new LeaveRequestDetailDto
         {
             LeaveRequestId = item.LeaveRequestId,
@@ -135,26 +145,33 @@ internal static class LeaveMapper
         };
     }
 
-    internal static LeaveBalanceListItemDto EnrichBalance(
-        LeaveBalanceListItemDto item,
-        IReadOnlyDictionary<Guid, LeaveTypeRefDto> leaveTypes)
+    internal static LeaveBalanceListItemDto MapBalance(
+        LeaveBalanceRawRow row,
+        IReadOnlyDictionary<Guid, EmployeeLeaveContext> employees,
+        IReadOnlyDictionary<Guid, LeaveTypeRefDto> leaveTypes,
+        IReadOnlyDictionary<Guid, DocumentReadDto?> profileUrlsByEmployeeId)
     {
-        if (Guid.TryParse(item.LeaveTypeId, out var leaveTypeId)
-            && leaveTypes.TryGetValue(leaveTypeId, out var leaveType))
+        EmployeeLeaveContext? employee = null;
+        DocumentReadDto? profileUrl = null;
+        if (Guid.TryParse(row.EmployeeId, out var employeeId))
         {
-            return new LeaveBalanceListItemDto
-            {
-                LeaveBalanceId = item.LeaveBalanceId,
-                EmployeeId = item.EmployeeId,
-                LeaveTypeId = item.LeaveTypeId,
-                LeaveType = leaveType,
-                EntitledDays = item.EntitledDays,
-                UsedDays = item.UsedDays,
-                RemainingDays = item.RemainingDays,
-            };
+            employees.TryGetValue(employeeId, out employee);
+            profileUrlsByEmployeeId.TryGetValue(employeeId, out profileUrl);
         }
 
-        return item;
+        return new LeaveBalanceListItemDto
+        {
+            LeaveBalanceId = row.LeaveBalanceId,
+            EmployeeId = row.EmployeeId,
+            Employee = employee is null
+                ? ToEmployeeFallback(row.EmployeeId, row.EmployeeFullName)
+                : ToEmployeeRef(employee, profileUrl),
+            LeaveTypeId = row.LeaveTypeId,
+            LeaveType = ResolveLeaveType(row.LeaveTypeId, row.LeaveTypeName, leaveTypes),
+            EntitledDays = row.EntitledDays,
+            UsedDays = row.UsedDays,
+            RemainingDays = row.RemainingDays,
+        };
     }
 
     internal static LeaveTypeRefDto ToTypeRef(Guid id, string name) =>
@@ -165,6 +182,22 @@ internal static class LeaveMapper
         types
             .Where(t => Guid.TryParse(t.LeaveTypeId, out _))
             .ToDictionary(t => Guid.Parse(t.LeaveTypeId), t => ToTypeRef(Guid.Parse(t.LeaveTypeId), t.Name));
+
+    internal static Dictionary<Guid, LeaveTypeRefDto> MergeLeaveTypeLookups(
+        IReadOnlyDictionary<Guid, LeaveTypeRefDto> indexedTypes,
+        IEnumerable<(string LeaveTypeId, string LeaveTypeName)> rows)
+    {
+        var leaveTypes = new Dictionary<Guid, LeaveTypeRefDto>(indexedTypes);
+        foreach (var (leaveTypeId, leaveTypeName) in rows)
+        {
+            if (string.IsNullOrWhiteSpace(leaveTypeName))
+                continue;
+            if (Guid.TryParse(leaveTypeId, out var typeId) && !leaveTypes.ContainsKey(typeId))
+                leaveTypes[typeId] = ToTypeRef(typeId, leaveTypeName);
+        }
+
+        return leaveTypes;
+    }
 
     internal static LeaveBalanceImpactDto? BuildBalanceImpact(decimal? remaining, decimal daysRequested)
     {
@@ -209,17 +242,46 @@ internal static class LeaveMapper
             ProfileUrl = profileUrl,
         };
 
+    private static LeaveEmployeeRefDto? ToEmployeeFallback(string employeeId, string employeeFullName)
+    {
+        if (string.IsNullOrWhiteSpace(employeeFullName))
+            return null;
+
+        return new LeaveEmployeeRefDto
+        {
+            EmployeeId = employeeId,
+            FullName = employeeFullName,
+        };
+    }
+
+    private static LeaveTypeRefDto? ResolveLeaveType(
+        string leaveTypeId,
+        string leaveTypeName,
+        IReadOnlyDictionary<Guid, LeaveTypeRefDto> leaveTypes)
+    {
+        if (Guid.TryParse(leaveTypeId, out var id) && leaveTypes.TryGetValue(id, out var leaveType))
+            return leaveType;
+        if (!string.IsNullOrWhiteSpace(leaveTypeName))
+            return new LeaveTypeRefDto { LeaveTypeId = leaveTypeId, Name = leaveTypeName };
+        return null;
+    }
+
     private static LeaveApproverRefDto? ResolveApprover(
-        string? approverId, IReadOnlyDictionary<string, string> approverNames)
+        string? approverId,
+        IReadOnlyDictionary<string, string> approverNames,
+        string? fallbackName = null)
     {
         if (string.IsNullOrWhiteSpace(approverId))
             return null;
 
         approverNames.TryGetValue(approverId, out var name);
+        var displayName = !string.IsNullOrWhiteSpace(name) ? name
+            : !string.IsNullOrWhiteSpace(fallbackName) ? fallbackName
+            : approverId;
         return new LeaveApproverRefDto
         {
             ApproverId = approverId,
-            FullName = name ?? approverId,
+            FullName = displayName,
         };
     }
 

@@ -1,16 +1,25 @@
 # Leave — create pending request and delete (cleanup)
 
-GET {{base}}/api/v1/leave/types/list?active_only=true
+POST {{base}}/api/v1/leave/types/add
 accept: application/json
+content-type: application/json
 app-id: {{app_id}}
 authorization: Bearer {{token}}
 bus-id: {{bus_id}}
 loc-id: {{loc_id}}
 org-id: {{org_id}}
+{
+  "name": "E2E Delete {{run_tag}}",
+  "default_entitled_days": 21,
+  "is_paid": true,
+  "is_active": true
+}
 
 HTTP 200
 [Captures]
-leave_type_id: jsonpath "$.data.items[0].leave_type_id"
+leave_type_id: jsonpath "$.data.leave_type_id"
+[Asserts]
+jsonpath "$.success" == true
 
 GET {{base}}/api/v1/employees/list?page=1&size=1
 accept: application/json

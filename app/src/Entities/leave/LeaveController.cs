@@ -198,7 +198,7 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>My Leave summary — remaining days and personal counts.</summary>
+    /// <summary>My Leave summary — remaining days, counts, and balances with nested employee/leave_type refs.</summary>
     [HttpGet("my/summary")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
     [ProducesResponseType(typeof(Respons<LeaveMySummaryDto>), StatusCodes.Status200OK)]
@@ -228,7 +228,7 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>List leave balances for the logged-in employee (My Leave).</summary>
+    /// <summary>List leave balances for the logged-in employee (nested employee and leave_type on each row).</summary>
     [HttpGet("my/balances/list")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
     [ProducesResponseType(typeof(Respons<LeaveBalanceListDto>), StatusCodes.Status200OK)]
@@ -255,7 +255,7 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>List leave balances (admin), optionally filtered by employee or type.</summary>
+    /// <summary>List leave balances (admin), optionally filtered; rows include nested display refs.</summary>
     [HttpGet("balances/list")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
     [ProducesResponseType(typeof(Respons<LeaveBalanceListDto>), StatusCodes.Status200OK)]
@@ -269,7 +269,7 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Get a single leave balance row.</summary>
+    /// <summary>Get a single leave balance row with nested employee and leave_type refs.</summary>
     [HttpGet("balances/get")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
     [ProducesResponseType(typeof(Respons<LeaveBalanceListItemDto>), StatusCodes.Status200OK)]

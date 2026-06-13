@@ -62,7 +62,10 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                 SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveRequestDetailDto>), 404));
                 operation.Summary ??= "Get leave request detail";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
-                    "Detail modal payload: working_days · public_holidays_in_range · balance_impact · approval_trail.");
+                    """
+                    Detail modal payload: nested `employee` · `leave_type` · working_days · public_holidays_in_range · balance_impact · approval_trail.
+                    Use nested refs for display — do not render raw UUIDs in the UI.
+                    """);
                 AppendParameterDescription(operation, "leave_request_id", "Leave request UUID from list or create.");
                 return;
 
@@ -113,20 +116,26 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                 SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveMySummaryDto>), 404));
                 operation.Summary ??= "My Leave summary";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
-                    "Employee self-service for logged-in platform user: total_remaining_days · pending_requests · approved_this_year · balances[].");
+                    """
+                    Employee self-service for logged-in platform user: total_remaining_days · pending_requests · approved_this_year · balances[].
+                    Each balance includes nested `employee` (full_name) and `leave_type` (name) — use those for display, not raw UUIDs.
+                    """);
                 return;
 
             case "api/v1/leave/my/requests/list" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveMyRequestListResponse());
                 operation.Summary ??= "My Leave requests";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
-                    "Paginated requests for the logged-in employee only. Use GET /leave/my/summary for balances and counts.");
+                    "Paginated requests for the logged-in employee. Rows include nested `employee` and `leave_type`. Use GET /leave/my/summary for balances and counts.");
                 AppendParameterDescription(operation, "status", $"Optional status filter. Allowed: {SwaggerExampleHints.LeaveRequestStatus}, all.");
                 return;
 
             case "api/v1/leave/my/balances/list" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveBalanceListResponse());
+                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveBalanceListDto>), 404));
                 operation.Summary ??= "My Leave balances";
+                operation.Description = SwaggerOptionFormat.Append(operation.Description,
+                    "Entitlement rows for the logged-in employee. Each item includes nested `employee` and `leave_type` display refs.");
                 return;
 
             case "api/v1/leave/my/requests/add" when method.Equals("POST", StringComparison.OrdinalIgnoreCase):
@@ -139,6 +148,8 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
             case "api/v1/leave/balances/list" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveBalanceListResponse());
                 operation.Summary ??= "List leave balances";
+                operation.Description = SwaggerOptionFormat.Append(operation.Description,
+                    "Admin entitlement list. Each row includes nested `employee` (full_name, job_title, profile_url) and `leave_type` (name).");
                 AppendParameterDescription(operation, "employee_id", "Optional employee UUID filter.");
                 AppendParameterDescription(operation, "leave_type_id", "Optional leave type UUID filter.");
                 return;
@@ -147,17 +158,23 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveBalanceGetResponse());
                 SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveBalanceListItemDto>), 404));
                 operation.Summary ??= "Get leave balance";
+                operation.Description = SwaggerOptionFormat.Append(operation.Description,
+                    "Single balance row with nested `employee` and `leave_type` display refs.");
                 AppendParameterDescription(operation, "leave_balance_id", "Balance row UUID.");
                 return;
 
             case "api/v1/leave/balances/add" when method.Equals("POST", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveBalanceGetResponse());
                 operation.Summary ??= "Create leave balance (admin)";
+                operation.Description = SwaggerOptionFormat.Append(operation.Description,
+                    "Creates an entitlement row. Response includes nested `employee` and `leave_type` for display.");
                 return;
 
             case "api/v1/leave/balances/update" when method.Equals("PUT", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveBalanceGetResponse());
                 operation.Summary ??= "Update leave balance (admin)";
+                operation.Description = SwaggerOptionFormat.Append(operation.Description,
+                    "Partial update of entitled_days and/or used_days. Response includes nested display refs.");
                 AppendParameterDescription(operation, "leave_balance_id", "Balance row UUID.");
                 return;
 

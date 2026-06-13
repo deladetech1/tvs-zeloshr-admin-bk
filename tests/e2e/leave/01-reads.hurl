@@ -30,6 +30,7 @@ jsonpath "$.data.on_leave_today" isCollection
 jsonpath "$.data.pending_approvals" isCollection
 jsonpath "$.data.leaving_this_week" isCollection
 
+# My Leave requires a platform user linked to hr_employees (404 when absent).
 GET {{base}}/api/v1/leave/my/summary
 accept: application/json
 app-id: {{app_id}}
@@ -38,9 +39,10 @@ bus-id: {{bus_id}}
 loc-id: {{loc_id}}
 org-id: {{org_id}}
 
-HTTP *
+HTTP 404
 [Asserts]
-jsonpath "$.success" == true
+jsonpath "$.success" == false
+jsonpath "$.status_code" == 404
 
 GET {{base}}/api/v1/leave/my/balances/list
 accept: application/json
@@ -50,9 +52,9 @@ bus-id: {{bus_id}}
 loc-id: {{loc_id}}
 org-id: {{org_id}}
 
-HTTP *
+HTTP 404
 [Asserts]
-jsonpath "$.success" == true
+jsonpath "$.success" == false
 
 GET {{base}}/api/v1/leave/my/requests/list?page=1&size=5
 accept: application/json
@@ -62,7 +64,19 @@ bus-id: {{bus_id}}
 loc-id: {{loc_id}}
 org-id: {{org_id}}
 
-HTTP *
+HTTP 404
+[Asserts]
+jsonpath "$.success" == false
+
+GET {{base}}/api/v1/leave/balances/list
+accept: application/json
+app-id: {{app_id}}
+authorization: Bearer {{token}}
+bus-id: {{bus_id}}
+loc-id: {{loc_id}}
+org-id: {{org_id}}
+
+HTTP 200
 [Asserts]
 jsonpath "$.success" == true
 jsonpath "$.data.items" isCollection

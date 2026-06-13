@@ -584,26 +584,9 @@ public class LeaveService
             .Distinct();
         var employees = await _employees.ResolveLeaveContextsAsync(employeeIds, tenantId, orgId, ct);
 
-        var leaveTypeIds = rows
-            .Select(r => Guid.TryParse(r.LeaveTypeId, out var id) ? id : (Guid?)null)
-            .Where(id => id.HasValue)
-            .Select(id => id!.Value)
-            .Distinct()
-            .ToList();
-
-        var leaveTypes = new Dictionary<Guid, LeaveTypeRefDto>();
-        foreach (var typeId in leaveTypeIds)
-        {
-            var type = await _leave.GetTypeByIdScopedAsync(typeId, tenantId, orgId, ct);
-            if (type is not null)
-                leaveTypes[typeId] = LeaveMapper.ToTypeRef(typeId, type.Name);
-        }
-
-        foreach (var row in rows.Where(r => !string.IsNullOrWhiteSpace(r.LeaveTypeName)))
-        {
-            if (Guid.TryParse(row.LeaveTypeId, out var typeId) && !leaveTypes.ContainsKey(typeId))
-                leaveTypes[typeId] = LeaveMapper.ToTypeRef(typeId, row.LeaveTypeName);
-        }
+        var leaveTypes = LeaveMapper.MergeLeaveTypeLookups(
+            LeaveMapper.IndexTypes(await _leave.ListTypesScopedAsync(tenantId, orgId, null, false, ct)),
+            rows.Select(r => (r.LeaveTypeId, r.LeaveTypeName)));
 
         var approverNames = await LeaveMapper.ResolveApproverNamesAsync(
             _cpUsers, LeaveMapper.CollectApproverIds(rows), tenantId, ct);
@@ -643,16 +626,30 @@ public class LeaveService
     }
 
     private async Task<IReadOnlyList<LeaveBalanceListItemDto>> EnrichBalancesAsync(
-        IReadOnlyList<LeaveBalanceListItemDto> items,
+        IReadOnlyList<LeaveBalanceRawRow> rows,
         string tenantId,
         string orgId,
         CancellationToken ct)
     {
-        if (items.Count == 0)
-            return items;
+        if (rows.Count == 0)
+            return [];
 
-        var types = LeaveMapper.IndexTypes(await _leave.ListTypesScopedAsync(tenantId, orgId, null, false, ct));
-        return items.Select(item => LeaveMapper.EnrichBalance(item, types)).ToList();
+        var employeeIds = rows
+            .Select(r => Guid.TryParse(r.EmployeeId, out var id) ? id : (Guid?)null)
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Distinct();
+        var employees = await _employees.ResolveLeaveContextsAsync(employeeIds, tenantId, orgId, ct);
+
+        var leaveTypes = LeaveMapper.MergeLeaveTypeLookups(
+            LeaveMapper.IndexTypes(await _leave.ListTypesScopedAsync(tenantId, orgId, null, false, ct)),
+            rows.Select(r => (r.LeaveTypeId, r.LeaveTypeName)));
+
+        var profileUrlsByEmployeeId = await ResolveEmployeeProfileUrlsAsync(employees, ct);
+
+        return rows
+            .Select(row => LeaveMapper.MapBalance(row, employees, leaveTypes, profileUrlsByEmployeeId))
+            .ToList();
     }
 
     private static IReadOnlyList<LeaveRequestListItemDto> PickEnriched(

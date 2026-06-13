@@ -4,7 +4,10 @@ using ZelosHR.Api.Entities.Files;
 
 public sealed class LeaveEmployeeRefDto
 {
+    /// <summary>Employee UUID — use for links and filters; display <see cref="FullName"/>.</summary>
     public required string EmployeeId { get; init; }
+
+    /// <summary>Display name for UI tables and modals.</summary>
     public required string FullName { get; init; }
     public string? EmployeeCode { get; init; }
     public string? JobTitle { get; init; }
@@ -17,7 +20,10 @@ public sealed class LeaveEmployeeRefDto
 
 public sealed class LeaveTypeRefDto
 {
+    /// <summary>Leave type UUID — use for filters and create payloads; display <see cref="Name"/>.</summary>
     public required string LeaveTypeId { get; init; }
+
+    /// <summary>Human-readable leave type label (e.g. Annual Leave).</summary>
     public required string Name { get; init; }
 }
 
@@ -58,6 +64,8 @@ public sealed class LeaveMySummaryDto
     public decimal TotalRemainingDays { get; init; }
     public int PendingRequests { get; init; }
     public int ApprovedThisYear { get; init; }
+
+    /// <summary>Balance rows with nested <c>employee</c> and <c>leave_type</c> display refs.</summary>
     public IReadOnlyList<LeaveBalanceListItemDto> Balances { get; init; } = [];
 }
 
@@ -111,8 +119,17 @@ public sealed class LeaveRequestDetailDto
 public sealed class LeaveBalanceListItemDto
 {
     public required string LeaveBalanceId { get; init; }
+
+    /// <summary>Employee UUID — prefer nested <see cref="Employee"/> for display.</summary>
     public required string EmployeeId { get; init; }
+
+    /// <summary>Nested employee display ref (full_name, job_title, profile_url when available).</summary>
+    public LeaveEmployeeRefDto? Employee { get; init; }
+
+    /// <summary>Leave type UUID — prefer nested <see cref="LeaveType"/> for display.</summary>
     public required string LeaveTypeId { get; init; }
+
+    /// <summary>Nested leave type display ref (name).</summary>
     public LeaveTypeRefDto? LeaveType { get; init; }
     public decimal EntitledDays { get; init; }
     public decimal UsedDays { get; init; }
@@ -132,6 +149,7 @@ public sealed class LeaveMyRequestListDto
 
 public sealed class LeaveBalanceListDto
 {
+    /// <summary>Balance rows; each item includes nested <c>employee</c> and <c>leave_type</c> for display.</summary>
     public IReadOnlyList<LeaveBalanceListItemDto> Items { get; init; } = [];
 }
 

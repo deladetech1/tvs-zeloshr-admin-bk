@@ -355,7 +355,7 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
         return true;
     }
 
-    public async Task<IReadOnlyList<LeaveBalanceListItemDto>> ListBalancesScopedAsync(
+    public async Task<IReadOnlyList<LeaveBalanceRawRow>> ListBalancesScopedAsync(
         string tenantId,
         string orgId,
         Guid? employeeId,
@@ -371,23 +371,23 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
         return await query
             .OrderBy(b => b.EmployeeFullName)
             .ThenBy(b => b.LeaveType)
-            .Select(b => ToBalanceDto(b))
+            .Select(b => ToBalanceRawRow(b))
             .ToListAsync(ct);
     }
 
-    public async Task<LeaveBalanceListItemDto?> GetBalanceScopedAsync(
+    public async Task<LeaveBalanceRawRow?> GetBalanceScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default)
     {
         var entity = await Balances(tenantId, orgId).FirstOrDefaultAsync(b => b.Id == id, ct);
-        return entity is null ? null : ToBalanceDto(entity);
+        return entity is null ? null : ToBalanceRawRow(entity);
     }
 
-    public async Task<LeaveBalanceListItemDto?> GetBalanceForEmployeeScopedAsync(
+    public async Task<LeaveBalanceRawRow?> GetBalanceForEmployeeScopedAsync(
         string tenantId, string orgId, Guid employeeId, Guid leaveTypeId, CancellationToken ct = default)
     {
         var entity = await Balances(tenantId, orgId).FirstOrDefaultAsync(
             b => b.EmployeeId == employeeId && b.LeaveTypeId == leaveTypeId, ct);
-        return entity is null ? null : ToBalanceDto(entity);
+        return entity is null ? null : ToBalanceRawRow(entity);
     }
 
     public async Task<Guid> CreateBalanceScopedAsync(
@@ -419,7 +419,7 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
         return entity.Id;
     }
 
-    public async Task<LeaveBalanceListItemDto?> UpdateBalanceScopedAsync(
+    public async Task<LeaveBalanceRawRow?> UpdateBalanceScopedAsync(
         Guid id, string tenantId, string orgId, decimal? entitledDays, decimal? usedDays, CancellationToken ct = default)
     {
         var entity = await db.LeaveBalances.FirstOrDefaultAsync(
@@ -444,7 +444,7 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
 
         entity.RemainingDays = entity.EntitledDays - entity.UsedDays;
         await db.SaveChangesAsync(ct);
-        return ToBalanceDto(entity);
+        return ToBalanceRawRow(entity);
     }
 
     public async Task<IReadOnlyList<LeaveTypeListItemDto>> ListTypesScopedAsync(
@@ -807,6 +807,7 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
     private static LeaveRequestRawRow ToRawRow(LeaveRequestEntity r, decimal? remainingDays) => new(
         r.Id.ToString(),
         r.EmployeeId.ToString(),
+        r.EmployeeFullName,
         r.LeaveTypeId?.ToString() ?? string.Empty,
         r.LeaveType,
         r.StartDate,
@@ -815,6 +816,7 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
         r.Status,
         r.ApprovalStage,
         r.ApproverId,
+        r.ApproverName,
         r.LmApproverId,
         r.LmDecidedAt,
         r.HodApproverId,
@@ -824,15 +826,15 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
         r.SubmittedAt,
         r.DecidedAt);
 
-    private static LeaveBalanceListItemDto ToBalanceDto(LeaveBalanceEntity b) => new()
-    {
-        LeaveBalanceId = b.Id.ToString(),
-        EmployeeId = b.EmployeeId.ToString(),
-        LeaveTypeId = b.LeaveTypeId?.ToString() ?? string.Empty,
-        EntitledDays = b.EntitledDays,
-        UsedDays = b.UsedDays,
-        RemainingDays = b.RemainingDays,
-    };
+    private static LeaveBalanceRawRow ToBalanceRawRow(LeaveBalanceEntity b) => new(
+        b.Id.ToString(),
+        b.EmployeeId.ToString(),
+        b.EmployeeFullName,
+        b.LeaveTypeId?.ToString() ?? string.Empty,
+        b.LeaveType,
+        b.EntitledDays,
+        b.UsedDays,
+        b.RemainingDays);
 
     private static LeaveTypeListItemDto ToTypeDto(LeaveTypeEntity t) => new()
     {

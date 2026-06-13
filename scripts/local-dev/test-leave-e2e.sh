@@ -115,11 +115,31 @@ run_hurl() {
     exit 1
   fi
 
+  # Paths must be relative to /work inside the container (not host absolutes).
+  local -a docker_args=()
+  local arg
+  for arg in "$@"; do
+    case "${arg}" in
+      "${HURL_ENV}")
+        docker_args+=("tests/e2e/.runtime/hurl.env")
+        ;;
+      "${RUN_DIR}/html")
+        docker_args+=("reports/e2e/leave/${RUN_ID}/html")
+        ;;
+      "${RUN_DIR}/junit.xml")
+        docker_args+=("reports/e2e/leave/${RUN_ID}/junit.xml")
+        ;;
+      *)
+        docker_args+=("${arg}")
+        ;;
+    esac
+  done
+
   docker run --rm \
     -v "${ROOT}:/work" \
     -w /work \
     "${HURL_IMAGE}" \
-    "$@"
+    "${docker_args[@]}"
 }
 
 echo "Leave E2E (Hurl)"
