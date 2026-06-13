@@ -307,12 +307,12 @@ public class LeaveService
         string? platformUserId, string? status, int page, int size,
         string tenantId, string orgId, CancellationToken ct = default)
     {
+        var paging = PagedQuery.From(page, size);
         var employee = await ResolveMyEmployeeAsync(platformUserId, tenantId, orgId, ct);
         if (employee is null)
         {
             if (await IsTenantOwnerWithoutEmployeeAsync(platformUserId, tenantId, ct))
             {
-                var paging = PagedQuery.From(page, size);
                 return Respons<LeaveMyRequestListDto>.Ok(
                     new LeaveMyRequestListDto(),
                     pagination: new PaginationMeta
@@ -327,7 +327,6 @@ public class LeaveService
             return Respons<LeaveMyRequestListDto>.Fail("No employee profile linked to this user.", statusCode: 404);
         }
 
-        var paging = PagedQuery.From(page, size);
         var (requests, total) = await _leave.ListRequestsScopedAsync(
             tenantId,
             employee.Value.OrgId,
