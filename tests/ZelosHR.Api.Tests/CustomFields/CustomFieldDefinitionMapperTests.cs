@@ -24,13 +24,13 @@ public sealed class CustomFieldDefinitionMapperTests
     }
 
     [Fact]
-    public void EnrichAuthors_uses_unknown_user_when_cp_user_missing()
+    public void EnrichAuthors_leaves_display_names_null_when_cp_user_missing()
     {
         var source = SampleDefinition("uid_missing");
         var enriched = CustomFieldDefinitionMapper.EnrichAuthors(source, new Dictionary<string, CpUserDto>());
 
-        Assert.Equal("Unknown user", enriched.CreatedBy);
-        Assert.Equal("Unknown user", enriched.UpdatedBy);
+        Assert.Null(enriched.CreatedBy);
+        Assert.Null(enriched.UpdatedBy);
     }
 
     private static CustomFieldDefinitionDto SampleDefinition(string userId) => new()
