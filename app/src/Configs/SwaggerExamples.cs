@@ -1381,13 +1381,13 @@ internal static class SwaggerExamples
         ["full_name"] = "Fiifi Boakye",
     };
 
+    internal static JsonObject LeaveApprovalStepApproverData() => LeaveApproverRefData();
+
     internal static JsonObject LeaveRequestItemData(
         string status = "Pending",
         decimal? remainingDays = 14) => new()
     {
         ["leave_request_id"] = SampleLeaveRequestId.ToString(),
-        ["employee_id"] = SampleEmployeeId.ToString(),
-        ["leave_type_id"] = SampleLeaveTypeId.ToString(),
         ["employee"] = LeaveEmployeeRefData(),
         ["leave_type"] = LeaveTypeRefData(),
         ["start_date"] = "2026-07-07",
@@ -1395,21 +1395,20 @@ internal static class SwaggerExamples
         ["days_requested"] = 5,
         ["status"] = status,
         ["approval_stage"] = status == "Approved" ? "approved" : "pending_final",
-        ["approver_id"] = status is "Approved" or "Rejected" ? "cp-user-demo-admin" : null,
         ["approver"] = status is "Approved" or "Rejected" ? LeaveApproverRefData() : null,
         ["prior_approvers"] = new JsonArray(
             new JsonObject
             {
                 ["stage"] = "line_manager",
                 ["status"] = "approved",
-                ["approver"] = LeaveApproverRefData(),
+                ["approver"] = LeaveApprovalStepApproverData(),
                 ["decided_at"] = "2026-06-09T10:00:00+00:00",
             },
             new JsonObject
             {
                 ["stage"] = "head_of_department",
                 ["status"] = "approved",
-                ["approver"] = LeaveApproverRefData(),
+                ["approver"] = LeaveApprovalStepApproverData(),
                 ["decided_at"] = "2026-06-09T14:30:00+00:00",
             }),
         ["notes"] = status == "Rejected" ? "Team coverage required during sprint." : "Family visit.",
@@ -1424,8 +1423,6 @@ internal static class SwaggerExamples
         string approvalStage = "pending_final") => new()
     {
         ["leave_request_id"] = SampleLeaveRequestId.ToString(),
-        ["employee_id"] = SampleEmployeeId.ToString(),
-        ["leave_type_id"] = SampleLeaveTypeId.ToString(),
         ["employee"] = LeaveEmployeeRefData(),
         ["leave_type"] = LeaveTypeRefData(),
         ["start_date"] = "2026-07-07",
@@ -1435,21 +1432,20 @@ internal static class SwaggerExamples
         ["public_holidays_in_range"] = 0,
         ["status"] = status,
         ["approval_stage"] = approvalStage,
-        ["approver_id"] = status is "Approved" or "Rejected" ? "cp-user-demo-admin" : null,
         ["approver"] = status is "Approved" or "Rejected" ? LeaveApproverRefData() : null,
         ["approval_trail"] = new JsonArray(
             new JsonObject
             {
                 ["stage"] = "line_manager",
                 ["status"] = "approved",
-                ["approver"] = LeaveApproverRefData(),
+                ["approver"] = LeaveApprovalStepApproverData(),
                 ["decided_at"] = "2026-06-09T10:00:00+00:00",
             },
             new JsonObject
             {
                 ["stage"] = "head_of_department",
                 ["status"] = "approved",
-                ["approver"] = LeaveApproverRefData(),
+                ["approver"] = LeaveApprovalStepApproverData(),
                 ["decided_at"] = "2026-06-09T14:30:00+00:00",
             },
             new JsonObject
@@ -1475,9 +1471,7 @@ internal static class SwaggerExamples
     internal static JsonObject LeaveBalanceItemData() => new()
     {
         ["leave_balance_id"] = SampleLeaveBalanceId.ToString(),
-        ["employee_id"] = SampleEmployeeId.ToString(),
         ["employee"] = LeaveEmployeeRefData(),
-        ["leave_type_id"] = SampleLeaveTypeId.ToString(),
         ["leave_type"] = LeaveTypeRefData(),
         ["entitled_days"] = 21,
         ["used_days"] = 7,
@@ -1489,9 +1483,7 @@ internal static class SwaggerExamples
         new JsonObject
         {
             ["leave_balance_id"] = "a2222222-2222-2222-2222-222222222205",
-            ["employee_id"] = SampleEmployeeId.ToString(),
             ["employee"] = LeaveEmployeeRefData(),
-            ["leave_type_id"] = "a2222222-2222-2222-2222-222222222206",
             ["leave_type"] = new JsonObject
             {
                 ["leave_type_id"] = "a2222222-2222-2222-2222-222222222206",

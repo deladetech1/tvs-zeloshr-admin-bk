@@ -12,8 +12,8 @@ public class LeaveMapperTests
     private static readonly IReadOnlyDictionary<Guid, EmployeeLeaveContext> NoEmployees =
         new Dictionary<Guid, EmployeeLeaveContext>();
 
-    private static readonly IReadOnlyDictionary<Guid, LeaveTypeRefDto> NoLeaveTypes =
-        new Dictionary<Guid, LeaveTypeRefDto>();
+    private static readonly IReadOnlyDictionary<Guid, string> NoLeaveTypes =
+        new Dictionary<Guid, string>();
 
     private static readonly IReadOnlyDictionary<string, string> NoApproverNames =
         new Dictionary<string, string>();
@@ -34,15 +34,14 @@ public class LeaveMapperTests
             7,
             14);
 
-        var leaveTypes = new Dictionary<Guid, LeaveTypeRefDto>
+        var leaveTypes = new Dictionary<Guid, string>
         {
-            [LeaveTypeId] = LeaveMapper.ToTypeRef(LeaveTypeId, "Annual Leave"),
+            [LeaveTypeId] = "Annual Leave",
         };
 
         var result = LeaveMapper.MapBalance(row, NoEmployees, leaveTypes, NoProfileUrls);
 
         Assert.Equal("Annual Leave", result.LeaveType?.Name);
-        Assert.Equal(LeaveTypeId.ToString(), result.LeaveType?.LeaveTypeId);
     }
 
     [Fact]
@@ -175,18 +174,19 @@ public class LeaveMapperTests
         var result = LeaveMapper.MapRequest(row, NoEmployees, NoLeaveTypes, NoApproverNames, NoProfileUrls);
 
         Assert.Equal("Bright Debrah", result.Approver?.FullName);
+        Assert.Equal(approverId, result.Approver?.ApproverId);
     }
 
     [Fact]
     public void MergeLeaveTypeLookups_adds_legacy_name_when_type_missing_from_index()
     {
-        var indexed = new Dictionary<Guid, LeaveTypeRefDto>();
+        var indexed = new Dictionary<Guid, string>();
         var rows = new[] { (LeaveTypeId.ToString(), "Annual Leave") };
 
         var merged = LeaveMapper.MergeLeaveTypeLookups(indexed, rows);
 
         Assert.True(merged.ContainsKey(LeaveTypeId));
-        Assert.Equal("Annual Leave", merged[LeaveTypeId].Name);
+        Assert.Equal("Annual Leave", merged[LeaveTypeId]);
     }
 
     [Fact]

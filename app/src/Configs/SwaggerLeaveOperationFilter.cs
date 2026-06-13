@@ -92,7 +92,7 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                     """
                     Three-stage workflow: line_manager → head_of_department → final.
                     Each call advances one stage when the authenticated user's employee matches the expected approver.
-                    Final stage sets status Approved and decrements balance. `approver_id` is the platform user id.
+                    Final stage sets status Approved and decrements balance. Response `approver.approver_id` is the platform user id.
                     """);
                 AppendParameterDescription(operation, "leave_request_id", "Pending leave request UUID.");
                 return;

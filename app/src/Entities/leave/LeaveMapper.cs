@@ -54,8 +54,8 @@ internal static class LeaveMapper
     {
         foreach (var item in items)
         {
-            if (!string.IsNullOrWhiteSpace(item.ApproverId))
-                yield return item.ApproverId;
+            if (!string.IsNullOrWhiteSpace(item.Approver?.ApproverId))
+                yield return item.Approver.ApproverId;
 
             foreach (var step in item.PriorApprovers)
             {
@@ -68,7 +68,7 @@ internal static class LeaveMapper
     internal static LeaveRequestListItemDto MapRequest(
         LeaveRequestRawRow row,
         IReadOnlyDictionary<Guid, EmployeeLeaveContext> employees,
-        IReadOnlyDictionary<Guid, LeaveTypeRefDto> leaveTypes,
+        IReadOnlyDictionary<Guid, string> leaveTypes,
         IReadOnlyDictionary<string, string> approverNames,
         IReadOnlyDictionary<Guid, DocumentReadDto?> profileUrlsByEmployeeId)
     {
@@ -86,18 +86,15 @@ internal static class LeaveMapper
         var item = new LeaveRequestListItemDto
         {
             LeaveRequestId = row.LeaveRequestId,
-            EmployeeId = row.EmployeeId,
-            LeaveTypeId = row.LeaveTypeId,
             Employee = employee is null
                 ? ToEmployeeFallback(row.EmployeeId, row.EmployeeFullName)
-                : ToEmployeeRef(employee, profileUrl),
+                : ToEmployeeRef(row.EmployeeId, employee, profileUrl),
             LeaveType = leaveType,
             StartDate = row.StartDate,
             EndDate = row.EndDate,
             DaysRequested = row.DaysRequested,
             Status = row.Status,
             ApprovalStage = row.ApprovalStage,
-            ApproverId = row.ApproverId,
             Approver = finalApprover,
             PriorApprovers = BuildPriorApprovers(row, approverNames),
             Notes = row.Notes,
@@ -122,8 +119,6 @@ internal static class LeaveMapper
         return new LeaveRequestDetailDto
         {
             LeaveRequestId = item.LeaveRequestId,
-            EmployeeId = item.EmployeeId,
-            LeaveTypeId = item.LeaveTypeId,
             Employee = item.Employee,
             LeaveType = item.LeaveType,
             StartDate = item.StartDate,
@@ -133,7 +128,6 @@ internal static class LeaveMapper
             PublicHolidaysInRange = publicHolidaysInRange,
             Status = item.Status,
             ApprovalStage = item.ApprovalStage,
-            ApproverId = item.ApproverId,
             Approver = finalApprover,
             ApprovalTrail = BuildApprovalTrail(row, finalApprover, approverNames),
             Notes = item.Notes,
@@ -148,7 +142,7 @@ internal static class LeaveMapper
     internal static LeaveBalanceListItemDto MapBalance(
         LeaveBalanceRawRow row,
         IReadOnlyDictionary<Guid, EmployeeLeaveContext> employees,
-        IReadOnlyDictionary<Guid, LeaveTypeRefDto> leaveTypes,
+        IReadOnlyDictionary<Guid, string> leaveTypes,
         IReadOnlyDictionary<Guid, DocumentReadDto?> profileUrlsByEmployeeId)
     {
         EmployeeLeaveContext? employee = null;
@@ -162,11 +156,9 @@ internal static class LeaveMapper
         return new LeaveBalanceListItemDto
         {
             LeaveBalanceId = row.LeaveBalanceId,
-            EmployeeId = row.EmployeeId,
             Employee = employee is null
                 ? ToEmployeeFallback(row.EmployeeId, row.EmployeeFullName)
-                : ToEmployeeRef(employee, profileUrl),
-            LeaveTypeId = row.LeaveTypeId,
+                : ToEmployeeRef(row.EmployeeId, employee, profileUrl),
             LeaveType = ResolveLeaveType(row.LeaveTypeId, row.LeaveTypeName, leaveTypes),
             EntitledDays = row.EntitledDays,
             UsedDays = row.UsedDays,
@@ -174,26 +166,23 @@ internal static class LeaveMapper
         };
     }
 
-    internal static LeaveTypeRefDto ToTypeRef(Guid id, string name) =>
-        new() { LeaveTypeId = id.ToString(), Name = name };
-
-    internal static IReadOnlyDictionary<Guid, LeaveTypeRefDto> IndexTypes(
+    internal static IReadOnlyDictionary<Guid, string> IndexTypes(
         IEnumerable<LeaveTypeListItemDto> types) =>
         types
             .Where(t => Guid.TryParse(t.LeaveTypeId, out _))
-            .ToDictionary(t => Guid.Parse(t.LeaveTypeId), t => ToTypeRef(Guid.Parse(t.LeaveTypeId), t.Name));
+            .ToDictionary(t => Guid.Parse(t.LeaveTypeId), t => t.Name);
 
-    internal static Dictionary<Guid, LeaveTypeRefDto> MergeLeaveTypeLookups(
-        IReadOnlyDictionary<Guid, LeaveTypeRefDto> indexedTypes,
+    internal static Dictionary<Guid, string> MergeLeaveTypeLookups(
+        IReadOnlyDictionary<Guid, string> indexedTypes,
         IEnumerable<(string LeaveTypeId, string LeaveTypeName)> rows)
     {
-        var leaveTypes = new Dictionary<Guid, LeaveTypeRefDto>(indexedTypes);
+        var leaveTypes = new Dictionary<Guid, string>(indexedTypes);
         foreach (var (leaveTypeId, leaveTypeName) in rows)
         {
             if (string.IsNullOrWhiteSpace(leaveTypeName))
                 continue;
             if (Guid.TryParse(leaveTypeId, out var typeId) && !leaveTypes.ContainsKey(typeId))
-                leaveTypes[typeId] = ToTypeRef(typeId, leaveTypeName);
+                leaveTypes[typeId] = leaveTypeName;
         }
 
         return leaveTypes;
@@ -229,11 +218,12 @@ internal static class LeaveMapper
     }
 
     private static LeaveEmployeeRefDto ToEmployeeRef(
+        string employeeId,
         EmployeeLeaveContext employee,
         DocumentReadDto? profileUrl) =>
         new()
         {
-            EmployeeId = employee.EmployeeId.ToString(),
+            EmployeeId = employeeId,
             FullName = employee.FullName,
             EmployeeCode = employee.EmployeeCode,
             JobTitle = employee.JobTitle,
@@ -257,10 +247,10 @@ internal static class LeaveMapper
     private static LeaveTypeRefDto? ResolveLeaveType(
         string leaveTypeId,
         string leaveTypeName,
-        IReadOnlyDictionary<Guid, LeaveTypeRefDto> leaveTypes)
+        IReadOnlyDictionary<Guid, string> leaveTypes)
     {
-        if (Guid.TryParse(leaveTypeId, out var id) && leaveTypes.TryGetValue(id, out var leaveType))
-            return leaveType;
+        if (Guid.TryParse(leaveTypeId, out var id) && leaveTypes.TryGetValue(id, out var name))
+            return new LeaveTypeRefDto { LeaveTypeId = leaveTypeId, Name = name };
         if (!string.IsNullOrWhiteSpace(leaveTypeName))
             return new LeaveTypeRefDto { LeaveTypeId = leaveTypeId, Name = leaveTypeName };
         return null;

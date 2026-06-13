@@ -4,10 +4,7 @@ using ZelosHR.Api.Entities.Files;
 
 public sealed class LeaveEmployeeRefDto
 {
-    /// <summary>Employee UUID — use for links and filters; display <see cref="FullName"/>.</summary>
     public required string EmployeeId { get; init; }
-
-    /// <summary>Display name for UI tables and modals.</summary>
     public required string FullName { get; init; }
     public string? EmployeeCode { get; init; }
     public string? JobTitle { get; init; }
@@ -20,10 +17,7 @@ public sealed class LeaveEmployeeRefDto
 
 public sealed class LeaveTypeRefDto
 {
-    /// <summary>Leave type UUID — use for filters and create payloads; display <see cref="Name"/>.</summary>
     public required string LeaveTypeId { get; init; }
-
-    /// <summary>Human-readable leave type label (e.g. Annual Leave).</summary>
     public required string Name { get; init; }
 }
 
@@ -72,8 +66,6 @@ public sealed class LeaveMySummaryDto
 public sealed class LeaveRequestListItemDto
 {
     public required string LeaveRequestId { get; init; }
-    public required string EmployeeId { get; init; }
-    public required string LeaveTypeId { get; init; }
     public LeaveEmployeeRefDto? Employee { get; init; }
     public LeaveTypeRefDto? LeaveType { get; init; }
     public DateOnly StartDate { get; init; }
@@ -81,7 +73,6 @@ public sealed class LeaveRequestListItemDto
     public decimal DaysRequested { get; init; }
     public required string Status { get; init; }
     public required string ApprovalStage { get; init; }
-    public string? ApproverId { get; init; }
     public LeaveApproverRefDto? Approver { get; init; }
     public IReadOnlyList<LeaveApprovalStepDto> PriorApprovers { get; init; } = [];
     public string? Notes { get; init; }
@@ -94,8 +85,6 @@ public sealed class LeaveRequestListItemDto
 public sealed class LeaveRequestDetailDto
 {
     public required string LeaveRequestId { get; init; }
-    public required string EmployeeId { get; init; }
-    public required string LeaveTypeId { get; init; }
     public LeaveEmployeeRefDto? Employee { get; init; }
     public LeaveTypeRefDto? LeaveType { get; init; }
     public DateOnly StartDate { get; init; }
@@ -105,7 +94,6 @@ public sealed class LeaveRequestDetailDto
     public int PublicHolidaysInRange { get; init; }
     public required string Status { get; init; }
     public required string ApprovalStage { get; init; }
-    public string? ApproverId { get; init; }
     public LeaveApproverRefDto? Approver { get; init; }
     public IReadOnlyList<LeaveApprovalStepDto> ApprovalTrail { get; init; } = [];
     public string? Notes { get; init; }
@@ -119,17 +107,7 @@ public sealed class LeaveRequestDetailDto
 public sealed class LeaveBalanceListItemDto
 {
     public required string LeaveBalanceId { get; init; }
-
-    /// <summary>Employee UUID — prefer nested <see cref="Employee"/> for display.</summary>
-    public required string EmployeeId { get; init; }
-
-    /// <summary>Nested employee display ref (full_name, job_title, profile_url when available).</summary>
     public LeaveEmployeeRefDto? Employee { get; init; }
-
-    /// <summary>Leave type UUID — prefer nested <see cref="LeaveType"/> for display.</summary>
-    public required string LeaveTypeId { get; init; }
-
-    /// <summary>Nested leave type display ref (name).</summary>
     public LeaveTypeRefDto? LeaveType { get; init; }
     public decimal EntitledDays { get; init; }
     public decimal UsedDays { get; init; }
