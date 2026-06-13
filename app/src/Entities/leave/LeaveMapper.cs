@@ -23,7 +23,11 @@ public sealed record LeaveRequestRawRow(
     string? Notes,
     decimal? RemainingDays,
     DateTimeOffset SubmittedAt,
-    DateTimeOffset? DecidedAt);
+    DateTimeOffset? DecidedAt,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    string? CreatedBy,
+    string? UpdatedBy);
 
 public sealed record LeaveBalanceRawRow(
     string LeaveBalanceId,
@@ -33,12 +37,37 @@ public sealed record LeaveBalanceRawRow(
     string LeaveTypeName,
     decimal EntitledDays,
     decimal UsedDays,
-    decimal RemainingDays);
+    decimal RemainingDays,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    string? CreatedBy,
+    string? UpdatedBy);
 
 internal static class LeaveMapper
 {
-    internal static IEnumerable<string> CollectApproverIds(IEnumerable<LeaveRequestRawRow> rows) =>
-        rows.SelectMany(r => CollectApproverIds(r));
+    internal static IEnumerable<string> CollectUserIds(LeaveRequestRawRow row)
+    {
+        foreach (var id in CollectApproverIds(row))
+            yield return id;
+        if (!string.IsNullOrWhiteSpace(row.CreatedBy))
+            yield return row.CreatedBy;
+        if (!string.IsNullOrWhiteSpace(row.UpdatedBy))
+            yield return row.UpdatedBy;
+    }
+
+    internal static IEnumerable<string> CollectUserIds(IEnumerable<LeaveRequestRawRow> rows) =>
+        rows.SelectMany(CollectUserIds);
+
+    internal static IEnumerable<string> CollectUserIds(LeaveBalanceRawRow row)
+    {
+        if (!string.IsNullOrWhiteSpace(row.CreatedBy))
+            yield return row.CreatedBy;
+        if (!string.IsNullOrWhiteSpace(row.UpdatedBy))
+            yield return row.UpdatedBy;
+    }
+
+    internal static IEnumerable<string> CollectUserIds(IEnumerable<LeaveBalanceRawRow> rows) =>
+        rows.SelectMany(CollectUserIds);
 
     internal static IEnumerable<string> CollectApproverIds(LeaveRequestRawRow row)
     {
@@ -83,6 +112,12 @@ internal static class LeaveMapper
         var leaveType = ResolveLeaveType(row.LeaveTypeId, row.LeaveTypeName, leaveTypes);
 
         var finalApprover = ResolveApprover(row.ApproverId, approverNames, row.ApproverName);
+        var audit = LeaveAuditFields.Map(
+            row.CreatedAt,
+            row.UpdatedAt,
+            row.CreatedBy,
+            row.UpdatedBy,
+            approverNames);
         var item = new LeaveRequestListItemDto
         {
             LeaveRequestId = row.LeaveRequestId,
@@ -100,8 +135,16 @@ internal static class LeaveMapper
             Notes = row.Notes,
             RemainingDays = row.RemainingDays,
             WaitingHours = ComputeWaitingHours(row),
+            ReturnsOn = row.EndDate.AddDays(1),
+            DaysSinceLastApproval = ComputeDaysSinceLastApproval(row),
             SubmittedAt = row.SubmittedAt,
             DecidedAt = row.DecidedAt,
+            CreatedAt = audit.CreatedAt,
+            UpdatedAt = audit.UpdatedAt,
+            CreatedById = audit.CreatedById,
+            UpdatedById = audit.UpdatedById,
+            CreatedBy = audit.CreatedBy,
+            UpdatedBy = audit.UpdatedBy,
         };
 
         return item;
@@ -136,6 +179,12 @@ internal static class LeaveMapper
             WaitingHours = item.WaitingHours,
             SubmittedAt = item.SubmittedAt,
             DecidedAt = item.DecidedAt,
+            CreatedAt = item.CreatedAt,
+            UpdatedAt = item.UpdatedAt,
+            CreatedById = item.CreatedById,
+            UpdatedById = item.UpdatedById,
+            CreatedBy = item.CreatedBy,
+            UpdatedBy = item.UpdatedBy,
         };
     }
 
@@ -143,6 +192,7 @@ internal static class LeaveMapper
         LeaveBalanceRawRow row,
         IReadOnlyDictionary<Guid, EmployeeLeaveContext> employees,
         IReadOnlyDictionary<Guid, string> leaveTypes,
+        IReadOnlyDictionary<string, string> userNames,
         IReadOnlyDictionary<Guid, DocumentReadDto?> profileUrlsByEmployeeId)
     {
         EmployeeLeaveContext? employee = null;
@@ -152,6 +202,13 @@ internal static class LeaveMapper
             employees.TryGetValue(employeeId, out employee);
             profileUrlsByEmployeeId.TryGetValue(employeeId, out profileUrl);
         }
+
+        var audit = LeaveAuditFields.Map(
+            row.CreatedAt,
+            row.UpdatedAt,
+            row.CreatedBy,
+            row.UpdatedBy,
+            userNames);
 
         return new LeaveBalanceListItemDto
         {
@@ -163,6 +220,12 @@ internal static class LeaveMapper
             EntitledDays = row.EntitledDays,
             UsedDays = row.UsedDays,
             RemainingDays = row.RemainingDays,
+            CreatedAt = audit.CreatedAt,
+            UpdatedAt = audit.UpdatedAt,
+            CreatedById = audit.CreatedById,
+            UpdatedById = audit.UpdatedById,
+            CreatedBy = audit.CreatedBy,
+            UpdatedBy = audit.UpdatedBy,
         };
     }
 
@@ -212,9 +275,56 @@ internal static class LeaveMapper
             return new Dictionary<string, string>();
 
         var users = await cpUsers.GetByIdsAsync(ids, tenantId, ct);
-        return users.ToDictionary(
-            kvp => kvp.Key,
-            kvp => string.IsNullOrWhiteSpace(kvp.Value.FullName) ? kvp.Key : kvp.Value.FullName);
+        return users
+            .Where(kvp => !string.IsNullOrWhiteSpace(kvp.Value.FullName))
+            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.FullName);
+    }
+
+    internal static LeaveTypeListItemDto EnrichTypeAudit(
+        LeaveTypeListItemDto item,
+        IReadOnlyDictionary<string, string> userNames)
+    {
+        var audit = LeaveAuditFields.Map(
+            item.CreatedAt, item.UpdatedAt, item.CreatedById, item.UpdatedById, userNames);
+        return new LeaveTypeListItemDto
+        {
+            LeaveTypeId = item.LeaveTypeId,
+            Name = item.Name,
+            CountryCode = item.CountryCode,
+            DefaultEntitledDays = item.DefaultEntitledDays,
+            IsPaid = item.IsPaid,
+            IsActive = item.IsActive,
+            CreatedAt = audit.CreatedAt,
+            UpdatedAt = audit.UpdatedAt,
+            CreatedById = audit.CreatedById,
+            UpdatedById = audit.UpdatedById,
+            CreatedBy = audit.CreatedBy,
+            UpdatedBy = audit.UpdatedBy,
+        };
+    }
+
+    internal static PublicHolidayListItemDto EnrichHolidayAudit(
+        PublicHolidayListItemDto item,
+        IReadOnlyDictionary<string, string> userNames)
+    {
+        var audit = LeaveAuditFields.Map(
+            item.CreatedAt, item.UpdatedAt, item.CreatedById, item.UpdatedById, userNames);
+        return new PublicHolidayListItemDto
+        {
+            HolidayId = item.HolidayId,
+            CountryCode = item.CountryCode,
+            Name = item.Name,
+            HolidayDate = item.HolidayDate,
+            IsRecurring = item.IsRecurring,
+            BranchId = item.BranchId,
+            IsActive = item.IsActive,
+            CreatedAt = audit.CreatedAt,
+            UpdatedAt = audit.UpdatedAt,
+            CreatedById = audit.CreatedById,
+            UpdatedById = audit.UpdatedById,
+            CreatedBy = audit.CreatedBy,
+            UpdatedBy = audit.UpdatedBy,
+        };
     }
 
     private static LeaveEmployeeRefDto ToEmployeeRef(
@@ -265,9 +375,12 @@ internal static class LeaveMapper
             return null;
 
         approverNames.TryGetValue(approverId, out var name);
-        var displayName = !string.IsNullOrWhiteSpace(name) ? name
-            : !string.IsNullOrWhiteSpace(fallbackName) ? fallbackName
-            : approverId;
+        var displayName = !string.IsNullOrWhiteSpace(name)
+            ? name
+            : fallbackName;
+        if (string.IsNullOrWhiteSpace(displayName))
+            return null;
+
         return new LeaveApproverRefDto
         {
             ApproverId = approverId,
@@ -386,6 +499,9 @@ internal static class LeaveMapper
         if (!row.Status.Equals(LeaveRequestStatuses.Pending, StringComparison.OrdinalIgnoreCase))
             return null;
 
+        if (ComputeDaysSinceLastApproval(row).HasValue)
+            return null;
+
         var anchor = row.SubmittedAt;
         if (row.ApprovalStage.Equals(LeaveApprovalStages.PendingHeadOfDepartment, StringComparison.OrdinalIgnoreCase)
             && row.LmDecidedAt.HasValue)
@@ -396,5 +512,18 @@ internal static class LeaveMapper
 
         var elapsed = DateTimeOffset.UtcNow - anchor;
         return elapsed.TotalHours < 1 ? 1 : (int)Math.Floor(elapsed.TotalHours);
+    }
+
+    private static int? ComputeDaysSinceLastApproval(LeaveRequestRawRow row)
+    {
+        if (!row.Status.Equals(LeaveRequestStatuses.Pending, StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        var last = row.HodDecidedAt ?? row.LmDecidedAt;
+        if (!last.HasValue)
+            return null;
+
+        var elapsed = DateTimeOffset.UtcNow - last.Value;
+        return elapsed.TotalDays < 1 ? 1 : (int)Math.Floor(elapsed.TotalDays);
     }
 }

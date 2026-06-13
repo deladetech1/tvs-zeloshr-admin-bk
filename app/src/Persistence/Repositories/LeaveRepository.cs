@@ -112,6 +112,18 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
         return await MapRawRowsAsync(tenantId, orgId, entities, ct);
     }
 
+    public async Task<IReadOnlyList<LeaveRequestRawRow>> ListPendingApprovalsScopedAsync(
+        string tenantId, string orgId, int limit, CancellationToken ct = default)
+    {
+        var entities = await Requests(tenantId, orgId)
+            .Where(r => r.Status == LeaveRequestStatuses.Pending)
+            .OrderBy(r => r.SubmittedAt)
+            .Take(limit)
+            .ToListAsync(ct);
+
+        return await MapRawRowsAsync(tenantId, orgId, entities, ct);
+    }
+
     public async Task<IReadOnlyList<LeaveRequestRawRow>> ListPendingFinalApprovalsScopedAsync(
         string tenantId, string orgId, int limit, CancellationToken ct = default)
     {
@@ -193,8 +205,10 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
         decimal daysRequested,
         string? notes,
         string initialApprovalStage,
+        string? actorUserId = null,
         CancellationToken ct = default)
     {
+        var now = DateTimeOffset.UtcNow;
         var entity = new LeaveRequestEntity
         {
             Id = Guid.NewGuid(),
@@ -210,7 +224,11 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
             Status = LeaveRequestStatuses.Pending,
             ApprovalStage = initialApprovalStage,
             Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(),
-            SubmittedAt = DateTimeOffset.UtcNow,
+            SubmittedAt = now,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = actorUserId,
+            UpdatedBy = actorUserId,
         };
         db.LeaveRequests.Add(entity);
         await db.SaveChangesAsync(ct);
@@ -223,6 +241,7 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
         string orgId,
         string? status,
         string? notes,
+        string? actorUserId = null,
         CancellationToken ct = default)
     {
         var entity = await db.LeaveRequests.FirstOrDefaultAsync(
@@ -245,6 +264,8 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
         if (!changed)
             return null;
 
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+        entity.UpdatedBy = actorUserId;
         await db.SaveChangesAsync(ct);
         return await GetRequestRawByIdScopedAsync(id, tenantId, orgId, ct);
     }
@@ -306,6 +327,8 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
                     {
                         balance.UsedDays += entity.DaysRequested;
                         balance.RemainingDays = balance.EntitledDays - balance.UsedDays;
+                        balance.UpdatedAt = now;
+                        balance.UpdatedBy = approverPlatformUserId.Trim();
                     }
                 }
 
@@ -319,6 +342,8 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
                 return null;
         }
 
+        entity.UpdatedAt = now;
+        entity.UpdatedBy = approverPlatformUserId.Trim();
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
         return await GetRequestRawByIdScopedAsync(id, tenantId, orgId, ct);
@@ -336,6 +361,8 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
         entity.ApprovalStage = LeaveApprovalStages.Rejected;
         entity.ApproverId = approverId.Trim();
         entity.DecidedAt = DateTimeOffset.UtcNow;
+        entity.UpdatedAt = entity.DecidedAt.Value;
+        entity.UpdatedBy = approverId.Trim();
         if (notes is not null)
             entity.Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
 
@@ -399,8 +426,10 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
         string leaveTypeName,
         decimal entitledDays,
         decimal usedDays,
+        string? actorUserId = null,
         CancellationToken ct = default)
     {
+        var now = DateTimeOffset.UtcNow;
         var entity = new LeaveBalanceEntity
         {
             Id = Guid.NewGuid(),
@@ -413,6 +442,10 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
             EntitledDays = entitledDays,
             UsedDays = usedDays,
             RemainingDays = entitledDays - usedDays,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = actorUserId,
+            UpdatedBy = actorUserId,
         };
         db.LeaveBalances.Add(entity);
         await db.SaveChangesAsync(ct);
@@ -420,7 +453,7 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
     }
 
     public async Task<LeaveBalanceRawRow?> UpdateBalanceScopedAsync(
-        Guid id, string tenantId, string orgId, decimal? entitledDays, decimal? usedDays, CancellationToken ct = default)
+        Guid id, string tenantId, string orgId, decimal? entitledDays, decimal? usedDays, string? actorUserId = null, CancellationToken ct = default)
     {
         var entity = await db.LeaveBalances.FirstOrDefaultAsync(
             b => b.Id == id && b.TenantId == tenantId && b.OrgId == orgId, ct);
@@ -443,6 +476,8 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
             return null;
 
         entity.RemainingDays = entity.EntitledDays - entity.UsedDays;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+        entity.UpdatedBy = actorUserId;
         await db.SaveChangesAsync(ct);
         return ToBalanceRawRow(entity);
     }
@@ -481,7 +516,7 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
     }
 
     public async Task<Guid> CreateTypeScopedAsync(
-        string tenantId, string orgId, CreateLeaveTypeDto data, CancellationToken ct = default)
+        string tenantId, string orgId, CreateLeaveTypeDto data, string? actorUserId = null, CancellationToken ct = default)
     {
         var now = DateTimeOffset.UtcNow;
         var entity = new LeaveTypeEntity
@@ -498,6 +533,8 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
             IsActive = data.IsActive,
             CreatedAt = now,
             UpdatedAt = now,
+            CreatedBy = actorUserId,
+            UpdatedBy = actorUserId,
         };
         db.LeaveTypes.Add(entity);
         await db.SaveChangesAsync(ct);
@@ -505,7 +542,7 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
     }
 
     public async Task<LeaveTypeListItemDto?> UpdateTypeScopedAsync(
-        Guid id, string tenantId, string orgId, UpdateLeaveTypeDto data, CancellationToken ct = default)
+        Guid id, string tenantId, string orgId, UpdateLeaveTypeDto data, string? actorUserId = null, CancellationToken ct = default)
     {
         var entity = await db.LeaveTypes.FirstOrDefaultAsync(
             t => t.Id == id && t.TenantId == tenantId && t.OrgId == orgId, ct);
@@ -545,6 +582,7 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
             return null;
 
         entity.UpdatedAt = DateTimeOffset.UtcNow;
+        entity.UpdatedBy = actorUserId;
         await db.SaveChangesAsync(ct);
         return ToTypeDto(entity);
     }
@@ -612,7 +650,7 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
             .FirstOrDefaultAsync(ct);
 
     public async Task<Guid> CreateHolidayScopedAsync(
-        string tenantId, string orgId, CreatePublicHolidayDto data, CancellationToken ct = default)
+        string tenantId, string orgId, CreatePublicHolidayDto data, string? actorUserId = null, CancellationToken ct = default)
     {
         var now = DateTimeOffset.UtcNow;
         var entity = new PublicHolidayEntity
@@ -628,6 +666,8 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
             IsActive = data.IsActive,
             CreatedAt = now,
             UpdatedAt = now,
+            CreatedBy = actorUserId,
+            UpdatedBy = actorUserId,
         };
         db.PublicHolidays.Add(entity);
         await db.SaveChangesAsync(ct);
@@ -635,7 +675,7 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
     }
 
     public async Task<PublicHolidayListItemDto?> UpdateHolidayScopedAsync(
-        Guid id, string tenantId, string orgId, UpdatePublicHolidayDto data, CancellationToken ct = default)
+        Guid id, string tenantId, string orgId, UpdatePublicHolidayDto data, string? actorUserId = null, CancellationToken ct = default)
     {
         var entity = await db.PublicHolidays.FirstOrDefaultAsync(
             h => h.Id == id && h.TenantId == tenantId && h.OrgId == orgId, ct);
@@ -678,6 +718,7 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
             return null;
 
         entity.UpdatedAt = DateTimeOffset.UtcNow;
+        entity.UpdatedBy = actorUserId;
         await db.SaveChangesAsync(ct);
         return ToHolidayDto(entity);
     }
@@ -700,8 +741,21 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
     {
         var query = Requests(tenantId, orgId);
 
+        if (queryParams.LeaveRequestId.HasValue)
+            query = query.Where(r => r.Id == queryParams.LeaveRequestId.Value);
+
         if (queryParams.EmployeeId.HasValue)
             query = query.Where(r => r.EmployeeId == queryParams.EmployeeId.Value);
+
+        if (!string.IsNullOrWhiteSpace(queryParams.EmployeeCode))
+        {
+            var codeTerm = $"%{queryParams.EmployeeCode.Trim()}%";
+            var codeEmployeeIds = db.Employees.AsNoTracking()
+                .Where(e => e.TenantId == tenantId && e.OrgId == orgId && !e.IsDeleted)
+                .Where(e => EF.Functions.ILike(e.EmployeeCode, codeTerm))
+                .Select(e => e.Id);
+            query = query.Where(r => codeEmployeeIds.Contains(r.EmployeeId));
+        }
 
         if (!string.IsNullOrWhiteSpace(queryParams.Search) && queryParams.Search.Trim().Length >= 2)
         {
@@ -715,7 +769,9 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
                 .Select(e => e.Id);
 
             query = query.Where(r =>
-                EF.Functions.ILike(r.EmployeeFullName, term) || matchingEmployeeIds.Contains(r.EmployeeId));
+                EF.Functions.ILike(r.EmployeeFullName, term)
+                || EF.Functions.ILike(r.LeaveType, term)
+                || matchingEmployeeIds.Contains(r.EmployeeId));
         }
 
         if (!string.IsNullOrWhiteSpace(queryParams.Status) && !queryParams.Status.Equals("all", StringComparison.OrdinalIgnoreCase))
@@ -737,10 +793,31 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
             query = query.Where(r => deptEmployeeIds.Contains(r.EmployeeId));
         }
 
+        if (queryParams.BranchId.HasValue)
+        {
+            var branchEmployeeIds = db.Employees.AsNoTracking()
+                .Where(e => e.TenantId == tenantId && e.OrgId == orgId && !e.IsDeleted
+                            && e.BranchId == queryParams.BranchId.Value)
+                .Select(e => e.Id);
+            query = query.Where(r => branchEmployeeIds.Contains(r.EmployeeId));
+        }
+
         if (queryParams.FromDate.HasValue)
             query = query.Where(r => r.EndDate >= queryParams.FromDate.Value);
         if (queryParams.ToDate.HasValue)
             query = query.Where(r => r.StartDate <= queryParams.ToDate.Value);
+
+        if (queryParams.SubmittedFromDate.HasValue)
+        {
+            var from = new DateTimeOffset(queryParams.SubmittedFromDate.Value.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+            query = query.Where(r => r.SubmittedAt >= from);
+        }
+
+        if (queryParams.SubmittedToDate.HasValue)
+        {
+            var to = new DateTimeOffset(queryParams.SubmittedToDate.Value.ToDateTime(TimeOnly.MaxValue), TimeSpan.Zero);
+            query = query.Where(r => r.SubmittedAt <= to);
+        }
 
         return query;
     }
@@ -824,7 +901,11 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
         r.Notes,
         remainingDays,
         r.SubmittedAt,
-        r.DecidedAt);
+        r.DecidedAt,
+        r.CreatedAt,
+        r.UpdatedAt,
+        r.CreatedBy,
+        r.UpdatedBy);
 
     private static LeaveBalanceRawRow ToBalanceRawRow(LeaveBalanceEntity b) => new(
         b.Id.ToString(),
@@ -834,7 +915,11 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
         b.LeaveType,
         b.EntitledDays,
         b.UsedDays,
-        b.RemainingDays);
+        b.RemainingDays,
+        b.CreatedAt,
+        b.UpdatedAt,
+        b.CreatedBy,
+        b.UpdatedBy);
 
     private static LeaveTypeListItemDto ToTypeDto(LeaveTypeEntity t) => new()
     {
@@ -846,6 +931,8 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
         IsActive = t.IsActive,
         CreatedAt = t.CreatedAt,
         UpdatedAt = t.UpdatedAt,
+        CreatedById = t.CreatedBy,
+        UpdatedById = t.UpdatedBy,
     };
 
     private static PublicHolidayListItemDto ToHolidayDto(PublicHolidayEntity h) => new()
@@ -859,5 +946,7 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
         IsActive = h.IsActive,
         CreatedAt = h.CreatedAt,
         UpdatedAt = h.UpdatedAt,
+        CreatedById = h.CreatedBy,
+        UpdatedById = h.UpdatedBy,
     };
 }

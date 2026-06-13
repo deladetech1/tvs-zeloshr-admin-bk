@@ -54,7 +54,7 @@ public static class CustomFieldDefinitionMapper
             OldValue = source.OldValue,
             NewValue = source.NewValue,
             ChangedById = source.ChangedById,
-            ChangedBy = ResolveDisplayName(source.ChangedById, users) ?? source.ChangedById,
+            ChangedBy = ResolveDisplayName(source.ChangedById, users),
             ChangedAt = source.ChangedAt,
             ChangeType = source.ChangeType,
         };
@@ -80,6 +80,6 @@ public static class CustomFieldDefinitionMapper
         if (string.IsNullOrWhiteSpace(userId))
             return null;
 
-        return users.TryGetValue(userId, out var user) ? user.FullName : "Unknown user";
+        return users.TryGetValue(userId, out var user) ? user.FullName : null;
     }
 }

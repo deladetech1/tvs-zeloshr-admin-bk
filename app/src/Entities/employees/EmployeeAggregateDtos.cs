@@ -210,11 +210,17 @@ public sealed class EmployeeAggregateReadDto
     public IReadOnlyList<EmployeeEducationDto>? Education { get; init; }
     public IReadOnlyList<EmployeeCertificationDto>? Certifications { get; init; }
 
-    /// <summary>
-    /// Attached files. **Read:** MyStoreGuard <c>DocumentReadDto</c> per item (<c>doc_id</c>, <c>name</c>, <c>presigned_url</c>, <c>description</c>).
+    /// <summary>Attached files. **Read:** MyStoreGuard <c>DocumentReadDto</c> per item (<c>doc_id</c>, <c>name</c>, <c>presigned_url</c>, <c>description</c>).
     /// **Write** (create/update): pass registry ID strings in <c>document_ids</c> from <c>POST /file/post/multiple</c>.
     /// </summary>
     public IReadOnlyList<DocumentReadDto>? Documents { get; init; }
+
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
+    public string? CreatedById { get; init; }
+    public string? UpdatedById { get; init; }
+    public string? CreatedBy { get; init; }
+    public string? UpdatedBy { get; init; }
 }
 
 public sealed class EmployeeAggregateEmploymentReadDto : EmployeeAggregateEmploymentDto
@@ -306,4 +312,10 @@ public sealed class EmployeeListItemDto
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.EmploymentTypes))]
     public string? EmploymentType { get; init; }
     public DocumentReadDto? ProfileUrl { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
+    public string? CreatedById { get; init; }
+    public string? UpdatedById { get; init; }
+    public string? CreatedBy { get; init; }
+    public string? UpdatedBy { get; init; }
 }

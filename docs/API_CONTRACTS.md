@@ -8,7 +8,8 @@ See [ENTERPRISE_API.md](ENTERPRISE_API.md) for the full CRUD matrix and [GET /ap
 |------|------|
 | Auth | `authorization: Bearer <JWT>` plus `app-id`, `bus-id`, `loc-id`, `org-id` on every `/api/v1/*` request |
 | Envelope | `{ success, status_code, detail, data, pagination?, field_errors? }` (snake_case — [MYSTOREGUARD_API_CONFORMANCE.md](MYSTOREGUARD_API_CONFORMANCE.md)) |
-| Audit (list/get/mutation) | Every resource item includes `created_at`, `updated_at`, `created_by_id`, `updated_by_id`, `created_by`, `updated_by` (display name from `cp_users.fullname`; ids may be null on legacy rows) |
+| Audit (list/get/mutation) | Every resource item includes `created_at`, `updated_at`, `created_by_id`, `updated_by_id`, `created_by`, `updated_by` — see [AUDIT_FIELDS.md](AUDIT_FIELDS.md) |
+| Display data | **Never hardcode** names, counts, or sample rows in API responses. All display values come from Postgres + `cp_users` lookup (or stored denormalized columns written at mutation time). Swagger examples are documentation only — not mock API data for the frontend. |
 | Resource IDs | Query params only (`employee_id`, `department_id`, …) — **no** `{id}` path segments |
 | Updates | `PUT` with partial JSON bodies |
 | Deletes | `DELETE /{module}/delete?{resource}_id=` — employees soft-delete; departments/branches permanent delete |
@@ -258,6 +259,33 @@ Full guide: **[FILE_MANAGEMENT.md](FILE_MANAGEMENT.md)** — MyStoreGuard shapes
 Audit list/export filters: `search` (min 3 chars), `action`, `severity` (`Low|Medium|High|all`), `actor` (user id or name substring), `start_date`, `end_date` (occurred_at range, UTC day boundaries). Purge: `retention_window` = `90`, `180`, or `365` (days); preview via `GET /audit-logs/purge/preview` returns `eligible_count`.
 
 Platform users (`GET /api/v1/users/get-users`): `page`, `size`, `is_active`, `delete_status`, `can_login`, `email`, `fullname`, `gender`, `use_or` — same scope as Core Platform (cp_users ∩ cp_members). Import picker: `GET /api/v1/employees/import/search?query=`.
+
+---
+
+## Leave (`/api/v1/leave`)
+
+Admin list: `GET /leave/requests/list` — paginated `data.items[]` with nested `employee`, `leave_type`, and standard [audit fields](AUDIT_FIELDS.md).
+
+### List filters (`GET /leave/requests/list`)
+
+| Query param | UI mapping | Behaviour |
+|-------------|------------|-----------|
+| `search` | Employee name (free text) | Min 2 chars. Matches employee full name, employee code, job title, or leave type name. |
+| `employee_id` | Employee UUID | Exact match on request employee. |
+| `employee_code` | Employee ID / code (e.g. `ZEL-0042`) | Partial match on `zhr_employees.employee_code`. |
+| `leave_request_id` | Leave request UUID | Exact match — deep-link one request. |
+| `department_id` | Department dropdown | Requests for employees in that department. |
+| `branch_id` | Branch dropdown | Requests for employees in that branch. |
+| `leave_type_id` | Leave type dropdown | Exact match on configured leave type. |
+| `status` | Status tab/dropdown | `Pending`, `Approved`, `Rejected`, `Cancelled`, or `all`. |
+| `approval_stage` | Workflow queue | `pending_line_manager`, `pending_head_of_department`, `pending_final`, `approved`, `rejected`, or `all`. |
+| `from_date` | Leave period start | Include requests whose `end_date` is on or after this date (overlap). |
+| `to_date` | Leave period end | Include requests whose `start_date` is on or before this date (overlap). |
+| `submitted_from_date` | Submitted range (from) | `submitted_at` on or after start of day (UTC). |
+| `submitted_to_date` | Submitted range (to) | `submitted_at` on or before end of day (UTC). |
+| `page` / `size` | Pagination | Default `page=1`, `size=20`. |
+
+Filters combine with AND. Balances: `GET /leave/balances/list` with `employee_id`, `leave_type_id`.
 
 ---
 

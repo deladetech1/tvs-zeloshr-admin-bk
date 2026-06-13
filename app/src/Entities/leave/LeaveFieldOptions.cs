@@ -56,14 +56,24 @@ public static class LeaveApprovalStepLabels
 
 public sealed record LeaveRequestListQuery
 {
+    /// <summary>Free-text: employee name, employee code, job title, or leave type name (min 2 chars).</summary>
     public string? Search { get; init; }
     public string? Status { get; init; }
     public string? ApprovalStage { get; init; }
+    public Guid? LeaveRequestId { get; init; }
     public Guid? LeaveTypeId { get; init; }
     public Guid? EmployeeId { get; init; }
+    public string? EmployeeCode { get; init; }
     public Guid? DepartmentId { get; init; }
+    public Guid? BranchId { get; init; }
+    /// <summary>Leave period overlap: request end_date on or after this date.</summary>
     public DateOnly? FromDate { get; init; }
+    /// <summary>Leave period overlap: request start_date on or before this date.</summary>
     public DateOnly? ToDate { get; init; }
+    /// <summary>Filter by submitted_at on or after start of this day (UTC).</summary>
+    public DateOnly? SubmittedFromDate { get; init; }
+    /// <summary>Filter by submitted_at on or before end of this day (UTC).</summary>
+    public DateOnly? SubmittedToDate { get; init; }
     public int Page { get; init; } = 1;
     public int Size { get; init; } = 20;
 }

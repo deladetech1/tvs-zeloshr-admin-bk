@@ -30,6 +30,12 @@ public sealed class EmployeeDirectoryItemDto
     public string? Engagement { get; init; }
 
     public IReadOnlyList<string> WorkStates { get; init; } = [];
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
+    public string? CreatedById { get; init; }
+    public string? UpdatedById { get; init; }
+    public string? CreatedBy { get; init; }
+    public string? UpdatedBy { get; init; }
 }
 
 public sealed class EmployeeDirectoryListDto

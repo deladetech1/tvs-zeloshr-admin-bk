@@ -33,4 +33,8 @@ public sealed record EmployeeDirectoryListRow(
     string Status,
     string LifecycleState,
     bool IsDraft,
-    DateOnly? ProbationEndDate);
+    DateOnly? ProbationEndDate,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    string? CreatedBy,
+    string? UpdatedBy);

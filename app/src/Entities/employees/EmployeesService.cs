@@ -416,6 +416,11 @@ public partial class EmployeesService : IEmployeesService, IEmployeeLookup
         if (row.Manager is not null && !string.IsNullOrWhiteSpace(row.Manager.UserId))
             managerCp = await _cpUsers.GetByIdAsync(row.Manager.UserId, tenantId, ct);
 
+        var auditUsers = await _cpUsers.GetByIdsAsync(
+            ResourceAuditMapper.CollectUserIds(new[] { row.CreatedBy, row.UpdatedBy }),
+            tenantId,
+            ct);
+
         var (first, last) = EmployeeIdentityResolver.ResolveNameParts(row, cp);
 
         return new EmployeeDetailDto
@@ -452,6 +457,10 @@ public partial class EmployeesService : IEmployeesService, IEmployeeLookup
             EmploymentStartDate = row.EmploymentStartDate,
             CreatedAt = row.CreatedAt,
             UpdatedAt = row.UpdatedAt,
+            CreatedById = row.CreatedBy,
+            UpdatedById = row.UpdatedBy,
+            CreatedBy = ResourceAuditMapper.ResolveDisplayName(row.CreatedBy, auditUsers),
+            UpdatedBy = ResourceAuditMapper.ResolveDisplayName(row.UpdatedBy, auditUsers),
         };
     }
 

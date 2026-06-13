@@ -46,7 +46,7 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>List leave requests (admin Leave Management / Approvals). Balances: GET /leave/balances/list.</summary>
+    /// <summary>List leave requests (admin Leave Management / Approvals). Filters: search, employee_id, employee_code, leave_request_id, department_id, branch_id, leave_type_id, status, approval_stage, from_date/to_date, submitted_from_date/submitted_to_date.</summary>
     [HttpGet("requests/list")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
     [ProducesResponseType(typeof(Respons<LeaveListDto>), StatusCodes.Status200OK)]
@@ -58,11 +58,16 @@ public class LeaveController : ControllerBase
         [FromQuery]
         [SwaggerAllowedValues(typeof(LeaveFieldOptions), nameof(LeaveFieldOptions.ApprovalStages))]
         string? approvalStage,
+        [FromQuery(Name = PlatformQueryParams.LeaveRequestId)] Guid? leaveRequestId,
         [FromQuery(Name = PlatformQueryParams.LeaveTypeId)] Guid? leaveTypeId,
         [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid? employeeId,
+        [FromQuery(Name = "employee_code")] string? employeeCode,
         [FromQuery(Name = PlatformQueryParams.DepartmentId)] Guid? departmentId,
+        [FromQuery(Name = PlatformQueryParams.BranchId)] Guid? branchId,
         [FromQuery(Name = "from_date")] DateOnly? fromDate,
         [FromQuery(Name = "to_date")] DateOnly? toDate,
+        [FromQuery(Name = "submitted_from_date")] DateOnly? submittedFromDate,
+        [FromQuery(Name = "submitted_to_date")] DateOnly? submittedToDate,
         [FromQuery] int page = 1,
         [FromQuery] int size = 20,
         CancellationToken ct = default)
@@ -74,11 +79,16 @@ public class LeaveController : ControllerBase
                 Search = search,
                 Status = status,
                 ApprovalStage = approvalStage,
+                LeaveRequestId = leaveRequestId,
                 LeaveTypeId = leaveTypeId,
                 EmployeeId = employeeId,
+                EmployeeCode = employeeCode,
                 DepartmentId = departmentId,
+                BranchId = branchId,
                 FromDate = fromDate,
                 ToDate = toDate,
+                SubmittedFromDate = submittedFromDate,
+                SubmittedToDate = submittedToDate,
                 Page = page,
                 Size = size,
             },
@@ -116,7 +126,7 @@ public class LeaveController : ControllerBase
         CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.CreateRequestAsync(body, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.CreateRequestAsync(body, ctx.TenantId, ctx.OrgId, ctx.UserId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
@@ -135,7 +145,7 @@ public class LeaveController : ControllerBase
             return missingId;
 
         var ctx = _tenant.Current;
-        var result = await _service.UpdateRequestAsync(leaveRequestId, body, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.UpdateRequestAsync(leaveRequestId, body, ctx.TenantId, ctx.OrgId, ctx.UserId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
@@ -297,7 +307,7 @@ public class LeaveController : ControllerBase
         CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.CreateBalanceAsync(body, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.CreateBalanceAsync(body, ctx.TenantId, ctx.OrgId, ctx.UserId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
@@ -316,7 +326,7 @@ public class LeaveController : ControllerBase
             return missingId;
 
         var ctx = _tenant.Current;
-        var result = await _service.UpdateBalanceAsync(leaveBalanceId, body, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.UpdateBalanceAsync(leaveBalanceId, body, ctx.TenantId, ctx.OrgId, ctx.UserId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
@@ -362,7 +372,7 @@ public class LeaveController : ControllerBase
         CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.CreateTypeAsync(body, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.CreateTypeAsync(body, ctx.TenantId, ctx.OrgId, ctx.UserId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
@@ -381,7 +391,7 @@ public class LeaveController : ControllerBase
             return missingId;
 
         var ctx = _tenant.Current;
-        var result = await _service.UpdateTypeAsync(leaveTypeId, body, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.UpdateTypeAsync(leaveTypeId, body, ctx.TenantId, ctx.OrgId, ctx.UserId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
@@ -448,7 +458,7 @@ public class LeaveController : ControllerBase
         CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.CreateHolidayAsync(body, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.CreateHolidayAsync(body, ctx.TenantId, ctx.OrgId, ctx.UserId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
@@ -467,7 +477,7 @@ public class LeaveController : ControllerBase
             return missingId;
 
         var ctx = _tenant.Current;
-        var result = await _service.UpdateHolidayAsync(holidayId, body, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.UpdateHolidayAsync(holidayId, body, ctx.TenantId, ctx.OrgId, ctx.UserId, ct);
         return StatusCode(result.StatusCode, result);
     }
 

@@ -1,5 +1,5 @@
-using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Branches;
+using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Persistence.Entities;
 using ZelosHR.Api.Shared.Formatting;
@@ -45,7 +45,7 @@ public class EmployeesDirectoryService
         var (rows, total) = await _directory.ListScopedAsync(query, tenantId, orgId, ct);
 
         var platformUserIds = rows
-            .SelectMany(r => new[] { r.UserId, r.ManagerUserId })
+            .SelectMany(r => new[] { r.UserId, r.ManagerUserId, r.CreatedBy, r.UpdatedBy })
             .Where(id => !string.IsNullOrWhiteSpace(id))
             .Select(id => id!)
             .Distinct();
@@ -131,6 +131,12 @@ public class EmployeesDirectoryService
             Engagement = EmployeeStatusFilter.ResolveEngagement(ToStatusEntity(row)),
             WorkStates = EmployeeStatusFilter.ResolveWorkStates(
                 ToStatusEntity(row), DateOnly.FromDateTime(DateTime.UtcNow)),
+            CreatedAt = row.CreatedAt,
+            UpdatedAt = row.UpdatedAt,
+            CreatedById = row.CreatedBy,
+            UpdatedById = row.UpdatedBy,
+            CreatedBy = ResourceAuditMapper.ResolveDisplayName(row.CreatedBy, platformUsers),
+            UpdatedBy = ResourceAuditMapper.ResolveDisplayName(row.UpdatedBy, platformUsers),
         };
     }
 

@@ -131,6 +131,8 @@ See `tvs-sqlscript/README.md` for CI dispatch, rollback, and validate.
 - [ ] Deploy tested (`deploy` — schema + reference seeds only)
 - [ ] ZelosHR API smoke-tested (Trove headers: `app-id`, `authorization`, `bus-id`, `loc-id`, `org-id`)
 - [ ] No new `.sql` files added under ZelosHR `app/src/Database/Migrations/`
+- [ ] **Audit on every resource item:** all six fields per [docs/AUDIT_FIELDS.md](docs/AUDIT_FIELDS.md)
+- [ ] **No hardcoded API data:** responses must come from DB + platform user lookup; do not ship sample names, placeholder rows, or synthetic fallbacks (Swagger examples are docs-only)
 - [ ] **Swagger kept in sync (MUST):** same PR updates `SwaggerExamples`, `SwaggerSchemaExamplesFilter`, relevant `Swagger*OperationFilter` / `SwaggerQueryParameterExamplesFilter`, controller XML, and `SwaggerConfiguration` workflow text when request/response shapes, params, routes, or examples change; verify `/swagger` locally; `GET /api/v1/navigation` and `/swagger/v1/swagger.json` list the same routes (~55 paths); Swashbuckle.AspNetCore 10.x; see [docs/SWAGGER.md](docs/SWAGGER.md)
 
 ## Related docs
@@ -138,4 +140,5 @@ See `tvs-sqlscript/README.md` for CI dispatch, rollback, and validate.
 - [docs/TROVESUITE.md](docs/TROVESUITE.md) — Trovesuite.Package, NuGet token
 - [docs/SPRINTS.md](docs/SPRINTS.md) — API modules
 - [docs/API_CONTRACTS.md](docs/API_CONTRACTS.md) — HTTP contracts
+- [docs/AUDIT_FIELDS.md](docs/AUDIT_FIELDS.md) — mandatory `created_at` / `updated_at` / `created_by*` on every resource item
 - [docs/FILE_MANAGEMENT.md](docs/FILE_MANAGEMENT.md) — employee file upload & DocumentReadDto

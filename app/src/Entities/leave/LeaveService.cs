@@ -36,7 +36,7 @@ public class LeaveService
     {
         var summary = await _leave.GetSummaryScopedAsync(tenantId, orgId, ct);
         var onLeaveToday = await _leave.ListOnLeaveTodayScopedAsync(tenantId, orgId, 5, ct);
-        var pendingApprovals = await _leave.ListPendingFinalApprovalsScopedAsync(tenantId, orgId, 5, ct);
+        var pendingApprovals = await _leave.ListPendingApprovalsScopedAsync(tenantId, orgId, 5, ct);
         var leavingThisWeek = await _leave.ListLeavingThisWeekScopedAsync(tenantId, orgId, 10, ct);
 
         var allRows = onLeaveToday.Concat(pendingApprovals).Concat(leavingThisWeek).ToList();
@@ -92,7 +92,7 @@ public class LeaveService
             row.StartDate, row.EndDate, holidayDates);
 
         var approverNames = await LeaveMapper.ResolveApproverNamesAsync(
-            _cpUsers, LeaveMapper.CollectApproverIds(row), tenantId, ct);
+            _cpUsers, LeaveMapper.CollectUserIds(row), tenantId, ct);
 
         return Respons<LeaveRequestDetailDto>.Ok(
             LeaveMapper.ToDetail(
@@ -108,6 +108,7 @@ public class LeaveService
         CreateLeaveRequestDto data,
         string tenantId,
         string orgId,
+        string? actorUserId = null,
         CancellationToken ct = default)
     {
         var validation = ValidateRequestDates(data.StartDate, data.EndDate, data.DaysRequested);
@@ -142,6 +143,7 @@ public class LeaveService
             data.DaysRequested,
             data.Notes,
             ResolveInitialApprovalStage(employeeContext),
+            actorUserId,
             ct);
 
         return await GetRequestByIdAsync(id, tenantId, orgId, ct);
@@ -152,6 +154,7 @@ public class LeaveService
         UpdateLeaveRequestDto data,
         string tenantId,
         string orgId,
+        string? actorUserId = null,
         CancellationToken ct = default)
     {
         if (!string.IsNullOrWhiteSpace(data.Status)
@@ -166,7 +169,7 @@ public class LeaveService
             return Respons<LeaveRequestDetailDto>.EmptyUpdateRequest();
 
         var updated = await _leave.UpdateRequestScopedAsync(
-            id, tenantId, orgId, hasStatus ? data.Status : null, hasNotes ? data.Notes : null, ct);
+            id, tenantId, orgId, hasStatus ? data.Status : null, hasNotes ? data.Notes : null, actorUserId, ct);
 
         if (updated is null)
         {
@@ -367,6 +370,7 @@ public class LeaveService
             },
             tenantId,
             orgId,
+            platformUserId,
             ct);
     }
 
@@ -393,7 +397,7 @@ public class LeaveService
     }
 
     public async Task<Respons<LeaveBalanceListItemDto>> CreateBalanceAsync(
-        CreateLeaveBalanceDto data, string tenantId, string orgId, CancellationToken ct = default)
+        CreateLeaveBalanceDto data, string tenantId, string orgId, string? actorUserId = null, CancellationToken ct = default)
     {
         var leaveType = await _leave.GetTypeByIdScopedAsync(data.LeaveTypeId, tenantId, orgId, ct);
         if (leaveType is null)
@@ -425,13 +429,14 @@ public class LeaveService
             leaveType.Name,
             data.EntitledDays,
             data.UsedDays,
+            actorUserId,
             ct);
 
         return await GetBalanceByIdAsync(id, tenantId, orgId, ct);
     }
 
     public async Task<Respons<LeaveBalanceListItemDto>> UpdateBalanceAsync(
-        Guid id, UpdateLeaveBalanceDto data, string tenantId, string orgId, CancellationToken ct = default)
+        Guid id, UpdateLeaveBalanceDto data, string tenantId, string orgId, string? actorUserId = null, CancellationToken ct = default)
     {
         if (!data.EntitledDays.HasValue && !data.UsedDays.HasValue)
             return Respons<LeaveBalanceListItemDto>.EmptyUpdateRequest();
@@ -446,7 +451,7 @@ public class LeaveService
             return Respons<LeaveBalanceListItemDto>.ValidationError(
                 new Dictionary<string, string> { ["usedDays"] = "Used days cannot exceed entitled days." });
 
-        var updated = await _leave.UpdateBalanceScopedAsync(id, tenantId, orgId, data.EntitledDays, data.UsedDays, ct);
+        var updated = await _leave.UpdateBalanceScopedAsync(id, tenantId, orgId, data.EntitledDays, data.UsedDays, actorUserId, ct);
         return updated is null
             ? Respons<LeaveBalanceListItemDto>.EmptyUpdateRequest()
             : await GetBalanceByIdAsync(id, tenantId, orgId, ct);
@@ -455,7 +460,10 @@ public class LeaveService
     public async Task<Respons<LeaveTypeListDto>> ListTypesAsync(
         string? countryCode, bool activeOnly, string tenantId, string orgId, CancellationToken ct = default)
     {
-        var items = await _leave.ListTypesScopedAsync(tenantId, orgId, countryCode, activeOnly, ct);
+        var items = await EnrichTypesAsync(
+            await _leave.ListTypesScopedAsync(tenantId, orgId, countryCode, activeOnly, ct),
+            tenantId,
+            ct);
         return Respons<LeaveTypeListDto>.Ok(new LeaveTypeListDto { Items = items });
     }
 
@@ -463,32 +471,34 @@ public class LeaveService
         Guid id, string tenantId, string orgId, CancellationToken ct = default)
     {
         var row = await _leave.GetTypeByIdScopedAsync(id, tenantId, orgId, ct);
-        return row is null
-            ? Respons<LeaveTypeListItemDto>.Fail("Leave type not found.", statusCode: 404)
-            : Respons<LeaveTypeListItemDto>.Ok(row);
+        if (row is null)
+            return Respons<LeaveTypeListItemDto>.Fail("Leave type not found.", statusCode: 404);
+
+        var items = await EnrichTypesAsync([row], tenantId, ct);
+        return Respons<LeaveTypeListItemDto>.Ok(items[0]);
     }
 
     public async Task<Respons<LeaveTypeListItemDto>> CreateTypeAsync(
-        CreateLeaveTypeDto data, string tenantId, string orgId, CancellationToken ct = default)
+        CreateLeaveTypeDto data, string tenantId, string orgId, string? actorUserId = null, CancellationToken ct = default)
     {
         var name = data.Name!.Trim();
         if (await _leave.TypeNameExistsScopedAsync(tenantId, orgId, name, null, ct))
             return Respons<LeaveTypeListItemDto>.ValidationError(
                 new Dictionary<string, string> { ["name"] = "A leave type with this name already exists." });
 
-        var id = await _leave.CreateTypeScopedAsync(tenantId, orgId, data, ct);
+        var id = await _leave.CreateTypeScopedAsync(tenantId, orgId, data, actorUserId, ct);
         return await GetTypeByIdAsync(id, tenantId, orgId, ct);
     }
 
     public async Task<Respons<LeaveTypeListItemDto>> UpdateTypeAsync(
-        Guid id, UpdateLeaveTypeDto data, string tenantId, string orgId, CancellationToken ct = default)
+        Guid id, UpdateLeaveTypeDto data, string tenantId, string orgId, string? actorUserId = null, CancellationToken ct = default)
     {
         if (!string.IsNullOrWhiteSpace(data.Name)
             && await _leave.TypeNameExistsScopedAsync(tenantId, orgId, data.Name.Trim(), id, ct))
             return Respons<LeaveTypeListItemDto>.ValidationError(
                 new Dictionary<string, string> { ["name"] = "A leave type with this name already exists." });
 
-        var updated = await _leave.UpdateTypeScopedAsync(id, tenantId, orgId, data, ct);
+        var updated = await _leave.UpdateTypeScopedAsync(id, tenantId, orgId, data, actorUserId, ct);
         if (updated is null)
         {
             var exists = await _leave.GetTypeByIdScopedAsync(id, tenantId, orgId, ct);
@@ -497,7 +507,8 @@ public class LeaveService
                 : Respons<LeaveTypeListItemDto>.EmptyUpdateRequest();
         }
 
-        return Respons<LeaveTypeListItemDto>.Ok(updated);
+        var items = await EnrichTypesAsync([updated], tenantId, ct);
+        return Respons<LeaveTypeListItemDto>.Ok(items[0]);
     }
 
     public async Task<Respons<object>> DeleteTypeAsync(
@@ -518,7 +529,7 @@ public class LeaveService
             tenantId, orgId, countryCode, year, branchId, paging.Page, paging.Size, ct);
 
         return Respons<PublicHolidayListDto>.Ok(
-            new PublicHolidayListDto { Items = items },
+            new PublicHolidayListDto { Items = await EnrichHolidaysAsync(items, tenantId, ct) },
             pagination: new PaginationMeta
             {
                 Page = paging.Page,
@@ -532,22 +543,24 @@ public class LeaveService
         Guid id, string tenantId, string orgId, CancellationToken ct = default)
     {
         var row = await _leave.GetHolidayByIdScopedAsync(id, tenantId, orgId, ct);
-        return row is null
-            ? Respons<PublicHolidayListItemDto>.Fail("Public holiday not found.", statusCode: 404)
-            : Respons<PublicHolidayListItemDto>.Ok(row);
+        if (row is null)
+            return Respons<PublicHolidayListItemDto>.Fail("Public holiday not found.", statusCode: 404);
+
+        var items = await EnrichHolidaysAsync([row], tenantId, ct);
+        return Respons<PublicHolidayListItemDto>.Ok(items[0]);
     }
 
     public async Task<Respons<PublicHolidayListItemDto>> CreateHolidayAsync(
-        CreatePublicHolidayDto data, string tenantId, string orgId, CancellationToken ct = default)
+        CreatePublicHolidayDto data, string tenantId, string orgId, string? actorUserId = null, CancellationToken ct = default)
     {
-        var id = await _leave.CreateHolidayScopedAsync(tenantId, orgId, data, ct);
+        var id = await _leave.CreateHolidayScopedAsync(tenantId, orgId, data, actorUserId, ct);
         return await GetHolidayByIdAsync(id, tenantId, orgId, ct);
     }
 
     public async Task<Respons<PublicHolidayListItemDto>> UpdateHolidayAsync(
-        Guid id, UpdatePublicHolidayDto data, string tenantId, string orgId, CancellationToken ct = default)
+        Guid id, UpdatePublicHolidayDto data, string tenantId, string orgId, string? actorUserId = null, CancellationToken ct = default)
     {
-        var updated = await _leave.UpdateHolidayScopedAsync(id, tenantId, orgId, data, ct);
+        var updated = await _leave.UpdateHolidayScopedAsync(id, tenantId, orgId, data, actorUserId, ct);
         if (updated is null)
         {
             var exists = await _leave.GetHolidayByIdScopedAsync(id, tenantId, orgId, ct);
@@ -556,7 +569,8 @@ public class LeaveService
                 : Respons<PublicHolidayListItemDto>.EmptyUpdateRequest();
         }
 
-        return Respons<PublicHolidayListItemDto>.Ok(updated);
+        var items = await EnrichHolidaysAsync([updated], tenantId, ct);
+        return Respons<PublicHolidayListItemDto>.Ok(items[0]);
     }
 
     public async Task<Respons<object>> DeleteHolidayAsync(
@@ -589,7 +603,7 @@ public class LeaveService
             rows.Select(r => (r.LeaveTypeId, r.LeaveTypeName)));
 
         var approverNames = await LeaveMapper.ResolveApproverNamesAsync(
-            _cpUsers, LeaveMapper.CollectApproverIds(rows), tenantId, ct);
+            _cpUsers, LeaveMapper.CollectUserIds(rows), tenantId, ct);
 
         var profileUrlsByEmployeeId = await ResolveEmployeeProfileUrlsAsync(employees, ct);
 
@@ -647,8 +661,49 @@ public class LeaveService
 
         var profileUrlsByEmployeeId = await ResolveEmployeeProfileUrlsAsync(employees, ct);
 
+        var userNames = await LeaveMapper.ResolveApproverNamesAsync(
+            _cpUsers, LeaveMapper.CollectUserIds(rows), tenantId, ct);
+
         return rows
-            .Select(row => LeaveMapper.MapBalance(row, employees, leaveTypes, profileUrlsByEmployeeId))
+            .Select(row => LeaveMapper.MapBalance(row, employees, leaveTypes, userNames, profileUrlsByEmployeeId))
+            .ToList();
+    }
+
+    private async Task<IReadOnlyList<LeaveTypeListItemDto>> EnrichTypesAsync(
+        IReadOnlyList<LeaveTypeListItemDto> items,
+        string tenantId,
+        CancellationToken ct)
+    {
+        if (items.Count == 0)
+            return items;
+
+        var userNames = await LeaveMapper.ResolveApproverNamesAsync(
+            _cpUsers,
+            LeaveAuditFields.CollectUserIds(items.Select(i => i.CreatedById), items.Select(i => i.UpdatedById)),
+            tenantId,
+            ct);
+
+        return items
+            .Select(item => LeaveMapper.EnrichTypeAudit(item, userNames))
+            .ToList();
+    }
+
+    private async Task<IReadOnlyList<PublicHolidayListItemDto>> EnrichHolidaysAsync(
+        IReadOnlyList<PublicHolidayListItemDto> items,
+        string tenantId,
+        CancellationToken ct)
+    {
+        if (items.Count == 0)
+            return items;
+
+        var userNames = await LeaveMapper.ResolveApproverNamesAsync(
+            _cpUsers,
+            LeaveAuditFields.CollectUserIds(items.Select(i => i.CreatedById), items.Select(i => i.UpdatedById)),
+            tenantId,
+            ct);
+
+        return items
+            .Select(item => LeaveMapper.EnrichHolidayAudit(item, userNames))
             .ToList();
     }
 

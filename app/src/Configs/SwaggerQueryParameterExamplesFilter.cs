@@ -336,7 +336,7 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
                 schema.Example = "2026-06-01";
                 parameter.Description = SwaggerOptionFormat.Append(
                     parameter.Description,
-                    "Include requests ending on or after this date (YYYY-MM-DD).");
+                    "Leave period: include requests ending on or after this date (YYYY-MM-DD).");
                 return;
             }
 
@@ -345,7 +345,32 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
                 schema.Example = "2026-12-31";
                 parameter.Description = SwaggerOptionFormat.Append(
                     parameter.Description,
-                    "Include requests starting on or before this date (YYYY-MM-DD).");
+                    "Leave period: include requests starting on or before this date (YYYY-MM-DD).");
+                return;
+            }
+
+            if (name.Equals("submitted_from_date", StringComparison.OrdinalIgnoreCase))
+            {
+                schema.Example = "2026-06-01";
+                parameter.Description = SwaggerOptionFormat.Append(
+                    parameter.Description,
+                    "Submitted-at range: on or after start of day UTC (YYYY-MM-DD).");
+                return;
+            }
+
+            if (name.Equals("submitted_to_date", StringComparison.OrdinalIgnoreCase))
+            {
+                schema.Example = "2026-06-30";
+                parameter.Description = SwaggerOptionFormat.Append(
+                    parameter.Description,
+                    "Submitted-at range: on or before end of day UTC (YYYY-MM-DD).");
+                return;
+            }
+
+            if (name.Equals("employee_code", StringComparison.OrdinalIgnoreCase))
+            {
+                schema.Example = "ZEL-0042";
+                parameter.Description = "Partial match on employee code.";
                 return;
             }
 
@@ -361,7 +386,7 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
             if (name.Equals("search", StringComparison.OrdinalIgnoreCase))
             {
                 schema.Example = "kwame";
-                parameter.Description = "Optional name, employee code, or job title filter (minimum 2 characters).";
+                parameter.Description = "Free text (min 2 chars): employee name, employee code, job title, or leave type name.";
                 return;
             }
 

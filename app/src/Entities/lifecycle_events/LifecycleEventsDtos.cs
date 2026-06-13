@@ -19,6 +19,12 @@ public sealed class LifecycleEventListItemDto
     public DateOnly DueDate { get; init; }
     public required string Status { get; init; }
     public required string Urgency { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
+    public string? CreatedById { get; init; }
+    public string? UpdatedById { get; init; }
+    public string? CreatedBy { get; init; }
+    public string? UpdatedBy { get; init; }
 }
 
 public sealed class LifecycleEventListDto

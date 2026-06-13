@@ -15,8 +15,11 @@ public class LeaveMapperTests
     private static readonly IReadOnlyDictionary<Guid, string> NoLeaveTypes =
         new Dictionary<Guid, string>();
 
-    private static readonly IReadOnlyDictionary<string, string> NoApproverNames =
+    private static readonly IReadOnlyDictionary<string, string> NoUserNames =
         new Dictionary<string, string>();
+
+    private static readonly DateTimeOffset SampleAuditAt =
+        DateTimeOffset.Parse("2026-06-10T09:15:00+00:00");
 
     private static readonly IReadOnlyDictionary<Guid, DocumentReadDto?> NoProfileUrls =
         new Dictionary<Guid, DocumentReadDto?>();
@@ -32,14 +35,18 @@ public class LeaveMapperTests
             "Annual Leave",
             21,
             7,
-            14);
+            14,
+            SampleAuditAt,
+            SampleAuditAt,
+            null,
+            null);
 
         var leaveTypes = new Dictionary<Guid, string>
         {
             [LeaveTypeId] = "Annual Leave",
         };
 
-        var result = LeaveMapper.MapBalance(row, NoEmployees, leaveTypes, NoProfileUrls);
+        var result = LeaveMapper.MapBalance(row, NoEmployees, leaveTypes, NoUserNames, NoProfileUrls);
 
         Assert.Equal("Annual Leave", result.LeaveType?.Name);
     }
@@ -55,9 +62,13 @@ public class LeaveMapperTests
             "Annual Leave",
             21,
             7,
-            14);
+            14,
+            SampleAuditAt,
+            SampleAuditAt,
+            null,
+            null);
 
-        var result = LeaveMapper.MapBalance(row, NoEmployees, NoLeaveTypes, NoProfileUrls);
+        var result = LeaveMapper.MapBalance(row, NoEmployees, NoLeaveTypes, NoUserNames, NoProfileUrls);
 
         Assert.Equal("Annual Leave", result.LeaveType?.Name);
     }
@@ -73,9 +84,13 @@ public class LeaveMapperTests
             "Annual Leave",
             21,
             7,
-            14);
+            14,
+            SampleAuditAt,
+            SampleAuditAt,
+            null,
+            null);
 
-        var result = LeaveMapper.MapBalance(row, NoEmployees, NoLeaveTypes, NoProfileUrls);
+        var result = LeaveMapper.MapBalance(row, NoEmployees, NoLeaveTypes, NoUserNames, NoProfileUrls);
 
         Assert.Equal("Jane Doe", result.Employee?.FullName);
         Assert.Equal(EmployeeId.ToString(), result.Employee?.EmployeeId);
@@ -92,7 +107,11 @@ public class LeaveMapperTests
             "Annual Leave",
             21,
             7,
-            14);
+            14,
+            SampleAuditAt,
+            SampleAuditAt,
+            null,
+            null);
 
         var employees = new Dictionary<Guid, EmployeeLeaveContext>
         {
@@ -108,7 +127,7 @@ public class LeaveMapperTests
                 null),
         };
 
-        var result = LeaveMapper.MapBalance(row, employees, NoLeaveTypes, NoProfileUrls);
+        var result = LeaveMapper.MapBalance(row, employees, NoLeaveTypes, NoUserNames, NoProfileUrls);
 
         Assert.Equal("Jane Doe", result.Employee?.FullName);
         Assert.Equal("EMP-001", result.Employee?.EmployeeCode);
@@ -137,9 +156,13 @@ public class LeaveMapperTests
             null,
             null,
             DateTimeOffset.Parse("2026-06-10T09:15:00+00:00"),
+            null,
+            SampleAuditAt,
+            SampleAuditAt,
+            null,
             null);
 
-        var result = LeaveMapper.MapRequest(row, NoEmployees, NoLeaveTypes, NoApproverNames, NoProfileUrls);
+        var result = LeaveMapper.MapRequest(row, NoEmployees, NoLeaveTypes, NoUserNames, NoProfileUrls);
 
         Assert.Equal("Jane Doe", result.Employee?.FullName);
         Assert.Equal("Annual Leave", result.LeaveType?.Name);
@@ -169,9 +192,13 @@ public class LeaveMapperTests
             null,
             null,
             DateTimeOffset.Parse("2026-06-10T09:15:00+00:00"),
-            DateTimeOffset.Parse("2026-06-11T16:20:00+00:00"));
+            DateTimeOffset.Parse("2026-06-11T16:20:00+00:00"),
+            SampleAuditAt,
+            SampleAuditAt,
+            null,
+            null);
 
-        var result = LeaveMapper.MapRequest(row, NoEmployees, NoLeaveTypes, NoApproverNames, NoProfileUrls);
+        var result = LeaveMapper.MapRequest(row, NoEmployees, NoLeaveTypes, NoUserNames, NoProfileUrls);
 
         Assert.Equal("Bright Debrah", result.Approver?.FullName);
         Assert.Equal(approverId, result.Approver?.ApproverId);
@@ -187,6 +214,110 @@ public class LeaveMapperTests
 
         Assert.True(merged.ContainsKey(LeaveTypeId));
         Assert.Equal("Annual Leave", merged[LeaveTypeId]);
+    }
+
+    [Fact]
+    public void MapRequest_sets_returns_on_as_day_after_end_date()
+    {
+        var row = new LeaveRequestRawRow(
+            "req-1",
+            EmployeeId.ToString(),
+            "Jane Doe",
+            LeaveTypeId.ToString(),
+            "Annual Leave",
+            new DateOnly(2026, 6, 10),
+            new DateOnly(2026, 6, 14),
+            5,
+            "Approved",
+            "approved",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            DateTimeOffset.Parse("2026-06-10T09:15:00+00:00"),
+            null,
+            SampleAuditAt,
+            SampleAuditAt,
+            null,
+            null);
+
+        var result = LeaveMapper.MapRequest(row, NoEmployees, NoLeaveTypes, NoUserNames, NoProfileUrls);
+
+        Assert.Equal(new DateOnly(2026, 6, 15), result.ReturnsOn);
+    }
+
+    [Fact]
+    public void MapRequest_uses_waiting_hours_when_no_prior_approval()
+    {
+        var row = new LeaveRequestRawRow(
+            "req-1",
+            EmployeeId.ToString(),
+            "Jane Doe",
+            LeaveTypeId.ToString(),
+            "Annual Leave",
+            new DateOnly(2026, 6, 10),
+            new DateOnly(2026, 6, 14),
+            5,
+            "Pending",
+            "pending_line_manager",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            DateTimeOffset.UtcNow.AddHours(-53),
+            null,
+            SampleAuditAt,
+            SampleAuditAt,
+            null,
+            null);
+
+        var result = LeaveMapper.MapRequest(row, NoEmployees, NoLeaveTypes, NoUserNames, NoProfileUrls);
+
+        Assert.NotNull(result.WaitingHours);
+        Assert.Null(result.DaysSinceLastApproval);
+    }
+
+    [Fact]
+    public void MapRequest_uses_days_since_last_approval_after_intermediate_approval()
+    {
+        var row = new LeaveRequestRawRow(
+            "req-1",
+            EmployeeId.ToString(),
+            "Jane Doe",
+            LeaveTypeId.ToString(),
+            "Maternity",
+            new DateOnly(2026, 8, 1),
+            new DateOnly(2026, 8, 30),
+            30,
+            "Pending",
+            "pending_final",
+            null,
+            null,
+            null,
+            DateTimeOffset.UtcNow.AddDays(-5),
+            null,
+            DateTimeOffset.UtcNow.AddDays(-5),
+            null,
+            null,
+            DateTimeOffset.UtcNow.AddDays(-10),
+            null,
+            SampleAuditAt,
+            SampleAuditAt,
+            null,
+            null);
+
+        var result = LeaveMapper.MapRequest(row, NoEmployees, NoLeaveTypes, NoUserNames, NoProfileUrls);
+
+        Assert.NotNull(result.DaysSinceLastApproval);
+        Assert.Null(result.WaitingHours);
     }
 
     [Fact]
@@ -212,10 +343,61 @@ public class LeaveMapperTests
             null,
             null,
             DateTimeOffset.Parse("2026-06-10T09:15:00+00:00"),
+            null,
+            SampleAuditAt,
+            SampleAuditAt,
+            null,
             null);
 
-        var result = LeaveMapper.MapRequest(row, NoEmployees, NoLeaveTypes, NoApproverNames, NoProfileUrls);
+        var result = LeaveMapper.MapRequest(row, NoEmployees, NoLeaveTypes, NoUserNames, NoProfileUrls);
 
         Assert.Equal("Annual Leave", result.LeaveType?.Name);
+    }
+
+    [Fact]
+    public void MapRequest_populates_audit_fields_with_resolved_display_names()
+    {
+        const string creatorId = "cp-user-creator";
+        const string updaterId = "cp-user-updater";
+        var row = new LeaveRequestRawRow(
+            "req-1",
+            EmployeeId.ToString(),
+            "Jane Doe",
+            LeaveTypeId.ToString(),
+            "Annual Leave",
+            new DateOnly(2026, 6, 10),
+            new DateOnly(2026, 6, 14),
+            5,
+            "Pending",
+            "pending_line_manager",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            SampleAuditAt,
+            null,
+            SampleAuditAt,
+            SampleAuditAt.AddHours(1),
+            creatorId,
+            updaterId);
+
+        var userNames = new Dictionary<string, string>
+        {
+            [creatorId] = "Ada Lovelace",
+            [updaterId] = "Grace Hopper",
+        };
+
+        var result = LeaveMapper.MapRequest(row, NoEmployees, NoLeaveTypes, userNames, NoProfileUrls);
+
+        Assert.Equal(SampleAuditAt, result.CreatedAt);
+        Assert.Equal(SampleAuditAt.AddHours(1), result.UpdatedAt);
+        Assert.Equal(creatorId, result.CreatedById);
+        Assert.Equal(updaterId, result.UpdatedById);
+        Assert.Equal("Ada Lovelace", result.CreatedBy);
+        Assert.Equal("Grace Hopper", result.UpdatedBy);
     }
 }

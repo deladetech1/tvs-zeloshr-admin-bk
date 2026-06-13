@@ -1381,106 +1381,141 @@ internal static class SwaggerExamples
         ["full_name"] = "Fiifi Boakye",
     };
 
+    internal static void AppendResourceAuditFields(JsonObject target) => AppendResourceAuditFields(
+        target,
+        "2026-01-15T08:00:00+00:00",
+        "2026-06-01T12:00:00+00:00");
+
+    internal static void AppendResourceAuditFields(
+        JsonObject target,
+        string createdAt,
+        string updatedAt)
+    {
+        target["created_at"] = createdAt;
+        target["updated_at"] = updatedAt;
+        target["created_by_id"] = "cp-user-demo-admin";
+        target["updated_by_id"] = "cp-user-demo-admin";
+        target["created_by"] = "Fiifi Boakye";
+        target["updated_by"] = "Fiifi Boakye";
+    }
+
     internal static JsonObject LeaveApprovalStepApproverData() => LeaveApproverRefData();
 
     internal static JsonObject LeaveRequestItemData(
         string status = "Pending",
-        decimal? remainingDays = 14) => new()
+        decimal? remainingDays = 14)
     {
-        ["leave_request_id"] = SampleLeaveRequestId.ToString(),
-        ["employee"] = LeaveEmployeeRefData(),
-        ["leave_type"] = LeaveTypeRefData(),
-        ["start_date"] = "2026-07-07",
-        ["end_date"] = "2026-07-11",
-        ["days_requested"] = 5,
-        ["status"] = status,
-        ["approval_stage"] = status == "Approved" ? "approved" : "pending_final",
-        ["approver"] = status is "Approved" or "Rejected" ? LeaveApproverRefData() : null,
-        ["prior_approvers"] = new JsonArray(
-            new JsonObject
-            {
-                ["stage"] = "line_manager",
-                ["status"] = "approved",
-                ["approver"] = LeaveApprovalStepApproverData(),
-                ["decided_at"] = "2026-06-09T10:00:00+00:00",
-            },
-            new JsonObject
-            {
-                ["stage"] = "head_of_department",
-                ["status"] = "approved",
-                ["approver"] = LeaveApprovalStepApproverData(),
-                ["decided_at"] = "2026-06-09T14:30:00+00:00",
-            }),
-        ["notes"] = status == "Rejected" ? "Team coverage required during sprint." : "Family visit.",
-        ["remaining_days"] = remainingDays,
-        ["waiting_hours"] = status == "Pending" ? 53 : null,
-        ["submitted_at"] = "2026-06-10T09:15:00+00:00",
-        ["decided_at"] = status is "Approved" or "Rejected" ? "2026-06-11T16:20:00+00:00" : null,
-    };
+        var data = new JsonObject
+        {
+            ["leave_request_id"] = SampleLeaveRequestId.ToString(),
+            ["employee"] = LeaveEmployeeRefData(),
+            ["leave_type"] = LeaveTypeRefData(),
+            ["start_date"] = "2026-07-07",
+            ["end_date"] = "2026-07-11",
+            ["days_requested"] = 5,
+            ["status"] = status,
+            ["approval_stage"] = status == "Approved" ? "approved" : "pending_final",
+            ["approver"] = status is "Approved" or "Rejected" ? LeaveApproverRefData() : null,
+            ["prior_approvers"] = new JsonArray(
+                new JsonObject
+                {
+                    ["stage"] = "line_manager",
+                    ["status"] = "approved",
+                    ["approver"] = LeaveApprovalStepApproverData(),
+                    ["decided_at"] = "2026-06-09T10:00:00+00:00",
+                },
+                new JsonObject
+                {
+                    ["stage"] = "head_of_department",
+                    ["status"] = "approved",
+                    ["approver"] = LeaveApprovalStepApproverData(),
+                    ["decided_at"] = "2026-06-09T14:30:00+00:00",
+                }),
+            ["notes"] = status == "Rejected" ? "Team coverage required during sprint." : "Family visit.",
+            ["remaining_days"] = remainingDays,
+            ["waiting_hours"] = status == "Pending" ? 53 : null,
+            ["returns_on"] = "2026-07-12",
+            ["days_since_last_approval"] = null,
+            ["submitted_at"] = "2026-06-10T09:15:00+00:00",
+            ["decided_at"] = status is "Approved" or "Rejected" ? "2026-06-11T16:20:00+00:00" : null,
+        };
+        AppendResourceAuditFields(data, "2026-06-10T09:15:00+00:00", "2026-06-11T16:20:00+00:00");
+        return data;
+    }
 
     internal static JsonObject LeaveRequestDetailData(
         string status = "Pending",
-        string approvalStage = "pending_final") => new()
+        string approvalStage = "pending_final")
     {
-        ["leave_request_id"] = SampleLeaveRequestId.ToString(),
-        ["employee"] = LeaveEmployeeRefData(),
-        ["leave_type"] = LeaveTypeRefData(),
-        ["start_date"] = "2026-07-07",
-        ["end_date"] = "2026-07-11",
-        ["days_requested"] = 5,
-        ["working_days"] = 5,
-        ["public_holidays_in_range"] = 0,
-        ["status"] = status,
-        ["approval_stage"] = approvalStage,
-        ["approver"] = status is "Approved" or "Rejected" ? LeaveApproverRefData() : null,
-        ["approval_trail"] = new JsonArray(
-            new JsonObject
-            {
-                ["stage"] = "line_manager",
-                ["status"] = "approved",
-                ["approver"] = LeaveApprovalStepApproverData(),
-                ["decided_at"] = "2026-06-09T10:00:00+00:00",
-            },
-            new JsonObject
-            {
-                ["stage"] = "head_of_department",
-                ["status"] = "approved",
-                ["approver"] = LeaveApprovalStepApproverData(),
-                ["decided_at"] = "2026-06-09T14:30:00+00:00",
-            },
-            new JsonObject
-            {
-                ["stage"] = "final",
-                ["status"] = status == "Approved" ? "approved" : status == "Rejected" ? "rejected" : "pending",
-                ["approver"] = status is "Approved" or "Rejected" ? LeaveApproverRefData() : null,
-                ["decided_at"] = status is "Approved" or "Rejected" ? "2026-06-11T16:20:00+00:00" : null,
-            }),
-        ["notes"] = status == "Rejected" ? "Conflicts with audit period." : "Family visit.",
-        ["remaining_days"] = 14,
-        ["balance_impact"] = new JsonObject
+        var data = new JsonObject
         {
-            ["current"] = 14,
-            ["after"] = 9,
-            ["deduction"] = 5,
-        },
-        ["waiting_hours"] = status == "Pending" ? 53 : null,
-        ["submitted_at"] = "2026-06-10T09:15:00+00:00",
-        ["decided_at"] = status is "Approved" or "Rejected" ? "2026-06-11T16:20:00+00:00" : null,
-    };
+            ["leave_request_id"] = SampleLeaveRequestId.ToString(),
+            ["employee"] = LeaveEmployeeRefData(),
+            ["leave_type"] = LeaveTypeRefData(),
+            ["start_date"] = "2026-07-07",
+            ["end_date"] = "2026-07-11",
+            ["days_requested"] = 5,
+            ["working_days"] = 5,
+            ["public_holidays_in_range"] = 0,
+            ["status"] = status,
+            ["approval_stage"] = approvalStage,
+            ["approver"] = status is "Approved" or "Rejected" ? LeaveApproverRefData() : null,
+            ["approval_trail"] = new JsonArray(
+                new JsonObject
+                {
+                    ["stage"] = "line_manager",
+                    ["status"] = "approved",
+                    ["approver"] = LeaveApprovalStepApproverData(),
+                    ["decided_at"] = "2026-06-09T10:00:00+00:00",
+                },
+                new JsonObject
+                {
+                    ["stage"] = "head_of_department",
+                    ["status"] = "approved",
+                    ["approver"] = LeaveApprovalStepApproverData(),
+                    ["decided_at"] = "2026-06-09T14:30:00+00:00",
+                },
+                new JsonObject
+                {
+                    ["stage"] = "final",
+                    ["status"] = status == "Approved" ? "approved" : status == "Rejected" ? "rejected" : "pending",
+                    ["approver"] = status is "Approved" or "Rejected" ? LeaveApproverRefData() : null,
+                    ["decided_at"] = status is "Approved" or "Rejected" ? "2026-06-11T16:20:00+00:00" : null,
+                }),
+            ["notes"] = status == "Rejected" ? "Conflicts with audit period." : "Family visit.",
+            ["remaining_days"] = 14,
+            ["balance_impact"] = new JsonObject
+            {
+                ["current"] = 14,
+                ["after"] = 9,
+                ["deduction"] = 5,
+            },
+            ["waiting_hours"] = status == "Pending" ? 53 : null,
+            ["submitted_at"] = "2026-06-10T09:15:00+00:00",
+            ["decided_at"] = status is "Approved" or "Rejected" ? "2026-06-11T16:20:00+00:00" : null,
+        };
+        AppendResourceAuditFields(data, "2026-06-10T09:15:00+00:00", "2026-06-11T16:20:00+00:00");
+        return data;
+    }
 
-    internal static JsonObject LeaveBalanceItemData() => new()
+    internal static JsonObject LeaveBalanceItemData()
     {
-        ["leave_balance_id"] = SampleLeaveBalanceId.ToString(),
-        ["employee"] = LeaveEmployeeRefData(),
-        ["leave_type"] = LeaveTypeRefData(),
-        ["entitled_days"] = 21,
-        ["used_days"] = 7,
-        ["remaining_days"] = 14,
-    };
+        var data = new JsonObject
+        {
+            ["leave_balance_id"] = SampleLeaveBalanceId.ToString(),
+            ["employee"] = LeaveEmployeeRefData(),
+            ["leave_type"] = LeaveTypeRefData(),
+            ["entitled_days"] = 21,
+            ["used_days"] = 7,
+            ["remaining_days"] = 14,
+        };
+        AppendResourceAuditFields(data);
+        return data;
+    }
 
-    internal static JsonArray LeaveBalanceItemsArray() => new(
-        LeaveBalanceItemData(),
-        new JsonObject
+    internal static JsonArray LeaveBalanceItemsArray()
+    {
+        var second = new JsonObject
         {
             ["leave_balance_id"] = "a2222222-2222-2222-2222-222222222205",
             ["employee"] = LeaveEmployeeRefData(),
@@ -1492,7 +1527,10 @@ internal static class SwaggerExamples
             ["entitled_days"] = 10,
             ["used_days"] = 2,
             ["remaining_days"] = 8,
-        });
+        };
+        AppendResourceAuditFields(second);
+        return new JsonArray(LeaveBalanceItemData(), second);
+    }
 
     internal static JsonObject LeaveBalanceListData() => new()
     {
@@ -1507,11 +1545,62 @@ internal static class SwaggerExamples
             LeaveRequestItemData("Approved", 9)),
     };
 
+    internal static JsonObject LeaveDashboardPendingApprovedDaysItem()
+    {
+        var data = new JsonObject
+        {
+            ["leave_request_id"] = "a2222222-2222-2222-2222-222222222210",
+            ["employee"] = new JsonObject
+            {
+                ["employee_id"] = SampleEmployeeId.ToString(),
+                ["full_name"] = "Ama Asante",
+                ["employee_code"] = "EMP-001",
+            },
+            ["leave_type"] = new JsonObject
+            {
+                ["leave_type_id"] = SampleLeaveTypeId.ToString(),
+                ["name"] = "Maternity",
+            },
+            ["start_date"] = "2026-08-01",
+            ["end_date"] = "2026-08-30",
+            ["days_requested"] = 30,
+            ["status"] = "Pending",
+            ["approval_stage"] = "pending_final",
+            ["approver"] = null,
+            ["prior_approvers"] = new JsonArray(
+                new JsonObject
+                {
+                    ["stage"] = "line_manager",
+                    ["status"] = "approved",
+                    ["approver"] = LeaveApprovalStepApproverData(),
+                    ["decided_at"] = "2026-06-08T10:00:00+00:00",
+                },
+                new JsonObject
+                {
+                    ["stage"] = "head_of_department",
+                    ["status"] = "approved",
+                    ["approver"] = LeaveApprovalStepApproverData(),
+                    ["decided_at"] = "2026-06-08T14:30:00+00:00",
+                }),
+            ["notes"] = "Maternity leave",
+            ["remaining_days"] = 30,
+            ["waiting_hours"] = null,
+            ["returns_on"] = "2026-08-31",
+            ["days_since_last_approval"] = 5,
+            ["submitted_at"] = "2026-06-05T09:15:00+00:00",
+            ["decided_at"] = null,
+        };
+        AppendResourceAuditFields(data, "2026-06-05T09:15:00+00:00", "2026-06-08T14:30:00+00:00");
+        return data;
+    }
+
     internal static JsonObject LeaveDashboardData() => new()
     {
         ["summary"] = LeaveSummaryData(),
         ["on_leave_today"] = new JsonArray(LeaveRequestItemData("Approved", 9)),
-        ["pending_approvals"] = new JsonArray(LeaveRequestItemData("Pending", 14)),
+        ["pending_approvals"] = new JsonArray(
+            LeaveRequestItemData("Pending", 14),
+            LeaveDashboardPendingApprovedDaysItem()),
         ["leaving_this_week"] = new JsonArray(LeaveRequestItemData("Approved", 12)),
     };
 
@@ -1571,65 +1660,73 @@ internal static class SwaggerExamples
     internal static JsonObject LeaveRequestRejectedResponse() =>
         EnvelopeOk(LeaveRequestDetailData("Rejected", "rejected"), detail: "Leave request rejected.");
 
-    internal static JsonObject LeaveTypeItemData() => new()
+    internal static JsonObject LeaveTypeItemData()
     {
-        ["leave_type_id"] = SampleLeaveTypeId.ToString(),
-        ["name"] = "Annual Leave",
-        ["country_code"] = "GH",
-        ["default_entitled_days"] = 21,
-        ["is_paid"] = true,
-        ["is_active"] = true,
-        ["created_at"] = "2026-01-15T08:00:00+00:00",
-        ["updated_at"] = "2026-06-01T12:00:00+00:00",
-    };
+        var data = new JsonObject
+        {
+            ["leave_type_id"] = SampleLeaveTypeId.ToString(),
+            ["name"] = "Annual Leave",
+            ["country_code"] = "GH",
+            ["default_entitled_days"] = 21,
+            ["is_paid"] = true,
+            ["is_active"] = true,
+        };
+        AppendResourceAuditFields(data);
+        return data;
+    }
 
-    internal static JsonObject LeaveTypeListData() => new()
+    internal static JsonObject LeaveTypeListData()
     {
-        ["items"] = new JsonArray(
-            LeaveTypeItemData(),
-            new JsonObject
-            {
-                ["leave_type_id"] = "a2222222-2222-2222-2222-222222222206",
-                ["name"] = "Sick Leave",
-                ["country_code"] = null,
-                ["default_entitled_days"] = 10,
-                ["is_paid"] = true,
-                ["is_active"] = true,
-                ["created_at"] = "2026-01-15T08:00:00+00:00",
-                ["updated_at"] = "2026-06-01T12:00:00+00:00",
-            }),
-    };
+        var second = new JsonObject
+        {
+            ["leave_type_id"] = "a2222222-2222-2222-2222-222222222206",
+            ["name"] = "Sick Leave",
+            ["country_code"] = null,
+            ["default_entitled_days"] = 10,
+            ["is_paid"] = true,
+            ["is_active"] = true,
+        };
+        AppendResourceAuditFields(second);
+        return new JsonObject
+        {
+            ["items"] = new JsonArray(LeaveTypeItemData(), second),
+        };
+    }
 
-    internal static JsonObject PublicHolidayItemData() => new()
+    internal static JsonObject PublicHolidayItemData()
     {
-        ["holiday_id"] = SampleHolidayId.ToString(),
-        ["country_code"] = "GH",
-        ["name"] = "Independence Day",
-        ["holiday_date"] = "2026-03-06",
-        ["is_recurring"] = true,
-        ["branch_id"] = null,
-        ["is_active"] = true,
-        ["created_at"] = "2026-01-10T09:00:00+00:00",
-        ["updated_at"] = "2026-01-10T09:00:00+00:00",
-    };
+        var data = new JsonObject
+        {
+            ["holiday_id"] = SampleHolidayId.ToString(),
+            ["country_code"] = "GH",
+            ["name"] = "Independence Day",
+            ["holiday_date"] = "2026-03-06",
+            ["is_recurring"] = true,
+            ["branch_id"] = null,
+            ["is_active"] = true,
+        };
+        AppendResourceAuditFields(data, "2026-01-10T09:00:00+00:00", "2026-01-10T09:00:00+00:00");
+        return data;
+    }
 
-    internal static JsonObject PublicHolidayListData() => new()
+    internal static JsonObject PublicHolidayListData()
     {
-        ["items"] = new JsonArray(
-            PublicHolidayItemData(),
-            new JsonObject
-            {
-                ["holiday_id"] = "a2222222-2222-2222-2222-222222222207",
-                ["country_code"] = "KE",
-                ["name"] = "Madaraka Day",
-                ["holiday_date"] = "2026-06-01",
-                ["is_recurring"] = true,
-                ["branch_id"] = null,
-                ["is_active"] = true,
-                ["created_at"] = "2026-01-10T09:00:00+00:00",
-                ["updated_at"] = "2026-01-10T09:00:00+00:00",
-            }),
-    };
+        var second = new JsonObject
+        {
+            ["holiday_id"] = "a2222222-2222-2222-2222-222222222207",
+            ["country_code"] = "KE",
+            ["name"] = "Madaraka Day",
+            ["holiday_date"] = "2026-06-01",
+            ["is_recurring"] = true,
+            ["branch_id"] = null,
+            ["is_active"] = true,
+        };
+        AppendResourceAuditFields(second, "2026-01-10T09:00:00+00:00", "2026-01-10T09:00:00+00:00");
+        return new JsonObject
+        {
+            ["items"] = new JsonArray(PublicHolidayItemData(), second),
+        };
+    }
 
     internal static JsonObject LeaveHolidayListResponse() =>
         EnvelopeOk(PublicHolidayListData(), LeaveHolidayListPagination());

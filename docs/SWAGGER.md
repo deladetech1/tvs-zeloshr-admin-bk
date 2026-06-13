@@ -7,6 +7,8 @@ Configuration lives in `app/src/Configs/SwaggerConfiguration.cs`.
 
 **Platform JSON:** responses use **snake_case** (`status_code`, `has_next`, `field_errors`) to match Mystoreguard — see [MYSTOREGUARD_API_CONFORMANCE.md](MYSTOREGUARD_API_CONFORMANCE.md).
 
+**Audit fields (all modules):** every resource item in list/get/mutation responses includes the six standard fields — see [AUDIT_FIELDS.md](AUDIT_FIELDS.md).
+
 **Package:** `Swashbuckle.AspNetCore` **10.x** (required for .NET 10 — older 6.x produces an empty `paths` object).
 
 ## Required headers (Trove standard)
@@ -65,6 +67,35 @@ Tree shape comes from employee `reports_to_id`. Department badge requires `head_
 | Settings | Leave types `/leave/types/*` · public holidays `/leave/holidays/*` |
 
 List responses use **`data.items[]`** (not `requests[]`). Rows include nested **`employee`** (`employee_id`, `full_name`, `job_title`, `profile_url`) and **`leave_type`** (`leave_type_id`, `name`). Request rows expose **`approver`** (`approver_id`, `full_name`) when decided.
+
+Every leave resource item (requests, balances, types, holidays) includes standard audit fields per [AUDIT_FIELDS.md](AUDIT_FIELDS.md).
+
+**List filters** (`GET /leave/requests/list`) — map UI controls to query params (combine with AND):
+
+| UI control | Query param |
+|------------|---------------|
+| Employee name (search box) | `search` |
+| Employee code / ID | `employee_code` or `employee_id` |
+| Leave request UUID | `leave_request_id` |
+| Department | `department_id` |
+| Branch | `branch_id` |
+| Leave type | `leave_type_id` |
+| Status | `status` |
+| Approval stage | `approval_stage` |
+| Leave date range | `from_date` + `to_date` |
+| Submitted date range | `submitted_from_date` + `submitted_to_date` |
+
+Full table: [API_CONTRACTS.md — Leave](API_CONTRACTS.md#leave-apiv1leave).
+
+**Dashboard** (`GET /leave/dashboard`) widget mapping:
+
+| Widget | Row fields for UI |
+|--------|-------------------|
+| `on_leave_today[]` | `employee.full_name` · `leave_type.name` · `returns_on` → “Returns 24 Sept” |
+| `pending_approvals[]` | `employee.full_name` · `leave_type.name` · `days_requested` · `waiting_hours` (“waiting 53h”) **or** `days_since_last_approval` (“approved 5d”) |
+| `leaving_this_week[]` | `start_date` · `employee.full_name` · `leave_type.name` · `days_requested` |
+
+`pending_approvals` lists **all** pending requests (any approval stage), oldest `submitted_at` first — matches the KPI `summary.pending_requests` count.
 
 **Balances** (`GET /leave/my/summary`, `/leave/my/balances/list`, `/leave/balances/*`) use the same nested ref pattern on each balance row.
 

@@ -633,6 +633,11 @@ public sealed class EmployeeAggregateService
             EmployeeAggregateMapper.DeserializeCustomFields(entity.CustomFieldsData),
             definitions);
 
+        var auditUsers = await _cpUsers.GetByIdsAsync(
+            ResourceAuditMapper.CollectUserIds(new[] { entity.CreatedBy, entity.UpdatedBy }),
+            _tenant.TenantId,
+            ct);
+
         var read = new EmployeeAggregateReadDto
         {
             Id = entity.Id,
@@ -665,6 +670,12 @@ public sealed class EmployeeAggregateService
                 })
                 .ToList(),
             Documents = EmployeeAggregateReadMapper.DocumentsOrNull(documentIds),
+            CreatedAt = entity.CreatedAt,
+            UpdatedAt = entity.UpdatedAt,
+            CreatedById = entity.CreatedBy,
+            UpdatedById = entity.UpdatedBy,
+            CreatedBy = ResourceAuditMapper.ResolveDisplayName(entity.CreatedBy, auditUsers),
+            UpdatedBy = ResourceAuditMapper.ResolveDisplayName(entity.UpdatedBy, auditUsers),
         };
 
         return Respons<EmployeeAggregateReadDto>.Ok(read);
@@ -685,7 +696,11 @@ public sealed class EmployeeAggregateService
         var (rows, total) = await _employees.ListScopedAsync(
             query, _tenant.TenantId, _tenant.OrgId, paging.Page, paging.Size, ct);
 
-        var userIds = rows.Select(r => r.UserId).Where(id => !string.IsNullOrWhiteSpace(id)).Select(id => id!).Distinct();
+        var userIds = rows
+            .SelectMany(r => new[] { r.UserId, r.CreatedBy, r.UpdatedBy })
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id!)
+            .Distinct();
         var platformUsers = await _cpUsers.GetByIdsAsync(userIds, _tenant.TenantId, ct);
 
         var storedProfileRefs = rows
@@ -718,6 +733,12 @@ public sealed class EmployeeAggregateService
                 WorkStates = EmployeeStatusFilter.ResolveWorkStates(e, DateOnly.FromDateTime(DateTime.UtcNow)),
                 EmploymentType = e.EmploymentType,
                 ProfileUrl = profileUrl,
+                CreatedAt = e.CreatedAt,
+                UpdatedAt = e.UpdatedAt,
+                CreatedById = e.CreatedBy,
+                UpdatedById = e.UpdatedBy,
+                CreatedBy = ResourceAuditMapper.ResolveDisplayName(e.CreatedBy, platformUsers),
+                UpdatedBy = ResourceAuditMapper.ResolveDisplayName(e.UpdatedBy, platformUsers),
             };
         }).ToList();
 

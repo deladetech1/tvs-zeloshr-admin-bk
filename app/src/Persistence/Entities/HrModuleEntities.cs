@@ -41,6 +41,10 @@ public sealed class LeaveRequestEntity
     public DateTimeOffset? DecidedAt { get; set; }
     public string? Notes { get; set; }
     public DateTimeOffset SubmittedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+    public string? CreatedBy { get; set; }
+    public string? UpdatedBy { get; set; }
 }
 
 public sealed class LeaveBalanceEntity
@@ -55,6 +59,10 @@ public sealed class LeaveBalanceEntity
     public decimal EntitledDays { get; set; }
     public decimal UsedDays { get; set; }
     public decimal RemainingDays { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+    public string? CreatedBy { get; set; }
+    public string? UpdatedBy { get; set; }
 }
 
 public sealed class LeaveTypeEntity
@@ -69,6 +77,8 @@ public sealed class LeaveTypeEntity
     public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
+    public string? CreatedBy { get; set; }
+    public string? UpdatedBy { get; set; }
 }
 
 public sealed class PublicHolidayEntity
@@ -84,6 +94,8 @@ public sealed class PublicHolidayEntity
     public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
+    public string? CreatedBy { get; set; }
+    public string? UpdatedBy { get; set; }
 }
 
 public sealed class JobPostingEntity

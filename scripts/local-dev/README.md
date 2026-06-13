@@ -47,6 +47,10 @@ cp scripts/local-dev/live-session.example.env scripts/local-dev/live-session.env
 ./scripts/local-dev/test-leave-e2e.sh
 ./scripts/local-dev/test-leave-e2e.sh --open
 
+# Leave live report — every endpoint, full request/response HTML doc
+./scripts/local-dev/test-leave-live-report.sh
+./scripts/local-dev/test-leave-live-report.sh --open
+
 # Full live smoke — GET + POST + PUT + DELETE with cleanup (Swagger-shipped modules)
 ./scripts/local-dev/test-live-all.sh
 

@@ -26,6 +26,9 @@ public interface ILeaveRepository
     Task<IReadOnlyList<LeaveRequestRawRow>> ListOnLeaveTodayScopedAsync(
         string tenantId, string orgId, int limit, CancellationToken ct = default);
 
+    Task<IReadOnlyList<LeaveRequestRawRow>> ListPendingApprovalsScopedAsync(
+        string tenantId, string orgId, int limit, CancellationToken ct = default);
+
     Task<IReadOnlyList<LeaveRequestRawRow>> ListPendingFinalApprovalsScopedAsync(
         string tenantId, string orgId, int limit, CancellationToken ct = default);
 
@@ -53,6 +56,7 @@ public interface ILeaveRepository
         decimal daysRequested,
         string? notes,
         string initialApprovalStage,
+        string? actorUserId = null,
         CancellationToken ct = default);
 
     Task<LeaveRequestRawRow?> UpdateRequestScopedAsync(
@@ -61,6 +65,7 @@ public interface ILeaveRepository
         string orgId,
         string? status,
         string? notes,
+        string? actorUserId = null,
         CancellationToken ct = default);
 
     Task<LeaveRequestRawRow?> AdvanceApprovalScopedAsync(
@@ -100,10 +105,11 @@ public interface ILeaveRepository
         string leaveTypeName,
         decimal entitledDays,
         decimal usedDays,
+        string? actorUserId = null,
         CancellationToken ct = default);
 
     Task<LeaveBalanceRawRow?> UpdateBalanceScopedAsync(
-        Guid id, string tenantId, string orgId, decimal? entitledDays, decimal? usedDays, CancellationToken ct = default);
+        Guid id, string tenantId, string orgId, decimal? entitledDays, decimal? usedDays, string? actorUserId = null, CancellationToken ct = default);
 
     Task<IReadOnlyList<LeaveTypeListItemDto>> ListTypesScopedAsync(
         string tenantId, string orgId, string? countryCode, bool activeOnly, CancellationToken ct = default);
@@ -115,10 +121,10 @@ public interface ILeaveRepository
         string tenantId, string orgId, string name, Guid? excludeId, CancellationToken ct = default);
 
     Task<Guid> CreateTypeScopedAsync(
-        string tenantId, string orgId, CreateLeaveTypeDto data, CancellationToken ct = default);
+        string tenantId, string orgId, CreateLeaveTypeDto data, string? actorUserId = null, CancellationToken ct = default);
 
     Task<LeaveTypeListItemDto?> UpdateTypeScopedAsync(
-        Guid id, string tenantId, string orgId, UpdateLeaveTypeDto data, CancellationToken ct = default);
+        Guid id, string tenantId, string orgId, UpdateLeaveTypeDto data, string? actorUserId = null, CancellationToken ct = default);
 
     Task<bool> DeleteTypeScopedAsync(Guid id, string tenantId, string orgId, CancellationToken ct = default);
 
@@ -136,10 +142,10 @@ public interface ILeaveRepository
         Guid id, string tenantId, string orgId, CancellationToken ct = default);
 
     Task<Guid> CreateHolidayScopedAsync(
-        string tenantId, string orgId, CreatePublicHolidayDto data, CancellationToken ct = default);
+        string tenantId, string orgId, CreatePublicHolidayDto data, string? actorUserId = null, CancellationToken ct = default);
 
     Task<PublicHolidayListItemDto?> UpdateHolidayScopedAsync(
-        Guid id, string tenantId, string orgId, UpdatePublicHolidayDto data, CancellationToken ct = default);
+        Guid id, string tenantId, string orgId, UpdatePublicHolidayDto data, string? actorUserId = null, CancellationToken ct = default);
 
     Task<bool> DeleteHolidayScopedAsync(Guid id, string tenantId, string orgId, CancellationToken ct = default);
 }

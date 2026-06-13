@@ -24,7 +24,7 @@ public sealed class LeaveTypeRefDto
 public sealed class LeaveApproverRefDto
 {
     public required string ApproverId { get; init; }
-    public required string FullName { get; init; }
+    public string? FullName { get; init; }
 }
 
 public sealed class LeaveApprovalStepDto
@@ -78,8 +78,18 @@ public sealed class LeaveRequestListItemDto
     public string? Notes { get; init; }
     public decimal? RemainingDays { get; init; }
     public int? WaitingHours { get; init; }
+    /// <summary>First day back after leave (<c>end_date + 1</c>) — dashboard “Returns …” label.</summary>
+    public DateOnly? ReturnsOn { get; init; }
+    /// <summary>Days since the latest line-manager or HOD approval — dashboard “approved 5d” label.</summary>
+    public int? DaysSinceLastApproval { get; init; }
     public DateTimeOffset SubmittedAt { get; init; }
     public DateTimeOffset? DecidedAt { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
+    public string? CreatedById { get; init; }
+    public string? UpdatedById { get; init; }
+    public string? CreatedBy { get; init; }
+    public string? UpdatedBy { get; init; }
 }
 
 public sealed class LeaveRequestDetailDto
@@ -102,6 +112,12 @@ public sealed class LeaveRequestDetailDto
     public int? WaitingHours { get; init; }
     public DateTimeOffset SubmittedAt { get; init; }
     public DateTimeOffset? DecidedAt { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
+    public string? CreatedById { get; init; }
+    public string? UpdatedById { get; init; }
+    public string? CreatedBy { get; init; }
+    public string? UpdatedBy { get; init; }
 }
 
 public sealed class LeaveBalanceListItemDto
@@ -112,6 +128,12 @@ public sealed class LeaveBalanceListItemDto
     public decimal EntitledDays { get; init; }
     public decimal UsedDays { get; init; }
     public decimal RemainingDays { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
+    public string? CreatedById { get; init; }
+    public string? UpdatedById { get; init; }
+    public string? CreatedBy { get; init; }
+    public string? UpdatedBy { get; init; }
 }
 
 public sealed class LeaveListDto
@@ -149,6 +171,10 @@ public sealed class LeaveTypeListItemDto
     public bool IsActive { get; init; }
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
+    public string? CreatedById { get; init; }
+    public string? UpdatedById { get; init; }
+    public string? CreatedBy { get; init; }
+    public string? UpdatedBy { get; init; }
 }
 
 public sealed class LeaveTypeListDto
@@ -167,6 +193,10 @@ public sealed class PublicHolidayListItemDto
     public bool IsActive { get; init; }
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
+    public string? CreatedById { get; init; }
+    public string? UpdatedById { get; init; }
+    public string? CreatedBy { get; init; }
+    public string? UpdatedBy { get; init; }
 }
 
 public sealed class PublicHolidayListDto

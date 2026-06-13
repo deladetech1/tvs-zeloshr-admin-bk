@@ -34,7 +34,7 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveDashboardResponse());
                 operation.Summary ??= "Leave Management dashboard";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
-                    "Dashboard widgets: summary · on_leave_today[] · pending_approvals[] (final stage) · leaving_this_week[]. Rows include nested employee, leave_type, waiting_hours.");
+                    "Dashboard widgets: summary · on_leave_today[] · pending_approvals[] (all pending, oldest first) · leaving_this_week[]. On leave: employee.full_name · leave_type.name · returns_on. Pending: days_requested · waiting_hours OR days_since_last_approval. Leaving: start_date · days_requested.");
                 return;
 
             case "api/v1/leave/requests/list" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
@@ -45,16 +45,22 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                     Paginated admin list. Response `data`: summary · items[].
                     Each row includes nested `employee`, `leave_type`, `prior_approvers`, `waiting_hours`, and `employee.profile_url` (DocumentReadDto) when pending.
                     Use `approval_stage=pending_final` for the final approver queue (LM+HoD cleared).
-                    Filters: department_id · from_date/to_date (overlap) · leave_type_id · employee_id · search (name, code, job title).
+                    Filters: search (name/code/job title/leave type) · employee_id · employee_code · leave_request_id · department_id · branch_id · leave_type_id · status · approval_stage · from_date/to_date (leave overlap) · submitted_from_date/submitted_to_date · page · size.
                     Balances: GET /leave/balances/list.
                     """);
                 AppendParameterDescription(operation, "status", $"Filter by status. Allowed: {SwaggerExampleHints.LeaveRequestStatus}, all.");
                 AppendParameterDescription(operation, "approval_stage", $"Workflow stage filter. Allowed: {SwaggerExampleHints.LeaveApprovalStage}, all.");
+                AppendParameterDescription(operation, "search", "Free text (min 2 chars): employee name, employee code, job title, or leave type name.");
+                AppendParameterDescription(operation, "employee_code", "Partial match on employee code (e.g. ZEL-0042).");
+                AppendParameterDescription(operation, "leave_request_id", "Exact leave request UUID — deep-link one row.");
                 AppendParameterDescription(operation, "leave_type_id", "Optional leave type UUID filter.");
                 AppendParameterDescription(operation, "employee_id", "Optional employee UUID filter.");
                 AppendParameterDescription(operation, "department_id", "Optional department UUID filter.");
-                AppendParameterDescription(operation, "from_date", "Include requests ending on or after this date.");
-                AppendParameterDescription(operation, "to_date", "Include requests starting on or before this date.");
+                AppendParameterDescription(operation, "branch_id", "Optional branch UUID filter.");
+                AppendParameterDescription(operation, "from_date", "Leave period: include requests ending on or after this date.");
+                AppendParameterDescription(operation, "to_date", "Leave period: include requests starting on or before this date.");
+                AppendParameterDescription(operation, "submitted_from_date", "Submitted-at range: on or after start of day (UTC).");
+                AppendParameterDescription(operation, "submitted_to_date", "Submitted-at range: on or before end of day (UTC).");
                 return;
 
             case "api/v1/leave/requests/get" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):

@@ -185,5 +185,11 @@ public sealed class LifecycleEventRepository(ZelosHrDbContext db) : ILifecycleEv
         DueDate = e.DueDate,
         Status = e.Status,
         Urgency = e.Urgency,
+        CreatedAt = e.CreatedAt,
+        UpdatedAt = e.UpdatedAt,
+        CreatedById = null,
+        UpdatedById = null,
+        CreatedBy = null,
+        UpdatedBy = null,
     };
 }
