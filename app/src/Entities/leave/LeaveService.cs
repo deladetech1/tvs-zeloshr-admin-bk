@@ -284,15 +284,15 @@ public class LeaveService
         }
 
         var balances = await EnrichBalancesAsync(
-            await _leave.ListBalancesScopedAsync(tenantId, orgId, employee.Value.EmployeeId, null, ct),
+            await _leave.ListBalancesScopedAsync(tenantId, employee.Value.OrgId, employee.Value.EmployeeId, null, ct),
             tenantId,
-            orgId,
+            employee.Value.OrgId,
             ct);
         var pendingTotal = await _leave.CountEmployeeRequestsScopedAsync(
-            tenantId, orgId, employee.Value.EmployeeId, LeaveRequestStatuses.Pending, null, ct);
+            tenantId, employee.Value.OrgId, employee.Value.EmployeeId, LeaveRequestStatuses.Pending, null, ct);
         var yearStart = new DateOnly(DateTime.UtcNow.Year, 1, 1);
         var approvedThisYear = await _leave.CountEmployeeRequestsScopedAsync(
-            tenantId, orgId, employee.Value.EmployeeId, LeaveRequestStatuses.Approved, yearStart, ct);
+            tenantId, employee.Value.OrgId, employee.Value.EmployeeId, LeaveRequestStatuses.Approved, yearStart, ct);
 
         return Respons<LeaveMySummaryDto>.Ok(new LeaveMySummaryDto
         {
@@ -330,7 +330,7 @@ public class LeaveService
         var paging = PagedQuery.From(page, size);
         var (requests, total) = await _leave.ListRequestsScopedAsync(
             tenantId,
-            orgId,
+            employee.Value.OrgId,
             new LeaveRequestListQuery
             {
                 Status = status,
@@ -340,7 +340,7 @@ public class LeaveService
             },
             ct);
 
-        var items = await EnrichRequestsAsync(requests, tenantId, orgId, ct);
+        var items = await EnrichRequestsAsync(requests, tenantId, employee.Value.OrgId, ct);
         return Respons<LeaveMyRequestListDto>.Ok(
             new LeaveMyRequestListDto { Items = items },
             pagination: new PaginationMeta
@@ -364,9 +364,9 @@ public class LeaveService
         }
 
         var items = await EnrichBalancesAsync(
-            await _leave.ListBalancesScopedAsync(tenantId, orgId, employee.Value.EmployeeId, null, ct),
+            await _leave.ListBalancesScopedAsync(tenantId, employee.Value.OrgId, employee.Value.EmployeeId, null, ct),
             tenantId,
-            orgId,
+            employee.Value.OrgId,
             ct);
         return Respons<LeaveBalanceListDto>.Ok(new LeaveBalanceListDto { Items = items });
     }
@@ -393,7 +393,7 @@ public class LeaveService
                 Notes = data.Notes,
             },
             tenantId,
-            orgId,
+            employee.Value.OrgId,
             platformUserId,
             ct);
     }
@@ -738,7 +738,7 @@ public class LeaveService
             .Select(row => enriched.First(i => i.LeaveRequestId == row.LeaveRequestId))
             .ToList();
 
-    private async Task<(Guid EmployeeId, EmployeeDisplayInfo Display)?> ResolveMyEmployeeAsync(
+    private async Task<(Guid EmployeeId, string OrgId, EmployeeDisplayInfo Display)?> ResolveMyEmployeeAsync(
         string? platformUserId, string tenantId, string orgId, CancellationToken ct) =>
         string.IsNullOrWhiteSpace(platformUserId)
             ? null

@@ -198,27 +198,21 @@ class LeaveLiveReporter:
             "/api/v1/leave/holidays/list?country_code=GH&year=2026&page=1&size=10",
         )
 
-        # --- My Leave (Bright Debrah may 404 without hr_employees link) ---
+        # --- My Leave (logged-in employee; tenant owner fallback when org header differs) ---
         my_summary = self.call(
             "My summary",
             "GET",
             "/api/v1/leave/my/summary",
-            note="expected:404 when platform user has no linked hr_employees row",
-            expected_status=404,
         )
         self.call(
             "My balances list",
             "GET",
             "/api/v1/leave/my/balances/list",
-            note="expected:404 when platform user has no linked hr_employees row",
-            expected_status=404,
         )
         self.call(
             "My requests list",
             "GET",
             "/api/v1/leave/my/requests/list?page=1&size=5",
-            note="expected:404 when platform user has no linked hr_employees row",
-            expected_status=404,
         )
 
         # --- Leave type CRUD ---

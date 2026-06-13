@@ -30,7 +30,7 @@ jsonpath "$.data.on_leave_today" isCollection
 jsonpath "$.data.pending_approvals" isCollection
 jsonpath "$.data.leaving_this_week" isCollection
 
-# My Leave requires a platform user linked to hr_employees (404 when absent).
+# My Leave — logged-in platform user must be linked to zhr_employees (tenant owner gets empty 200 when not).
 GET {{base}}/api/v1/leave/my/summary
 accept: application/json
 app-id: {{app_id}}
@@ -39,10 +39,10 @@ bus-id: {{bus_id}}
 loc-id: {{loc_id}}
 org-id: {{org_id}}
 
-HTTP 404
+HTTP 200
 [Asserts]
-jsonpath "$.success" == false
-jsonpath "$.status_code" == 404
+jsonpath "$.success" == true
+jsonpath "$.data.balances" isCollection
 
 GET {{base}}/api/v1/leave/my/balances/list
 accept: application/json
@@ -52,9 +52,10 @@ bus-id: {{bus_id}}
 loc-id: {{loc_id}}
 org-id: {{org_id}}
 
-HTTP 404
+HTTP 200
 [Asserts]
-jsonpath "$.success" == false
+jsonpath "$.success" == true
+jsonpath "$.data.items" isCollection
 
 GET {{base}}/api/v1/leave/my/requests/list?page=1&size=5
 accept: application/json
@@ -64,9 +65,10 @@ bus-id: {{bus_id}}
 loc-id: {{loc_id}}
 org-id: {{org_id}}
 
-HTTP 404
+HTTP 200
 [Asserts]
-jsonpath "$.success" == false
+jsonpath "$.success" == true
+jsonpath "$.data.items" isCollection
 
 GET {{base}}/api/v1/leave/balances/list
 accept: application/json

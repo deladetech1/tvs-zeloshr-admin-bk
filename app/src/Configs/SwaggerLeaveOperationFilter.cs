@@ -126,6 +126,7 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                     Employee self-service for logged-in platform user: total_remaining_days · pending_requests · approved_this_year · balances[].
                     Each balance includes nested `employee` (full_name) and `leave_type` (name) — use those for display, not raw UUIDs.
                     Tenant owners (`cp_users.is_owner`) without a linked `zhr_employees` row receive 200 with zero counts and empty balances (not 404).
+                    Employee lookup falls back to tenant scope when the request `org-id` differs from the employee row.
                     """);
                 return;
 

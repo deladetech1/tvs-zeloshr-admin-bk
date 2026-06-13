@@ -33,6 +33,15 @@ public sealed class EmployeeRepository(ZelosHrDbContext db) : IEmployeeRepositor
                      && !e.IsDeleted,
                 ct);
 
+    public async Task<EmployeeEntity?> GetByPlatformUserIdTenantScopedAsync(
+        string platformUserId, string tenantId, CancellationToken ct = default) =>
+        await db.Employees.AsNoTracking()
+            .FirstOrDefaultAsync(
+                e => e.UserId == platformUserId
+                     && e.TenantId == tenantId
+                     && !e.IsDeleted,
+                ct);
+
     public async Task<EmployeeEntity?> GetByIdScopedForUpdateAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default) =>
         await db.Employees

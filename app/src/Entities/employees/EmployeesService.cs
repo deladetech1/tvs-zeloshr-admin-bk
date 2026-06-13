@@ -343,18 +343,19 @@ public partial class EmployeesService : IEmployeesService, IEmployeeLookup
         return await MapEmployeeDisplayAsync(entity, tenantId, ct);
     }
 
-    public async Task<(Guid EmployeeId, EmployeeDisplayInfo Display)?> ResolveByPlatformUserAsync(
+    public async Task<(Guid EmployeeId, string OrgId, EmployeeDisplayInfo Display)?> ResolveByPlatformUserAsync(
         string platformUserId, string tenantId, string orgId, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(platformUserId))
             return null;
 
-        var entity = await _employees.GetByPlatformUserIdScopedAsync(platformUserId, tenantId, orgId, ct);
+        var entity = await _employees.GetByPlatformUserIdScopedAsync(platformUserId, tenantId, orgId, ct)
+            ?? await _employees.GetByPlatformUserIdTenantScopedAsync(platformUserId, tenantId, ct);
         if (entity is null)
             return null;
 
         var display = await MapEmployeeDisplayAsync(entity, tenantId, ct);
-        return display is null ? null : (entity.Id, display);
+        return display is null ? null : (entity.Id, entity.OrgId, display);
     }
 
     private async Task<EmployeeDisplayInfo?> MapEmployeeDisplayAsync(

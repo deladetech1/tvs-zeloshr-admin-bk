@@ -11,6 +11,10 @@ public interface IEmployeeRepository : IRepository<EmployeeEntity, Guid>
     Task<EmployeeEntity?> GetByPlatformUserIdScopedAsync(
         string platformUserId, string tenantId, string orgId, CancellationToken ct = default);
 
+    /// <summary>Resolves by platform user within tenant when org header does not match the employee row.</summary>
+    Task<EmployeeEntity?> GetByPlatformUserIdTenantScopedAsync(
+        string platformUserId, string tenantId, CancellationToken ct = default);
+
     Task<EmployeeEntity?> GetByIdScopedForUpdateAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default);
 
