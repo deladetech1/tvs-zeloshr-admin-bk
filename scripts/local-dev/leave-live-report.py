@@ -198,28 +198,6 @@ class LeaveLiveReporter:
             "/api/v1/leave/holidays/list?country_code=GH&year=2026&page=1&size=10",
         )
 
-        # --- My Leave (logged-in employee; tenant owner fallback when org header differs) ---
-        self.call(
-            "Leave summary (admin dashboard)",
-            "GET",
-            "/api/v1/leave/summary",
-        )
-        self.call(
-            "My summary (personal)",
-            "GET",
-            "/api/v1/leave/my/summary",
-        )
-        self.call(
-            "My balances list",
-            "GET",
-            "/api/v1/leave/my/balances/list",
-        )
-        self.call(
-            "My requests list",
-            "GET",
-            "/api/v1/leave/my/requests/list?page=1&size=5",
-        )
-
         # --- Leave type CRUD ---
         type_add = self.call(
             "Create leave type",
@@ -274,6 +252,29 @@ class LeaveLiveReporter:
 
         employee_id = self.ctx.get("employee_id")
         leave_type_id = self.ctx.get("leave_type_id")
+
+        self.call(
+            "Leave summary (admin dashboard)",
+            "GET",
+            "/api/v1/leave/summary",
+        )
+
+        if employee_id:
+            self.call(
+                "My summary (personal)",
+                "GET",
+                f"/api/v1/leave/my/summary?employee_id={employee_id}",
+            )
+            self.call(
+                "My balances list",
+                "GET",
+                f"/api/v1/leave/my/balances/list?employee_id={employee_id}",
+            )
+            self.call(
+                "My requests list",
+                "GET",
+                f"/api/v1/leave/my/requests/list?employee_id={employee_id}&page=1&size=5",
+            )
 
         if employee_id:
             self.call(
@@ -403,12 +404,12 @@ class LeaveLiveReporter:
                     expected_status=404,
                 )
 
-        # My Leave submit (expect 404 for unlinked user)
-        if leave_type_id:
+        # My Leave submit
+        if leave_type_id and employee_id:
             self.call(
                 "Create my leave request",
                 "POST",
-                "/api/v1/leave/my/requests/add",
+                f"/api/v1/leave/my/requests/add?employee_id={employee_id}",
                 {
                     "leave_type_id": leave_type_id,
                     "start_date": start,
@@ -416,8 +417,6 @@ class LeaveLiveReporter:
                     "days_requested": 5,
                     "notes": f"My leave {self.run_tag}",
                 },
-                note="expected:404 when platform user has no linked hr_employees row",
-                expected_status=404,
             )
 
         # Approve — document attempt on non-pending (409) or missing approver chain

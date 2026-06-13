@@ -47,8 +47,22 @@ jsonpath "$.data.on_leave_today" isCollection
 jsonpath "$.data.pending_approvals" isCollection
 jsonpath "$.data.leaving_this_week" isCollection
 
-# My Leave — personal balances only.
-GET {{base}}/api/v1/leave/my/summary
+# My Leave — personal balances only (requires employee_id).
+GET {{base}}/api/v1/employees/list?page=1&size=1
+accept: application/json
+app-id: {{app_id}}
+authorization: Bearer {{token}}
+bus-id: {{bus_id}}
+loc-id: {{loc_id}}
+org-id: {{org_id}}
+
+HTTP 200
+[Captures]
+employee_id: jsonpath "$.data.items[0].employee_id"
+[Asserts]
+jsonpath "$.data.items" count >= 1
+
+GET {{base}}/api/v1/leave/my/summary?employee_id={{employee_id}}
 accept: application/json
 app-id: {{app_id}}
 authorization: Bearer {{token}}
@@ -61,7 +75,7 @@ HTTP 200
 jsonpath "$.success" == true
 jsonpath "$.data.balances" isCollection
 
-GET {{base}}/api/v1/leave/my/balances/list
+GET {{base}}/api/v1/leave/my/balances/list?employee_id={{employee_id}}
 accept: application/json
 app-id: {{app_id}}
 authorization: Bearer {{token}}
@@ -74,7 +88,7 @@ HTTP 200
 jsonpath "$.success" == true
 jsonpath "$.data.items" isCollection
 
-GET {{base}}/api/v1/leave/my/requests/list?page=1&size=5
+GET {{base}}/api/v1/leave/my/requests/list?employee_id={{employee_id}}&page=1&size=5
 accept: application/json
 app-id: {{app_id}}
 authorization: Bearer {{token}}

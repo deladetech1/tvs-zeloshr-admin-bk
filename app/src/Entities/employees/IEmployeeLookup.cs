@@ -9,6 +9,9 @@ public interface IEmployeeLookup
     Task<(Guid EmployeeId, string OrgId, EmployeeDisplayInfo Display)?> ResolveByPlatformUserAsync(
         string platformUserId, string tenantId, string orgId, CancellationToken ct = default);
 
+    Task<(Guid EmployeeId, string OrgId, EmployeeDisplayInfo Display)?> ResolveEmployeeAsync(
+        Guid employeeId, string tenantId, string orgId, CancellationToken ct = default);
+
     Task<IReadOnlyDictionary<Guid, EmployeeLeaveContext>> ResolveLeaveContextsAsync(
         IEnumerable<Guid> employeeIds, string tenantId, string orgId, CancellationToken ct = default);
 }

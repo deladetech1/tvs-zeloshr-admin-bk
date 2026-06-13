@@ -207,7 +207,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(LeaveDashboardDto) => AppendDescription(schema.Description,
                 "Leave Management home (`GET /leave/summary`): summary KPIs · on_leave_today[] (returns_on) · pending_approvals[] (all pending, oldest first; waiting_hours or days_since_last_approval) · leaving_this_week[] (start_date)."),
             nameof(LeavePersonalSummaryDto) => AppendDescription(schema.Description,
-                "My Leave (`GET /leave/my/summary`): total_remaining_days · pending_requests · approved_this_year · balances[]."),
+                "My Leave (`GET /leave/my/summary?employee_id=`): total_remaining_days · pending_requests · approved_this_year · balances[]."),
             nameof(LeaveListDto) => AppendDescription(schema.Description,
                 "Admin list payload: summary · items[] with nested employee, leave_type, prior_approvers, waiting_hours."),
             nameof(LeaveMyRequestListDto) => AppendDescription(schema.Description,

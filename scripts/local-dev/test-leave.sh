@@ -38,9 +38,6 @@ paths=(
   "/api/v1/leave/types/list?active_only=true"
   "/api/v1/leave/holidays/list?page=1&size=10"
   "/api/v1/leave/summary"
-  "/api/v1/leave/my/summary"
-  "/api/v1/leave/my/balances/list"
-  "/api/v1/leave/my/requests/list?page=1&size=5"
 )
 
 echo "ZelosHR base: ${BASE}"
@@ -54,5 +51,29 @@ for path in "${paths[@]}"; do
   echo "  $(echo "$json" | head -c 500)"
   echo ""
 done
+
+emp_body=$(curl -sS -w "\n%{http_code}" "${curl_headers[@]}" "${BASE}/api/v1/employees/list?page=1&size=1")
+emp_code=$(echo "$emp_body" | tail -1)
+emp_json=$(echo "$emp_body" | sed '$d')
+employee_id=$(echo "$emp_json" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('data',{}).get('items',[{}])[0].get('employee_id',''))" 2>/dev/null || true)
+
+if [[ -n "${employee_id}" ]]; then
+  my_paths=(
+    "/api/v1/leave/my/summary?employee_id=${employee_id}"
+    "/api/v1/leave/my/balances/list?employee_id=${employee_id}"
+    "/api/v1/leave/my/requests/list?employee_id=${employee_id}&page=1&size=5"
+  )
+  for path in "${my_paths[@]}"; do
+    body=$(curl -sS -w "\n%{http_code}" "${curl_headers[@]}" "${BASE}${path}")
+    code=$(echo "$body" | tail -1)
+    json=$(echo "$body" | sed '$d')
+    printf "GET %s\n  HTTP %s\n" "$path" "$code"
+    echo "  $(echo "$json" | head -c 500)"
+    echo ""
+  done
+else
+  echo "Skipping My Leave routes — no employee_id from GET /employees/list (HTTP ${emp_code})"
+  echo ""
+fi
 
 echo "Leave smoke checks completed."

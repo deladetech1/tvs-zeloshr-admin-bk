@@ -129,36 +129,46 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
 
             case "api/v1/leave/my/summary" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeavePersonalSummaryResponse());
+                SetJsonResponseExample(operation, 400, SwaggerExamples.EnvelopeFor(typeof(Respons<LeavePersonalSummaryDto>), 400));
                 SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeavePersonalSummaryDto>), 404));
                 operation.Summary ??= "My Leave summary";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
                     """
-                    Personal leave for the logged-in employee: total_remaining_days · pending_requests · approved_this_year · balances[].
-                    Tenant owners without a linked zhr_employees row receive 200 with zeros. Others receive 404 when not linked.
+                    Personal leave for an employee: total_remaining_days · pending_requests · approved_this_year · balances[].
+                    Requires `employee_id` query param (UUID from GET /employees/list).
                     """);
+                AppendParameterDescription(operation, "employee_id", "Required. Employee UUID whose personal leave summary to load.");
                 return;
 
             case "api/v1/leave/my/requests/list" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveMyRequestListResponse());
+                SetJsonResponseExample(operation, 400, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveMyRequestListDto>), 400));
+                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveMyRequestListDto>), 404));
                 operation.Summary ??= "My Leave requests";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
-                    "Paginated requests for the logged-in employee. Rows include nested `employee` and `leave_type`. Admin dashboard: GET /leave/summary.");
+                    "Paginated requests for an employee. Requires `employee_id`. Rows include nested `employee` and `leave_type`. Admin dashboard: GET /leave/summary.");
+                AppendParameterDescription(operation, "employee_id", "Required. Employee UUID whose requests to list.");
                 AppendParameterDescription(operation, "status", $"Optional status filter. Allowed: {SwaggerExampleHints.LeaveRequestStatus}, all.");
                 return;
 
             case "api/v1/leave/my/balances/list" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveBalanceListResponse());
+                SetJsonResponseExample(operation, 400, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveBalanceListDto>), 400));
                 SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveBalanceListDto>), 404));
                 operation.Summary ??= "My Leave balances";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
-                    "Entitlement rows for the logged-in employee. Each item includes nested `employee` and `leave_type` display refs.");
+                    "Entitlement rows for an employee. Requires `employee_id`. Each item includes nested `employee` and `leave_type` display refs.");
+                AppendParameterDescription(operation, "employee_id", "Required. Employee UUID whose balances to list.");
                 return;
 
             case "api/v1/leave/my/requests/add" when method.Equals("POST", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveRequestGetResponse());
+                SetJsonResponseExample(operation, 400, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveRequestDetailDto>), 400));
+                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveRequestDetailDto>), 404));
                 operation.Summary ??= "Submit My Leave request";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
-                    "Creates a request for the employee linked to the logged-in platform user. Body uses `leave_type_id` only — no `employee_id`.");
+                    "Creates a request for the employee identified by `employee_id` query param. Body uses `leave_type_id` only — no `employee_id` in JSON.");
+                AppendParameterDescription(operation, "employee_id", "Required. Employee UUID submitting the request.");
                 return;
 
             case "api/v1/leave/balances/list" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):

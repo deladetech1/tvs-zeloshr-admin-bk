@@ -219,24 +219,33 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>My Leave — personal remaining days, counts, and balances for the logged-in employee.</summary>
+    /// <summary>Personal leave summary for an employee — remaining days, counts, and balances.</summary>
     [HttpGet("my/summary")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
     [ProducesResponseType(typeof(Respons<LeavePersonalSummaryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<LeavePersonalSummaryDto>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(Respons<LeavePersonalSummaryDto>), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<Respons<LeavePersonalSummaryDto>>> MySummary(CancellationToken ct)
+    public async Task<ActionResult<Respons<LeavePersonalSummaryDto>>> MySummary(
+        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId,
+        CancellationToken ct)
     {
+        if (QueryParamValidation.BadRequestIfEmptyGuid<LeavePersonalSummaryDto>(
+                employeeId, PlatformQueryParams.EmployeeId) is { } badRequest)
+            return badRequest;
+
         var ctx = _tenant.Current;
-        var result = await _service.GetMySummaryAsync(ctx.UserId, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.GetMySummaryAsync(employeeId, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>List leave requests for the logged-in employee (My Leave).</summary>
+    /// <summary>List leave requests for an employee (My Leave).</summary>
     [HttpGet("my/requests/list")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
     [ProducesResponseType(typeof(Respons<LeaveMyRequestListDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<LeaveMyRequestListDto>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(Respons<LeaveMyRequestListDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<LeaveMyRequestListDto>>> MyRequests(
+        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId,
         [FromQuery]
         [SwaggerAllowedValues(typeof(LeaveFieldOptions), nameof(LeaveFieldOptions.RequestStatuses))]
         string? status,
@@ -244,35 +253,51 @@ public class LeaveController : ControllerBase
         [FromQuery] int size = 20,
         CancellationToken ct = default)
     {
+        if (QueryParamValidation.BadRequestIfEmptyGuid<LeaveMyRequestListDto>(
+                employeeId, PlatformQueryParams.EmployeeId) is { } badRequest)
+            return badRequest;
+
         var ctx = _tenant.Current;
-        var result = await _service.ListMyRequestsAsync(ctx.UserId, status, page, size, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.ListMyRequestsAsync(employeeId, status, page, size, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>List leave balances for the logged-in employee (nested employee and leave_type on each row).</summary>
+    /// <summary>List leave balances for an employee (nested employee and leave_type on each row).</summary>
     [HttpGet("my/balances/list")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
     [ProducesResponseType(typeof(Respons<LeaveBalanceListDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<LeaveBalanceListDto>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(Respons<LeaveBalanceListDto>), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<Respons<LeaveBalanceListDto>>> MyBalances(CancellationToken ct)
+    public async Task<ActionResult<Respons<LeaveBalanceListDto>>> MyBalances(
+        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId,
+        CancellationToken ct)
     {
+        if (QueryParamValidation.BadRequestIfEmptyGuid<LeaveBalanceListDto>(
+                employeeId, PlatformQueryParams.EmployeeId) is { } badRequest)
+            return badRequest;
+
         var ctx = _tenant.Current;
-        var result = await _service.ListMyBalancesAsync(ctx.UserId, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.ListMyBalancesAsync(employeeId, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Submit a leave request for the logged-in employee (My Leave).</summary>
+    /// <summary>Submit a leave request for an employee (My Leave).</summary>
     [HttpPost("my/requests/add")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveCreate)]
     [ProducesResponseType(typeof(Respons<LeaveRequestDetailDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Respons<LeaveRequestDetailDto>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(Respons<LeaveRequestDetailDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<LeaveRequestDetailDto>>> CreateMyRequest(
+        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId,
         [FromBody] CreateMyLeaveRequestDto body,
         CancellationToken ct)
     {
+        if (QueryParamValidation.BadRequestIfEmptyGuid<LeaveRequestDetailDto>(
+                employeeId, PlatformQueryParams.EmployeeId) is { } badRequest)
+            return badRequest;
+
         var ctx = _tenant.Current;
-        var result = await _service.CreateMyRequestAsync(body, ctx.UserId, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.CreateMyRequestAsync(body, employeeId, ctx.UserId, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 

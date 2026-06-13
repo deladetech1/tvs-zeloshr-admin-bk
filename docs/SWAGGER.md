@@ -62,7 +62,7 @@ Tree shape comes from employee `reports_to_id`. Department badge requires `head_
 |------|------------|
 | Dashboard | `GET /leave/summary` (KPIs + widgets — **use for Leave Management page**) · `GET /leave/statistics` (counts only) · `GET /leave/dashboard` (alias of summary widgets) |
 | Admin requests | `GET /leave/requests/list` · `GET /leave/requests/get` · `POST /requests/add` · `POST /requests/approve` · `POST /requests/reject` |
-| My Leave | `GET /leave/my/summary` (personal balances only) · `GET /leave/my/requests/list` · `POST /leave/my/requests/add` |
+| My Leave | `GET /leave/my/summary?employee_id=` · `GET /leave/my/requests/list?employee_id=` · `GET /leave/my/balances/list?employee_id=` · `POST /leave/my/requests/add?employee_id=` |
 | Balances | `GET /leave/balances/list` · admin CRUD on `/leave/balances/*` |
 | Settings | Leave types `/leave/types/*` · public holidays `/leave/holidays/*` |
 
@@ -97,7 +97,7 @@ Full table: [API_CONTRACTS.md — Leave](API_CONTRACTS.md#leave-apiv1leave).
 
 `pending_approvals` lists **all** pending requests (any approval stage), oldest `submitted_at` first — matches the KPI `summary.pending_requests` count.
 
-**Balances** (`GET /leave/my/summary`, `/leave/my/balances/list`, `/leave/balances/*`) use the same nested ref pattern on each balance row.
+**Balances** (`GET /leave/my/summary?employee_id=`, `/leave/my/balances/list?employee_id=`, `/leave/balances/*`) use the same nested ref pattern on each balance row.
 
 Three-stage approval: `line_manager` → `head_of_department` → `final`. Final queue: `?approval_stage=pending_final&status=Pending`. Mutations and `GET /requests/get` return **`LeaveRequestDetailDto`** with `balance_impact` and `approval_trail`.
 

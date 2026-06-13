@@ -56,22 +56,20 @@ public class LeaveService
     }
 
     private async Task<LeavePersonalSummaryDto> BuildPersonalSummaryAsync(
-        string? platformUserId, string tenantId, string orgId, CancellationToken ct)
+        (Guid EmployeeId, string OrgId, EmployeeDisplayInfo Display) employee,
+        string tenantId,
+        CancellationToken ct)
     {
-        var employee = await ResolveMyEmployeeAsync(platformUserId, tenantId, orgId, ct);
-        if (employee is null)
-            return EmptyPersonalSummary();
-
         var balances = await EnrichBalancesAsync(
-            await _leave.ListBalancesScopedAsync(tenantId, employee.Value.OrgId, employee.Value.EmployeeId, null, ct),
+            await _leave.ListBalancesScopedAsync(tenantId, employee.OrgId, employee.EmployeeId, null, ct),
             tenantId,
-            employee.Value.OrgId,
+            employee.OrgId,
             ct);
         var pendingTotal = await _leave.CountEmployeeRequestsScopedAsync(
-            tenantId, employee.Value.OrgId, employee.Value.EmployeeId, LeaveRequestStatuses.Pending, null, ct);
+            tenantId, employee.OrgId, employee.EmployeeId, LeaveRequestStatuses.Pending, null, ct);
         var yearStart = new DateOnly(DateTime.UtcNow.Year, 1, 1);
         var approvedThisYear = await _leave.CountEmployeeRequestsScopedAsync(
-            tenantId, employee.Value.OrgId, employee.Value.EmployeeId, LeaveRequestStatuses.Approved, yearStart, ct);
+            tenantId, employee.OrgId, employee.EmployeeId, LeaveRequestStatuses.Approved, yearStart, ct);
 
         return new LeavePersonalSummaryDto
         {
@@ -304,44 +302,23 @@ public class LeaveService
     }
 
     public async Task<Respons<LeavePersonalSummaryDto>> GetMySummaryAsync(
-        string? platformUserId, string tenantId, string orgId, CancellationToken ct = default)
+        Guid employeeId, string tenantId, string orgId, CancellationToken ct = default)
     {
-        var employee = await ResolveMyEmployeeAsync(platformUserId, tenantId, orgId, ct);
+        var employee = await ResolveEmployeeAsync(employeeId, tenantId, orgId, ct);
         if (employee is null)
-        {
-            if (await IsTenantOwnerWithoutEmployeeAsync(platformUserId, tenantId, ct))
-                return Respons<LeavePersonalSummaryDto>.Ok(EmptyPersonalSummary());
-            return Respons<LeavePersonalSummaryDto>.Fail(
-                "No employee profile linked to this user.", statusCode: 404);
-        }
+            return Respons<LeavePersonalSummaryDto>.Fail("Employee not found.", statusCode: 404);
 
-        return Respons<LeavePersonalSummaryDto>.Ok(
-            await BuildPersonalSummaryAsync(platformUserId, tenantId, orgId, ct));
+        return Respons<LeavePersonalSummaryDto>.Ok(await BuildPersonalSummaryAsync(employee.Value, tenantId, ct));
     }
 
     public async Task<Respons<LeaveMyRequestListDto>> ListMyRequestsAsync(
-        string? platformUserId, string? status, int page, int size,
+        Guid employeeId, string? status, int page, int size,
         string tenantId, string orgId, CancellationToken ct = default)
     {
         var paging = PagedQuery.From(page, size);
-        var employee = await ResolveMyEmployeeAsync(platformUserId, tenantId, orgId, ct);
+        var employee = await ResolveEmployeeAsync(employeeId, tenantId, orgId, ct);
         if (employee is null)
-        {
-            if (await IsTenantOwnerWithoutEmployeeAsync(platformUserId, tenantId, ct))
-            {
-                return Respons<LeaveMyRequestListDto>.Ok(
-                    new LeaveMyRequestListDto(),
-                    pagination: new PaginationMeta
-                    {
-                        Page = paging.Page,
-                        Size = paging.Size,
-                        Total = 0,
-                        HasNext = false,
-                    });
-            }
-
-            return Respons<LeaveMyRequestListDto>.Fail("No employee profile linked to this user.", statusCode: 404);
-        }
+            return Respons<LeaveMyRequestListDto>.Fail("Employee not found.", statusCode: 404);
 
         var (requests, total) = await _leave.ListRequestsScopedAsync(
             tenantId,
@@ -368,15 +345,11 @@ public class LeaveService
     }
 
     public async Task<Respons<LeaveBalanceListDto>> ListMyBalancesAsync(
-        string? platformUserId, string tenantId, string orgId, CancellationToken ct = default)
+        Guid employeeId, string tenantId, string orgId, CancellationToken ct = default)
     {
-        var employee = await ResolveMyEmployeeAsync(platformUserId, tenantId, orgId, ct);
+        var employee = await ResolveEmployeeAsync(employeeId, tenantId, orgId, ct);
         if (employee is null)
-        {
-            if (await IsTenantOwnerWithoutEmployeeAsync(platformUserId, tenantId, ct))
-                return Respons<LeaveBalanceListDto>.Ok(new LeaveBalanceListDto());
-            return Respons<LeaveBalanceListDto>.Fail("No employee profile linked to this user.", statusCode: 404);
-        }
+            return Respons<LeaveBalanceListDto>.Fail("Employee not found.", statusCode: 404);
 
         var items = await EnrichBalancesAsync(
             await _leave.ListBalancesScopedAsync(tenantId, employee.Value.OrgId, employee.Value.EmployeeId, null, ct),
@@ -388,14 +361,15 @@ public class LeaveService
 
     public async Task<Respons<LeaveRequestDetailDto>> CreateMyRequestAsync(
         CreateMyLeaveRequestDto data,
-        string? platformUserId,
+        Guid employeeId,
+        string? actorUserId,
         string tenantId,
         string orgId,
         CancellationToken ct = default)
     {
-        var employee = await ResolveMyEmployeeAsync(platformUserId, tenantId, orgId, ct);
+        var employee = await ResolveEmployeeAsync(employeeId, tenantId, orgId, ct);
         if (employee is null)
-            return Respons<LeaveRequestDetailDto>.Fail("No employee profile linked to this user.", statusCode: 404);
+            return Respons<LeaveRequestDetailDto>.Fail("Employee not found.", statusCode: 404);
 
         return await CreateRequestAsync(
             new CreateLeaveRequestDto
@@ -409,7 +383,7 @@ public class LeaveService
             },
             tenantId,
             employee.Value.OrgId,
-            platformUserId,
+            actorUserId,
             ct);
     }
 
@@ -753,24 +727,9 @@ public class LeaveService
             .Select(row => enriched.First(i => i.LeaveRequestId == row.LeaveRequestId))
             .ToList();
 
-    private async Task<(Guid EmployeeId, string OrgId, EmployeeDisplayInfo Display)?> ResolveMyEmployeeAsync(
-        string? platformUserId, string tenantId, string orgId, CancellationToken ct) =>
-        string.IsNullOrWhiteSpace(platformUserId)
-            ? null
-            : await _employees.ResolveByPlatformUserAsync(platformUserId, tenantId, orgId, ct);
-
-    /// <summary>Tenant owners may use My Leave reads without a linked <c>zhr_employees</c> row.</summary>
-    private async Task<bool> IsTenantOwnerWithoutEmployeeAsync(
-        string? platformUserId, string tenantId, CancellationToken ct)
-    {
-        if (string.IsNullOrWhiteSpace(platformUserId))
-            return false;
-
-        var cpUser = await _cpUsers.GetByIdAsync(platformUserId, tenantId, ct);
-        return cpUser?.IsOwner == true;
-    }
-
-    private static LeavePersonalSummaryDto EmptyPersonalSummary() => new();
+    private async Task<(Guid EmployeeId, string OrgId, EmployeeDisplayInfo Display)?> ResolveEmployeeAsync(
+        Guid employeeId, string tenantId, string orgId, CancellationToken ct) =>
+        await _employees.ResolveEmployeeAsync(employeeId, tenantId, orgId, ct);
 
     private static string ResolveInitialApprovalStage(EmployeeLeaveContext employee)
     {

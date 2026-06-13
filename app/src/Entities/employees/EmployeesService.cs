@@ -358,6 +358,20 @@ public partial class EmployeesService : IEmployeesService, IEmployeeLookup
         return display is null ? null : (entity.Id, entity.OrgId, display);
     }
 
+    public async Task<(Guid EmployeeId, string OrgId, EmployeeDisplayInfo Display)?> ResolveEmployeeAsync(
+        Guid employeeId, string tenantId, string orgId, CancellationToken ct)
+    {
+        if (employeeId == Guid.Empty)
+            return null;
+
+        var entity = await _employees.GetByIdScopedAsync(employeeId, tenantId, orgId, ct);
+        if (entity is null)
+            return null;
+
+        var display = await MapEmployeeDisplayAsync(entity, tenantId, ct);
+        return display is null ? null : (entity.Id, entity.OrgId, display);
+    }
+
     private async Task<EmployeeDisplayInfo?> MapEmployeeDisplayAsync(
         EmployeeEntity entity, string tenantId, CancellationToken ct)
     {
