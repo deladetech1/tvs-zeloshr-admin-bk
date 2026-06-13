@@ -257,6 +257,72 @@ jobs:
           chmod +x scripts/ci/regression-test.sh scripts/compose.sh scripts/compose/*.sh
           ./scripts/ci/regression-test.sh
 
+  post-deploy-leave-e2e:
+    name: Leave E2E (Hurl)
+    needs: [build-and-deploy-app, post-deploy-regression]
+    if: |
+      needs.build-and-deploy-app.result == 'success' &&
+      needs.post-deploy-regression.result == 'success' &&
+      github.ref_name == 'dev' &&
+      needs.build-and-deploy-app.outputs.container_app_deployed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check Leave E2E configuration
+        id: e2e_cfg
+        env:
+          TROVESUITE_SECRET_KEY: ${{ secrets.TROVESUITE_SECRET_KEY }}
+          ZELOSHR_E2E_ORG_ID: ${{ secrets.ZELOSHR_E2E_ORG_ID }}
+          ZELOSHR_E2E_USER_ID: ${{ secrets.ZELOSHR_E2E_USER_ID }}
+        run: |
+          if [[ -z "${TROVESUITE_SECRET_KEY}" || -z "${ZELOSHR_E2E_ORG_ID}" || -z "${ZELOSHR_E2E_USER_ID}" ]]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Leave E2E skipped — configure ZELOSHR_E2E_* secrets (docs/CICD.md#leave-e2e-hurl)."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install Hurl
+        if: steps.e2e_cfg.outputs.configured == 'true'
+        run: |
+          HURL_VERSION="6.0.0"
+          curl -sSL "https://github.com/Orange-OpenSource/hurl/releases/download/${HURL_VERSION}/hurl-${HURL_VERSION}-x86_64-unknown-linux-gnu.tar.gz" \
+            | tar xz -C /tmp
+          sudo mv "/tmp/hurl-${HURL_VERSION}-x86_64-unknown-linux-gnu/bin/hurl" /usr/local/bin/hurl
+          hurl --version
+
+      - name: Run Leave E2E against deployed dev API
+        if: steps.e2e_cfg.outputs.configured == 'true'
+        env:
+          CI: "true"
+          TROVESUITE_SECRET_KEY: ${{ secrets.TROVESUITE_SECRET_KEY }}
+          ZELOSHR_E2E_USER_ID: ${{ secrets.ZELOSHR_E2E_USER_ID }}
+          ZELOSHR_E2E_TENANT_ID: ${{ secrets.ZELOSHR_E2E_TENANT_ID }}
+          ZELOSHR_E2E_ORG_ID: ${{ secrets.ZELOSHR_E2E_ORG_ID }}
+          ZELOSHR_E2E_BUS_ID: ${{ secrets.ZELOSHR_E2E_BUS_ID }}
+          ZELOSHR_E2E_LOC_ID: ${{ secrets.ZELOSHR_E2E_LOC_ID }}
+          ZELOSHR_E2E_EMAIL: ${{ secrets.ZELOSHR_E2E_EMAIL }}
+          ZELOSHR_E2E_FULLNAME: ${{ secrets.ZELOSHR_E2E_FULLNAME }}
+          ZELOSHR_API_BASE: https://zeloshr.app.backend.dev.trovesuite.com
+        run: |
+          chmod +x scripts/ci/leave-e2e.sh scripts/ci/mint-e2e-session.sh scripts/local-dev/test-leave-e2e.sh
+          ./scripts/ci/leave-e2e.sh
+
+      - name: Upload Leave E2E report
+        if: steps.e2e_cfg.outputs.configured == 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: leave-e2e-report
+          path: |
+            reports/e2e/leave/latest/html/
+            reports/e2e/leave/latest/junit.xml
+            reports/e2e/leave/latest/summary.txt
+          retention-days: 14
+          if-no-files-found: warn
+
   deploy-functions:
     name: Deploy Azure Functions
     needs: detect-changes

@@ -34,7 +34,33 @@ If a resource is missing, the workflow **still builds and pushes the image to AC
 | `TROVESUITE_DEV_AZURE_SUBSCRIPTION_ID` | `dev` branch deploys |
 | `TROVESUITE_PROD_AZURE_SUBSCRIPTION_ID` | `main` branch deploys |
 | `PACKAGES_TOKEN` | Docker build / CI — restore **Trovesuite.Package** (`read:packages` PAT). Required for PR workflow (`ci.yml`) and deploy build. |
-| `TROVESUITE_SECRET_KEY` | Optional — same HS256 value as Core Platform `SECRET_KEY` (≥ 32 chars). When set, deploy workflow syncs **`SECRET_KEY`** on the ZelosHR Container App. |
+| `TROVESUITE_SECRET_KEY` | Optional — same HS256 value as Core Platform `SECRET_KEY` (≥ 32 chars). When set, deploy workflow syncs **`SECRET_KEY`** on the ZelosHR Container App. Also used to **mint JWTs** for Leave E2E in CI. |
+
+### Leave E2E (Hurl)
+
+After a successful **`dev`** deploy, CI can run `tests/e2e/leave/*.hurl` and upload an **HTML report** (full curl request/response per step). Configure these **repository secrets** (values from dev Trove session / `generate-live-session.sh --mint`):
+
+| Secret | Purpose |
+|--------|---------|
+| `ZELOSHR_E2E_USER_ID` | Platform user id (`cp_users.id`) for JWT `user_id` |
+| `ZELOSHR_E2E_TENANT_ID` | JWT `tenant_id` (must match org/bus/loc) |
+| `ZELOSHR_E2E_ORG_ID` | Trove `org-id` header |
+| `ZELOSHR_E2E_BUS_ID` | Trove `bus-id` header |
+| `ZELOSHR_E2E_LOC_ID` | Trove `loc-id` header |
+| `ZELOSHR_E2E_EMAIL` | Optional — JWT claim (default `ci-e2e@deladetech.com`) |
+| `ZELOSHR_E2E_FULLNAME` | Optional — JWT claim (default `CI E2E`) |
+
+If any required secret is missing, the **Leave E2E** job is skipped with a warning (deploy stays green).
+
+**Local (same scenarios + report):**
+
+```bash
+./scripts/local-dev/test-leave-e2e.sh --open
+```
+
+**CI artifact:** `leave-e2e-report` → `html/index.html`, `junit.xml`.
+
+See [tests/e2e/README.md](../tests/e2e/README.md).
 
 ## Repository variables
 
@@ -60,7 +86,7 @@ After a successful Container App deploy, CI runs **regression tests only** (Dock
 
 | Where | What |
 |-------|------|
-| **CI** (`build-and-deploy.yml`) | `./scripts/ci/regression-test.sh` |
+| **CI** (`build-and-deploy.yml`) | `./scripts/ci/regression-test.sh` + optional **Leave E2E** (`./scripts/ci/leave-e2e.sh`, artifact `leave-e2e-report`) |
 | **Local** (after deploy) | `./scripts/local-dev/post-deploy-verify.sh` |
 
 Live smoke needs a Trove Bearer token that expires — **not stored in GitHub**. Run locally:

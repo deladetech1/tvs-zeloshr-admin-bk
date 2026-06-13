@@ -40,8 +40,12 @@ cp scripts/local-dev/live-session.example.env scripts/local-dev/live-session.env
 # Organisation / org chart (GET reads)
 ./scripts/local-dev/test-org-structure.sh
 
-# Leave management — admin list, balances, types, holidays, My Leave (GET reads)
+# Leave management — GET smoke (quick)
 ./scripts/local-dev/test-leave.sh
+
+# Leave E2E — all use cases + HTML/JUnit report (Hurl; see tests/e2e/README.md)
+./scripts/local-dev/test-leave-e2e.sh
+./scripts/local-dev/test-leave-e2e.sh --open
 
 # Full live smoke — GET + POST + PUT + DELETE with cleanup (Swagger-shipped modules)
 ./scripts/local-dev/test-live-all.sh
