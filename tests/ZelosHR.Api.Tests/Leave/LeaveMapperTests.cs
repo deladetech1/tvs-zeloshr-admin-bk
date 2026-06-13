@@ -1,4 +1,5 @@
 using ZelosHR.Api.Entities.Employees;
+using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Entities.Leave;
 
 namespace ZelosHR.Api.Tests.Leave;
@@ -7,6 +8,18 @@ public class LeaveMapperTests
 {
     private static readonly Guid EmployeeId = Guid.Parse("3804deee-d6ee-4b05-9efc-6e8ccf3b5ae3");
     private static readonly Guid LeaveTypeId = Guid.Parse("a2222222-2222-2222-2222-222222222203");
+
+    private static readonly IReadOnlyDictionary<Guid, EmployeeLeaveContext> NoEmployees =
+        new Dictionary<Guid, EmployeeLeaveContext>();
+
+    private static readonly IReadOnlyDictionary<Guid, LeaveTypeRefDto> NoLeaveTypes =
+        new Dictionary<Guid, LeaveTypeRefDto>();
+
+    private static readonly IReadOnlyDictionary<string, string> NoApproverNames =
+        new Dictionary<string, string>();
+
+    private static readonly IReadOnlyDictionary<Guid, DocumentReadDto?> NoProfileUrls =
+        new Dictionary<Guid, DocumentReadDto?>();
 
     [Fact]
     public void MapBalance_uses_leave_type_lookup_when_id_matches()
@@ -26,7 +39,7 @@ public class LeaveMapperTests
             [LeaveTypeId] = LeaveMapper.ToTypeRef(LeaveTypeId, "Annual Leave"),
         };
 
-        var result = LeaveMapper.MapBalance(row, [], leaveTypes, []);
+        var result = LeaveMapper.MapBalance(row, NoEmployees, leaveTypes, NoProfileUrls);
 
         Assert.Equal("Annual Leave", result.LeaveType?.Name);
         Assert.Equal(LeaveTypeId.ToString(), result.LeaveType?.LeaveTypeId);
@@ -45,7 +58,7 @@ public class LeaveMapperTests
             7,
             14);
 
-        var result = LeaveMapper.MapBalance(row, [], [], []);
+        var result = LeaveMapper.MapBalance(row, NoEmployees, NoLeaveTypes, NoProfileUrls);
 
         Assert.Equal("Annual Leave", result.LeaveType?.Name);
     }
@@ -63,7 +76,7 @@ public class LeaveMapperTests
             7,
             14);
 
-        var result = LeaveMapper.MapBalance(row, [], [], []);
+        var result = LeaveMapper.MapBalance(row, NoEmployees, NoLeaveTypes, NoProfileUrls);
 
         Assert.Equal("Jane Doe", result.Employee?.FullName);
         Assert.Equal(EmployeeId.ToString(), result.Employee?.EmployeeId);
@@ -96,7 +109,7 @@ public class LeaveMapperTests
                 null),
         };
 
-        var result = LeaveMapper.MapBalance(row, employees, [], []);
+        var result = LeaveMapper.MapBalance(row, employees, NoLeaveTypes, NoProfileUrls);
 
         Assert.Equal("Jane Doe", result.Employee?.FullName);
         Assert.Equal("EMP-001", result.Employee?.EmployeeCode);
@@ -127,7 +140,7 @@ public class LeaveMapperTests
             DateTimeOffset.Parse("2026-06-10T09:15:00+00:00"),
             null);
 
-        var result = LeaveMapper.MapRequest(row, [], [], [], []);
+        var result = LeaveMapper.MapRequest(row, NoEmployees, NoLeaveTypes, NoApproverNames, NoProfileUrls);
 
         Assert.Equal("Jane Doe", result.Employee?.FullName);
         Assert.Equal("Annual Leave", result.LeaveType?.Name);
@@ -159,7 +172,7 @@ public class LeaveMapperTests
             DateTimeOffset.Parse("2026-06-10T09:15:00+00:00"),
             DateTimeOffset.Parse("2026-06-11T16:20:00+00:00"));
 
-        var result = LeaveMapper.MapRequest(row, [], [], [], []);
+        var result = LeaveMapper.MapRequest(row, NoEmployees, NoLeaveTypes, NoApproverNames, NoProfileUrls);
 
         Assert.Equal("Bright Debrah", result.Approver?.FullName);
     }
@@ -201,7 +214,7 @@ public class LeaveMapperTests
             DateTimeOffset.Parse("2026-06-10T09:15:00+00:00"),
             null);
 
-        var result = LeaveMapper.MapRequest(row, [], [], [], []);
+        var result = LeaveMapper.MapRequest(row, NoEmployees, NoLeaveTypes, NoApproverNames, NoProfileUrls);
 
         Assert.Equal("Annual Leave", result.LeaveType?.Name);
     }
