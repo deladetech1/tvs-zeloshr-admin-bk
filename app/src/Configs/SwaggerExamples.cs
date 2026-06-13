@@ -1642,10 +1642,19 @@ internal static class SwaggerExamples
 
     internal static JsonObject LeaveMySummaryData() => new()
     {
-        ["total_remaining_days"] = 22,
-        ["pending_requests"] = 1,
-        ["approved_this_year"] = 3,
-        ["balances"] = LeaveBalanceItemsArray(),
+        ["summary"] = LeaveSummaryData(),
+        ["on_leave_today"] = new JsonArray(LeaveRequestItemData("Approved", 9)),
+        ["pending_approvals"] = new JsonArray(
+            LeaveRequestItemData("Pending", 14),
+            LeaveDashboardPendingApprovedDaysItem()),
+        ["leaving_this_week"] = new JsonArray(LeaveRequestItemData("Approved", 12)),
+        ["my"] = new JsonObject
+        {
+            ["total_remaining_days"] = 22,
+            ["pending_requests"] = 1,
+            ["approved_this_year"] = 3,
+            ["balances"] = LeaveBalanceItemsArray(),
+        },
     };
 
     internal static JsonObject LeaveStatisticsResponse() => EnvelopeOk(LeaveSummaryData());

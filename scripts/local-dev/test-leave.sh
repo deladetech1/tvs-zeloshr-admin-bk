@@ -37,6 +37,7 @@ paths=(
   "/api/v1/leave/balances/list"
   "/api/v1/leave/types/list?active_only=true"
   "/api/v1/leave/holidays/list?page=1&size=10"
+  "/api/v1/leave/summary"
   "/api/v1/leave/my/summary"
   "/api/v1/leave/my/balances/list"
   "/api/v1/leave/my/requests/list?page=1&size=5"

@@ -35,6 +35,17 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Leave Management landing page — KPI cards, dashboard widgets, and logged-in employee balances.</summary>
+    [HttpGet("summary")]
+    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
+    [ProducesResponseType(typeof(Respons<LeaveMySummaryDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<Respons<LeaveMySummaryDto>>> Summary(CancellationToken ct)
+    {
+        var ctx = _tenant.Current;
+        var result = await _service.GetPageSummaryAsync(ctx.UserId, ctx.TenantId, ctx.OrgId, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
     /// <summary>Leave Management dashboard widgets (on leave today, pending approvals, leaving this week).</summary>
     [HttpGet("dashboard")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
@@ -208,11 +219,10 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>My Leave summary — remaining days, counts, and balances with nested employee/leave_type refs.</summary>
+    /// <summary>Leave Management landing page (alias of GET /leave/summary) — KPIs, widgets, and personal balances under <c>my</c>.</summary>
     [HttpGet("my/summary")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
     [ProducesResponseType(typeof(Respons<LeaveMySummaryDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(Respons<LeaveMySummaryDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<LeaveMySummaryDto>>> MySummary(CancellationToken ct)
     {
         var ctx = _tenant.Current;

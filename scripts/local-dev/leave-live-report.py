@@ -199,8 +199,13 @@ class LeaveLiveReporter:
         )
 
         # --- My Leave (logged-in employee; tenant owner fallback when org header differs) ---
-        my_summary = self.call(
-            "My summary",
+        self.call(
+            "Leave summary (full page)",
+            "GET",
+            "/api/v1/leave/summary",
+        )
+        self.call(
+            "My summary (alias)",
             "GET",
             "/api/v1/leave/my/summary",
         )

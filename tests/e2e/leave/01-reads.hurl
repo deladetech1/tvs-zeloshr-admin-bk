@@ -30,7 +30,7 @@ jsonpath "$.data.on_leave_today" isCollection
 jsonpath "$.data.pending_approvals" isCollection
 jsonpath "$.data.leaving_this_week" isCollection
 
-# My Leave — logged-in platform user must be linked to zhr_employees (tenant owner gets empty 200 when not).
+# My Leave — full Leave Management landing page (summary + widgets + personal my).
 GET {{base}}/api/v1/leave/my/summary
 accept: application/json
 app-id: {{app_id}}
@@ -42,7 +42,11 @@ org-id: {{org_id}}
 HTTP 200
 [Asserts]
 jsonpath "$.success" == true
-jsonpath "$.data.balances" isCollection
+jsonpath "$.data.summary" isObject
+jsonpath "$.data.on_leave_today" isCollection
+jsonpath "$.data.pending_approvals" isCollection
+jsonpath "$.data.leaving_this_week" isCollection
+jsonpath "$.data.my.balances" isCollection
 
 GET {{base}}/api/v1/leave/my/balances/list
 accept: application/json

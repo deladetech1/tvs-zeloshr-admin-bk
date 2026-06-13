@@ -50,6 +50,7 @@ public sealed class SwaggerGenerationTests
         document.Paths.Should().ContainKey("/api/v1/currencies/list");
         document.Paths.Should().ContainKey("/api/v1/leave/dashboard");
         document.Paths.Should().ContainKey("/api/v1/leave/requests/list");
+        document.Paths.Should().ContainKey("/api/v1/leave/summary");
         document.Paths.Should().ContainKey("/api/v1/leave/my/summary");
     }
 

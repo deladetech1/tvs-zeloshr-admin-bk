@@ -117,16 +117,17 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                 AppendParameterDescription(operation, "leave_request_id", "Only Pending requests can be deleted.");
                 return;
 
+            case "api/v1/leave/summary" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
             case "api/v1/leave/my/summary" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveMySummaryResponse());
-                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveMySummaryDto>), 404));
-                operation.Summary ??= "My Leave summary";
+                operation.Summary ??= path.Contains("/my/", StringComparison.Ordinal)
+                    ? "Leave Management summary (my alias)"
+                    : "Leave Management summary";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
                     """
-                    Employee self-service for logged-in platform user: total_remaining_days · pending_requests · approved_this_year · balances[].
-                    Each balance includes nested `employee` (full_name) and `leave_type` (name) — use those for display, not raw UUIDs.
-                    Tenant owners (`cp_users.is_owner`) without a linked `zhr_employees` row receive 200 with zero counts and empty balances (not 404).
-                    Employee lookup falls back to tenant scope when the request `org-id` differs from the employee row.
+                    Single payload for the Leave Management landing page:
+                    summary (KPI counts) · on_leave_today[] · pending_approvals[] · leaving_this_week[] · my (logged-in employee balances).
+                    Widget row fields match GET /leave/dashboard. Personal balances under `my` are empty when the user is not linked to zhr_employees.
                     """);
                 return;
 

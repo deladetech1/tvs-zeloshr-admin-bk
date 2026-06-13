@@ -32,7 +32,27 @@ public class LeaveService
     }
 
     public async Task<Respons<LeaveDashboardDto>> GetDashboardAsync(
-        string tenantId, string orgId, CancellationToken ct = default)
+        string tenantId, string orgId, CancellationToken ct = default) =>
+        Respons<LeaveDashboardDto>.Ok(await BuildDashboardAsync(tenantId, orgId, ct));
+
+    public async Task<Respons<LeaveMySummaryDto>> GetPageSummaryAsync(
+        string? platformUserId, string tenantId, string orgId, CancellationToken ct = default)
+    {
+        var dashboard = await BuildDashboardAsync(tenantId, orgId, ct);
+        var personal = await BuildPersonalSummaryAsync(platformUserId, tenantId, orgId, ct);
+
+        return Respons<LeaveMySummaryDto>.Ok(new LeaveMySummaryDto
+        {
+            Summary = dashboard.Summary,
+            OnLeaveToday = dashboard.OnLeaveToday,
+            PendingApprovals = dashboard.PendingApprovals,
+            LeavingThisWeek = dashboard.LeavingThisWeek,
+            My = personal,
+        });
+    }
+
+    private async Task<LeaveDashboardDto> BuildDashboardAsync(
+        string tenantId, string orgId, CancellationToken ct)
     {
         var summary = await _leave.GetSummaryScopedAsync(tenantId, orgId, ct);
         var onLeaveToday = await _leave.ListOnLeaveTodayScopedAsync(tenantId, orgId, 5, ct);
@@ -42,13 +62,40 @@ public class LeaveService
         var allRows = onLeaveToday.Concat(pendingApprovals).Concat(leavingThisWeek).ToList();
         var enriched = await EnrichRequestsAsync(allRows, tenantId, orgId, ct);
 
-        return Respons<LeaveDashboardDto>.Ok(new LeaveDashboardDto
+        return new LeaveDashboardDto
         {
             Summary = summary,
             OnLeaveToday = PickEnriched(enriched, onLeaveToday),
             PendingApprovals = PickEnriched(enriched, pendingApprovals),
             LeavingThisWeek = PickEnriched(enriched, leavingThisWeek),
-        });
+        };
+    }
+
+    private async Task<LeavePersonalSummaryDto> BuildPersonalSummaryAsync(
+        string? platformUserId, string tenantId, string orgId, CancellationToken ct)
+    {
+        var employee = await ResolveMyEmployeeAsync(platformUserId, tenantId, orgId, ct);
+        if (employee is null)
+            return EmptyPersonalSummary();
+
+        var balances = await EnrichBalancesAsync(
+            await _leave.ListBalancesScopedAsync(tenantId, employee.Value.OrgId, employee.Value.EmployeeId, null, ct),
+            tenantId,
+            employee.Value.OrgId,
+            ct);
+        var pendingTotal = await _leave.CountEmployeeRequestsScopedAsync(
+            tenantId, employee.Value.OrgId, employee.Value.EmployeeId, LeaveRequestStatuses.Pending, null, ct);
+        var yearStart = new DateOnly(DateTime.UtcNow.Year, 1, 1);
+        var approvedThisYear = await _leave.CountEmployeeRequestsScopedAsync(
+            tenantId, employee.Value.OrgId, employee.Value.EmployeeId, LeaveRequestStatuses.Approved, yearStart, ct);
+
+        return new LeavePersonalSummaryDto
+        {
+            TotalRemainingDays = balances.Sum(b => b.RemainingDays),
+            PendingRequests = pendingTotal,
+            ApprovedThisYear = approvedThisYear,
+            Balances = balances,
+        };
     }
 
     public async Task<Respons<LeaveListDto>> ListAsync(
@@ -273,35 +320,8 @@ public class LeaveService
     }
 
     public async Task<Respons<LeaveMySummaryDto>> GetMySummaryAsync(
-        string? platformUserId, string tenantId, string orgId, CancellationToken ct = default)
-    {
-        var employee = await ResolveMyEmployeeAsync(platformUserId, tenantId, orgId, ct);
-        if (employee is null)
-        {
-            if (await IsTenantOwnerWithoutEmployeeAsync(platformUserId, tenantId, ct))
-                return Respons<LeaveMySummaryDto>.Ok(EmptyMySummary());
-            return Respons<LeaveMySummaryDto>.Fail("No employee profile linked to this user.", statusCode: 404);
-        }
-
-        var balances = await EnrichBalancesAsync(
-            await _leave.ListBalancesScopedAsync(tenantId, employee.Value.OrgId, employee.Value.EmployeeId, null, ct),
-            tenantId,
-            employee.Value.OrgId,
-            ct);
-        var pendingTotal = await _leave.CountEmployeeRequestsScopedAsync(
-            tenantId, employee.Value.OrgId, employee.Value.EmployeeId, LeaveRequestStatuses.Pending, null, ct);
-        var yearStart = new DateOnly(DateTime.UtcNow.Year, 1, 1);
-        var approvedThisYear = await _leave.CountEmployeeRequestsScopedAsync(
-            tenantId, employee.Value.OrgId, employee.Value.EmployeeId, LeaveRequestStatuses.Approved, yearStart, ct);
-
-        return Respons<LeaveMySummaryDto>.Ok(new LeaveMySummaryDto
-        {
-            TotalRemainingDays = balances.Sum(b => b.RemainingDays),
-            PendingRequests = pendingTotal,
-            ApprovedThisYear = approvedThisYear,
-            Balances = balances,
-        });
-    }
+        string? platformUserId, string tenantId, string orgId, CancellationToken ct = default) =>
+        await GetPageSummaryAsync(platformUserId, tenantId, orgId, ct);
 
     public async Task<Respons<LeaveMyRequestListDto>> ListMyRequestsAsync(
         string? platformUserId, string? status, int page, int size,
@@ -754,13 +774,7 @@ public class LeaveService
         return cpUser?.IsOwner == true;
     }
 
-    private static LeaveMySummaryDto EmptyMySummary() => new()
-    {
-        TotalRemainingDays = 0,
-        PendingRequests = 0,
-        ApprovedThisYear = 0,
-        Balances = [],
-    };
+    private static LeavePersonalSummaryDto EmptyPersonalSummary() => new();
 
     private static string ResolveInitialApprovalStage(EmployeeLeaveContext employee)
     {
