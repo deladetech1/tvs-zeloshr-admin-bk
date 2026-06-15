@@ -231,9 +231,23 @@ internal static class LeaveMapper
             LeaveFrom = row.StartDate,
             LeaveTo = row.EndDate,
             LeaveDays = row.DaysRequested,
-            Waiting = ComputeWaitingHours(row),
+            Waiting = ComputeApprovalListWaiting(row),
             ApprovedBy = BuildApprovedByNames(row, approverNames),
         };
+    }
+
+    private static int? ComputeApprovalListWaiting(LeaveRequestRawRow row)
+    {
+        if (!row.Status.Equals(LeaveRequestStatuses.Pending, StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        if (row.ApprovalStage.Equals(LeaveApprovalStages.PendingFinal, StringComparison.OrdinalIgnoreCase))
+        {
+            var elapsed = DateTimeOffset.UtcNow - row.SubmittedAt;
+            return elapsed.TotalHours < 1 ? 1 : (int)Math.Floor(elapsed.TotalHours);
+        }
+
+        return ComputeWaitingHours(row);
     }
 
     internal static LeaveRequestDetailDto ToDetail(
@@ -588,12 +602,6 @@ internal static class LeaveMapper
     {
         if (!row.Status.Equals(LeaveRequestStatuses.Pending, StringComparison.OrdinalIgnoreCase))
             return null;
-
-        if (row.ApprovalStage.Equals(LeaveApprovalStages.PendingFinal, StringComparison.OrdinalIgnoreCase))
-        {
-            var elapsed = DateTimeOffset.UtcNow - row.SubmittedAt;
-            return elapsed.TotalHours < 1 ? 1 : (int)Math.Floor(elapsed.TotalHours);
-        }
 
         if (ComputeDaysSinceLastApproval(row).HasValue)
             return null;
