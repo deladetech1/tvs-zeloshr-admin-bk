@@ -42,4 +42,6 @@ internal static class SwaggerExampleHints
     internal static string LeaveRequestStatus => SwaggerOptionFormat.JoinPipe(LeaveFieldOptions.RequestStatuses);
     internal static string LeaveApprovalStage => SwaggerOptionFormat.JoinPipe(LeaveFieldOptions.ApprovalStages);
     internal static string LeaveTypeName => SwaggerOptionFormat.JoinPipe(LeaveFieldOptions.DefaultLeaveTypeNames);
+    internal static string LeaveAccrualMethod => SwaggerOptionFormat.JoinPipe(LeaveFieldOptions.AccrualMethods);
+    internal static string LeaveTypeEmploymentType => SwaggerOptionFormat.JoinPipe(LeaveFieldOptions.AppliesToEmploymentTypes);
 }

@@ -28,6 +28,20 @@ public static class LeaveFieldOptions
         "Paternity Leave",
         "Unpaid Leave",
     ];
+
+    public static readonly IReadOnlyList<string> AccrualMethods =
+    [
+        LeaveAccrualMethods.FrontLoaded,
+        LeaveAccrualMethods.Monthly,
+    ];
+
+    /// <summary>Configure leave type screen — maps to employee employment_type (Contract → Contractor).</summary>
+    public static readonly IReadOnlyList<string> AppliesToEmploymentTypes =
+    [
+        "Full-time",
+        "Part-time",
+        "Contract",
+    ];
 }
 
 public static class LeaveRequestStatuses

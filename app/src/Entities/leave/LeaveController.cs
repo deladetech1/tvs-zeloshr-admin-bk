@@ -366,17 +366,20 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>List configured leave types (Settings).</summary>
+    /// <summary>List configured leave types (Settings table) — paginated; each row includes audit fields.</summary>
     [HttpGet("types/list")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
     [ProducesResponseType(typeof(Respons<LeaveTypeListDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<LeaveTypeListDto>>> ListTypes(
-        [FromQuery] string? countryCode,
+        [FromQuery] string? search,
         [FromQuery] bool activeOnly = true,
+        [FromQuery] int page = 1,
+        [FromQuery] int size = 20,
         CancellationToken ct = default)
     {
         var ctx = _tenant.Current;
-        var result = await _service.ListTypesAsync(countryCode, activeOnly, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.ListTypesAsync(
+            activeOnly, search, page, size, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
@@ -412,14 +415,15 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Update a leave type (admin).</summary>
+    /// <summary>Update a leave type (admin) — same body as POST /types/add; pass leave_type_id query param.</summary>
     [HttpPut("types/update")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveAdmin)]
     [ProducesResponseType(typeof(Respons<LeaveTypeListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<LeaveTypeListItemDto>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(Respons<LeaveTypeListItemDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<LeaveTypeListItemDto>>> UpdateType(
         [FromQuery(Name = PlatformQueryParams.LeaveTypeId)] Guid leaveTypeId,
-        [FromBody] UpdateLeaveTypeDto body,
+        [FromBody] CreateLeaveTypeDto body,
         CancellationToken ct)
     {
         if (QueryParamValidation.BadRequestIfEmptyGuid<LeaveTypeListItemDto>(
@@ -431,11 +435,30 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Delete or deactivate a leave type (admin).</summary>
+    /// <summary>Archive a leave type (sets is_active=false). Use when the type must stay for history.</summary>
+    [HttpPost("types/archive")]
+    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveAdmin)]
+    [ProducesResponseType(typeof(Respons<LeaveTypeListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<LeaveTypeListItemDto>), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<Respons<LeaveTypeListItemDto>>> ArchiveType(
+        [FromQuery(Name = PlatformQueryParams.LeaveTypeId)] Guid leaveTypeId,
+        CancellationToken ct)
+    {
+        if (QueryParamValidation.BadRequestIfEmptyGuid<LeaveTypeListItemDto>(
+                leaveTypeId, PlatformQueryParams.LeaveTypeId) is { } missingId)
+            return missingId;
+
+        var ctx = _tenant.Current;
+        var result = await _service.ArchiveTypeAsync(leaveTypeId, ctx.TenantId, ctx.OrgId, ctx.UserId, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    /// <summary>Delete a leave type permanently (only when not referenced). Use archive when in use.</summary>
     [HttpDelete("types/delete")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveAdmin)]
     [ProducesResponseType(typeof(Respons<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Respons<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(Respons<object>), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<Respons<object>>> DeleteType(
         [FromQuery(Name = PlatformQueryParams.LeaveTypeId)] Guid leaveTypeId,
         CancellationToken ct)

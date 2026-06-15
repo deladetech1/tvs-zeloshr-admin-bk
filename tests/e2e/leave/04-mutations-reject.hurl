@@ -12,7 +12,10 @@ org-id: {{org_id}}
   "name": "E2E Reject {{run_tag}}",
   "default_entitled_days": 21,
   "is_paid": true,
-  "is_active": true
+  "accrual_method": "front_loaded",
+  "carry_over_allowed": false,
+  "applies_to_employment_types": ["Full-time", "Part-time", "Contract"],
+  "requires_supporting_document": false
 }
 
 HTTP 200

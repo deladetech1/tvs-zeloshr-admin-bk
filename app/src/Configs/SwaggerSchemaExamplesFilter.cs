@@ -131,8 +131,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(RejectLeaveRequestDto) => SwaggerExamples.RejectLeaveRequestBody(),
             nameof(CreateLeaveBalanceDto) => SwaggerExamples.CreateLeaveBalanceBody(),
             nameof(UpdateLeaveBalanceDto) => SwaggerExamples.UpdateLeaveBalanceBody(),
-            nameof(CreateLeaveTypeDto) => SwaggerExamples.CreateLeaveTypeBody(),
-            nameof(UpdateLeaveTypeDto) => SwaggerExamples.UpdateLeaveTypeBody(),
+            nameof(CreateLeaveTypeDto) => SwaggerExamples.CreateLeaveTypeBody(optionHints: true),
             nameof(CreatePublicHolidayDto) => SwaggerExamples.CreatePublicHolidayBody(),
             nameof(UpdatePublicHolidayDto) => SwaggerExamples.UpdatePublicHolidayBody(),
             nameof(AuditLogEmployeeRefDto) => new JsonObject
@@ -231,19 +230,19 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(LeaveBalanceListItemDto) => AppendDescription(schema.Description,
                 "Entitlement snapshot. IDs and display via nested employee and leave_type. Standard audit fields on every row."),
             nameof(LeaveTypeListItemDto) => AppendDescription(schema.Description,
-                "Settings leave type. country_code null = global; ISO alpha-2 when country-scoped. Standard audit fields."),
+                $"Settings table row: name · default_entitled_days · is_paid ({SwaggerExampleHints.BooleanPipe}) · accrual_method ({SwaggerExampleHints.LeaveAccrualMethod}) · carry_over_allowed ({SwaggerExampleHints.BooleanPipe}) · applies_to_employment_types ({SwaggerExampleHints.LeaveTypeEmploymentType}) · min_notice_working_days · max_consecutive_days · requires_supporting_document ({SwaggerExampleHints.BooleanPipe}) · audit fields."),
             nameof(PublicHolidayListItemDto) => AppendDescription(schema.Description,
                 "Public holiday for leave calendar. branch_id null = org-wide; set for branch-only observance. Standard audit fields."),
             nameof(CreateLeaveRequestDto) => AppendDescription(schema.Description,
                 "Admin create on behalf of employee. leave_type_id from GET /leave/types/list. days_requested validated against balance when present."),
             nameof(CreateMyLeaveRequestDto) => AppendDescription(schema.Description,
-                "My Leave submit — no employee_id. Scoped to logged-in platform user's employee profile."),
+                "My Leave submit — employee_id query param. Body uses leave_type_id only."),
             nameof(UpdateLeaveRequestDto) => AppendDescription(schema.Description,
                 $"Partial update. Prefer POST /requests/approve or /reject for workflow. status: {SwaggerExampleHints.LeaveRequestStatus}."),
             nameof(CreateLeaveBalanceDto) => AppendDescription(schema.Description,
                 "Admin assigns entitlement. Unique per employee + leave_type_id."),
             nameof(CreateLeaveTypeDto) => AppendDescription(schema.Description,
-                "Settings → Leave Types. default_entitled_days seeds new balance rows."),
+                $"Add / edit leave type modal. Required: name, default_entitled_days, accrual_method ({SwaggerExampleHints.LeaveAccrualMethod}), applies_to_employment_types (min 1; All = send {SwaggerExampleHints.LeaveTypeEmploymentType}). Optional: is_paid ({SwaggerExampleHints.BooleanPipe}), carry_over_allowed ({SwaggerExampleHints.BooleanPipe}), min_notice_working_days, max_consecutive_days, requires_supporting_document ({SwaggerExampleHints.BooleanPipe}). Update: PUT /types/update?leave_type_id= with the same body."),
             nameof(CreatePublicHolidayDto) => AppendDescription(schema.Description,
                 "International holidays module. country_code ISO alpha-2 (GH, KE, NG, …)."),
             _ => schema.Description,
@@ -490,6 +489,36 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 schema.Example = JsonValue.Create(10);
                 schema.Description = AppendDescription(schema.Description,
                     "Optional max headcount for department; denominator on org-chart badge (e.g. 8/10).");
+                return;
+            case nameof(CreateLeaveTypeDto.IsPaid)
+                when property.DeclaringType == typeof(CreateLeaveTypeDto):
+            case nameof(LeaveTypeListItemDto.IsPaid)
+                when property.DeclaringType == typeof(LeaveTypeListItemDto):
+                schema.Example = JsonValue.Create(SwaggerExampleHints.BooleanPipe);
+                schema.Description = AppendDescription(schema.Description,
+                    $"Allowed: {SwaggerExampleHints.BooleanPipe}.");
+                return;
+            case nameof(CreateLeaveTypeDto.CarryOverAllowed)
+                when property.DeclaringType == typeof(CreateLeaveTypeDto):
+            case nameof(LeaveTypeListItemDto.CarryOverAllowed)
+                when property.DeclaringType == typeof(LeaveTypeListItemDto):
+                schema.Example = JsonValue.Create(SwaggerExampleHints.BooleanPipe);
+                schema.Description = AppendDescription(schema.Description,
+                    $"Allowed: {SwaggerExampleHints.BooleanPipe}.");
+                return;
+            case nameof(CreateLeaveTypeDto.RequiresSupportingDocument)
+                when property.DeclaringType == typeof(CreateLeaveTypeDto):
+            case nameof(LeaveTypeListItemDto.RequiresSupportingDocument)
+                when property.DeclaringType == typeof(LeaveTypeListItemDto):
+                schema.Example = JsonValue.Create(SwaggerExampleHints.BooleanPipe);
+                schema.Description = AppendDescription(schema.Description,
+                    $"Allowed: {SwaggerExampleHints.BooleanPipe}.");
+                return;
+            case nameof(CreateLeaveTypeDto.Name)
+                when property.DeclaringType == typeof(CreateLeaveTypeDto):
+                schema.Example = JsonValue.Create(SwaggerExampleHints.LeaveTypeName);
+                schema.Description = AppendDescription(schema.Description,
+                    $"Common names: {SwaggerExampleHints.LeaveTypeName}.");
                 return;
         }
 

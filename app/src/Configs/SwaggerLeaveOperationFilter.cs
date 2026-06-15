@@ -206,36 +206,68 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
 
             case "api/v1/leave/types/list" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveTypeListResponse());
-                operation.Summary ??= "Leave types (Settings)";
+                operation.Summary ??= "Leave types (Settings table)";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
-                    "Configurable leave types. Filter by ISO country_code (GH, KE, …) or omit for all. `active_only` defaults true.");
-                AppendParameterDescription(operation, "country_code", "Optional ISO 3166-1 alpha-2 filter (GH, KE, NG, …).");
-                AppendParameterDescription(operation, "active_only", $"Return only active types. Allowed: {SwaggerExampleHints.BooleanPipe}.");
+                    """
+                    Paginated leave types for Settings table. Each item includes policy fields and standard audit fields
+                    (created_at, updated_at, created_by_id, updated_by_id, created_by, updated_by).
+                    Map UI columns: name · default_entitled_days (entitlement) · accrual_method ({SwaggerExampleHints.LeaveAccrualMethod}) · carry_over_allowed ({SwaggerExampleHints.BooleanPipe}) ·
+                    applies_to_employment_types ({SwaggerExampleHints.LeaveTypeEmploymentType}) · is_paid ({SwaggerExampleHints.BooleanPipe}) · audit fields.
+                    """);
+                AppendParameterDescription(operation, "search", "Optional name search (case-insensitive).");
+                AppendParameterDescription(operation, "active_only", $"Return only active types. Allowed: {SwaggerExampleHints.BooleanPipe}. Default true.");
+                AppendParameterDescription(operation, "page", "Page number (default 1).");
+                AppendParameterDescription(operation, "size", "Page size (default 20).");
                 return;
 
             case "api/v1/leave/types/get" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveTypeGetResponse());
                 SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveTypeListItemDto>), 404));
-                operation.Summary ??= "Get leave type";
+                operation.Summary ??= "View leave type";
+                operation.Description = SwaggerOptionFormat.Append(operation.Description,
+                    "Single leave type for View action. Includes full policy fields and audit metadata.");
                 AppendParameterDescription(operation, "leave_type_id", "Leave type UUID.");
                 return;
 
             case "api/v1/leave/types/add" when method.Equals("POST", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveTypeGetResponse());
                 operation.Summary ??= "Create leave type (admin)";
+                operation.Description = SwaggerOptionFormat.Append(operation.Description,
+                    $"""
+                    Configure leave type policy — matches Add leave type modal:
+                    name · default_entitled_days · is_paid ({SwaggerExampleHints.BooleanPipe}) · accrual_method ({SwaggerExampleHints.LeaveAccrualMethod}) · carry_over_allowed ({SwaggerExampleHints.BooleanPipe}) ·
+                    applies_to_employment_types ({SwaggerExampleHints.LeaveTypeEmploymentType} — check All by sending all three) ·
+                    min_notice_working_days · max_consecutive_days · requires_supporting_document ({SwaggerExampleHints.BooleanPipe}).
+                    """);
                 return;
 
             case "api/v1/leave/types/update" when method.Equals("PUT", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveTypeGetResponse());
-                operation.Summary ??= "Update leave type (admin)";
-                AppendParameterDescription(operation, "leave_type_id", "Leave type UUID.");
+                SetJsonResponseExample(operation, 400, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveTypeListItemDto>), 400));
+                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveTypeListItemDto>), 404));
+                operation.Summary ??= "Edit leave type (admin)";
+                operation.Description = SwaggerOptionFormat.Append(operation.Description,
+                    "Edit action — same request body as POST /types/add (pipe-separated variants in schema). Pass leave_type_id query param.");
+                AppendParameterDescription(operation, "leave_type_id", "Leave type UUID to update.");
+                return;
+
+            case "api/v1/leave/types/archive" when method.Equals("POST", StringComparison.OrdinalIgnoreCase):
+                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveArchiveTypeResponse());
+                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveTypeListItemDto>), 404));
+                operation.Summary ??= "Archive leave type";
+                operation.Description = SwaggerOptionFormat.Append(operation.Description,
+                    "Archive action — sets is_active=false. Type remains for historical requests/balances.");
+                AppendParameterDescription(operation, "leave_type_id", "Leave type UUID to archive.");
                 return;
 
             case "api/v1/leave/types/delete" when method.Equals("DELETE", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveDeleteTypeResponse());
-                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<LeaveTypeListItemDto>), 404));
-                operation.Summary ??= "Delete or deactivate leave type (admin)";
-                AppendParameterDescription(operation, "leave_type_id", "Soft-deactivates when type is referenced by requests/balances.");
+                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<object>), 404));
+                SetJsonResponseExample(operation, 409, SwaggerExamples.EnvelopeFor(typeof(Respons<object>), 409));
+                operation.Summary ??= "Delete leave type";
+                operation.Description = SwaggerOptionFormat.Append(operation.Description,
+                    "Delete action — permanently removes when not referenced. Returns 409 when in use; archive instead.");
+                AppendParameterDescription(operation, "leave_type_id", "Leave type UUID to delete.");
                 return;
 
             case "api/v1/leave/holidays/list" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):

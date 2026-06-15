@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using ZelosHR.Api.Entities.Leave;
 
 namespace ZelosHR.Api.Configs;
 
@@ -260,14 +261,14 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
         {
             return new Dictionary<string, IOpenApiExample>
             {
-                ["country_specific"] = Example(
-                    SwaggerExamples.CreateLeaveTypeBody(),
-                    "Country-specific type",
-                    "ISO country_code scopes type to GH, KE, etc."),
-                ["global"] = Example(
-                    SwaggerExamples.CreateLeaveTypeGlobalBody(),
-                    "Global leave type",
-                    "Omit country_code for org-wide type available in all countries."),
+                ["annual_leave"] = Example(
+                    SwaggerExamples.CreateLeaveTypeBody(optionHints: true),
+                    "Annual leave (all employment types)",
+                    $"accrual_method: {SwaggerExampleHints.LeaveAccrualMethod}. applies_to_employment_types: send all three for All."),
+                ["sick_leave"] = Example(
+                    SwaggerExamples.CreateLeaveTypeSickBody(),
+                    "Sick leave (doc required)",
+                    $"accrual_method: {LeaveAccrualMethods.Monthly}. requires_supporting_document: true. max_consecutive_days: 5."),
             };
         }
 
@@ -276,10 +277,10 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
         {
             return new Dictionary<string, IOpenApiExample>
             {
-                ["adjust_entitlement"] = Example(
-                    SwaggerExamples.UpdateLeaveTypeBody(),
-                    "Update default entitlement",
-                    "leave_type_id required on query string."),
+                ["edit_policy"] = Example(
+                    SwaggerExamples.UpdateLeaveTypeBody(optionHints: true),
+                    "Update leave type policy",
+                    "leave_type_id required on query string. Same body shape as POST /types/add."),
             };
         }
 

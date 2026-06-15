@@ -75,6 +75,12 @@ public sealed class LeaveTypeEntity
     public decimal DefaultEntitledDays { get; set; }
     public bool IsPaid { get; set; } = true;
     public bool IsActive { get; set; } = true;
+    public string AccrualMethod { get; set; } = "front_loaded";
+    public bool CarryOverAllowed { get; set; }
+    public string? AppliesToEmploymentTypes { get; set; }
+    public int? MinNoticeWorkingDays { get; set; }
+    public int? MaxConsecutiveDays { get; set; }
+    public bool RequiresSupportingDocument { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public string? CreatedBy { get; set; }

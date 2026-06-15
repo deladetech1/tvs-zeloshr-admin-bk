@@ -482,15 +482,43 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
         return ToBalanceRawRow(entity);
     }
 
-    public async Task<IReadOnlyList<LeaveTypeListItemDto>> ListTypesScopedAsync(
-        string tenantId, string orgId, string? countryCode, bool activeOnly, CancellationToken ct = default)
+    public async Task<(IReadOnlyList<LeaveTypeListItemDto> Items, int Total)> ListTypesScopedAsync(
+        string tenantId,
+        string orgId,
+        bool activeOnly,
+        string? search,
+        int page,
+        int size,
+        CancellationToken ct = default)
     {
         var query = db.LeaveTypes.AsNoTracking()
             .Where(t => t.TenantId == tenantId && t.OrgId == orgId);
         if (activeOnly)
             query = query.Where(t => t.IsActive);
-        if (!string.IsNullOrWhiteSpace(countryCode))
-            query = query.Where(t => t.CountryCode == null || t.CountryCode == countryCode.Trim().ToUpperInvariant());
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(t => EF.Functions.ILike(t.Name, $"%{term}%"));
+        }
+
+        var total = await query.CountAsync(ct);
+        var items = await query
+            .OrderBy(t => t.Name)
+            .Skip((page - 1) * size)
+            .Take(size)
+            .Select(t => ToTypeDto(t))
+            .ToListAsync(ct);
+
+        return (items, total);
+    }
+
+    public async Task<IReadOnlyList<LeaveTypeListItemDto>> ListAllTypesScopedAsync(
+        string tenantId, string orgId, bool activeOnly, CancellationToken ct = default)
+    {
+        var query = db.LeaveTypes.AsNoTracking()
+            .Where(t => t.TenantId == tenantId && t.OrgId == orgId);
+        if (activeOnly)
+            query = query.Where(t => t.IsActive);
 
         return await query
             .OrderBy(t => t.Name)
@@ -525,12 +553,17 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
             TenantId = tenantId,
             OrgId = orgId,
             Name = data.Name!.Trim(),
-            CountryCode = string.IsNullOrWhiteSpace(data.CountryCode)
-                ? null
-                : data.CountryCode.Trim().ToUpperInvariant(),
-            DefaultEntitledDays = data.DefaultEntitledDays,
+            CountryCode = null,
+            DefaultEntitledDays = data.DefaultEntitledDays!.Value,
             IsPaid = data.IsPaid,
-            IsActive = data.IsActive,
+            IsActive = true,
+            AccrualMethod = LeaveTypePolicy.NormalizeAccrualMethod(data.AccrualMethod!),
+            CarryOverAllowed = data.CarryOverAllowed,
+            AppliesToEmploymentTypes = LeaveTypePolicy.SerializeEmploymentTypes(
+                LeaveTypePolicy.NormalizeEmploymentTypes(data.AppliesToEmploymentTypes)),
+            MinNoticeWorkingDays = data.MinNoticeWorkingDays,
+            MaxConsecutiveDays = data.MaxConsecutiveDays,
+            RequiresSupportingDocument = data.RequiresSupportingDocument,
             CreatedAt = now,
             UpdatedAt = now,
             CreatedBy = actorUserId,
@@ -542,50 +575,54 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
     }
 
     public async Task<LeaveTypeListItemDto?> UpdateTypeScopedAsync(
-        Guid id, string tenantId, string orgId, UpdateLeaveTypeDto data, string? actorUserId = null, CancellationToken ct = default)
+        Guid id, string tenantId, string orgId, CreateLeaveTypeDto data, string? actorUserId = null, CancellationToken ct = default)
     {
         var entity = await db.LeaveTypes.FirstOrDefaultAsync(
             t => t.Id == id && t.TenantId == tenantId && t.OrgId == orgId, ct);
         if (entity is null)
             return null;
 
-        var changed = false;
-        if (!string.IsNullOrWhiteSpace(data.Name))
-        {
-            entity.Name = data.Name.Trim();
-            changed = true;
-        }
-        if (data.CountryCode is not null)
-        {
-            entity.CountryCode = string.IsNullOrWhiteSpace(data.CountryCode)
-                ? null
-                : data.CountryCode.Trim().ToUpperInvariant();
-            changed = true;
-        }
-        if (data.DefaultEntitledDays.HasValue)
-        {
-            entity.DefaultEntitledDays = data.DefaultEntitledDays.Value;
-            changed = true;
-        }
-        if (data.IsPaid.HasValue)
-        {
-            entity.IsPaid = data.IsPaid.Value;
-            changed = true;
-        }
-        if (data.IsActive.HasValue)
-        {
-            entity.IsActive = data.IsActive.Value;
-            changed = true;
-        }
-
-        if (!changed)
-            return null;
-
+        entity.Name = data.Name!.Trim();
+        entity.DefaultEntitledDays = data.DefaultEntitledDays!.Value;
+        entity.IsPaid = data.IsPaid;
+        entity.AccrualMethod = LeaveTypePolicy.NormalizeAccrualMethod(data.AccrualMethod!);
+        entity.CarryOverAllowed = data.CarryOverAllowed;
+        entity.AppliesToEmploymentTypes = LeaveTypePolicy.SerializeEmploymentTypes(
+            LeaveTypePolicy.NormalizeEmploymentTypes(data.AppliesToEmploymentTypes));
+        entity.MinNoticeWorkingDays = data.MinNoticeWorkingDays;
+        entity.MaxConsecutiveDays = data.MaxConsecutiveDays;
+        entity.RequiresSupportingDocument = data.RequiresSupportingDocument;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
         entity.UpdatedBy = actorUserId;
         await db.SaveChangesAsync(ct);
         return ToTypeDto(entity);
     }
+
+    public async Task<LeaveTypeListItemDto?> ArchiveTypeScopedAsync(
+        Guid id, string tenantId, string orgId, string? actorUserId = null, CancellationToken ct = default)
+    {
+        var entity = await db.LeaveTypes.FirstOrDefaultAsync(
+            t => t.Id == id && t.TenantId == tenantId && t.OrgId == orgId, ct);
+        if (entity is null)
+            return null;
+
+        if (entity.IsActive)
+        {
+            entity.IsActive = false;
+            entity.UpdatedAt = DateTimeOffset.UtcNow;
+            entity.UpdatedBy = actorUserId;
+            await db.SaveChangesAsync(ct);
+        }
+
+        return ToTypeDto(entity);
+    }
+
+    public async Task<bool> TypeInUseScopedAsync(
+        Guid id, string tenantId, string orgId, CancellationToken ct = default) =>
+        await db.LeaveRequests.AsNoTracking().AnyAsync(
+            r => r.TenantId == tenantId && r.OrgId == orgId && r.LeaveTypeId == id, ct)
+        || await db.LeaveBalances.AsNoTracking().AnyAsync(
+            b => b.TenantId == tenantId && b.OrgId == orgId && b.LeaveTypeId == id, ct);
 
     public async Task<bool> DeleteTypeScopedAsync(Guid id, string tenantId, string orgId, CancellationToken ct = default)
     {
@@ -594,17 +631,8 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
         if (entity is null)
             return false;
 
-        var inUse = await db.LeaveRequests.AsNoTracking().AnyAsync(
-            r => r.TenantId == tenantId && r.OrgId == orgId && r.LeaveTypeId == id, ct)
-            || await db.LeaveBalances.AsNoTracking().AnyAsync(
-                b => b.TenantId == tenantId && b.OrgId == orgId && b.LeaveTypeId == id, ct);
-        if (inUse)
-        {
-            entity.IsActive = false;
-            entity.UpdatedAt = DateTimeOffset.UtcNow;
-            await db.SaveChangesAsync(ct);
-            return true;
-        }
+        if (await TypeInUseScopedAsync(id, tenantId, orgId, ct))
+            return false;
 
         db.LeaveTypes.Remove(entity);
         await db.SaveChangesAsync(ct);
@@ -925,10 +953,14 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
     {
         LeaveTypeId = t.Id.ToString(),
         Name = t.Name,
-        CountryCode = t.CountryCode,
         DefaultEntitledDays = t.DefaultEntitledDays,
         IsPaid = t.IsPaid,
-        IsActive = t.IsActive,
+        AccrualMethod = t.AccrualMethod,
+        CarryOverAllowed = t.CarryOverAllowed,
+        AppliesToEmploymentTypes = LeaveTypePolicy.DeserializeEmploymentTypes(t.AppliesToEmploymentTypes),
+        MinNoticeWorkingDays = t.MinNoticeWorkingDays,
+        MaxConsecutiveDays = t.MaxConsecutiveDays,
+        RequiresSupportingDocument = t.RequiresSupportingDocument,
         CreatedAt = t.CreatedAt,
         UpdatedAt = t.UpdatedAt,
         CreatedById = t.CreatedBy,

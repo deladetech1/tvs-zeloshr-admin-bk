@@ -1,6 +1,6 @@
 # Leave — settings reads (types, holidays, balances)
 
-GET {{base}}/api/v1/leave/types/list?active_only=true
+GET {{base}}/api/v1/leave/types/list?active_only=true&page=1&size=20
 accept: application/json
 app-id: {{app_id}}
 authorization: Bearer {{token}}
@@ -12,6 +12,8 @@ HTTP 200
 [Asserts]
 jsonpath "$.success" == true
 jsonpath "$.data.items" isCollection
+jsonpath "$.pagination.page" isInteger
+jsonpath "$.pagination.total" isInteger
 
 GET {{base}}/api/v1/leave/holidays/list?country_code=GH&year=2026&page=1&size=10
 accept: application/json

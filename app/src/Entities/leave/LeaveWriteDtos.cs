@@ -85,31 +85,30 @@ public sealed class CreateLeaveTypeDto
     [MaxLength(80)]
     public string? Name { get; set; }
 
-    [MaxLength(2)]
-    public string? CountryCode { get; set; }
-
-    [Range(0, 365)]
-    public decimal DefaultEntitledDays { get; set; } = 21;
-
-    public bool IsPaid { get; set; } = true;
-
-    public bool IsActive { get; set; } = true;
-}
-
-public sealed class UpdateLeaveTypeDto
-{
-    [MaxLength(80)]
-    public string? Name { get; set; }
-
-    [MaxLength(2)]
-    public string? CountryCode { get; set; }
-
+    [Required]
     [Range(0, 365)]
     public decimal? DefaultEntitledDays { get; set; }
 
-    public bool? IsPaid { get; set; }
+    public bool IsPaid { get; set; } = true;
 
-    public bool? IsActive { get; set; }
+    [Required]
+    [SwaggerAllowedValues(typeof(LeaveFieldOptions), nameof(LeaveFieldOptions.AccrualMethods))]
+    public string? AccrualMethod { get; set; } = LeaveAccrualMethods.FrontLoaded;
+
+    public bool CarryOverAllowed { get; set; }
+
+    [Required]
+    [MinLength(1)]
+    [SwaggerAllowedValues(typeof(LeaveFieldOptions), nameof(LeaveFieldOptions.AppliesToEmploymentTypes))]
+    public List<string>? AppliesToEmploymentTypes { get; set; }
+
+    [Range(0, 365)]
+    public int? MinNoticeWorkingDays { get; set; }
+
+    [Range(1, 365)]
+    public int? MaxConsecutiveDays { get; set; }
+
+    public bool RequiresSupportingDocument { get; set; }
 }
 
 public sealed class CreatePublicHolidayDto

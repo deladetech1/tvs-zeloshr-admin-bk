@@ -1,5 +1,6 @@
 namespace ZelosHR.Api.Entities.Leave;
 
+using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Files;
 
 public sealed class LeaveEmployeeRefDto
@@ -165,10 +166,16 @@ public sealed class LeaveTypeListItemDto
 {
     public required string LeaveTypeId { get; init; }
     public required string Name { get; init; }
-    public string? CountryCode { get; init; }
     public decimal DefaultEntitledDays { get; init; }
     public bool IsPaid { get; init; }
-    public bool IsActive { get; init; }
+
+    [SwaggerAllowedValues(typeof(LeaveFieldOptions), nameof(LeaveFieldOptions.AccrualMethods))]
+    public required string AccrualMethod { get; init; }
+    public bool CarryOverAllowed { get; init; }
+    public IReadOnlyList<string>? AppliesToEmploymentTypes { get; init; }
+    public int? MinNoticeWorkingDays { get; init; }
+    public int? MaxConsecutiveDays { get; init; }
+    public bool RequiresSupportingDocument { get; init; }
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
     public string? CreatedById { get; init; }

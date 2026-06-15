@@ -66,6 +66,15 @@ Tree shape comes from employee `reports_to_id`. Department badge requires `head_
 | Balances | `GET /leave/balances/list` · admin CRUD on `/leave/balances/*` |
 | Settings | Leave types `/leave/types/*` · public holidays `/leave/holidays/*` |
 
+**Leave types table** (`GET /leave/types/list?page=&size=`) — paginated `data.items[]` with audit fields on every row. Actions:
+
+| UI action | Endpoint |
+|-----------|----------|
+| View | `GET /leave/types/get?leave_type_id=` |
+| Edit | `PUT /leave/types/update?leave_type_id=` (same body as create) |
+| Archive | `POST /leave/types/archive?leave_type_id=` |
+| Delete | `DELETE /leave/types/delete?leave_type_id=` (409 when referenced) |
+
 List responses use **`data.items[]`** (not `requests[]`). Rows include nested **`employee`** (`employee_id`, `full_name`, `job_title`, `profile_url`) and **`leave_type`** (`leave_type_id`, `name`). Request rows expose **`approver`** (`approver_id`, `full_name`) when decided.
 
 Every leave resource item (requests, balances, types, holidays) includes standard audit fields per [AUDIT_FIELDS.md](AUDIT_FIELDS.md).

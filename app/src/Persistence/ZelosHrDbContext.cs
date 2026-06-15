@@ -204,6 +204,10 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
             b.Property(x => x.Name).HasMaxLength(80);
             b.Property(x => x.CountryCode).HasMaxLength(2);
             b.Property(x => x.DefaultEntitledDays).HasPrecision(5, 1);
+            b.Property(x => x.AccrualMethod).HasMaxLength(20).HasDefaultValue("front_loaded");
+            b.Property(x => x.CarryOverAllowed).HasDefaultValue(false);
+            b.Property(x => x.AppliesToEmploymentTypes).HasColumnType("jsonb");
+            b.Property(x => x.RequiresSupportingDocument).HasDefaultValue(false);
             b.HasIndex(x => new { x.TenantId, x.OrgId, x.Name }).IsUnique();
         });
         modelBuilder.Entity<PublicHolidayEntity>(b =>

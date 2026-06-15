@@ -1610,7 +1610,15 @@ internal static class SwaggerExamples
 
     internal static JsonObject LeaveBalanceGetResponse() => EnvelopeOk(LeaveBalanceItemData());
 
-    internal static JsonObject LeaveTypeListResponse() => EnvelopeOk(LeaveTypeListData());
+    internal static JsonObject LeaveTypeListResponse() => EnvelopeOk(
+        LeaveTypeListData(),
+        pagination: new JsonObject
+        {
+            ["page"] = 1,
+            ["size"] = 20,
+            ["total"] = 2,
+            ["has_next"] = false,
+        });
 
     internal static JsonObject LeaveTypeGetResponse() => EnvelopeOk(LeaveTypeItemData());
 
@@ -1660,16 +1668,24 @@ internal static class SwaggerExamples
     internal static JsonObject LeaveRequestRejectedResponse() =>
         EnvelopeOk(LeaveRequestDetailData("Rejected", "rejected"), detail: "Leave request rejected.");
 
-    internal static JsonObject LeaveTypeItemData()
+    internal static JsonObject LeaveTypeItemData(bool optionHints = false)
     {
         var data = new JsonObject
         {
             ["leave_type_id"] = SampleLeaveTypeId.ToString(),
-            ["name"] = "Annual Leave",
-            ["country_code"] = "GH",
+            ["name"] = optionHints ? SwaggerExampleHints.LeaveTypeName : "Annual Leave",
             ["default_entitled_days"] = 21,
-            ["is_paid"] = true,
-            ["is_active"] = true,
+            ["is_paid"] = optionHints ? SwaggerExampleHints.BooleanPipe : true,
+            ["accrual_method"] = optionHints
+                ? SwaggerExampleHints.LeaveAccrualMethod
+                : LeaveAccrualMethods.FrontLoaded,
+            ["carry_over_allowed"] = optionHints ? SwaggerExampleHints.BooleanPipe : false,
+            ["applies_to_employment_types"] = optionHints
+                ? new JsonArray(SwaggerExampleHints.LeaveTypeEmploymentType)
+                : new JsonArray("Full-time", "Part-time", "Contract"),
+            ["min_notice_working_days"] = 5,
+            ["max_consecutive_days"] = null,
+            ["requires_supporting_document"] = optionHints ? SwaggerExampleHints.BooleanPipe : false,
         };
         AppendResourceAuditFields(data);
         return data;
@@ -1681,10 +1697,14 @@ internal static class SwaggerExamples
         {
             ["leave_type_id"] = "a2222222-2222-2222-2222-222222222206",
             ["name"] = "Sick Leave",
-            ["country_code"] = null,
             ["default_entitled_days"] = 10,
             ["is_paid"] = true,
-            ["is_active"] = true,
+            ["accrual_method"] = LeaveAccrualMethods.Monthly,
+            ["carry_over_allowed"] = false,
+            ["applies_to_employment_types"] = new JsonArray("Full-time"),
+            ["min_notice_working_days"] = null,
+            ["max_consecutive_days"] = 5,
+            ["requires_supporting_document"] = true,
         };
         AppendResourceAuditFields(second);
         return new JsonObject
@@ -1750,7 +1770,11 @@ internal static class SwaggerExamples
     internal static JsonObject LeaveDeleteTypeResponse() => EnvelopeOk(new JsonObject
     {
         ["leave_type_id"] = SampleLeaveTypeId.ToString(),
-    }, detail: "Leave type removed or deactivated.");
+    }, detail: "Leave type deleted.");
+
+    internal static JsonObject LeaveArchiveTypeResponse() => EnvelopeOk(
+        LeaveTypeItemData(),
+        detail: "Leave type archived.");
 
     internal static JsonObject LeaveDeleteHolidayResponse() => EnvelopeOk(new JsonObject
     {
@@ -1801,29 +1825,38 @@ internal static class SwaggerExamples
         ["used_days"] = 7,
     };
 
-    internal static JsonObject CreateLeaveTypeBody() => new()
+    internal static JsonObject CreateLeaveTypeBody(bool optionHints = false) => new()
     {
-        ["name"] = "Annual Leave",
-        ["country_code"] = "GH",
+        ["name"] = optionHints ? SwaggerExampleHints.LeaveTypeName : "Annual Leave",
         ["default_entitled_days"] = 21,
-        ["is_paid"] = true,
-        ["is_active"] = true,
+        ["is_paid"] = optionHints ? SwaggerExampleHints.BooleanPipe : true,
+        ["accrual_method"] = optionHints
+            ? SwaggerExampleHints.LeaveAccrualMethod
+            : LeaveAccrualMethods.FrontLoaded,
+        ["carry_over_allowed"] = optionHints ? SwaggerExampleHints.BooleanPipe : false,
+        ["applies_to_employment_types"] = optionHints
+            ? new JsonArray(SwaggerExampleHints.LeaveTypeEmploymentType)
+            : new JsonArray("Full-time", "Part-time", "Contract"),
+        ["min_notice_working_days"] = 5,
+        ["max_consecutive_days"] = null,
+        ["requires_supporting_document"] = optionHints ? SwaggerExampleHints.BooleanPipe : false,
     };
 
-    internal static JsonObject CreateLeaveTypeGlobalBody() => new()
+    internal static JsonObject CreateLeaveTypeSickBody() => new()
     {
-        ["name"] = "Compassionate Leave",
-        ["country_code"] = null,
-        ["default_entitled_days"] = 5,
+        ["name"] = "Sick Leave",
+        ["default_entitled_days"] = 10,
         ["is_paid"] = true,
-        ["is_active"] = true,
+        ["accrual_method"] = LeaveAccrualMethods.Monthly,
+        ["carry_over_allowed"] = false,
+        ["applies_to_employment_types"] = new JsonArray("Full-time"),
+        ["min_notice_working_days"] = null,
+        ["max_consecutive_days"] = 5,
+        ["requires_supporting_document"] = true,
     };
 
-    internal static JsonObject UpdateLeaveTypeBody() => new()
-    {
-        ["default_entitled_days"] = 24,
-        ["is_active"] = true,
-    };
+    internal static JsonObject UpdateLeaveTypeBody(bool optionHints = false) =>
+        CreateLeaveTypeBody(optionHints);
 
     internal static JsonObject CreatePublicHolidayBody() => new()
     {

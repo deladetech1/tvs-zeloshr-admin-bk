@@ -111,8 +111,17 @@ public interface ILeaveRepository
     Task<LeaveBalanceRawRow?> UpdateBalanceScopedAsync(
         Guid id, string tenantId, string orgId, decimal? entitledDays, decimal? usedDays, string? actorUserId = null, CancellationToken ct = default);
 
-    Task<IReadOnlyList<LeaveTypeListItemDto>> ListTypesScopedAsync(
-        string tenantId, string orgId, string? countryCode, bool activeOnly, CancellationToken ct = default);
+    Task<(IReadOnlyList<LeaveTypeListItemDto> Items, int Total)> ListTypesScopedAsync(
+        string tenantId,
+        string orgId,
+        bool activeOnly,
+        string? search,
+        int page,
+        int size,
+        CancellationToken ct = default);
+
+    Task<IReadOnlyList<LeaveTypeListItemDto>> ListAllTypesScopedAsync(
+        string tenantId, string orgId, bool activeOnly, CancellationToken ct = default);
 
     Task<LeaveTypeListItemDto?> GetTypeByIdScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default);
@@ -124,7 +133,12 @@ public interface ILeaveRepository
         string tenantId, string orgId, CreateLeaveTypeDto data, string? actorUserId = null, CancellationToken ct = default);
 
     Task<LeaveTypeListItemDto?> UpdateTypeScopedAsync(
-        Guid id, string tenantId, string orgId, UpdateLeaveTypeDto data, string? actorUserId = null, CancellationToken ct = default);
+        Guid id, string tenantId, string orgId, CreateLeaveTypeDto data, string? actorUserId = null, CancellationToken ct = default);
+
+    Task<LeaveTypeListItemDto?> ArchiveTypeScopedAsync(
+        Guid id, string tenantId, string orgId, string? actorUserId = null, CancellationToken ct = default);
+
+    Task<bool> TypeInUseScopedAsync(Guid id, string tenantId, string orgId, CancellationToken ct = default);
 
     Task<bool> DeleteTypeScopedAsync(Guid id, string tenantId, string orgId, CancellationToken ct = default);
 

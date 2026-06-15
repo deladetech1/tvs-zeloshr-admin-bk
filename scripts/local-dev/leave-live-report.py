@@ -191,7 +191,7 @@ class LeaveLiveReporter:
         )
 
         self.call("Balances list", "GET", "/api/v1/leave/balances/list")
-        self.call("Types list", "GET", "/api/v1/leave/types/list?active_only=true")
+        self.call("Types list", "GET", "/api/v1/leave/types/list?active_only=true&page=1&size=20")
         self.call(
             "Holidays list",
             "GET",
@@ -207,7 +207,10 @@ class LeaveLiveReporter:
                 "name": f"Live report {self.run_tag}",
                 "default_entitled_days": 21,
                 "is_paid": True,
-                "is_active": True,
+                "accrual_method": "front_loaded",
+                "carry_over_allowed": False,
+                "applies_to_employment_types": ["Full-time", "Part-time", "Contract"],
+                "requires_supporting_document": False,
             },
         )
         self.capture(type_add, "leave_type_id", "data", "leave_type_id")
@@ -223,7 +226,15 @@ class LeaveLiveReporter:
                 "Update leave type",
                 "PUT",
                 f"/api/v1/leave/types/update?leave_type_id={lt}",
-                {"name": f"Live report updated {self.run_tag}", "default_entitled_days": 22},
+                {
+                    "name": f"Live report updated {self.run_tag}",
+                    "default_entitled_days": 22,
+                    "is_paid": True,
+                    "accrual_method": "front_loaded",
+                    "carry_over_allowed": False,
+                    "applies_to_employment_types": ["Full-time", "Part-time", "Contract"],
+                    "requires_supporting_document": False,
+                },
             )
             self.call(
                 "Requests list (filter by leave_type_id)",
@@ -462,14 +473,21 @@ class LeaveLiveReporter:
                 f"/api/v1/leave/holidays/delete?holiday_id={hol_id}",
             )
 
-        # Cleanup leave type if unused
+        # Cleanup leave type — delete when unused, otherwise archive
         if leave_type_id:
-            self.call(
+            del_type = self.call(
                 "Delete leave type",
                 "DELETE",
                 f"/api/v1/leave/types/delete?leave_type_id={leave_type_id}",
-                note="may 409 if still referenced by balances/requests",
+                note="409 when referenced — archive fallback below",
+                expected_status=None,
             )
+            if del_type.status == 409:
+                self.call(
+                    "Archive leave type",
+                    "POST",
+                    f"/api/v1/leave/types/archive?leave_type_id={leave_type_id}",
+                )
 
         passed = sum(1 for s in self.steps if s.ok)
         failed = len(self.steps) - passed
