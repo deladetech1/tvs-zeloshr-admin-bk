@@ -276,7 +276,7 @@ internal static class LeaveMapper
             Notes = item.Notes,
             RemainingDays = item.RemainingDays,
             BalanceImpact = balanceImpact,
-            WaitingHours = item.WaitingHours,
+            WaitingHours = ComputeApprovalListWaiting(row),
             SubmittedAt = item.SubmittedAt,
             DecidedAt = item.DecidedAt,
             CreatedAt = item.CreatedAt,

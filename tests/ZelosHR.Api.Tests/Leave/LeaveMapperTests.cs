@@ -400,4 +400,59 @@ public class LeaveMapperTests
         Assert.Equal("Ada Lovelace", result.CreatedBy);
         Assert.Equal("Grace Hopper", result.UpdatedBy);
     }
+
+    [Fact]
+    public void ToDetail_uses_waiting_hours_on_final_queue_even_after_lm_and_hod_approved()
+    {
+        var row = new LeaveRequestRawRow(
+            "req-1",
+            EmployeeId.ToString(),
+            "Kwame Asare",
+            LeaveTypeId.ToString(),
+            "Annual Leave",
+            new DateOnly(2026, 6, 15),
+            new DateOnly(2026, 6, 19),
+            5,
+            "Pending",
+            "pending_final",
+            null,
+            null,
+            "cp-user-lm",
+            DateTimeOffset.UtcNow.AddDays(-6),
+            "cp-user-hod",
+            DateTimeOffset.UtcNow.AddDays(-5),
+            "Family trip to Cape Coast. Handover completed.",
+            11,
+            DateTimeOffset.UtcNow.AddHours(-53),
+            null,
+            SampleAuditAt,
+            SampleAuditAt,
+            null,
+            null);
+
+        var approverNames = new Dictionary<string, string>
+        {
+            ["cp-user-lm"] = "Adwoa Bediako",
+            ["cp-user-hod"] = "Esi Quainoo",
+        };
+
+        var listItem = LeaveMapper.MapRequest(row, NoEmployees, NoLeaveTypes, approverNames, NoProfileUrls);
+        var detail = LeaveMapper.ToDetail(
+            listItem,
+            row,
+            workingDays: 5,
+            publicHolidaysInRange: 0,
+            LeaveMapper.BuildBalanceImpact(row.RemainingDays, row.DaysRequested),
+            approverNames);
+
+        Assert.Null(listItem.WaitingHours);
+        Assert.NotNull(detail.WaitingHours);
+        Assert.True(detail.WaitingHours >= 53);
+        Assert.Equal(3, detail.ApprovalTrail.Count);
+        Assert.Equal("approved", detail.ApprovalTrail[0].Status);
+        Assert.Equal("approved", detail.ApprovalTrail[1].Status);
+        Assert.Equal("pending", detail.ApprovalTrail[2].Status);
+        Assert.Equal(11, detail.BalanceImpact?.Current);
+        Assert.Equal(6, detail.BalanceImpact?.After);
+    }
 }
