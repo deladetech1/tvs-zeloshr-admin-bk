@@ -25,6 +25,7 @@ public class LeaveTypePolicyTests
         {
             Name = "Annual Leave",
             DefaultEntitledDays = 21,
+            AccrualMethod = null,
             AppliesToEmploymentTypes = ["Full-time"],
         });
 
