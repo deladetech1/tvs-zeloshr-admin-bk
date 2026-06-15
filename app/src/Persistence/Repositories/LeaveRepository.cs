@@ -79,8 +79,8 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
     {
         var query = ApplyRequestFilters(tenantId, orgId, queryParams);
         var total = await query.CountAsync(ct);
+        query = ApplyRequestSort(query, queryParams);
         var entities = await query
-            .OrderByDescending(r => r.SubmittedAt)
             .Skip((queryParams.Page - 1) * queryParams.Size)
             .Take(queryParams.Size)
             .ToListAsync(ct);
@@ -847,7 +847,40 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
             query = query.Where(r => r.SubmittedAt <= to);
         }
 
+        if (!string.IsNullOrWhiteSpace(queryParams.Tab))
+        {
+            var tab = queryParams.Tab.Trim();
+            if (tab.Equals(LeaveApprovalListTabs.History, StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(r =>
+                    r.Status == LeaveRequestStatuses.Approved
+                    || (r.Status == LeaveRequestStatuses.Rejected
+                        && (r.LmDecidedAt != null || r.HodDecidedAt != null)));
+            }
+            else if (tab.Equals(LeaveApprovalListTabs.Pending, StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(r =>
+                    r.Status == LeaveRequestStatuses.Pending
+                    && r.ApprovalStage == LeaveApprovalStages.PendingFinal);
+            }
+        }
+
         return query;
+    }
+
+    private static IQueryable<LeaveRequestEntity> ApplyRequestSort(
+        IQueryable<LeaveRequestEntity> query,
+        LeaveRequestListQuery queryParams)
+    {
+        if (!string.IsNullOrWhiteSpace(queryParams.Tab))
+        {
+            var descending = queryParams.SortOrder?.Equals("desc", StringComparison.OrdinalIgnoreCase) == true;
+            return descending
+                ? query.OrderByDescending(r => r.EmployeeFullName).ThenByDescending(r => r.SubmittedAt)
+                : query.OrderBy(r => r.EmployeeFullName).ThenBy(r => r.SubmittedAt);
+        }
+
+        return query.OrderByDescending(r => r.SubmittedAt);
     }
 
     private async Task<IReadOnlyList<LeaveRequestRawRow>> MapRawRowsAsync(

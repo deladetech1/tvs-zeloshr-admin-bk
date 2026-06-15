@@ -42,6 +42,30 @@ public static class LeaveFieldOptions
         "Part-time",
         "Contract",
     ];
+
+    /// <summary>Leave Approvals screen tabs.</summary>
+    public static readonly IReadOnlyList<string> ApprovalListTabs =
+    [
+        LeaveApprovalListTabs.Pending,
+        LeaveApprovalListTabs.History,
+    ];
+
+    public static readonly IReadOnlyList<string> ApprovalListSortBy =
+    [
+        "name",
+    ];
+
+    public static readonly IReadOnlyList<string> ApprovalListSortOrder =
+    [
+        "asc",
+        "desc",
+    ];
+}
+
+public static class LeaveApprovalListTabs
+{
+    public const string Pending = "pending";
+    public const string History = "history";
 }
 
 public static class LeaveRequestStatuses
@@ -88,6 +112,26 @@ public sealed record LeaveRequestListQuery
     public DateOnly? SubmittedFromDate { get; init; }
     /// <summary>Filter by submitted_at on or before end of this day (UTC).</summary>
     public DateOnly? SubmittedToDate { get; init; }
+    /// <summary>Leave Approvals screen: <c>pending</c> (final queue) or <c>history</c>.</summary>
+    public string? Tab { get; init; }
+    public string? SortBy { get; init; }
+    public string? SortOrder { get; init; }
+    public int Page { get; init; } = 1;
+    public int Size { get; init; } = 20;
+}
+
+public sealed record LeaveApprovalListQuery
+{
+    /// <summary>Free-text: employee name, employee code, or job title (min 2 chars).</summary>
+    public string? Search { get; init; }
+    public Guid? LeaveTypeId { get; init; }
+    public Guid? DepartmentId { get; init; }
+    public DateOnly? FromDate { get; init; }
+    public DateOnly? ToDate { get; init; }
+    /// <summary><c>pending</c> (final queue) or <c>history</c>.</summary>
+    public string? Tab { get; init; }
+    public string? SortBy { get; init; }
+    public string? SortOrder { get; init; }
     public int Page { get; init; } = 1;
     public int Size { get; init; } = 20;
 }

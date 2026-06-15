@@ -37,16 +37,36 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                     "Dashboard widgets: summary · on_leave_today[] · pending_approvals[] (all pending, oldest first) · leaving_this_week[]. On leave: employee.full_name · leave_type.name · returns_on. Pending: days_requested · waiting_hours OR days_since_last_approval. Leaving: start_date · days_requested.");
                 return;
 
+            case "api/v1/leave/approvals/list" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
+                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveApprovalListResponse());
+                operation.Summary ??= "Leave Approvals table";
+                operation.Description = SwaggerOptionFormat.Append(operation.Description,
+                    $"""
+                    Flat employee rows: employee_id · employee_name · title · profile_url · leave_type · leave_from · leave_to · leave_days · waiting · approved_by[] (LM → HOD full names).
+                    `pending_count` is the final-stage queue badge count.
+                    Tab: `tab={SwaggerExampleHints.LeaveApprovalListTab}`. Sort: `sort_by={SwaggerExampleHints.LeaveApprovalListSortBy}` · `sort_order={SwaggerExampleHints.LeaveApprovalListSortOrder}`.
+                    Filters: search · department_id · leave_type_id · from_date/to_date · page · size.
+                    Actions: GET /requests/get · POST /requests/approve · POST /requests/reject.
+                    """);
+                AppendParameterDescription(operation, "tab", $"Leave Approvals tab. Allowed: {SwaggerExampleHints.LeaveApprovalListTab}.");
+                AppendParameterDescription(operation, "sort_by", $"Sort column. Allowed: {SwaggerExampleHints.LeaveApprovalListSortBy}.");
+                AppendParameterDescription(operation, "sort_order", $"Sort direction. Allowed: {SwaggerExampleHints.LeaveApprovalListSortOrder}.");
+                AppendParameterDescription(operation, "search", "Free text (min 2 chars): employee name, employee code, or job title.");
+                AppendParameterDescription(operation, "leave_type_id", "Optional leave type UUID filter.");
+                AppendParameterDescription(operation, "department_id", "Optional department UUID filter.");
+                AppendParameterDescription(operation, "from_date", "Leave period: include requests ending on or after this date.");
+                AppendParameterDescription(operation, "to_date", "Leave period: include requests starting on or before this date.");
+                return;
+
             case "api/v1/leave/requests/list" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveListResponse());
-                operation.Summary ??= "Leave Management / Approvals list";
+                operation.Summary ??= "List leave requests (admin)";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
                     """
-                    Paginated admin list. Response `data`: summary · items[].
-                    Each row includes nested `employee`, `leave_type`, `prior_approvers`, `waiting_hours`, and `employee.profile_url` (DocumentReadDto) when pending.
-                    Use `approval_stage=pending_final` for the final approver queue (LM+HoD cleared).
-                    Filters: search (name/code/job title/leave type) · employee_id · employee_code · leave_request_id · department_id · branch_id · leave_type_id · status · approval_stage · from_date/to_date (leave overlap) · submitted_from_date/submitted_to_date · page · size.
-                    Balances: GET /leave/balances/list.
+                    Paginated admin list — each row is a leave request with nested employee · leave_type · audit fields.
+                    Leave Approvals screen uses GET /approvals/list instead.
+                    Filters: status · approval_stage · search · department_id · leave_type_id · from_date/to_date · page · size.
+                    Actions: GET /requests/get · POST /requests/approve · POST /requests/reject.
                     """);
                 AppendParameterDescription(operation, "status", $"Filter by status. Allowed: {SwaggerExampleHints.LeaveRequestStatus}, all.");
                 AppendParameterDescription(operation, "approval_stage", $"Workflow stage filter. Allowed: {SwaggerExampleHints.LeaveApprovalStage}, all.");

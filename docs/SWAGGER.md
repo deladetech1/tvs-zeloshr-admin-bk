@@ -62,6 +62,7 @@ Tree shape comes from employee `reports_to_id`. Department badge requires `head_
 |------|------------|
 | Dashboard | `GET /leave/summary` (KPIs + widgets — **use for Leave Management page**) · `GET /leave/statistics` (counts only) · `GET /leave/dashboard` (alias of summary widgets) |
 | Admin requests | `GET /leave/requests/list` · `GET /leave/requests/get` · `POST /requests/add` · `POST /requests/approve` · `POST /requests/reject` |
+| Leave Approvals | `GET /leave/approvals/list` — flat employee rows for Approvals table (see below) |
 | My Leave | `GET /leave/my/summary?employee_id=` · `GET /leave/my/requests/list?employee_id=` · `GET /leave/my/balances/list?employee_id=` · `POST /leave/my/requests/add?employee_id=` |
 | Balances | `GET /leave/balances/list` · admin CRUD on `/leave/balances/*` |
 | Settings | Leave types `/leave/types/*` · public holidays `/leave/holidays/*` |
@@ -95,6 +96,20 @@ Every leave resource item (requests, balances, types, holidays) includes standar
 | Submitted date range | `submitted_from_date` + `submitted_to_date` |
 
 Full table: [API_CONTRACTS.md — Leave](API_CONTRACTS.md#leave-apiv1leave).
+
+**Leave Approvals table** (`GET /leave/approvals/list?tab=pending&page=&size=`) — flat `data.items[]` (not nested employee/leave_type objects):
+
+| UI column | JSON field |
+|-----------|------------|
+| Employee | `employee_name` · `title` · `profile_url` |
+| Leave type | `leave_type` (string) |
+| Dates | `leave_from` · `leave_to` |
+| Days | `leave_days` |
+| Waiting | `waiting` (hours since final queue) |
+| Approved by | `approved_by[]` (LM → HOD full names) |
+| Badge | `pending_count` (final-stage pending total) |
+
+Tabs: `tab=pending|history`. Sort: `sort_by=name` · `sort_order=asc|desc`. Filters: `search` · `department_id` · `leave_type_id` · `from_date` · `to_date`. Actions use `leave_request_id` → `GET /requests/get` · `POST /requests/approve` · `POST /requests/reject`.
 
 **Dashboard** (`GET /leave/dashboard`) widget mapping:
 

@@ -100,6 +100,40 @@ public class LeaveService
             });
     }
 
+    public async Task<Respons<LeaveApprovalListDto>> ListApprovalsAsync(
+        LeaveApprovalListQuery query, string tenantId, string orgId, CancellationToken ct = default)
+    {
+        var paging = PagedQuery.From(query.Page, query.Size);
+        var tab = string.IsNullOrWhiteSpace(query.Tab) ? LeaveApprovalListTabs.Pending : query.Tab.Trim();
+        var listQuery = new LeaveRequestListQuery
+        {
+            Search = query.Search,
+            LeaveTypeId = query.LeaveTypeId,
+            DepartmentId = query.DepartmentId,
+            FromDate = query.FromDate,
+            ToDate = query.ToDate,
+            Tab = tab,
+            SortBy = query.SortBy ?? "name",
+            SortOrder = query.SortOrder ?? "asc",
+            Page = paging.Page,
+            Size = paging.Size,
+        };
+
+        var (requests, total) = await _leave.ListRequestsScopedAsync(tenantId, orgId, listQuery, ct);
+        var summary = await _leave.GetSummaryScopedAsync(tenantId, orgId, ct);
+        var items = await EnrichApprovalListAsync(requests, tenantId, orgId, ct);
+
+        return Respons<LeaveApprovalListDto>.Ok(
+            new LeaveApprovalListDto { PendingCount = summary.PendingFinalApprovals, Items = items },
+            pagination: new PaginationMeta
+            {
+                Page = paging.Page,
+                Size = paging.Size,
+                Total = total,
+                HasNext = paging.Offset + items.Count < total,
+            });
+    }
+
     public async Task<Respons<LeaveRequestDetailDto>> GetRequestByIdAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default)
     {
@@ -653,6 +687,37 @@ public class LeaveService
 
         return rows
             .Select(row => LeaveMapper.MapRequest(row, employees, leaveTypes, approverNames, profileUrlsByEmployeeId))
+            .ToList();
+    }
+
+    private async Task<IReadOnlyList<LeaveApprovalListItemDto>> EnrichApprovalListAsync(
+        IReadOnlyList<LeaveRequestRawRow> rows,
+        string tenantId,
+        string orgId,
+        CancellationToken ct)
+    {
+        if (rows.Count == 0)
+            return [];
+
+        var employeeIds = rows
+            .Select(r => Guid.TryParse(r.EmployeeId, out var id) ? id : (Guid?)null)
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Distinct();
+        var employees = await _employees.ResolveLeaveContextsAsync(employeeIds, tenantId, orgId, ct);
+
+        var leaveTypes = LeaveMapper.MergeLeaveTypeLookups(
+            LeaveMapper.IndexTypes(await _leave.ListAllTypesScopedAsync(tenantId, orgId, false, ct)),
+            rows.Select(r => (r.LeaveTypeId, r.LeaveTypeName)));
+
+        var approverNames = await LeaveMapper.ResolveApproverNamesAsync(
+            _cpUsers, LeaveMapper.CollectUserIds(rows), tenantId, ct);
+
+        var profileUrlsByEmployeeId = await ResolveEmployeeProfileUrlsAsync(employees, ct);
+
+        return rows
+            .Select(row => LeaveMapper.MapApprovalListItem(
+                row, employees, leaveTypes, approverNames, profileUrlsByEmployeeId))
             .ToList();
     }
 

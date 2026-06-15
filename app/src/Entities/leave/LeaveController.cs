@@ -57,7 +57,51 @@ public class LeaveController : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>List leave requests (admin Leave Management / Approvals). Filters: search, employee_id, employee_code, leave_request_id, department_id, branch_id, leave_type_id, status, approval_stage, from_date/to_date, submitted_from_date/submitted_to_date.</summary>
+    /// <summary>Leave Approvals table — flat employee rows with leave type, dates, waiting, approved_by.</summary>
+    [HttpGet("approvals/list")]
+    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
+    [ProducesResponseType(typeof(Respons<LeaveApprovalListDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<Respons<LeaveApprovalListDto>>> ListApprovals(
+        [FromQuery] string? search,
+        [FromQuery(Name = PlatformQueryParams.LeaveTypeId)] Guid? leaveTypeId,
+        [FromQuery(Name = PlatformQueryParams.DepartmentId)] Guid? departmentId,
+        [FromQuery(Name = "from_date")] DateOnly? fromDate,
+        [FromQuery(Name = "to_date")] DateOnly? toDate,
+        [FromQuery]
+        [SwaggerAllowedValues(typeof(LeaveFieldOptions), nameof(LeaveFieldOptions.ApprovalListTabs))]
+        string? tab,
+        [FromQuery(Name = "sort_by")]
+        [SwaggerAllowedValues(typeof(LeaveFieldOptions), nameof(LeaveFieldOptions.ApprovalListSortBy))]
+        string? sortBy,
+        [FromQuery(Name = "sort_order")]
+        [SwaggerAllowedValues(typeof(LeaveFieldOptions), nameof(LeaveFieldOptions.ApprovalListSortOrder))]
+        string? sortOrder,
+        [FromQuery] int page = 1,
+        [FromQuery] int size = 20,
+        CancellationToken ct = default)
+    {
+        var ctx = _tenant.Current;
+        var result = await _service.ListApprovalsAsync(
+            new LeaveApprovalListQuery
+            {
+                Search = search,
+                LeaveTypeId = leaveTypeId,
+                DepartmentId = departmentId,
+                FromDate = fromDate,
+                ToDate = toDate,
+                Tab = tab,
+                SortBy = sortBy,
+                SortOrder = sortOrder,
+                Page = page,
+                Size = size,
+            },
+            ctx.TenantId,
+            ctx.OrgId,
+            ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    /// <summary>List leave requests — admin Leave Management table.</summary>
     [HttpGet("requests/list")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
     [ProducesResponseType(typeof(Respons<LeaveListDto>), StatusCodes.Status200OK)]

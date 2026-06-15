@@ -75,6 +75,8 @@ public sealed class LeaveRequestListItemDto
     public required string Status { get; init; }
     public required string ApprovalStage { get; init; }
     public LeaveApproverRefDto? Approver { get; init; }
+    /// <summary>Line manager and head of department who already approved (LM → HOD). Leave Approvals table.</summary>
+    public IReadOnlyList<LeaveApproverRefDto> ApprovedBy { get; init; } = [];
     public IReadOnlyList<LeaveApprovalStepDto> PriorApprovers { get; init; } = [];
     public string? Notes { get; init; }
     public decimal? RemainingDays { get; init; }
@@ -141,6 +143,34 @@ public sealed class LeaveListDto
 {
     public LeaveSummaryDto Summary { get; init; } = new();
     public IReadOnlyList<LeaveRequestListItemDto> Items { get; init; } = [];
+}
+
+/// <summary>Leave Approvals table — flat employee rows with leave context.</summary>
+public sealed class LeaveApprovalListDto
+{
+    public int PendingCount { get; init; }
+    public IReadOnlyList<LeaveApprovalListItemDto> Items { get; init; } = [];
+}
+
+public sealed class LeaveApprovalListItemDto
+{
+    public required string LeaveRequestId { get; init; }
+    public required string EmployeeId { get; init; }
+    public required string EmployeeName { get; init; }
+    public string? Title { get; init; }
+
+    /// <summary>Profile photo (<c>DocumentReadDto</c>): <c>doc_id</c>, <c>name</c>, <c>presigned_url</c> (~24h), <c>description</c>.</summary>
+    public DocumentReadDto? ProfileUrl { get; init; }
+    public required string LeaveType { get; init; }
+    public DateOnly LeaveFrom { get; init; }
+    public DateOnly LeaveTo { get; init; }
+    public decimal LeaveDays { get; init; }
+
+    /// <summary>Hours since request reached final approval queue (<c>submitted_at</c>).</summary>
+    public int? Waiting { get; init; }
+
+    /// <summary>Line manager and head of department who already approved (LM → HOD), full names only.</summary>
+    public IReadOnlyList<string> ApprovedBy { get; init; } = [];
 }
 
 public sealed class LeaveMyRequestListDto

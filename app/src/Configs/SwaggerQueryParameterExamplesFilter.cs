@@ -413,6 +413,33 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
                 return;
             }
 
+            if (name.Equals("tab", StringComparison.OrdinalIgnoreCase))
+            {
+                schema.Example = SwaggerExampleHints.LeaveApprovalListTab;
+                parameter.Description = SwaggerOptionFormat.Append(
+                    parameter.Description,
+                    $"Active tab. Allowed: {SwaggerExampleHints.LeaveApprovalListTab}.");
+                return;
+            }
+
+            if (name.Equals("sort_by", StringComparison.OrdinalIgnoreCase))
+            {
+                schema.Example = "name";
+                parameter.Description = SwaggerOptionFormat.Append(
+                    parameter.Description,
+                    $"Sort column. Allowed: {SwaggerExampleHints.LeaveApprovalListSortBy}.");
+                return;
+            }
+
+            if (name.Equals("sort_order", StringComparison.OrdinalIgnoreCase))
+            {
+                schema.Example = SwaggerExampleHints.LeaveApprovalListSortOrder;
+                parameter.Description = SwaggerOptionFormat.Append(
+                    parameter.Description,
+                    $"Sort direction. Allowed: {SwaggerExampleHints.LeaveApprovalListSortOrder}.");
+                return;
+            }
+
             return;
         }
 

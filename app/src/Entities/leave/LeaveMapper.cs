@@ -91,6 +91,12 @@ internal static class LeaveMapper
                 if (!string.IsNullOrWhiteSpace(step.Approver?.ApproverId))
                     yield return step.Approver.ApproverId;
             }
+
+            foreach (var approver in item.ApprovedBy)
+            {
+                if (!string.IsNullOrWhiteSpace(approver.ApproverId))
+                    yield return approver.ApproverId;
+            }
         }
     }
 
@@ -131,6 +137,7 @@ internal static class LeaveMapper
             Status = row.Status,
             ApprovalStage = row.ApprovalStage,
             Approver = finalApprover,
+            ApprovedBy = BuildApprovedBy(row, approverNames),
             PriorApprovers = BuildPriorApprovers(row, approverNames),
             Notes = row.Notes,
             RemainingDays = row.RemainingDays,
@@ -148,6 +155,85 @@ internal static class LeaveMapper
         };
 
         return item;
+    }
+
+    private static IReadOnlyList<LeaveApproverRefDto> BuildApprovedBy(
+        LeaveRequestRawRow row,
+        IReadOnlyDictionary<string, string> approverNames)
+    {
+        var list = new List<LeaveApproverRefDto>(2);
+        if (row.LmDecidedAt.HasValue)
+        {
+            var lm = ResolveApprover(row.LmApproverId, approverNames);
+            if (lm is not null)
+                list.Add(lm);
+        }
+
+        if (row.HodDecidedAt.HasValue)
+        {
+            var hod = ResolveApprover(row.HodApproverId, approverNames);
+            if (hod is not null)
+                list.Add(hod);
+        }
+
+        return list;
+    }
+
+    private static IReadOnlyList<string> BuildApprovedByNames(
+        LeaveRequestRawRow row,
+        IReadOnlyDictionary<string, string> approverNames)
+    {
+        var list = new List<string>(2);
+        if (row.LmDecidedAt.HasValue)
+        {
+            var lm = ResolveApprover(row.LmApproverId, approverNames);
+            if (!string.IsNullOrWhiteSpace(lm?.FullName))
+                list.Add(lm.FullName);
+        }
+
+        if (row.HodDecidedAt.HasValue)
+        {
+            var hod = ResolveApprover(row.HodApproverId, approverNames);
+            if (!string.IsNullOrWhiteSpace(hod?.FullName))
+                list.Add(hod.FullName);
+        }
+
+        return list;
+    }
+
+    internal static LeaveApprovalListItemDto MapApprovalListItem(
+        LeaveRequestRawRow row,
+        IReadOnlyDictionary<Guid, EmployeeLeaveContext> employees,
+        IReadOnlyDictionary<Guid, string> leaveTypes,
+        IReadOnlyDictionary<string, string> approverNames,
+        IReadOnlyDictionary<Guid, DocumentReadDto?> profileUrlsByEmployeeId)
+    {
+        EmployeeLeaveContext? employee = null;
+        DocumentReadDto? profileUrl = null;
+        if (Guid.TryParse(row.EmployeeId, out var employeeId))
+        {
+            employees.TryGetValue(employeeId, out employee);
+            profileUrlsByEmployeeId.TryGetValue(employeeId, out profileUrl);
+        }
+
+        var leaveTypeName = ResolveLeaveType(row.LeaveTypeId, row.LeaveTypeName, leaveTypes)?.Name
+            ?? row.LeaveTypeName
+            ?? string.Empty;
+
+        return new LeaveApprovalListItemDto
+        {
+            LeaveRequestId = row.LeaveRequestId,
+            EmployeeId = row.EmployeeId,
+            EmployeeName = employee?.FullName ?? row.EmployeeFullName,
+            Title = employee?.JobTitle,
+            ProfileUrl = profileUrl,
+            LeaveType = leaveTypeName,
+            LeaveFrom = row.StartDate,
+            LeaveTo = row.EndDate,
+            LeaveDays = row.DaysRequested,
+            Waiting = ComputeWaitingHours(row),
+            ApprovedBy = BuildApprovedByNames(row, approverNames),
+        };
     }
 
     internal static LeaveRequestDetailDto ToDetail(
@@ -503,6 +589,12 @@ internal static class LeaveMapper
         if (!row.Status.Equals(LeaveRequestStatuses.Pending, StringComparison.OrdinalIgnoreCase))
             return null;
 
+        if (row.ApprovalStage.Equals(LeaveApprovalStages.PendingFinal, StringComparison.OrdinalIgnoreCase))
+        {
+            var elapsed = DateTimeOffset.UtcNow - row.SubmittedAt;
+            return elapsed.TotalHours < 1 ? 1 : (int)Math.Floor(elapsed.TotalHours);
+        }
+
         if (ComputeDaysSinceLastApproval(row).HasValue)
             return null;
 
@@ -510,12 +602,9 @@ internal static class LeaveMapper
         if (row.ApprovalStage.Equals(LeaveApprovalStages.PendingHeadOfDepartment, StringComparison.OrdinalIgnoreCase)
             && row.LmDecidedAt.HasValue)
             anchor = row.LmDecidedAt.Value;
-        else if (row.ApprovalStage.Equals(LeaveApprovalStages.PendingFinal, StringComparison.OrdinalIgnoreCase)
-                 && row.HodDecidedAt.HasValue)
-            anchor = row.HodDecidedAt.Value;
 
-        var elapsed = DateTimeOffset.UtcNow - anchor;
-        return elapsed.TotalHours < 1 ? 1 : (int)Math.Floor(elapsed.TotalHours);
+        var elapsedFromAnchor = DateTimeOffset.UtcNow - anchor;
+        return elapsedFromAnchor.TotalHours < 1 ? 1 : (int)Math.Floor(elapsedFromAnchor.TotalHours);
     }
 
     private static int? ComputeDaysSinceLastApproval(LeaveRequestRawRow row)

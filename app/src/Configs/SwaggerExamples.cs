@@ -250,6 +250,7 @@ internal static class SwaggerExamples
             nameof(LeaveSummaryDto) => EnvelopeOk(LeaveSummaryData()),
             nameof(LeavePersonalSummaryDto) => EnvelopeOk(LeavePersonalSummaryData()),
             nameof(LeaveListDto) => LeaveListResponse(),
+            nameof(LeaveApprovalListDto) => LeaveApprovalListResponse(),
             nameof(LeaveDashboardDto) => LeaveDashboardResponse(),
             nameof(LeaveMyRequestListDto) => LeaveMyRequestListResponse(),
             nameof(LeaveRequestListItemDto) => EnvelopeOk(LeaveRequestItemData()),
@@ -1416,6 +1417,13 @@ internal static class SwaggerExamples
             ["status"] = status,
             ["approval_stage"] = status == "Approved" ? "approved" : "pending_final",
             ["approver"] = status is "Approved" or "Rejected" ? LeaveApproverRefData() : null,
+            ["approved_by"] = new JsonArray(
+                LeaveApproverRefData(),
+                new JsonObject
+                {
+                    ["approver_id"] = "cp-user-hod",
+                    ["full_name"] = "Demo Admin",
+                }),
             ["prior_approvers"] = new JsonArray(
                 new JsonObject
                 {
@@ -1626,6 +1634,37 @@ internal static class SwaggerExamples
 
     internal static JsonObject LeaveListResponse() =>
         EnvelopeOk(LeaveListData(), LeaveListPagination());
+
+    internal static JsonObject LeaveApprovalListItemData(
+        string employeeName = "Ama Asante",
+        string leaveType = "Annual Leave",
+        int waiting = 28) =>
+        new()
+        {
+            ["leave_request_id"] = SampleLeaveRequestId.ToString(),
+            ["employee_id"] = SampleEmployeeId.ToString(),
+            ["employee_name"] = employeeName,
+            ["title"] = "Senior Product Designer",
+            ["profile_url"] = EmployeeDocumentItem(SampleDocumentId1, "Employee profile photo", "profile.jpg"),
+            ["leave_type"] = leaveType,
+            ["leave_from"] = "2026-06-15",
+            ["leave_to"] = "2026-06-19",
+            ["leave_days"] = 5,
+            ["waiting"] = waiting,
+            ["approved_by"] = new JsonArray("Fiifi Boakye", "Kwame Mensah"),
+        };
+
+    internal static JsonObject LeaveApprovalListData() => new()
+    {
+        ["pending_count"] = 6,
+        ["items"] = new JsonArray(
+            LeaveApprovalListItemData(),
+            LeaveApprovalListItemData("Kofi Adom", "Sick Leave", 8),
+            LeaveApprovalListItemData("Abena Osei", "Unpaid Leave", 15)),
+    };
+
+    internal static JsonObject LeaveApprovalListResponse() =>
+        EnvelopeOk(LeaveApprovalListData(), LeaveListPagination());
 
     internal static JsonObject LeaveMyRequestListData() => new()
     {
