@@ -397,7 +397,8 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             case nameof(EmployeeEducationUpsertDto.FieldOfStudy):
                 schema.Example = JsonValue.Create("Computer Science");
                 return;
-            case nameof(EmployeeCertificationUpsertDto.Name):
+            case nameof(EmployeeCertificationUpsertDto.Name)
+                when property.DeclaringType == typeof(EmployeeCertificationUpsertDto):
                 schema.Example = JsonValue.Create("Masters in react");
                 return;
             case nameof(EmployeeCertificationUpsertDto.IssuingBody):
