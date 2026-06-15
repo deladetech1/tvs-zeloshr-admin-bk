@@ -69,6 +69,22 @@ internal static class LeaveMapper
     internal static IEnumerable<string> CollectUserIds(IEnumerable<LeaveBalanceRawRow> rows) =>
         rows.SelectMany(CollectUserIds);
 
+    private static (
+        DateTimeOffset CreatedAt,
+        DateTimeOffset UpdatedAt,
+        string? CreatedById,
+        string? UpdatedById,
+        string? CreatedBy,
+        string? UpdatedBy) MapRequestAudit(
+        LeaveRequestRawRow row,
+        IReadOnlyDictionary<string, string> userNames) =>
+        LeaveAuditFields.Map(
+            row.CreatedAt,
+            row.UpdatedAt,
+            row.CreatedBy,
+            row.UpdatedBy,
+            userNames);
+
     internal static IEnumerable<string> CollectApproverIds(LeaveRequestRawRow row)
     {
         if (!string.IsNullOrWhiteSpace(row.ApproverId))
@@ -205,7 +221,7 @@ internal static class LeaveMapper
         LeaveRequestRawRow row,
         IReadOnlyDictionary<Guid, EmployeeLeaveContext> employees,
         IReadOnlyDictionary<Guid, string> leaveTypes,
-        IReadOnlyDictionary<string, string> approverNames,
+        IReadOnlyDictionary<string, string> userNames,
         IReadOnlyDictionary<Guid, DocumentReadDto?> profileUrlsByEmployeeId)
     {
         EmployeeLeaveContext? employee = null;
@@ -220,6 +236,8 @@ internal static class LeaveMapper
             ?? row.LeaveTypeName
             ?? string.Empty;
 
+        var audit = MapRequestAudit(row, userNames);
+
         return new LeaveApprovalListItemDto
         {
             LeaveRequestId = row.LeaveRequestId,
@@ -232,7 +250,13 @@ internal static class LeaveMapper
             LeaveTo = row.EndDate,
             LeaveDays = row.DaysRequested,
             Waiting = ComputeApprovalListWaiting(row),
-            ApprovedBy = BuildApprovedByNames(row, approverNames),
+            ApprovedBy = BuildApprovedByNames(row, userNames),
+            CreatedAt = audit.CreatedAt,
+            UpdatedAt = audit.UpdatedAt,
+            CreatedById = audit.CreatedById,
+            UpdatedById = audit.UpdatedById,
+            CreatedBy = audit.CreatedBy,
+            UpdatedBy = audit.UpdatedBy,
         };
     }
 
@@ -249,6 +273,115 @@ internal static class LeaveMapper
 
         return ComputeWaitingHours(row);
     }
+
+    internal static LeaveDashboardOnLeaveItemDto MapDashboardOnLeaveItem(
+        LeaveRequestRawRow row,
+        IReadOnlyDictionary<Guid, EmployeeLeaveContext> employees,
+        IReadOnlyDictionary<Guid, string> leaveTypes,
+        IReadOnlyDictionary<string, string> userNames,
+        IReadOnlyDictionary<Guid, DocumentReadDto?> profileUrlsByEmployeeId)
+    {
+        var audit = MapRequestAudit(row, userNames);
+        return new LeaveDashboardOnLeaveItemDto
+        {
+            LeaveRequestId = row.LeaveRequestId,
+            EmployeeId = row.EmployeeId,
+            EmployeeName = ResolveEmployeeName(row, employees),
+            ProfileUrl = ResolveProfileUrl(row, profileUrlsByEmployeeId),
+            LeaveType = ResolveLeaveTypeName(row, leaveTypes),
+            ReturnsOn = row.EndDate.AddDays(1),
+            CreatedAt = audit.CreatedAt,
+            UpdatedAt = audit.UpdatedAt,
+            CreatedById = audit.CreatedById,
+            UpdatedById = audit.UpdatedById,
+            CreatedBy = audit.CreatedBy,
+            UpdatedBy = audit.UpdatedBy,
+        };
+    }
+
+    internal static LeaveDashboardPendingItemDto MapDashboardPendingItem(
+        LeaveRequestRawRow row,
+        IReadOnlyDictionary<Guid, EmployeeLeaveContext> employees,
+        IReadOnlyDictionary<Guid, string> leaveTypes,
+        IReadOnlyDictionary<string, string> userNames,
+        IReadOnlyDictionary<Guid, DocumentReadDto?> profileUrlsByEmployeeId)
+    {
+        var audit = MapRequestAudit(row, userNames);
+        return new LeaveDashboardPendingItemDto
+        {
+            LeaveRequestId = row.LeaveRequestId,
+            EmployeeId = row.EmployeeId,
+            EmployeeName = ResolveEmployeeName(row, employees),
+            ProfileUrl = ResolveProfileUrl(row, profileUrlsByEmployeeId),
+            LeaveType = ResolveLeaveTypeName(row, leaveTypes),
+            LeaveDays = row.DaysRequested,
+            Waiting = ComputeWaitingHours(row),
+            HoursSinceLastApproval = ComputeHoursSinceLastApproval(row),
+            DaysSinceLastApproval = ComputeDaysSinceLastApprovalForDashboard(row),
+            CreatedAt = audit.CreatedAt,
+            UpdatedAt = audit.UpdatedAt,
+            CreatedById = audit.CreatedById,
+            UpdatedById = audit.UpdatedById,
+            CreatedBy = audit.CreatedBy,
+            UpdatedBy = audit.UpdatedBy,
+        };
+    }
+
+    internal static LeaveDashboardLeavingItemDto MapDashboardLeavingItem(
+        LeaveRequestRawRow row,
+        IReadOnlyDictionary<Guid, EmployeeLeaveContext> employees,
+        IReadOnlyDictionary<Guid, string> leaveTypes,
+        IReadOnlyDictionary<string, string> userNames,
+        IReadOnlyDictionary<Guid, DocumentReadDto?> profileUrlsByEmployeeId)
+    {
+        var audit = MapRequestAudit(row, userNames);
+        return new LeaveDashboardLeavingItemDto
+        {
+            LeaveRequestId = row.LeaveRequestId,
+            EmployeeId = row.EmployeeId,
+            EmployeeName = ResolveEmployeeName(row, employees),
+            ProfileUrl = ResolveProfileUrl(row, profileUrlsByEmployeeId),
+            LeaveType = ResolveLeaveTypeName(row, leaveTypes),
+            StartsOn = row.StartDate,
+            LeaveDays = row.DaysRequested,
+            CreatedAt = audit.CreatedAt,
+            UpdatedAt = audit.UpdatedAt,
+            CreatedById = audit.CreatedById,
+            UpdatedById = audit.UpdatedById,
+            CreatedBy = audit.CreatedBy,
+            UpdatedBy = audit.UpdatedBy,
+        };
+    }
+
+    private static string ResolveEmployeeName(
+        LeaveRequestRawRow row,
+        IReadOnlyDictionary<Guid, EmployeeLeaveContext> employees)
+    {
+        if (Guid.TryParse(row.EmployeeId, out var employeeId)
+            && employees.TryGetValue(employeeId, out var employee)
+            && !string.IsNullOrWhiteSpace(employee.FullName))
+            return employee.FullName;
+
+        return row.EmployeeFullName;
+    }
+
+    private static DocumentReadDto? ResolveProfileUrl(
+        LeaveRequestRawRow row,
+        IReadOnlyDictionary<Guid, DocumentReadDto?> profileUrlsByEmployeeId)
+    {
+        if (!Guid.TryParse(row.EmployeeId, out var employeeId))
+            return null;
+
+        profileUrlsByEmployeeId.TryGetValue(employeeId, out var profileUrl);
+        return profileUrl;
+    }
+
+    private static string ResolveLeaveTypeName(
+        LeaveRequestRawRow row,
+        IReadOnlyDictionary<Guid, string> leaveTypes) =>
+        ResolveLeaveType(row.LeaveTypeId, row.LeaveTypeName, leaveTypes)?.Name
+        ?? row.LeaveTypeName
+        ?? string.Empty;
 
     internal static LeaveRequestDetailDto ToDetail(
         LeaveRequestListItemDto item,
@@ -626,5 +759,37 @@ internal static class LeaveMapper
 
         var elapsed = DateTimeOffset.UtcNow - last.Value;
         return elapsed.TotalDays < 1 ? 1 : (int)Math.Floor(elapsed.TotalDays);
+    }
+
+    private static int? ComputeHoursSinceLastApproval(LeaveRequestRawRow row)
+    {
+        if (!row.Status.Equals(LeaveRequestStatuses.Pending, StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        var last = row.HodDecidedAt ?? row.LmDecidedAt;
+        if (!last.HasValue)
+            return null;
+
+        var elapsed = DateTimeOffset.UtcNow - last.Value;
+        if (elapsed.TotalHours >= 24)
+            return null;
+
+        return elapsed.TotalHours < 1 ? 1 : (int)Math.Floor(elapsed.TotalHours);
+    }
+
+    private static int? ComputeDaysSinceLastApprovalForDashboard(LeaveRequestRawRow row)
+    {
+        if (!row.Status.Equals(LeaveRequestStatuses.Pending, StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        var last = row.HodDecidedAt ?? row.LmDecidedAt;
+        if (!last.HasValue)
+            return null;
+
+        var elapsed = DateTimeOffset.UtcNow - last.Value;
+        if (elapsed.TotalHours < 24)
+            return null;
+
+        return (int)Math.Floor(elapsed.TotalDays);
     }
 }

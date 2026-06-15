@@ -34,7 +34,14 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveDashboardResponse());
                 operation.Summary ??= "Leave Management dashboard";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
-                    "Dashboard widgets: summary · on_leave_today[] · pending_approvals[] (all pending, oldest first) · leaving_this_week[]. On leave: employee.full_name · leave_type.name · returns_on. Pending: days_requested · waiting_hours OR days_since_last_approval. Leaving: start_date · days_requested.");
+                    """
+                    Flat employee lists for Leave Management landing page widgets (three example employees per widget).
+                    KPI cards: summary.on_leave_today · summary.pending_approvals · summary.leaving_this_week · summary.low_balance_alert.
+                    on_leave_today[]: employee_name · profile_url · leave_type · returns_on.
+                    pending_approvals[]: employee_name · leave_type · leave_days · waiting OR days_since_last_approval (oldest first).
+                    leaving_this_week[]: starts_on · employee_name · leave_type · leave_days.
+                    Alias: GET /leave/summary.
+                    """);
                 return;
 
             case "api/v1/leave/approvals/list" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
@@ -42,7 +49,7 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                 operation.Summary ??= "Leave Approvals table";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
                     $"""
-                    Flat employee rows: employee_id · employee_name · title · profile_url · leave_type · leave_from · leave_to · leave_days · waiting · approved_by[] (LM → HOD full names).
+                    Flat employee rows (response example shows three employees): employee_id · employee_name · title · profile_url · leave_type · leave_from · leave_to · leave_days · waiting · approved_by[] · audit fields.
                     `pending_count` is the final-stage queue badge count.
                     Tab: `tab={SwaggerExampleHints.LeaveApprovalListTab}`. Sort: `sort_by={SwaggerExampleHints.LeaveApprovalListSortBy}` · `sort_order={SwaggerExampleHints.LeaveApprovalListSortOrder}`.
                     Filters: search · department_id · leave_type_id · from_date/to_date · page · size.
@@ -63,7 +70,7 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                 operation.Summary ??= "List leave requests (admin)";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
                     """
-                    Paginated admin list — each row is a leave request with nested employee · leave_type · audit fields.
+                    Paginated admin list (response example shows three employees) — each row is a leave request with nested employee · leave_type · audit fields.
                     Leave Approvals screen uses GET /approvals/list instead.
                     Filters: status · approval_stage · search · department_id · leave_type_id · from_date/to_date · page · size.
                     Actions: GET /requests/get · POST /requests/approve · POST /requests/reject.
@@ -142,8 +149,9 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                 operation.Summary ??= "Leave Management summary";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
                     """
-                    Leave Management landing page in one call: summary (KPI counts) · on_leave_today[] · pending_approvals[] · leaving_this_week[].
-                    Matches the admin dashboard widgets. Use GET /leave/my/summary for logged-in employee balances only.
+                    Leave Management landing page — same flat employee-list shape as GET /leave/dashboard.
+                    KPI cards: summary.on_leave_today · summary.pending_approvals · summary.leaving_this_week · summary.low_balance_alert.
+                    Widget rows are flat employee lists (not nested leave request objects).
                     """);
                 return;
 

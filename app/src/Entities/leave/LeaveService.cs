@@ -42,17 +42,65 @@ public class LeaveService
         var onLeaveToday = await _leave.ListOnLeaveTodayScopedAsync(tenantId, orgId, 5, ct);
         var pendingApprovals = await _leave.ListPendingApprovalsScopedAsync(tenantId, orgId, 5, ct);
         var leavingThisWeek = await _leave.ListLeavingThisWeekScopedAsync(tenantId, orgId, 10, ct);
-
-        var allRows = onLeaveToday.Concat(pendingApprovals).Concat(leavingThisWeek).ToList();
-        var enriched = await EnrichRequestsAsync(allRows, tenantId, orgId, ct);
+        var widgets = await MapDashboardWidgetsAsync(
+            onLeaveToday, pendingApprovals, leavingThisWeek, tenantId, orgId, ct);
 
         return new LeaveDashboardDto
         {
-            Summary = summary,
-            OnLeaveToday = PickEnriched(enriched, onLeaveToday),
-            PendingApprovals = PickEnriched(enriched, pendingApprovals),
-            LeavingThisWeek = PickEnriched(enriched, leavingThisWeek),
+            Summary = new LeaveDashboardSummaryDto
+            {
+                OnLeaveToday = summary.OnLeaveToday,
+                PendingApprovals = summary.PendingRequests,
+                LeavingThisWeek = summary.LeavingThisWeek,
+                LowBalanceAlert = summary.LowBalanceAlert,
+            },
+            OnLeaveToday = widgets.OnLeaveToday,
+            PendingApprovals = widgets.PendingApprovals,
+            LeavingThisWeek = widgets.LeavingThisWeek,
         };
+    }
+
+    private async Task<(
+        IReadOnlyList<LeaveDashboardOnLeaveItemDto> OnLeaveToday,
+        IReadOnlyList<LeaveDashboardPendingItemDto> PendingApprovals,
+        IReadOnlyList<LeaveDashboardLeavingItemDto> LeavingThisWeek)> MapDashboardWidgetsAsync(
+        IReadOnlyList<LeaveRequestRawRow> onLeaveToday,
+        IReadOnlyList<LeaveRequestRawRow> pendingApprovals,
+        IReadOnlyList<LeaveRequestRawRow> leavingThisWeek,
+        string tenantId,
+        string orgId,
+        CancellationToken ct)
+    {
+        var allRows = onLeaveToday.Concat(pendingApprovals).Concat(leavingThisWeek).ToList();
+        if (allRows.Count == 0)
+            return ([], [], []);
+
+        var employeeIds = allRows
+            .Select(r => Guid.TryParse(r.EmployeeId, out var id) ? id : (Guid?)null)
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Distinct();
+        var employees = await _employees.ResolveLeaveContextsAsync(employeeIds, tenantId, orgId, ct);
+        var leaveTypes = LeaveMapper.MergeLeaveTypeLookups(
+            LeaveMapper.IndexTypes(await _leave.ListAllTypesScopedAsync(tenantId, orgId, false, ct)),
+            allRows.Select(r => (r.LeaveTypeId, r.LeaveTypeName)));
+        var userNames = await LeaveMapper.ResolveApproverNamesAsync(
+            _cpUsers, LeaveMapper.CollectUserIds(allRows), tenantId, ct);
+        var profileUrlsByEmployeeId = await ResolveEmployeeProfileUrlsAsync(employees, ct);
+
+        return (
+            onLeaveToday
+                .Select(row => LeaveMapper.MapDashboardOnLeaveItem(
+                    row, employees, leaveTypes, userNames, profileUrlsByEmployeeId))
+                .ToList(),
+            pendingApprovals
+                .Select(row => LeaveMapper.MapDashboardPendingItem(
+                    row, employees, leaveTypes, userNames, profileUrlsByEmployeeId))
+                .ToList(),
+            leavingThisWeek
+                .Select(row => LeaveMapper.MapDashboardLeavingItem(
+                    row, employees, leaveTypes, userNames, profileUrlsByEmployeeId))
+                .ToList());
     }
 
     private async Task<LeavePersonalSummaryDto> BuildPersonalSummaryAsync(
@@ -815,13 +863,6 @@ public class LeaveService
             .Select(item => LeaveMapper.EnrichHolidayAudit(item, userNames))
             .ToList();
     }
-
-    private static IReadOnlyList<LeaveRequestListItemDto> PickEnriched(
-        IReadOnlyList<LeaveRequestListItemDto> enriched,
-        IReadOnlyList<LeaveRequestRawRow> source) =>
-        source
-            .Select(row => enriched.First(i => i.LeaveRequestId == row.LeaveRequestId))
-            .ToList();
 
     private async Task<(Guid EmployeeId, string OrgId, EmployeeDisplayInfo Display)?> ResolveEmployeeAsync(
         Guid employeeId, string tenantId, string orgId, CancellationToken ct) =>

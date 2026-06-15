@@ -171,6 +171,12 @@ public sealed class LeaveApprovalListItemDto
 
     /// <summary>Line manager and head of department who already approved (LM → HOD), full names only.</summary>
     public IReadOnlyList<string> ApprovedBy { get; init; } = [];
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
+    public string? CreatedById { get; init; }
+    public string? UpdatedById { get; init; }
+    public string? CreatedBy { get; init; }
+    public string? UpdatedBy { get; init; }
 }
 
 public sealed class LeaveMyRequestListDto
@@ -184,12 +190,83 @@ public sealed class LeaveBalanceListDto
     public IReadOnlyList<LeaveBalanceListItemDto> Items { get; init; } = [];
 }
 
+public sealed class LeaveDashboardSummaryDto
+{
+    public int OnLeaveToday { get; init; }
+    public int PendingApprovals { get; init; }
+    public int LeavingThisWeek { get; init; }
+    public int LowBalanceAlert { get; init; }
+}
+
+/// <summary>On leave today widget — flat employee row.</summary>
+public sealed class LeaveDashboardOnLeaveItemDto
+{
+    public required string LeaveRequestId { get; init; }
+    public required string EmployeeId { get; init; }
+    public required string EmployeeName { get; init; }
+    public DocumentReadDto? ProfileUrl { get; init; }
+    public required string LeaveType { get; init; }
+
+    /// <summary>First day back after leave (<c>end_date + 1</c>) — “Returns 24 Sept”.</summary>
+    public DateOnly ReturnsOn { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
+    public string? CreatedById { get; init; }
+    public string? UpdatedById { get; init; }
+    public string? CreatedBy { get; init; }
+    public string? UpdatedBy { get; init; }
+}
+
+/// <summary>Pending approvals widget — flat employee row (oldest first).</summary>
+public sealed class LeaveDashboardPendingItemDto
+{
+    public required string LeaveRequestId { get; init; }
+    public required string EmployeeId { get; init; }
+    public required string EmployeeName { get; init; }
+    public DocumentReadDto? ProfileUrl { get; init; }
+    public required string LeaveType { get; init; }
+    public decimal LeaveDays { get; init; }
+
+    /// <summary>Hours waiting when no prior LM/HOD approval — “waiting 53h” / “pending 24h”.</summary>
+    public int? Waiting { get; init; }
+
+    /// <summary>Hours since latest LM/HOD approval when under 24h — “approved 12h”.</summary>
+    public int? HoursSinceLastApproval { get; init; }
+
+    /// <summary>Days since latest LM/HOD approval when 24h or more — “approved 5d”.</summary>
+    public int? DaysSinceLastApproval { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
+    public string? CreatedById { get; init; }
+    public string? UpdatedById { get; init; }
+    public string? CreatedBy { get; init; }
+    public string? UpdatedBy { get; init; }
+}
+
+/// <summary>Leaving this week widget — flat employee row.</summary>
+public sealed class LeaveDashboardLeavingItemDto
+{
+    public required string LeaveRequestId { get; init; }
+    public required string EmployeeId { get; init; }
+    public required string EmployeeName { get; init; }
+    public DocumentReadDto? ProfileUrl { get; init; }
+    public required string LeaveType { get; init; }
+    public DateOnly StartsOn { get; init; }
+    public decimal LeaveDays { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
+    public string? CreatedById { get; init; }
+    public string? UpdatedById { get; init; }
+    public string? CreatedBy { get; init; }
+    public string? UpdatedBy { get; init; }
+}
+
 public sealed class LeaveDashboardDto
 {
-    public LeaveSummaryDto Summary { get; init; } = new();
-    public IReadOnlyList<LeaveRequestListItemDto> OnLeaveToday { get; init; } = [];
-    public IReadOnlyList<LeaveRequestListItemDto> PendingApprovals { get; init; } = [];
-    public IReadOnlyList<LeaveRequestListItemDto> LeavingThisWeek { get; init; } = [];
+    public LeaveDashboardSummaryDto Summary { get; init; } = new();
+    public IReadOnlyList<LeaveDashboardOnLeaveItemDto> OnLeaveToday { get; init; } = [];
+    public IReadOnlyList<LeaveDashboardPendingItemDto> PendingApprovals { get; init; } = [];
+    public IReadOnlyList<LeaveDashboardLeavingItemDto> LeavingThisWeek { get; init; } = [];
 }
 
 public sealed class LeaveTypeListItemDto

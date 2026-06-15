@@ -455,4 +455,113 @@ public class LeaveMapperTests
         Assert.Equal(11, detail.BalanceImpact?.Current);
         Assert.Equal(6, detail.BalanceImpact?.After);
     }
+
+    [Fact]
+    public void MapDashboard_widgets_use_flat_employee_rows()
+    {
+        var onLeaveRow = new LeaveRequestRawRow(
+            "req-on-leave",
+            EmployeeId.ToString(),
+            "Ama Asante",
+            LeaveTypeId.ToString(),
+            "Annual Leave",
+            new DateOnly(2026, 6, 1),
+            new DateOnly(2026, 9, 24),
+            5,
+            "Approved",
+            "approved",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            SampleAuditAt,
+            SampleAuditAt,
+            null,
+            null,
+            SampleAuditAt,
+            SampleAuditAt,
+            null,
+            null);
+
+        var pendingRow = new LeaveRequestRawRow(
+            "req-pending",
+            EmployeeId.ToString(),
+            "Kwame Asare",
+            LeaveTypeId.ToString(),
+            "Annual Leave",
+            new DateOnly(2026, 6, 15),
+            new DateOnly(2026, 6, 19),
+            5,
+            "Pending",
+            "pending_line_manager",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            DateTimeOffset.UtcNow.AddHours(-53),
+            null,
+            SampleAuditAt,
+            SampleAuditAt,
+            null,
+            null);
+
+        var leavingRow = new LeaveRequestRawRow(
+            "req-leaving",
+            EmployeeId.ToString(),
+            "Efua Sutherland",
+            LeaveTypeId.ToString(),
+            "Maternity Leave",
+            new DateOnly(2026, 6, 10),
+            new DateOnly(2026, 6, 11),
+            2,
+            "Approved",
+            "approved",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            SampleAuditAt,
+            SampleAuditAt,
+            null,
+            null,
+            SampleAuditAt,
+            SampleAuditAt,
+            null,
+            null);
+
+        var onLeave = LeaveMapper.MapDashboardOnLeaveItem(
+            onLeaveRow, NoEmployees, NoLeaveTypes, NoUserNames, NoProfileUrls);
+        var pending = LeaveMapper.MapDashboardPendingItem(
+            pendingRow, NoEmployees, NoLeaveTypes, NoUserNames, NoProfileUrls);
+        var leaving = LeaveMapper.MapDashboardLeavingItem(
+            leavingRow, NoEmployees, NoLeaveTypes, NoUserNames, NoProfileUrls);
+
+        Assert.Equal(SampleAuditAt, onLeave.CreatedAt);
+        Assert.Equal(SampleAuditAt, pending.UpdatedAt);
+
+        Assert.Equal("Ama Asante", onLeave.EmployeeName);
+        Assert.Equal("Annual Leave", onLeave.LeaveType);
+        Assert.Equal(new DateOnly(2026, 9, 25), onLeave.ReturnsOn);
+        Assert.Null(onLeave.ProfileUrl);
+
+        Assert.Equal("Kwame Asare", pending.EmployeeName);
+        Assert.Equal(5, pending.LeaveDays);
+        Assert.NotNull(pending.Waiting);
+        Assert.Null(pending.DaysSinceLastApproval);
+
+        Assert.Equal(new DateOnly(2026, 6, 10), leaving.StartsOn);
+        Assert.Equal(2, leaving.LeaveDays);
+    }
 }

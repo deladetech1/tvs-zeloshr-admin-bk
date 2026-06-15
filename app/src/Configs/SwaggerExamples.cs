@@ -1359,21 +1359,26 @@ internal static class SwaggerExamples
         ["total_requests"] = 86,
     };
 
-    internal static JsonObject LeaveEmployeeRefData() => new()
+    internal static JsonObject LeaveEmployeeRefData(
+        string fullName = "Ama Asante",
+        string jobTitle = "Senior Product Designer",
+        bool includeProfile = true) => new()
     {
         ["employee_id"] = SampleEmployeeId.ToString(),
-        ["full_name"] = "Ama Asante",
+        ["full_name"] = fullName,
         ["employee_code"] = "EMP-001",
-        ["job_title"] = "Senior Product Designer",
+        ["job_title"] = jobTitle,
         ["department_id"] = SampleDepartmentId.ToString(),
         ["department_name"] = "Data & Insights",
-        ["profile_url"] = EmployeeDocumentItem(SampleDocumentId1, "Employee profile photo", "profile.jpg"),
+        ["profile_url"] = includeProfile
+            ? EmployeeDocumentItem(SampleDocumentId1, "Employee profile photo", "profile.jpg")
+            : null,
     };
 
-    internal static JsonObject LeaveTypeRefData() => new()
+    internal static JsonObject LeaveTypeRefData(string name = "Annual Leave") => new()
     {
         ["leave_type_id"] = SampleLeaveTypeId.ToString(),
-        ["name"] = "Annual Leave",
+        ["name"] = name,
     };
 
     internal static JsonObject LeaveApproverRefData() => new()
@@ -1404,18 +1409,26 @@ internal static class SwaggerExamples
 
     internal static JsonObject LeaveRequestItemData(
         string status = "Pending",
-        decimal? remainingDays = 14)
+        decimal? remainingDays = 14,
+        string employeeName = "Ama Asante",
+        string leaveTypeName = "Annual Leave",
+        string? leaveRequestId = null)
     {
         var data = new JsonObject
         {
-            ["leave_request_id"] = SampleLeaveRequestId.ToString(),
-            ["employee"] = LeaveEmployeeRefData(),
-            ["leave_type"] = LeaveTypeRefData(),
+            ["leave_request_id"] = leaveRequestId ?? SampleLeaveRequestId.ToString(),
+            ["employee"] = LeaveEmployeeRefData(employeeName),
+            ["leave_type"] = LeaveTypeRefData(leaveTypeName),
             ["start_date"] = "2026-07-07",
             ["end_date"] = "2026-07-11",
             ["days_requested"] = 5,
             ["status"] = status,
-            ["approval_stage"] = status == "Approved" ? "approved" : "pending_final",
+            ["approval_stage"] = status switch
+            {
+                "Approved" => "approved",
+                "Rejected" => "rejected",
+                _ => "pending_final",
+            },
             ["approver"] = status is "Approved" or "Rejected" ? LeaveApproverRefData() : null,
             ["approved_by"] = new JsonArray(
                 LeaveApproverRefData(),
@@ -1549,67 +1562,153 @@ internal static class SwaggerExamples
     {
         ["summary"] = LeaveSummaryData(),
         ["items"] = new JsonArray(
-            LeaveRequestItemData("Pending", 14),
-            LeaveRequestItemData("Approved", 9)),
+            LeaveRequestItemData("Pending", 14, "Ama Asante", "Annual Leave"),
+            LeaveRequestItemData("Pending", 7, "Kwame Asare", "Sick Leave", "a2222222-2222-2222-2222-222222222202"),
+            LeaveRequestItemData("Approved", 9, "Abena Osei", "Unpaid Leave", "a2222222-2222-2222-2222-222222222203")),
     };
 
-    internal static JsonObject LeaveDashboardPendingApprovedDaysItem()
+    internal static JsonObject LeaveDashboardOnLeaveItemData(
+        string leaveRequestId,
+        string employeeName,
+        string leaveType,
+        string returnsOn,
+        bool includeProfile = true)
     {
         var data = new JsonObject
         {
-            ["leave_request_id"] = "a2222222-2222-2222-2222-222222222210",
-            ["employee"] = new JsonObject
-            {
-                ["employee_id"] = SampleEmployeeId.ToString(),
-                ["full_name"] = "Ama Asante",
-                ["employee_code"] = "EMP-001",
-            },
-            ["leave_type"] = new JsonObject
-            {
-                ["leave_type_id"] = SampleLeaveTypeId.ToString(),
-                ["name"] = "Maternity",
-            },
-            ["start_date"] = "2026-08-01",
-            ["end_date"] = "2026-08-30",
-            ["days_requested"] = 30,
-            ["status"] = "Pending",
-            ["approval_stage"] = "pending_final",
-            ["approver"] = null,
-            ["prior_approvers"] = new JsonArray(
-                new JsonObject
-                {
-                    ["stage"] = "line_manager",
-                    ["status"] = "approved",
-                    ["approver"] = LeaveApprovalStepApproverData(),
-                    ["decided_at"] = "2026-06-08T10:00:00+00:00",
-                },
-                new JsonObject
-                {
-                    ["stage"] = "head_of_department",
-                    ["status"] = "approved",
-                    ["approver"] = LeaveApprovalStepApproverData(),
-                    ["decided_at"] = "2026-06-08T14:30:00+00:00",
-                }),
-            ["notes"] = "Maternity leave",
-            ["remaining_days"] = 30,
-            ["waiting_hours"] = null,
-            ["returns_on"] = "2026-08-31",
-            ["days_since_last_approval"] = 5,
-            ["submitted_at"] = "2026-06-05T09:15:00+00:00",
-            ["decided_at"] = null,
+            ["leave_request_id"] = leaveRequestId,
+            ["employee_id"] = SampleEmployeeId.ToString(),
+            ["employee_name"] = employeeName,
+            ["profile_url"] = includeProfile
+                ? EmployeeDocumentItem(SampleDocumentId1, "Employee profile photo", "profile.jpg")
+                : null,
+            ["leave_type"] = leaveType,
+            ["returns_on"] = returnsOn,
         };
-        AppendResourceAuditFields(data, "2026-06-05T09:15:00+00:00", "2026-06-08T14:30:00+00:00");
+        AppendResourceAuditFields(data);
         return data;
     }
 
+    internal static JsonObject LeaveDashboardPendingItemData(
+        string leaveRequestId,
+        string employeeName,
+        string leaveType,
+        decimal leaveDays,
+        int? waiting = null,
+        int? hoursSinceLastApproval = null,
+        int? daysSinceLastApproval = null,
+        bool includeProfile = true)
+    {
+        var data = new JsonObject
+        {
+            ["leave_request_id"] = leaveRequestId,
+            ["employee_id"] = SampleEmployeeId.ToString(),
+            ["employee_name"] = employeeName,
+            ["profile_url"] = includeProfile
+                ? EmployeeDocumentItem(SampleDocumentId1, "Employee profile photo", "profile.jpg")
+                : null,
+            ["leave_type"] = leaveType,
+            ["leave_days"] = leaveDays,
+            ["waiting"] = waiting,
+            ["hours_since_last_approval"] = hoursSinceLastApproval,
+            ["days_since_last_approval"] = daysSinceLastApproval,
+        };
+        AppendResourceAuditFields(data);
+        return data;
+    }
+
+    internal static JsonObject LeaveDashboardLeavingItemData(
+        string leaveRequestId,
+        string employeeName,
+        string leaveType,
+        string startsOn,
+        decimal leaveDays,
+        bool includeProfile = true)
+    {
+        var data = new JsonObject
+        {
+            ["leave_request_id"] = leaveRequestId,
+            ["employee_id"] = SampleEmployeeId.ToString(),
+            ["employee_name"] = employeeName,
+            ["profile_url"] = includeProfile
+                ? EmployeeDocumentItem(SampleDocumentId1, "Employee profile photo", "profile.jpg")
+                : null,
+            ["leave_type"] = leaveType,
+            ["starts_on"] = startsOn,
+            ["leave_days"] = leaveDays,
+        };
+        AppendResourceAuditFields(data);
+        return data;
+    }
+
+    internal static JsonObject LeaveDashboardSummaryData() => new()
+    {
+        ["on_leave_today"] = 3,
+        ["pending_approvals"] = 5,
+        ["leaving_this_week"] = 3,
+        ["low_balance_alert"] = 0,
+    };
+
     internal static JsonObject LeaveDashboardData() => new()
     {
-        ["summary"] = LeaveSummaryData(),
-        ["on_leave_today"] = new JsonArray(LeaveRequestItemData("Approved", 9)),
+        ["summary"] = LeaveDashboardSummaryData(),
+        ["on_leave_today"] = new JsonArray(
+            LeaveDashboardOnLeaveItemData(
+                SampleLeaveRequestId.ToString(),
+                "Ama Asante",
+                "Annual Leave",
+                "2026-09-25"),
+            LeaveDashboardOnLeaveItemData(
+                "a2222222-2222-2222-2222-222222222212",
+                "Kwame Nkrumah",
+                "Sick Leave",
+                "2026-06-16",
+                includeProfile: false),
+            LeaveDashboardOnLeaveItemData(
+                "a2222222-2222-2222-2222-222222222214",
+                "Efua Sutherland",
+                "Vacation",
+                "2026-06-20")),
         ["pending_approvals"] = new JsonArray(
-            LeaveRequestItemData("Pending", 14),
-            LeaveDashboardPendingApprovedDaysItem()),
-        ["leaving_this_week"] = new JsonArray(LeaveRequestItemData("Approved", 12)),
+            LeaveDashboardPendingItemData(
+                SampleLeaveRequestId.ToString(),
+                "Kwame Asare",
+                "Annual Leave",
+                5,
+                waiting: 53),
+            LeaveDashboardPendingItemData(
+                "a2222222-2222-2222-2222-222222222215",
+                "Ama Boateng",
+                "Sick Leave",
+                2,
+                hoursSinceLastApproval: 12),
+            LeaveDashboardPendingItemData(
+                "a2222222-2222-2222-2222-222222222216",
+                "Ebo Kusi",
+                "Maternity Leave",
+                30,
+                daysSinceLastApproval: 5,
+                includeProfile: false)),
+        ["leaving_this_week"] = new JsonArray(
+            LeaveDashboardLeavingItemData(
+                "a2222222-2222-2222-2222-222222222211",
+                "Ama Asante",
+                "Maternity Leave",
+                "2026-06-10",
+                2),
+            LeaveDashboardLeavingItemData(
+                "a2222222-2222-2222-2222-222222222213",
+                "Efua Sutherland",
+                "Vacation",
+                "2026-06-11",
+                5,
+                includeProfile: false),
+            LeaveDashboardLeavingItemData(
+                "a2222222-2222-2222-2222-222222222217",
+                "Kwame Nkrumah",
+                "Personal Leave",
+                "2026-06-12",
+                1)),
     };
 
     internal static JsonObject LeaveDashboardResponse() => EnvelopeOk(LeaveDashboardData());
@@ -1638,29 +1737,64 @@ internal static class SwaggerExamples
     internal static JsonObject LeaveApprovalListItemData(
         string employeeName = "Ama Asante",
         string leaveType = "Annual Leave",
-        int waiting = 28) =>
-        new()
+        int waiting = 28,
+        string title = "Senior Product Designer",
+        bool includeProfile = true,
+        string? leaveRequestId = null,
+        string leaveFrom = "2026-06-15",
+        string leaveTo = "2026-06-19",
+        decimal leaveDays = 5,
+        JsonArray? approvedBy = null)
+    {
+        var data = new JsonObject
         {
-            ["leave_request_id"] = SampleLeaveRequestId.ToString(),
+            ["leave_request_id"] = leaveRequestId ?? SampleLeaveRequestId.ToString(),
             ["employee_id"] = SampleEmployeeId.ToString(),
             ["employee_name"] = employeeName,
-            ["title"] = "Senior Product Designer",
-            ["profile_url"] = EmployeeDocumentItem(SampleDocumentId1, "Employee profile photo", "profile.jpg"),
+            ["title"] = title,
+            ["profile_url"] = includeProfile
+                ? EmployeeDocumentItem(SampleDocumentId1, "Employee profile photo", "profile.jpg")
+                : null,
             ["leave_type"] = leaveType,
-            ["leave_from"] = "2026-06-15",
-            ["leave_to"] = "2026-06-19",
-            ["leave_days"] = 5,
+            ["leave_from"] = leaveFrom,
+            ["leave_to"] = leaveTo,
+            ["leave_days"] = leaveDays,
             ["waiting"] = waiting,
-            ["approved_by"] = new JsonArray("Fiifi Boakye", "Kwame Mensah"),
+            ["approved_by"] = approvedBy ?? new JsonArray("Fiifi Boakye", "Kwame Mensah"),
         };
+        AppendResourceAuditFields(data);
+        return data;
+    }
 
     internal static JsonObject LeaveApprovalListData() => new()
     {
         ["pending_count"] = 6,
         ["items"] = new JsonArray(
-            LeaveApprovalListItemData(),
-            LeaveApprovalListItemData("Kofi Adom", "Sick Leave", 8),
-            LeaveApprovalListItemData("Abena Osei", "Unpaid Leave", 15)),
+            LeaveApprovalListItemData(
+                "Ama Asante",
+                "Annual Leave",
+                28,
+                "Senior Product Designer"),
+            LeaveApprovalListItemData(
+                "Kofi Adom",
+                "Sick Leave",
+                8,
+                "Backend Engineer",
+                leaveRequestId: "a1111111-1111-1111-1111-111111111102",
+                leaveFrom: "2026-06-16",
+                leaveTo: "2026-06-18",
+                leaveDays: 3),
+            LeaveApprovalListItemData(
+                "Abena Osei",
+                "Unpaid Leave",
+                15,
+                "HR Business Partner",
+                includeProfile: false,
+                leaveRequestId: "a1111111-1111-1111-1111-111111111103",
+                leaveFrom: "2026-06-20",
+                leaveTo: "2026-06-24",
+                leaveDays: 5,
+                approvedBy: new JsonArray("Fiifi Boakye", "Kwame Mensah"))),
     };
 
     internal static JsonObject LeaveApprovalListResponse() =>
@@ -1670,7 +1804,8 @@ internal static class SwaggerExamples
     {
         ["items"] = new JsonArray(
             LeaveRequestItemData("Pending", 14),
-            LeaveRequestItemData("Approved", 9)),
+            LeaveRequestItemData("Approved", 9, "Ama Asante", "Annual Leave", "a2222222-2222-2222-2222-222222222204"),
+            LeaveRequestItemData("Rejected", 11, "Ama Asante", "Casual Leave", "a2222222-2222-2222-2222-222222222205")),
     };
 
     internal static JsonObject LeaveMyRequestListResponse() =>

@@ -109,17 +109,24 @@ Full table: [API_CONTRACTS.md — Leave](API_CONTRACTS.md#leave-apiv1leave).
 | Approved by | `approved_by[]` (LM → HOD full names) |
 | Badge | `pending_count` (final-stage pending total) |
 
-Tabs: `tab=pending|history`. Sort: `sort_by=name` · `sort_order=asc|desc`. Filters: `search` · `department_id` · `leave_type_id` · `from_date` · `to_date`. Actions use `leave_request_id` → `GET /requests/get` · `POST /requests/approve` · `POST /requests/reject`.
+Tabs: `tab=pending|history`. Sort: `sort_by=name` · `sort_order=asc|desc`. Filters: `search` · `department_id` · `leave_type_id` · `from_date` · `to_date`. Each row includes standard audit fields.
 
-**Dashboard** (`GET /leave/dashboard`) widget mapping:
+**Dashboard** (`GET /leave/summary` or `GET /leave/dashboard`) — flat employee lists per widget:
 
-| Widget | Row fields for UI |
-|--------|-------------------|
-| `on_leave_today[]` | `employee.full_name` · `leave_type.name` · `returns_on` → “Returns 24 Sept” |
-| `pending_approvals[]` | `employee.full_name` · `leave_type.name` · `days_requested` · `waiting_hours` (“waiting 53h”) **or** `days_since_last_approval` (“approved 5d”) |
-| `leaving_this_week[]` | `start_date` · `employee.full_name` · `leave_type.name` · `days_requested` |
+| KPI card | JSON field |
+|----------|------------|
+| On leave today | `summary.on_leave_today` |
+| Pending approvals | `summary.pending_approvals` |
+| Leaving this week | `summary.leaving_this_week` |
+| Low balance alert | `summary.low_balance_alert` |
 
-`pending_approvals` lists **all** pending requests (any approval stage), oldest `submitted_at` first — matches the KPI `summary.pending_requests` count.
+| Widget | Row fields |
+|--------|------------|
+| `on_leave_today[]` | `employee_name` · `profile_url` · `leave_type` · `returns_on` |
+| `pending_approvals[]` | `employee_name` · `profile_url` · `leave_type` · `leave_days` · `waiting` (“waiting 53h”) **or** `hours_since_last_approval` (“approved 12h”) **or** `days_since_last_approval` (“approved 5d”) |
+| `leaving_this_week[]` | `starts_on` · `employee_name` · `profile_url` · `leave_type` · `leave_days` |
+
+Each row includes `leave_request_id` and `employee_id` for navigation / approve actions, plus standard audit fields (`created_at`, `updated_at`, `created_by_id`, `updated_by_id`, `created_by`, `updated_by`). `pending_approvals` lists **all** pending requests (any approval stage), oldest `submitted_at` first.
 
 **Balances** (`GET /leave/my/summary?employee_id=`, `/leave/my/balances/list?employee_id=`, `/leave/balances/*`) use the same nested ref pattern on each balance row.
 
