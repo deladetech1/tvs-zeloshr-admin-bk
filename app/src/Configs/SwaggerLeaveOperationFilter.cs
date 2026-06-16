@@ -49,7 +49,7 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                 operation.Summary ??= "Leave Approvals table";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
                     $"""
-                    Flat employee rows (response example shows three employees): employee_id · employee_name · title · profile_url · leave_type · leave_from · leave_to · leave_days · waiting · approved_by[] · audit fields.
+                    Flat employee rows (response example shows three employees): employee_id · employee_name · employee_code · title · profile_url · leave_type · leave_from · leave_to · leave_days · waiting · approved_by[] (name + profile_url) · audit fields.
                     `pending_count` is the final-stage queue badge count.
                     Tab: `tab={SwaggerExampleHints.LeaveApprovalListTab}`. Sort: `sort_by={SwaggerExampleHints.LeaveApprovalListSortBy}` · `sort_order={SwaggerExampleHints.LeaveApprovalListSortOrder}`.
                     Filters: search · department_id · leave_type_id · from_date/to_date · page · size.

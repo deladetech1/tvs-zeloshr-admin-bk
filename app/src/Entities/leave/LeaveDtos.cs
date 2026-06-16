@@ -28,6 +28,15 @@ public sealed class LeaveApproverRefDto
     public string? FullName { get; init; }
 }
 
+/// <summary>LM / HOD approver on the flat Leave Approvals table row.</summary>
+public sealed class LeaveApprovalApproverDto
+{
+    public required string Name { get; init; }
+
+    /// <summary>Profile photo (<c>DocumentReadDto</c>): <c>doc_id</c>, <c>name</c>, <c>presigned_url</c> (~24h), <c>description</c>.</summary>
+    public DocumentReadDto? ProfileUrl { get; init; }
+}
+
 public sealed class LeaveApprovalStepDto
 {
     public required string Stage { get; init; }
@@ -157,6 +166,7 @@ public sealed class LeaveApprovalListItemDto
     public required string LeaveRequestId { get; init; }
     public required string EmployeeId { get; init; }
     public required string EmployeeName { get; init; }
+    public string? EmployeeCode { get; init; }
     public string? Title { get; init; }
 
     /// <summary>Profile photo (<c>DocumentReadDto</c>): <c>doc_id</c>, <c>name</c>, <c>presigned_url</c> (~24h), <c>description</c>.</summary>
@@ -169,8 +179,8 @@ public sealed class LeaveApprovalListItemDto
     /// <summary>Hours since request reached final approval queue (<c>submitted_at</c>).</summary>
     public int? Waiting { get; init; }
 
-    /// <summary>Line manager and head of department who already approved (LM → HOD), full names only.</summary>
-    public IReadOnlyList<string> ApprovedBy { get; init; } = [];
+    /// <summary>Line manager and head of department who already approved (LM → HOD).</summary>
+    public IReadOnlyList<LeaveApprovalApproverDto> ApprovedBy { get; init; } = [];
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
     public string? CreatedById { get; init; }

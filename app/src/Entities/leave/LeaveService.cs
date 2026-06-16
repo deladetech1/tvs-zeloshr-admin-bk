@@ -758,15 +758,51 @@ public class LeaveService
             LeaveMapper.IndexTypes(await _leave.ListAllTypesScopedAsync(tenantId, orgId, false, ct)),
             rows.Select(r => (r.LeaveTypeId, r.LeaveTypeName)));
 
-        var approverNames = await LeaveMapper.ResolveApproverNamesAsync(
-            _cpUsers, LeaveMapper.CollectUserIds(rows), tenantId, ct);
+        var approverUsers = await _cpUsers.GetByIdsAsync(LeaveMapper.CollectUserIds(rows), tenantId, ct);
+        var approverNames = approverUsers
+            .Where(kvp => !string.IsNullOrWhiteSpace(kvp.Value.FullName))
+            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.FullName);
 
         var profileUrlsByEmployeeId = await ResolveEmployeeProfileUrlsAsync(employees, ct);
+        var approverProfileUrlsByUserId = await ResolveApproverProfileUrlsAsync(approverUsers, ct);
 
         return rows
             .Select(row => LeaveMapper.MapApprovalListItem(
-                row, employees, leaveTypes, approverNames, profileUrlsByEmployeeId))
+                row,
+                employees,
+                leaveTypes,
+                approverNames,
+                approverUsers,
+                approverProfileUrlsByUserId,
+                profileUrlsByEmployeeId))
             .ToList();
+    }
+
+    private async Task<IReadOnlyDictionary<string, DocumentReadDto?>> ResolveApproverProfileUrlsAsync(
+        IReadOnlyDictionary<string, CpUserDto> approverUsers,
+        CancellationToken ct)
+    {
+        if (approverUsers.Count == 0)
+            return new Dictionary<string, DocumentReadDto?>();
+
+        var storedRefs = approverUsers.Values
+            .Select(u => u.ProfilePic)
+            .Where(r => !string.IsNullOrWhiteSpace(r))
+            .Select(r => r!.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        if (storedRefs.Count == 0)
+            return approverUsers.Keys.ToDictionary(id => id, _ => (DocumentReadDto?)null);
+
+        var profileUrlMap = await _profileUrls.ResolveDocumentReadsAsync(storedRefs, ct);
+        return approverUsers.ToDictionary(
+            kvp => kvp.Key,
+            kvp =>
+            {
+                var stored = kvp.Value.ProfilePic?.Trim();
+                return stored is null ? null : profileUrlMap.GetValueOrDefault(stored);
+            });
     }
 
     private async Task<IReadOnlyDictionary<Guid, DocumentReadDto?>> ResolveEmployeeProfileUrlsAsync(

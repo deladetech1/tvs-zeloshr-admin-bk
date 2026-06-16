@@ -1734,11 +1734,22 @@ internal static class SwaggerExamples
     internal static JsonObject LeaveListResponse() =>
         EnvelopeOk(LeaveListData(), LeaveListPagination());
 
+    internal static JsonObject LeaveApprovalApproverData(
+        string name = "Fiifi Boakye",
+        bool includeProfile = true) => new()
+    {
+        ["name"] = name,
+        ["profile_url"] = includeProfile
+            ? EmployeeDocumentItem(SampleDocumentId2, "Approver profile photo", "fiifi.jpg")
+            : null,
+    };
+
     internal static JsonObject LeaveApprovalListItemData(
         string employeeName = "Ama Asante",
         string leaveType = "Annual Leave",
         int waiting = 28,
         string title = "Senior Product Designer",
+        string employeeCode = "ZEL-0042",
         bool includeProfile = true,
         string? leaveRequestId = null,
         string leaveFrom = "2026-06-15",
@@ -1751,6 +1762,7 @@ internal static class SwaggerExamples
             ["leave_request_id"] = leaveRequestId ?? SampleLeaveRequestId.ToString(),
             ["employee_id"] = SampleEmployeeId.ToString(),
             ["employee_name"] = employeeName,
+            ["employee_code"] = employeeCode,
             ["title"] = title,
             ["profile_url"] = includeProfile
                 ? EmployeeDocumentItem(SampleDocumentId1, "Employee profile photo", "profile.jpg")
@@ -1760,7 +1772,9 @@ internal static class SwaggerExamples
             ["leave_to"] = leaveTo,
             ["leave_days"] = leaveDays,
             ["waiting"] = waiting,
-            ["approved_by"] = approvedBy ?? new JsonArray("Fiifi Boakye", "Kwame Mensah"),
+            ["approved_by"] = approvedBy ?? new JsonArray(
+                LeaveApprovalApproverData("Fiifi Boakye"),
+                LeaveApprovalApproverData("Kwame Mensah")),
         };
         AppendResourceAuditFields(data);
         return data;
@@ -1789,16 +1803,19 @@ internal static class SwaggerExamples
                 "Unpaid Leave",
                 15,
                 "HR Business Partner",
+                "ZEL-0108",
                 includeProfile: false,
                 leaveRequestId: "a1111111-1111-1111-1111-111111111103",
                 leaveFrom: "2026-06-20",
                 leaveTo: "2026-06-24",
                 leaveDays: 5,
-                approvedBy: new JsonArray("Fiifi Boakye", "Kwame Mensah"))),
+                approvedBy: new JsonArray(
+                    LeaveApprovalApproverData("Fiifi Boakye", includeProfile: false),
+                    LeaveApprovalApproverData("Kwame Mensah", includeProfile: false))),
     };
 
     internal static JsonObject LeaveApprovalListResponse() =>
-        EnvelopeOk(LeaveApprovalListData(), LeaveListPagination());
+        EnvelopeOk(LeaveApprovalListData(), LeaveApprovalListPagination());
 
     internal static JsonObject LeaveMyRequestListData() => new()
     {
@@ -1810,6 +1827,17 @@ internal static class SwaggerExamples
 
     internal static JsonObject LeaveMyRequestListResponse() =>
         EnvelopeOk(LeaveMyRequestListData(), LeaveListPagination());
+
+    internal static JsonObject LeaveApprovalListPagination() => new()
+    {
+        ["page"] = 2,
+        ["size"] = 10,
+        ["total"] = 15,
+        ["has_next"] = true,
+        ["page_size"] = 10,
+        ["total_count"] = 15,
+        ["total_pages"] = 2,
+    };
 
     internal static JsonObject LeaveListPagination() => new()
     {

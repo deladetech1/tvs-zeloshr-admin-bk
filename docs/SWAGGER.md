@@ -101,12 +101,12 @@ Full table: [API_CONTRACTS.md — Leave](API_CONTRACTS.md#leave-apiv1leave).
 
 | UI column | JSON field |
 |-----------|------------|
-| Employee | `employee_name` · `title` · `profile_url` |
+| Employee | `employee_name` · `employee_code` · `title` · `profile_url` |
 | Leave type | `leave_type` (string) |
 | Dates | `leave_from` · `leave_to` |
 | Days | `leave_days` |
 | Waiting | `waiting` (hours since final queue) |
-| Approved by | `approved_by[]` (LM → HOD full names) |
+| Approved by | `approved_by[]` — each `{ name, profile_url }` (LM → HOD) |
 | Badge | `pending_count` (final-stage pending total) |
 
 Tabs: `tab=pending|history`. Sort: `sort_by=name` · `sort_order=asc|desc`. Filters: `search` · `department_id` · `leave_type_id` · `from_date` · `to_date`. Each row includes standard audit fields.

@@ -195,26 +195,46 @@ internal static class LeaveMapper
         return list;
     }
 
-    private static IReadOnlyList<string> BuildApprovedByNames(
+    private static IReadOnlyList<LeaveApprovalApproverDto> BuildApprovalListApprovedBy(
         LeaveRequestRawRow row,
-        IReadOnlyDictionary<string, string> approverNames)
+        IReadOnlyDictionary<string, CpUserDto> approverUsers,
+        IReadOnlyDictionary<string, DocumentReadDto?> approverProfileUrlsByUserId)
     {
-        var list = new List<string>(2);
+        var list = new List<LeaveApprovalApproverDto>(2);
         if (row.LmDecidedAt.HasValue)
         {
-            var lm = ResolveApprover(row.LmApproverId, approverNames);
-            if (!string.IsNullOrWhiteSpace(lm?.FullName))
-                list.Add(lm.FullName);
+            var lm = ResolveApprovalListApprover(row.LmApproverId, approverUsers, approverProfileUrlsByUserId);
+            if (lm is not null)
+                list.Add(lm);
         }
 
         if (row.HodDecidedAt.HasValue)
         {
-            var hod = ResolveApprover(row.HodApproverId, approverNames);
-            if (!string.IsNullOrWhiteSpace(hod?.FullName))
-                list.Add(hod.FullName);
+            var hod = ResolveApprovalListApprover(row.HodApproverId, approverUsers, approverProfileUrlsByUserId);
+            if (hod is not null)
+                list.Add(hod);
         }
 
         return list;
+    }
+
+    private static LeaveApprovalApproverDto? ResolveApprovalListApprover(
+        string? approverId,
+        IReadOnlyDictionary<string, CpUserDto> approverUsers,
+        IReadOnlyDictionary<string, DocumentReadDto?> approverProfileUrlsByUserId)
+    {
+        if (string.IsNullOrWhiteSpace(approverId))
+            return null;
+
+        if (!approverUsers.TryGetValue(approverId, out var user) || string.IsNullOrWhiteSpace(user.FullName))
+            return null;
+
+        approverProfileUrlsByUserId.TryGetValue(approverId, out var profileUrl);
+        return new LeaveApprovalApproverDto
+        {
+            Name = user.FullName,
+            ProfileUrl = profileUrl,
+        };
     }
 
     internal static LeaveApprovalListItemDto MapApprovalListItem(
@@ -222,6 +242,8 @@ internal static class LeaveMapper
         IReadOnlyDictionary<Guid, EmployeeLeaveContext> employees,
         IReadOnlyDictionary<Guid, string> leaveTypes,
         IReadOnlyDictionary<string, string> userNames,
+        IReadOnlyDictionary<string, CpUserDto> approverUsers,
+        IReadOnlyDictionary<string, DocumentReadDto?> approverProfileUrlsByUserId,
         IReadOnlyDictionary<Guid, DocumentReadDto?> profileUrlsByEmployeeId)
     {
         EmployeeLeaveContext? employee = null;
@@ -243,6 +265,7 @@ internal static class LeaveMapper
             LeaveRequestId = row.LeaveRequestId,
             EmployeeId = row.EmployeeId,
             EmployeeName = employee?.FullName ?? row.EmployeeFullName,
+            EmployeeCode = employee?.EmployeeCode,
             Title = employee?.JobTitle,
             ProfileUrl = profileUrl,
             LeaveType = leaveTypeName,
@@ -250,7 +273,7 @@ internal static class LeaveMapper
             LeaveTo = row.EndDate,
             LeaveDays = row.DaysRequested,
             Waiting = ComputeApprovalListWaiting(row),
-            ApprovedBy = BuildApprovedByNames(row, userNames),
+            ApprovedBy = BuildApprovalListApprovedBy(row, approverUsers, approverProfileUrlsByUserId),
             CreatedAt = audit.CreatedAt,
             UpdatedAt = audit.UpdatedAt,
             CreatedById = audit.CreatedById,

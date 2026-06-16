@@ -101,6 +101,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(LeaveListDto) => SwaggerExamples.LeaveListData(),
             nameof(LeaveApprovalListDto) => SwaggerExamples.LeaveApprovalListData(),
             nameof(LeaveApprovalListItemDto) => SwaggerExamples.LeaveApprovalListItemData(),
+            nameof(LeaveApprovalApproverDto) => SwaggerExamples.LeaveApprovalApproverData(),
             nameof(LeaveDashboardDto) => SwaggerExamples.LeaveDashboardData(),
             nameof(LeaveDashboardSummaryDto) => SwaggerExamples.LeaveDashboardSummaryData(),
             nameof(LeaveDashboardOnLeaveItemDto) => SwaggerExamples.LeaveDashboardOnLeaveItemData(
@@ -240,7 +241,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(LeaveApprovalListDto) => AppendDescription(schema.Description,
                 $"Leave Approvals table (`GET /leave/approvals/list`): pending_count · flat items[] with standard audit fields. Tab: {SwaggerExampleHints.LeaveApprovalListTab}."),
             nameof(LeaveApprovalListItemDto) => AppendDescription(schema.Description,
-                "Flat approvals row — approved_by is a string array (LM → HOD). Standard audit fields on every row."),
+                "Flat approvals row — employee_code · approved_by[] with name + profile_url (LM → HOD). Standard audit fields on every row."),
             nameof(LeaveMyRequestListDto) => AppendDescription(schema.Description,
                 "My Leave requests only — items[] with nested refs."),
             nameof(LeaveRequestListItemDto) => AppendDescription(schema.Description,

@@ -560,4 +560,86 @@ public class LeaveMapperTests
         Assert.Equal(new DateOnly(2026, 6, 10), leaving.StartsOn);
         Assert.Equal(2, leaving.LeaveDays);
     }
+
+    [Fact]
+    public void MapApprovalListItem_includes_employee_code_and_approver_profiles()
+    {
+        var submittedAt = DateTimeOffset.UtcNow.AddHours(-30);
+        var row = new LeaveRequestRawRow(
+            "req-approval-1",
+            EmployeeId.ToString(),
+            "Jane Doe",
+            LeaveTypeId.ToString(),
+            "Annual Leave",
+            new DateOnly(2026, 6, 15),
+            new DateOnly(2026, 6, 19),
+            5,
+            LeaveRequestStatuses.Pending,
+            LeaveApprovalStages.PendingFinal,
+            null,
+            null,
+            "lm-user",
+            submittedAt.AddHours(-8),
+            "hod-user",
+            submittedAt.AddHours(-4),
+            null,
+            null,
+            submittedAt,
+            null,
+            SampleAuditAt,
+            SampleAuditAt,
+            null,
+            null);
+
+        var employees = new Dictionary<Guid, EmployeeLeaveContext>
+        {
+            [EmployeeId] = new(
+                EmployeeId,
+                "Jane Doe",
+                "ZEL-0099",
+                "Senior Product Designer",
+                null,
+                null,
+                null,
+                null,
+                null),
+        };
+
+        var approverUsers = new Dictionary<string, CpUserDto>
+        {
+            ["lm-user"] = new("lm-user", "Fiifi Boakye", "fiifi@example.com", null, true, ProfilePic: "doc-lm"),
+            ["hod-user"] = new("hod-user", "Kwame Mensah", "kwame@example.com", null, true, ProfilePic: "doc-hod"),
+        };
+
+        var approverProfiles = new Dictionary<string, DocumentReadDto?>
+        {
+            ["lm-user"] = new DocumentReadDto
+            {
+                DocId = "doc-lm",
+                Name = "fiifi.jpg",
+                PresignedUrl = "https://example.com/fiifi.jpg",
+            },
+            ["hod-user"] = null,
+        };
+
+        var profileUrls = new Dictionary<Guid, DocumentReadDto?>();
+
+        var item = LeaveMapper.MapApprovalListItem(
+            row,
+            employees,
+            new Dictionary<Guid, string> { [LeaveTypeId] = "Annual Leave" },
+            NoUserNames,
+            approverUsers,
+            approverProfiles,
+            profileUrls);
+
+        Assert.Equal("ZEL-0099", item.EmployeeCode);
+        Assert.Equal("Senior Product Designer", item.Title);
+        Assert.Equal(2, item.ApprovedBy.Count);
+        Assert.Equal("Fiifi Boakye", item.ApprovedBy[0].Name);
+        Assert.NotNull(item.ApprovedBy[0].ProfileUrl);
+        Assert.Equal("Kwame Mensah", item.ApprovedBy[1].Name);
+        Assert.Null(item.ApprovedBy[1].ProfileUrl);
+        Assert.NotNull(item.Waiting);
+    }
 }

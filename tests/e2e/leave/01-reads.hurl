@@ -43,6 +43,10 @@ HTTP 200
 [Asserts]
 jsonpath "$.success" == true
 jsonpath "$.data.summary" isObject
+jsonpath "$.data.summary.on_leave_today" isInteger
+jsonpath "$.data.summary.pending_approvals" isInteger
+jsonpath "$.data.summary.leaving_this_week" isInteger
+jsonpath "$.data.summary.low_balance_alert" isInteger
 jsonpath "$.data.on_leave_today" isCollection
 jsonpath "$.data.pending_approvals" isCollection
 jsonpath "$.data.leaving_this_week" isCollection
