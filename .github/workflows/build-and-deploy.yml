@@ -112,6 +112,16 @@ jobs:
           echo "PACKAGES_TOKEN=$PKG" >> "$GITHUB_ENV"
           echo "All required deploy inputs are present."
 
+      - name: Build Docker image
+        id: compile
+        run: |
+          docker build \
+            --build-arg PACKAGES_TOKEN="$PACKAGES_TOKEN" \
+            --build-arg BUILD_VERSION="${{ github.sha }}" \
+            -t zeloshr-api:ci \
+            -f "${{ env.DOCKERFILE_PATH }}" \
+            "${{ env.BUILD_CONTEXT }}"
+
       - name: OIDC subject (must exist in Azure App Registration)
         run: |
           echo "GitHub federated identity subject for this run:"
@@ -185,19 +195,14 @@ jobs:
             echo "Image will still be pushed to ACR as zeloshr:${{ github.run_number }}."
           fi
 
-      - name: Build and push Docker image
+      - name: Tag and push Docker image
         id: build
         run: |
           ACR_LOGIN_SERVER="${{ steps.env.outputs.acr_name }}.azurecr.io"
           IMAGE_TAG="${{ github.run_number }}"
 
-          docker build \
-            --build-arg PACKAGES_TOKEN="$PACKAGES_TOKEN" \
-            --build-arg BUILD_VERSION="${{ github.sha }}" \
-            -t "${ACR_LOGIN_SERVER}/${{ env.SERVICE_NAME }}:${IMAGE_TAG}" \
-            -t "${ACR_LOGIN_SERVER}/${{ env.SERVICE_NAME }}:latest" \
-            -f "${{ env.DOCKERFILE_PATH }}" \
-            "${{ env.BUILD_CONTEXT }}"
+          docker tag zeloshr-api:ci "${ACR_LOGIN_SERVER}/${{ env.SERVICE_NAME }}:${IMAGE_TAG}"
+          docker tag zeloshr-api:ci "${ACR_LOGIN_SERVER}/${{ env.SERVICE_NAME }}:latest"
 
           docker push "${ACR_LOGIN_SERVER}/${{ env.SERVICE_NAME }}:${IMAGE_TAG}"
           docker push "${ACR_LOGIN_SERVER}/${{ env.SERVICE_NAME }}:latest"
