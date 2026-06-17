@@ -634,6 +634,27 @@ internal static class LeaveMapper
             ? new DateOnly(year, anchor.Month, anchor.Day)
             : anchor.Year == year ? anchor : null;
 
+    internal static PublicHolidayListItemDto WithOccurrenceDate(
+        PublicHolidayListItemDto item,
+        int listYear) =>
+        new()
+        {
+            HolidayId = item.HolidayId,
+            HolidayName = item.HolidayName,
+            Date = item.Date,
+            IsRecurringAnnually = item.IsRecurringAnnually,
+            OccurrenceDate = ProjectHolidayOccurrence(item.Date, item.IsRecurringAnnually, listYear),
+            CountryId = item.CountryId,
+            CountryCode = item.CountryCode,
+            CountryName = item.CountryName,
+            CreatedAt = item.CreatedAt,
+            UpdatedAt = item.UpdatedAt,
+            CreatedById = item.CreatedById,
+            UpdatedById = item.UpdatedById,
+            CreatedBy = item.CreatedBy,
+            UpdatedBy = item.UpdatedBy,
+        };
+
     private static LeaveEmployeeRefDto ToEmployeeRef(
         string employeeId,
         EmployeeLeaveContext employee,

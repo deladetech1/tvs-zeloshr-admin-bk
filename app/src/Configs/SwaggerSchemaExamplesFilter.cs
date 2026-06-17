@@ -494,7 +494,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 schema.Description = AppendDescription(schema.Description,
                     "List options: GET /api/v1/countries/list — use returned id, not code.");
                 return;
-            case nameof(PublicHolidayListItemDto.CountryId):
+            case "CountryId" when property.DeclaringType == typeof(PublicHolidayListItemDto):
                 schema.Example = JsonValue.Create(SwaggerExamples.SampleCountryId);
                 return;
             case nameof(PublicHolidayListItemDto.CountryCode):

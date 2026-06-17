@@ -393,12 +393,9 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
             if (name.Equals(PlatformQueryParams.CountryId, StringComparison.OrdinalIgnoreCase)
                 || name.Equals("country_id", StringComparison.OrdinalIgnoreCase))
             {
-                var path = context.ApiParameterDescription.RelativePath ?? "";
                 schema.Example = SwaggerExamples.SampleCountryId;
-                parameter.Description = path.StartsWith("api/v1/countries", StringComparison.OrdinalIgnoreCase)
-                    || path.StartsWith("api/v1/holidays", StringComparison.OrdinalIgnoreCase)
-                    ? "Catalog country id from GET /countries/list (e.g. ctr_gh). Use returned id — same workflow as compensation.currency_id on employees."
-                    : "Country id from GET /countries/list.";
+                parameter.Description =
+                    "Catalog country id from GET /countries/list (e.g. ctr_gh). Use returned id — same workflow as compensation.currency_id on employees.";
                 return;
             }
 

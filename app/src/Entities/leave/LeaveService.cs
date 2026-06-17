@@ -980,13 +980,7 @@ public class LeaveService
                 if (!listYear.HasValue)
                     return enriched;
 
-                return enriched with
-                {
-                    OccurrenceDate = LeaveMapper.ProjectHolidayOccurrence(
-                        enriched.Date,
-                        enriched.IsRecurringAnnually,
-                        listYear.Value),
-                };
+                return LeaveMapper.WithOccurrenceDate(enriched, listYear.Value);
             })
             .ToList();
     }
