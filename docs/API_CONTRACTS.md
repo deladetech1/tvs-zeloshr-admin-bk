@@ -11,6 +11,7 @@ See [ENTERPRISE_API.md](ENTERPRISE_API.md) for the full CRUD matrix and [GET /ap
 | Audit (list/get/mutation) | Every resource item includes `created_at`, `updated_at`, `created_by_id`, `updated_by_id`, `created_by`, `updated_by` — see [AUDIT_FIELDS.md](AUDIT_FIELDS.md) |
 | Display data | **Never hardcode** names, counts, or sample rows in API responses. All display values come from Postgres + `cp_users` lookup (or stored denormalized columns written at mutation time). Swagger examples are documentation only — not mock API data for the frontend. |
 | Resource IDs | Query params only (`employee_id`, `department_id`, …) — **no** `{id}` path segments |
+| List / filter query names | **snake_case** on the wire (`sort_by`, `is_paid`, `branch_id`, …) — see [API_QUERY_PARAMS.md](API_QUERY_PARAMS.md) |
 | Updates | `PUT` with partial JSON bodies |
 | Deletes | `DELETE /{module}/delete?{resource}_id=` — employees soft-delete; departments/branches permanent delete |
 | KPIs | `GET /{module}/statistics` (not `summary` on the public surface) |

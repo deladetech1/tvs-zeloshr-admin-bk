@@ -38,21 +38,11 @@ public class OrgStructureController : ControllerBase
     [HttpGet("departments/list")]
     [ProducesResponseType(typeof(Respons<DepartmentListDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<DepartmentListDto>>> ListDepartments(
-        [FromQuery] string? search,
-        [FromQuery]
-        [SwaggerAllowedValues(typeof(OrgStructureFieldOptions), nameof(OrgStructureFieldOptions.DepartmentSortBy))]
-        string sortBy = "name",
-        [FromQuery]
-        [SwaggerAllowedValues(typeof(OrgStructureFieldOptions), nameof(OrgStructureFieldOptions.SortOrder))]
-        string sortOrder = "asc",
-        [FromQuery] bool includeArchived = false,
-        [FromQuery] int page = 1,
-        [FromQuery] int size = 15,
+        [FromQuery] OrgStructureListQuery query,
         CancellationToken ct = default)
     {
         var ctx = _tenant.Current;
-        var result = await _service.ListDepartmentsAsync(
-            search, sortBy, sortOrder, includeArchived, page, size, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.ListDepartmentsAsync(query, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
@@ -60,28 +50,19 @@ public class OrgStructureController : ControllerBase
     [HttpGet("departments")]
     [ApiExplorerSettings(IgnoreApi = true)]
     public Task<ActionResult<Respons<DepartmentListDto>>> ListDepartmentsLegacy(
-        [FromQuery] string? search,
-        [FromQuery] string sortBy = "name",
-        [FromQuery] string sortOrder = "asc",
-        [FromQuery] bool includeArchived = false,
-        [FromQuery] int page = 1,
-        [FromQuery] int size = 15,
+        [FromQuery] OrgStructureListQuery query,
         CancellationToken ct = default) =>
-        ListDepartments(search, sortBy, sortOrder, includeArchived, page, size, ct);
+        ListDepartments(query, ct);
 
-    /// <summary>List branches (paginated).</summary>
+    /// <summary>List branches (paginated, sortable).</summary>
     [HttpGet("branches/list")]
     [ProducesResponseType(typeof(Respons<BranchListDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<BranchListDto>>> ListBranches(
-        [FromQuery] string? search,
-        [FromQuery] bool includeArchived = false,
-        [FromQuery] int page = 1,
-        [FromQuery] int size = 20,
+        [FromQuery] OrgStructureListQuery query,
         CancellationToken ct = default)
     {
         var ctx = _tenant.Current;
-        var result = await _service.ListBranchesAsync(
-            search, includeArchived, page, size, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.ListBranchesAsync(query, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
@@ -89,12 +70,9 @@ public class OrgStructureController : ControllerBase
     [HttpGet("branches")]
     [ApiExplorerSettings(IgnoreApi = true)]
     public Task<ActionResult<Respons<BranchListDto>>> ListBranchesLegacy(
-        [FromQuery] string? search,
-        [FromQuery] bool includeArchived = false,
-        [FromQuery] int page = 1,
-        [FromQuery] int size = 20,
+        [FromQuery] OrgStructureListQuery query,
         CancellationToken ct = default) =>
-        ListBranches(search, includeArchived, page, size, ct);
+        ListBranches(query, ct);
 
     /// <summary>Reporting-line org chart (CEO → managers with department badges → direct reports).</summary>
     [HttpGet("chart")]

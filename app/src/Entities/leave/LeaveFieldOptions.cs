@@ -1,3 +1,7 @@
+using Microsoft.AspNetCore.Mvc;
+using ZelosHR.Api.Configs;
+using ZelosHR.Api.Shared.Constants;
+
 namespace ZelosHR.Api.Entities.Leave;
 
 public static class LeaveFieldOptions
@@ -108,46 +112,100 @@ public static class LeaveApprovalStepLabels
 public sealed record LeaveRequestListQuery
 {
     /// <summary>Free-text: employee name, employee code, job title, or leave type name (min 2 chars).</summary>
+    [FromQuery(Name = PlatformQueryParams.Search)]
     public string? Search { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.Status)]
+    [SwaggerAllowedValues(typeof(LeaveFieldOptions), nameof(LeaveFieldOptions.RequestStatuses))]
     public string? Status { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.ApprovalStage)]
+    [SwaggerAllowedValues(typeof(LeaveFieldOptions), nameof(LeaveFieldOptions.ApprovalStages))]
     public string? ApprovalStage { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.LeaveRequestId)]
     public Guid? LeaveRequestId { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.LeaveTypeId)]
     public Guid? LeaveTypeId { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.EmployeeId)]
     public Guid? EmployeeId { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.EmployeeCode)]
     public string? EmployeeCode { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.DepartmentId)]
     public Guid? DepartmentId { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.BranchId)]
     public Guid? BranchId { get; init; }
+
     /// <summary>Leave period overlap: request end_date on or after this date.</summary>
+    [FromQuery(Name = PlatformQueryParams.FromDate)]
     public DateOnly? FromDate { get; init; }
+
     /// <summary>Leave period overlap: request start_date on or before this date.</summary>
+    [FromQuery(Name = PlatformQueryParams.ToDate)]
     public DateOnly? ToDate { get; init; }
+
     /// <summary>Filter by submitted_at on or after start of this day (UTC).</summary>
+    [FromQuery(Name = PlatformQueryParams.SubmittedFromDate)]
     public DateOnly? SubmittedFromDate { get; init; }
+
     /// <summary>Filter by submitted_at on or before end of this day (UTC).</summary>
+    [FromQuery(Name = PlatformQueryParams.SubmittedToDate)]
     public DateOnly? SubmittedToDate { get; init; }
+
     /// <summary>Leave Approvals screen: <c>pending</c> (final queue) or <c>history</c>.</summary>
+    [FromQuery(Name = PlatformQueryParams.Tab)]
     public string? Tab { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.SortBy)]
     public string? SortBy { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.SortOrder)]
     public string? SortOrder { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.Page)]
     public int Page { get; init; } = 1;
+
+    [FromQuery(Name = PlatformQueryParams.Size)]
     public int Size { get; init; } = 20;
 }
 
 public sealed record LeaveCalendarQuery
 {
     /// <summary><c>week</c> or <c>month</c> — sets the visible window from <c>anchor_date</c> when dates omitted.</summary>
+    [FromQuery(Name = PlatformQueryParams.View)]
     public string? View { get; init; }
+
     /// <summary>Date inside the week or month to display (defaults to today UTC).</summary>
+    [FromQuery(Name = PlatformQueryParams.AnchorDate)]
     public DateOnly? AnchorDate { get; init; }
+
     /// <summary>Free-text: employee name, employee code, or job title (min 2 chars).</summary>
+    [FromQuery(Name = PlatformQueryParams.Search)]
     public string? Search { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.DepartmentId)]
     public Guid? DepartmentId { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.LeaveTypeId)]
     public Guid? LeaveTypeId { get; init; }
+
     /// <summary>Explicit window start (overrides <c>view</c> when paired with <c>to_date</c>).</summary>
+    [FromQuery(Name = PlatformQueryParams.FromDate)]
     public DateOnly? FromDate { get; init; }
+
     /// <summary>Explicit window end (overrides <c>view</c> when paired with <c>from_date</c>).</summary>
+    [FromQuery(Name = PlatformQueryParams.ToDate)]
     public DateOnly? ToDate { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.Page)]
     public int Page { get; init; } = 1;
+
+    [FromQuery(Name = PlatformQueryParams.Size)]
     public int Size { get; init; } = 50;
 }
 
@@ -217,15 +275,60 @@ public sealed record LeaveCalendarScopedResult(
 public sealed record LeaveApprovalListQuery
 {
     /// <summary>Free-text: employee name, employee code, or job title (min 2 chars).</summary>
+    [FromQuery(Name = PlatformQueryParams.Search)]
     public string? Search { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.LeaveTypeId)]
     public Guid? LeaveTypeId { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.DepartmentId)]
     public Guid? DepartmentId { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.FromDate)]
     public DateOnly? FromDate { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.ToDate)]
     public DateOnly? ToDate { get; init; }
+
     /// <summary><c>pending</c> (final queue) or <c>history</c>.</summary>
+    [FromQuery(Name = PlatformQueryParams.Tab)]
+    [SwaggerAllowedValues(typeof(LeaveFieldOptions), nameof(LeaveFieldOptions.ApprovalListTabs))]
     public string? Tab { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.SortBy)]
+    [SwaggerAllowedValues(typeof(LeaveFieldOptions), nameof(LeaveFieldOptions.ApprovalListSortBy))]
     public string? SortBy { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.SortOrder)]
+    [SwaggerAllowedValues(typeof(LeaveFieldOptions), nameof(LeaveFieldOptions.ApprovalListSortOrder))]
     public string? SortOrder { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.Page)]
     public int Page { get; init; } = 1;
+
+    [FromQuery(Name = PlatformQueryParams.Size)]
+    public int Size { get; init; } = 20;
+}
+
+/// <summary>Query params for <c>GET /leave/types/list</c> — matches frontend <c>LeaveTypeParams</c>.</summary>
+public sealed record LeaveTypeListQuery
+{
+    [FromQuery(Name = PlatformQueryParams.Search)]
+    public string? Search { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.IsPaid)]
+    public bool? IsPaid { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.AccrualMethod)]
+    [SwaggerAllowedValues(typeof(LeaveFieldOptions), nameof(LeaveFieldOptions.AccrualMethods))]
+    public string? AccrualMethod { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.ActiveOnly)]
+    public bool ActiveOnly { get; init; } = true;
+
+    [FromQuery(Name = PlatformQueryParams.Page)]
+    public int Page { get; init; } = 1;
+
+    [FromQuery(Name = PlatformQueryParams.Size)]
     public int Size { get; init; } = 20;
 }

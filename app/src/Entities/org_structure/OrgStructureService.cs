@@ -47,19 +47,21 @@ public class OrgStructureService
         _departments.GetSummaryAsync(tenantId, orgId, ct);
 
     public Task<Respons<DepartmentListDto>> ListDepartmentsAsync(
-        string? search, string sortBy, string sortOrder, bool includeArchived,
-        int page, int size, string tenantId, string orgId, CancellationToken ct) =>
-        _departments.ListDepartmentsAsync(search, sortBy, sortOrder, includeArchived, page, size, tenantId, orgId, ct);
+        OrgStructureListQuery query, string tenantId, string orgId, CancellationToken ct) =>
+        _departments.ListDepartmentsAsync(
+            query.Search,
+            query.SortBy,
+            query.SortOrder,
+            query.IncludeArchived,
+            query.Page,
+            query.Size,
+            tenantId,
+            orgId,
+            ct);
 
     public Task<Respons<BranchListDto>> ListBranchesAsync(
-        string? search,
-        bool includeArchived,
-        int page,
-        int size,
-        string tenantId,
-        string orgId,
-        CancellationToken ct) =>
-        _branches.ListBranchesAsync(tenantId, orgId, search, includeArchived, page, size, ct);
+        OrgStructureListQuery query, string tenantId, string orgId, CancellationToken ct) =>
+        _branches.ListBranchesAsync(tenantId, orgId, query, ct);
 
     public async Task<Respons<OrgChartDto>> GetOrgChartAsync(
         string tenantId, string orgId, CancellationToken ct = default)

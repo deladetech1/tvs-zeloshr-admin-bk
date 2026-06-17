@@ -31,10 +31,10 @@ public class OnboardingController : ControllerBase
 
     [HttpGet("list")]
     public async Task<ActionResult<Respons<OnboardingListDto>>> List(
-        [FromQuery] string? search,
-        [FromQuery] string? status,
-        [FromQuery] int page = 1,
-        [FromQuery] int size = 20,
+        [FromQuery(Name = PlatformQueryParams.Search)] string? search,
+        [FromQuery(Name = PlatformQueryParams.Status)] string? status,
+        [FromQuery(Name = PlatformQueryParams.Page)] int page = 1,
+        [FromQuery(Name = PlatformQueryParams.Size)] int size = 20,
         CancellationToken ct = default)
     {
         var ctx = _tenant.Current;

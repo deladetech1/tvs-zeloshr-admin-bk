@@ -596,17 +596,14 @@ public class LeaveService
     }
 
     public async Task<Respons<LeaveTypeListDto>> ListTypesAsync(
-        bool activeOnly,
-        string? search,
-        int page,
-        int size,
+        LeaveTypeListQuery query,
         string tenantId,
         string orgId,
         CancellationToken ct = default)
     {
-        var paging = PagedQuery.From(page, size);
+        var paging = PagedQuery.From(query.Page, query.Size);
         var (rows, total) = await _leave.ListTypesScopedAsync(
-            tenantId, orgId, activeOnly, search, paging.Page, paging.Size, ct);
+            tenantId, orgId, query, paging.Page, paging.Size, ct);
         var items = await EnrichTypesAsync(rows, tenantId, ct);
 
         return Respons<LeaveTypeListDto>.Ok(

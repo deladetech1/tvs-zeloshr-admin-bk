@@ -31,11 +31,11 @@ public class DocumentsController : ControllerBase
 
     [HttpGet("list")]
     public async Task<ActionResult<Respons<DocumentListDto>>> List(
-        [FromQuery] string? search,
-        [FromQuery] string? category,
+        [FromQuery(Name = PlatformQueryParams.Search)] string? search,
+        [FromQuery(Name = PlatformQueryParams.Category)] string? category,
         [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid? employeeId,
-        [FromQuery] int page = 1,
-        [FromQuery] int size = 20,
+        [FromQuery(Name = PlatformQueryParams.Page)] int page = 1,
+        [FromQuery(Name = PlatformQueryParams.Size)] int size = 20,
         CancellationToken ct = default)
     {
         var ctx = _tenant.Current;

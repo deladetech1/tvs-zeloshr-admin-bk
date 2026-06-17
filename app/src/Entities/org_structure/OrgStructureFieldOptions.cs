@@ -4,6 +4,7 @@ namespace ZelosHR.Api.Entities.OrgStructure;
 public static class OrgStructureFieldOptions
 {
     public static readonly IReadOnlyList<string> DepartmentSortBy = ["name", "employeeCount"];
+    public static readonly IReadOnlyList<string> ListSortBy = ["name", "employeeCount"];
     public static readonly IReadOnlyList<string> SortOrder = ["asc", "desc"];
     public static readonly IReadOnlyList<string> NodeTypes = ["employee"];
     public static readonly IReadOnlyList<string> IncludeArchived = ["false", "true"];

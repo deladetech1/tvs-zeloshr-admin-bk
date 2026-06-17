@@ -120,8 +120,7 @@ public interface ILeaveRepository
     Task<(IReadOnlyList<LeaveTypeListItemDto> Items, int Total)> ListTypesScopedAsync(
         string tenantId,
         string orgId,
-        bool activeOnly,
-        string? search,
+        LeaveTypeListQuery query,
         int page,
         int size,
         CancellationToken ct = default);

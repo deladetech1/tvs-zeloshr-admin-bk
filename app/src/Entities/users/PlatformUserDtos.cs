@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using ZelosHR.Api.Configs;
+using ZelosHR.Api.Shared.Constants;
 namespace ZelosHR.Api.Entities.Users;
 
 /// <summary>Query filters for <c>GET /api/v1/users/get-users</c> (Core Platform parity).</summary>
@@ -16,18 +17,23 @@ public sealed class GetUsersQuery
     [FromQuery(Name = "can_login")]
     public bool? CanLogin { get; init; }
 
+    [FromQuery(Name = "email")]
     public string? Email { get; init; }
 
+    [FromQuery(Name = "fullname")]
     public string? Fullname { get; init; }
 
     [SwaggerAllowedValues(typeof(PlatformUserFieldOptions), nameof(PlatformUserFieldOptions.Genders))]
+    [FromQuery(Name = "gender")]
     public string? Gender { get; init; }
 
     [FromQuery(Name = "use_or")]
     public bool UseOr { get; init; }
 
+    [FromQuery(Name = PlatformQueryParams.Page)]
     public int Page { get; init; } = 1;
 
+    [FromQuery(Name = PlatformQueryParams.Size)]
     public int Size { get; init; } = 10;
 }
 

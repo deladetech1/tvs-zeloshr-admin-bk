@@ -62,34 +62,11 @@ public class LeaveController : ControllerBase
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
     [ProducesResponseType(typeof(Respons<LeaveCalendarDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<LeaveCalendarDto>>> Calendar(
-        [FromQuery] string? view,
-        [FromQuery(Name = "anchor_date")] DateOnly? anchorDate,
-        [FromQuery] string? search,
-        [FromQuery(Name = PlatformQueryParams.DepartmentId)] Guid? departmentId,
-        [FromQuery(Name = PlatformQueryParams.LeaveTypeId)] Guid? leaveTypeId,
-        [FromQuery(Name = "from_date")] DateOnly? fromDate,
-        [FromQuery(Name = "to_date")] DateOnly? toDate,
-        [FromQuery] int page = 1,
-        [FromQuery] int size = 50,
+        [FromQuery] LeaveCalendarQuery query,
         CancellationToken ct = default)
     {
         var ctx = _tenant.Current;
-        var result = await _service.GetCalendarAsync(
-            new LeaveCalendarQuery
-            {
-                View = view,
-                AnchorDate = anchorDate,
-                Search = search,
-                DepartmentId = departmentId,
-                LeaveTypeId = leaveTypeId,
-                FromDate = fromDate,
-                ToDate = toDate,
-                Page = page,
-                Size = size,
-            },
-            ctx.TenantId,
-            ctx.OrgId,
-            ct);
+        var result = await _service.GetCalendarAsync(query, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
@@ -98,42 +75,11 @@ public class LeaveController : ControllerBase
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
     [ProducesResponseType(typeof(Respons<LeaveApprovalListDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<LeaveApprovalListDto>>> ListApprovals(
-        [FromQuery] string? search,
-        [FromQuery(Name = PlatformQueryParams.LeaveTypeId)] Guid? leaveTypeId,
-        [FromQuery(Name = PlatformQueryParams.DepartmentId)] Guid? departmentId,
-        [FromQuery(Name = "from_date")] DateOnly? fromDate,
-        [FromQuery(Name = "to_date")] DateOnly? toDate,
-        [FromQuery]
-        [SwaggerAllowedValues(typeof(LeaveFieldOptions), nameof(LeaveFieldOptions.ApprovalListTabs))]
-        string? tab,
-        [FromQuery(Name = "sort_by")]
-        [SwaggerAllowedValues(typeof(LeaveFieldOptions), nameof(LeaveFieldOptions.ApprovalListSortBy))]
-        string? sortBy,
-        [FromQuery(Name = "sort_order")]
-        [SwaggerAllowedValues(typeof(LeaveFieldOptions), nameof(LeaveFieldOptions.ApprovalListSortOrder))]
-        string? sortOrder,
-        [FromQuery] int page = 1,
-        [FromQuery] int size = 20,
+        [FromQuery] LeaveApprovalListQuery query,
         CancellationToken ct = default)
     {
         var ctx = _tenant.Current;
-        var result = await _service.ListApprovalsAsync(
-            new LeaveApprovalListQuery
-            {
-                Search = search,
-                LeaveTypeId = leaveTypeId,
-                DepartmentId = departmentId,
-                FromDate = fromDate,
-                ToDate = toDate,
-                Tab = tab,
-                SortBy = sortBy,
-                SortOrder = sortOrder,
-                Page = page,
-                Size = size,
-            },
-            ctx.TenantId,
-            ctx.OrgId,
-            ct);
+        var result = await _service.ListApprovalsAsync(query, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
@@ -142,50 +88,11 @@ public class LeaveController : ControllerBase
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
     [ProducesResponseType(typeof(Respons<LeaveListDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<LeaveListDto>>> ListRequests(
-        [FromQuery] string? search,
-        [FromQuery]
-        [SwaggerAllowedValues(typeof(LeaveFieldOptions), nameof(LeaveFieldOptions.RequestStatuses))]
-        string? status,
-        [FromQuery]
-        [SwaggerAllowedValues(typeof(LeaveFieldOptions), nameof(LeaveFieldOptions.ApprovalStages))]
-        string? approvalStage,
-        [FromQuery(Name = PlatformQueryParams.LeaveRequestId)] Guid? leaveRequestId,
-        [FromQuery(Name = PlatformQueryParams.LeaveTypeId)] Guid? leaveTypeId,
-        [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid? employeeId,
-        [FromQuery(Name = "employee_code")] string? employeeCode,
-        [FromQuery(Name = PlatformQueryParams.DepartmentId)] Guid? departmentId,
-        [FromQuery(Name = PlatformQueryParams.BranchId)] Guid? branchId,
-        [FromQuery(Name = "from_date")] DateOnly? fromDate,
-        [FromQuery(Name = "to_date")] DateOnly? toDate,
-        [FromQuery(Name = "submitted_from_date")] DateOnly? submittedFromDate,
-        [FromQuery(Name = "submitted_to_date")] DateOnly? submittedToDate,
-        [FromQuery] int page = 1,
-        [FromQuery] int size = 20,
+        [FromQuery] LeaveRequestListQuery query,
         CancellationToken ct = default)
     {
         var ctx = _tenant.Current;
-        var result = await _service.ListAsync(
-            new LeaveRequestListQuery
-            {
-                Search = search,
-                Status = status,
-                ApprovalStage = approvalStage,
-                LeaveRequestId = leaveRequestId,
-                LeaveTypeId = leaveTypeId,
-                EmployeeId = employeeId,
-                EmployeeCode = employeeCode,
-                DepartmentId = departmentId,
-                BranchId = branchId,
-                FromDate = fromDate,
-                ToDate = toDate,
-                SubmittedFromDate = submittedFromDate,
-                SubmittedToDate = submittedToDate,
-                Page = page,
-                Size = size,
-            },
-            ctx.TenantId,
-            ctx.OrgId,
-            ct);
+        var result = await _service.ListAsync(query, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 
@@ -326,11 +233,11 @@ public class LeaveController : ControllerBase
     [ProducesResponseType(typeof(Respons<LeaveMyRequestListDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<LeaveMyRequestListDto>>> MyRequests(
         [FromQuery(Name = PlatformQueryParams.EmployeeId)] Guid employeeId,
-        [FromQuery]
+        [FromQuery(Name = PlatformQueryParams.Status)]
         [SwaggerAllowedValues(typeof(LeaveFieldOptions), nameof(LeaveFieldOptions.RequestStatuses))]
         string? status,
-        [FromQuery] int page = 1,
-        [FromQuery] int size = 20,
+        [FromQuery(Name = PlatformQueryParams.Page)] int page = 1,
+        [FromQuery(Name = PlatformQueryParams.Size)] int size = 20,
         CancellationToken ct = default)
     {
         if (QueryParamValidation.BadRequestIfEmptyGuid<LeaveMyRequestListDto>(
@@ -451,15 +358,11 @@ public class LeaveController : ControllerBase
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
     [ProducesResponseType(typeof(Respons<LeaveTypeListDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<LeaveTypeListDto>>> ListTypes(
-        [FromQuery] string? search,
-        [FromQuery] bool activeOnly = true,
-        [FromQuery] int page = 1,
-        [FromQuery] int size = 20,
+        [FromQuery] LeaveTypeListQuery query,
         CancellationToken ct = default)
     {
         var ctx = _tenant.Current;
-        var result = await _service.ListTypesAsync(
-            activeOnly, search, page, size, ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.ListTypesAsync(query, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 

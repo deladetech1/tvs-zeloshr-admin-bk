@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using ZelosHR.Api.Configs;
+using ZelosHR.Api.Entities.OrgStructure;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Shared.Tenant;
 
@@ -38,17 +39,20 @@ public class DepartmentsController : ControllerBase
     [HttpGet("list")]
     [ProducesResponseType(typeof(Respons<DepartmentListDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<DepartmentListDto>>> List(
-        [FromQuery] string? search,
-        [FromQuery] string sortBy = "name",
-        [FromQuery] string sortOrder = "asc",
-        [FromQuery] bool includeArchived = false,
-        [FromQuery] int page = 1,
-        [FromQuery] int size = 15,
+        [FromQuery] OrgStructureListQuery query,
         CancellationToken ct = default)
     {
         var ctx = _tenant.Current;
         var result = await _service.ListDepartmentsAsync(
-            search, sortBy, sortOrder, includeArchived, page, size, ctx.TenantId, ctx.OrgId, ct);
+            query.Search,
+            query.SortBy,
+            query.SortOrder,
+            query.IncludeArchived,
+            query.Page,
+            query.Size,
+            ctx.TenantId,
+            ctx.OrgId,
+            ct);
         return StatusCode(result.StatusCode, result);
     }
 }

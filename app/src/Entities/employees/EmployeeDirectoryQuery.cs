@@ -1,29 +1,41 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Persistence.Entities;
+using ZelosHR.Api.Shared.Constants;
 
 namespace ZelosHR.Api.Entities.Employees;
 
 /// <summary>Query parameters for the employee directory list (matches frontend filters).</summary>
 public sealed class EmployeeDirectoryQuery
 {
+    [FromQuery(Name = PlatformQueryParams.Search)]
     public string? Search { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.DepartmentId)]
     public Guid? DepartmentId { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.BranchId)]
     public Guid? BranchId { get; init; }
 
+    [FromQuery(Name = PlatformQueryParams.EmploymentType)]
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.EmploymentTypes))]
     public string? EmploymentType { get; init; }
 
+    [FromQuery(Name = PlatformQueryParams.LifecycleState)]
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.LifecycleStatesAll))]
     public string? LifecycleState { get; init; }
 
+    [FromQuery(Name = PlatformQueryParams.WorkLocation)]
     public string? WorkLocation { get; init; }
 
+    [FromQuery(Name = PlatformQueryParams.EmploymentStatus)]
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.EmploymentStatuses),
         Description = "Exact match on stored employment_status (Draft, Active, Probation, …).")]
     public string? Status { get; init; }
 
     /// <summary>Smart filter using simple commands — e.g. <c>active</c>, <c>probation</c>, <c>on_leave</c>.</summary>
+    [FromQuery(Name = PlatformQueryParams.StatusFilter)]
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.ListStatusFilters))]
     public string? StatusFilter { get; init; }
 
@@ -33,21 +45,30 @@ public sealed class EmployeeDirectoryQuery
     /// <summary>Advanced overlay filter (internal / tests). Prefer <see cref="StatusFilter"/> on list API.</summary>
     public string[]? WorkStates { get; init; }
 
+    [FromQuery(Name = PlatformQueryParams.SortBy)]
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.DirectorySortBy))]
     public string SortBy { get; init; } = "name";
 
+    [FromQuery(Name = PlatformQueryParams.SortOrder)]
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.SortOrder))]
     public string SortOrder { get; init; } = "asc";
+
+    [FromQuery(Name = PlatformQueryParams.Page)]
     public int Page { get; init; } = 1;
+
+    [FromQuery(Name = PlatformQueryParams.Size)]
     public int Size { get; init; } = 10;
 
     /// <summary>When false, Terminated/Resigned are excluded unless status filter is set.</summary>
+    [FromQuery(Name = PlatformQueryParams.IncludeInactive)]
     public bool IncludeInactive { get; init; }
 
     /// <summary>Employment start on or after this date (uses start_date or employment_start_date).</summary>
+    [FromQuery(Name = PlatformQueryParams.StartDate)]
     public DateOnly? StartDate { get; init; }
 
     /// <summary>Employment start on or before this date (uses start_date or employment_start_date).</summary>
+    [FromQuery(Name = PlatformQueryParams.EndDate)]
     public DateOnly? EndDate { get; init; }
 }
 

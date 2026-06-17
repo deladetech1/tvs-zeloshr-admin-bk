@@ -98,6 +98,8 @@ public sealed class SwaggerAuditLogsOperationFilter : IOperationFilter
 
     private static void AppendAuditLogFilterParameterDescriptions(OpenApiOperation operation)
     {
+        AppendParameterDescription(operation, "page", "1-based page index.");
+        AppendParameterDescription(operation, "size", "Page size (default 20).");
         AppendParameterDescription(operation, "search",
             "Optional text filter (min 3 chars) on actor name, employee name, or action title.");
         AppendParameterDescription(operation, "action",

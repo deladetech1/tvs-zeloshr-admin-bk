@@ -31,12 +31,12 @@ public class LifecycleEventsController : ControllerBase
 
     [HttpGet("list")]
     public async Task<ActionResult<Respons<LifecycleEventListDto>>> List(
-        [FromQuery] string? search,
-        [FromQuery] string? eventType,
-        [FromQuery] string? urgency,
-        [FromQuery] string? department,
-        [FromQuery] int page = 1,
-        [FromQuery] int size = 10,
+        [FromQuery(Name = PlatformQueryParams.Search)] string? search,
+        [FromQuery(Name = PlatformQueryParams.EventType)] string? eventType,
+        [FromQuery(Name = PlatformQueryParams.Urgency)] string? urgency,
+        [FromQuery(Name = PlatformQueryParams.Department)] string? department,
+        [FromQuery(Name = PlatformQueryParams.Page)] int page = 1,
+        [FromQuery(Name = PlatformQueryParams.Size)] int size = 10,
         CancellationToken ct = default)
     {
         var ctx = _tenant.Current;

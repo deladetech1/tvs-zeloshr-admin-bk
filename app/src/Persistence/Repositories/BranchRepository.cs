@@ -49,6 +49,8 @@ public sealed class BranchRepository(ZelosHrDbContext db) : IBranchRepository
         string tenantId,
         string orgId,
         string? search,
+        string sortBy,
+        string sortOrder,
         bool includeArchived,
         int page,
         int pageSize,
@@ -58,7 +60,7 @@ public sealed class BranchRepository(ZelosHrDbContext db) : IBranchRepository
         if (!includeArchived)
             query = query.Where(b => !b.IsArchived);
 
-        if (!string.IsNullOrWhiteSpace(search))
+        if (!string.IsNullOrWhiteSpace(search) && search.Trim().Length >= 3)
         {
             var pattern = $"%{search.Trim()}%";
             query = query.Where(b =>
@@ -69,14 +71,52 @@ public sealed class BranchRepository(ZelosHrDbContext db) : IBranchRepository
         }
 
         var total = await query.CountAsync(ct);
-        var branches = await query
-            .OrderBy(b => b.Name)
+
+        var projected = query.Select(b => new
+        {
+            b.Id,
+            b.Name,
+            b.Address,
+            b.Country,
+            b.Description,
+            b.IsArchived,
+            b.CreatedAt,
+            b.UpdatedAt,
+            b.CreatedBy,
+            b.UpdatedBy,
+            EmployeeCount = db.Employees.Count(e =>
+                e.BranchId == b.Id
+                && e.TenantId == tenantId
+                && e.OrgId == orgId
+                && !e.IsDeleted),
+        });
+
+        var byEmployeeCount = sortBy.Equals("employeeCount", StringComparison.OrdinalIgnoreCase)
+            || sortBy.Equals("employeecount", StringComparison.OrdinalIgnoreCase);
+        var desc = sortOrder.Equals("desc", StringComparison.OrdinalIgnoreCase);
+
+        projected = byEmployeeCount
+            ? (desc ? projected.OrderByDescending(x => x.EmployeeCount) : projected.OrderBy(x => x.EmployeeCount))
+            : (desc ? projected.OrderByDescending(x => x.Name) : projected.OrderBy(x => x.Name));
+
+        var pageItems = await projected
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);
 
-        var items = branches
-            .Select(b => ToRow(b, EmployeeCount(b.Id, tenantId, orgId)))
+        var items = pageItems
+            .Select(x => new BranchListRow(
+                x.Id,
+                x.Name,
+                x.Address,
+                x.Country,
+                x.Description,
+                x.EmployeeCount,
+                x.IsArchived,
+                x.CreatedAt,
+                x.UpdatedAt,
+                x.CreatedBy,
+                x.UpdatedBy))
             .ToList();
 
         return (items, total);

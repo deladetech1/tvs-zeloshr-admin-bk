@@ -1,4 +1,5 @@
 using ZelosHR.Api.Entities.Employees;
+using ZelosHR.Api.Entities.OrgStructure;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Shared.Pagination;
 
@@ -18,15 +19,20 @@ public class BranchesService
     public async Task<Respons<BranchListDto>> ListBranchesAsync(
         string tenantId,
         string orgId,
-        string? search,
-        bool includeArchived,
-        int page,
-        int size,
+        OrgStructureListQuery query,
         CancellationToken ct = default)
     {
-        var paging = PagedQuery.From(page, size);
+        var paging = PagedQuery.From(query.Page, query.Size);
         var (rows, total) = await _branches.ListPagedScopedAsync(
-            tenantId, orgId, search, includeArchived, paging.Page, paging.Size, ct);
+            tenantId,
+            orgId,
+            query.Search,
+            query.SortBy,
+            query.SortOrder,
+            query.IncludeArchived,
+            paging.Page,
+            paging.Size,
+            ct);
 
         var users = await _cpUsers.GetByIdsAsync(
             ResourceAuditMapper.CollectUserIds(rows.Select(r => new[] { r.CreatedBy, r.UpdatedBy })),

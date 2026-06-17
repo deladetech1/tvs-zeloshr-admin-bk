@@ -50,6 +50,32 @@ public class AuditLogsServiceTests
     }
 
     [Fact]
+    public async Task List_passes_all_EmployeeAuditLogParams_to_repository()
+    {
+        var query = new AuditLogListQuery
+        {
+            Page = 2,
+            Size = 15,
+            Search = "admin",
+            Action = "updated",
+            Severity = "High",
+            Actor = "u1",
+            StartDate = new DateOnly(2026, 1, 1),
+            EndDate = new DateOnly(2026, 6, 30),
+        };
+
+        _repo.ListScopedAsync("t1", "o1", query, 2, 15, Arg.Any<CancellationToken>())
+            .Returns(([], 0));
+        _repo.GetSummaryScopedAsync("t1", "o1", Arg.Any<CancellationToken>())
+            .Returns(new AuditLogSummaryDto());
+
+        var result = await _sut.ListAsync(query, "t1", "o1");
+
+        result.Success.Should().BeTrue();
+        await _repo.Received(1).ListScopedAsync("t1", "o1", query, 2, 15, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task List_rejects_invalid_date_range()
     {
         var result = await _sut.ListAsync(

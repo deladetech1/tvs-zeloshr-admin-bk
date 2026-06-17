@@ -11,6 +11,8 @@ public interface IBranchRepository
         string tenantId,
         string orgId,
         string? search,
+        string sortBy,
+        string sortOrder,
         bool includeArchived,
         int page,
         int pageSize,

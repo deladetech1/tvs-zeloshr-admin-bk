@@ -565,24 +565,32 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
     public async Task<(IReadOnlyList<LeaveTypeListItemDto> Items, int Total)> ListTypesScopedAsync(
         string tenantId,
         string orgId,
-        bool activeOnly,
-        string? search,
+        LeaveTypeListQuery query,
         int page,
         int size,
         CancellationToken ct = default)
     {
-        var query = db.LeaveTypes.AsNoTracking()
+        var dbQuery = db.LeaveTypes.AsNoTracking()
             .Where(t => t.TenantId == tenantId && t.OrgId == orgId);
-        if (activeOnly)
-            query = query.Where(t => t.IsActive);
-        if (!string.IsNullOrWhiteSpace(search))
+        if (query.ActiveOnly)
+            dbQuery = dbQuery.Where(t => t.IsActive);
+        if (!string.IsNullOrWhiteSpace(query.Search))
         {
-            var term = search.Trim();
-            query = query.Where(t => EF.Functions.ILike(t.Name, $"%{term}%"));
+            var term = query.Search.Trim();
+            dbQuery = dbQuery.Where(t => EF.Functions.ILike(t.Name, $"%{term}%"));
         }
 
-        var total = await query.CountAsync(ct);
-        var items = await query
+        if (query.IsPaid.HasValue)
+            dbQuery = dbQuery.Where(t => t.IsPaid == query.IsPaid.Value);
+
+        if (!string.IsNullOrWhiteSpace(query.AccrualMethod))
+        {
+            var method = LeaveTypePolicy.NormalizeAccrualMethod(query.AccrualMethod);
+            dbQuery = dbQuery.Where(t => t.AccrualMethod == method);
+        }
+
+        var total = await dbQuery.CountAsync(ct);
+        var items = await dbQuery
             .OrderBy(t => t.Name)
             .Skip((page - 1) * size)
             .Take(size)

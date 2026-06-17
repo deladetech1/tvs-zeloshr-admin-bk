@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using ZelosHR.Api.Configs;
+using ZelosHR.Api.Entities.OrgStructure;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Shared.Tenant;
 
@@ -24,15 +25,11 @@ public class BranchesController : ControllerBase
     [HttpGet("list")]
     [ProducesResponseType(typeof(Respons<BranchListDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<BranchListDto>>> List(
-        [FromQuery] string? search,
-        [FromQuery] bool includeArchived = false,
-        [FromQuery] int page = 1,
-        [FromQuery] int size = 20,
+        [FromQuery] OrgStructureListQuery query,
         CancellationToken ct = default)
     {
         var ctx = _tenant.Current;
-        var result = await _service.ListBranchesAsync(
-            ctx.TenantId, ctx.OrgId, search, includeArchived, page, size, ct);
+        var result = await _service.ListBranchesAsync(ctx.TenantId, ctx.OrgId, query, ct);
         return StatusCode(result.StatusCode, result);
     }
 }

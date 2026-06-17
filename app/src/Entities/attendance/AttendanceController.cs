@@ -23,9 +23,9 @@ public class AttendanceController : ControllerBase
 
     [HttpGet("statistics")]
     public async Task<ActionResult<Respons<AttendanceSummaryDto>>> Statistics(
-        [FromQuery] DateOnly? date,
-        [FromQuery(Name = "from_date")] DateOnly? fromDate,
-        [FromQuery(Name = "to_date")] DateOnly? toDate,
+        [FromQuery(Name = PlatformQueryParams.Date)] DateOnly? date,
+        [FromQuery(Name = PlatformQueryParams.FromDate)] DateOnly? fromDate,
+        [FromQuery(Name = PlatformQueryParams.ToDate)] DateOnly? toDate,
         CancellationToken ct)
     {
         var ctx = _tenant.Current;
@@ -35,12 +35,12 @@ public class AttendanceController : ControllerBase
 
     [HttpGet("list")]
     public async Task<ActionResult<Respons<AttendanceListDto>>> List(
-        [FromQuery] string? search,
-        [FromQuery] string? status,
-        [FromQuery] string? branch,
-        [FromQuery] DateOnly? date,
-        [FromQuery] int page = 1,
-        [FromQuery] int size = 20,
+        [FromQuery(Name = PlatformQueryParams.Search)] string? search,
+        [FromQuery(Name = PlatformQueryParams.Status)] string? status,
+        [FromQuery(Name = PlatformQueryParams.Branch)] string? branch,
+        [FromQuery(Name = PlatformQueryParams.Date)] DateOnly? date,
+        [FromQuery(Name = PlatformQueryParams.Page)] int page = 1,
+        [FromQuery(Name = PlatformQueryParams.Size)] int size = 20,
         CancellationToken ct = default)
     {
         var ctx = _tenant.Current;

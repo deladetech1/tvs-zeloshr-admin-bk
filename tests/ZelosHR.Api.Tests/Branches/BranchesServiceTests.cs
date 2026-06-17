@@ -2,6 +2,7 @@ using FluentAssertions;
 using NSubstitute;
 using ZelosHR.Api.Entities.Branches;
 using ZelosHR.Api.Entities.Employees;
+using ZelosHR.Api.Entities.OrgStructure;
 
 namespace ZelosHR.Api.Tests.Branches;
 
@@ -23,13 +24,13 @@ public class BranchesServiceTests
     {
         var branchId = Guid.NewGuid();
         var now = DateTimeOffset.UtcNow;
-        _repo.ListPagedScopedAsync("t1", "o1", null, false, 1, 20, Arg.Any<CancellationToken>())
+        _repo.ListPagedScopedAsync("t1", "o1", null, "name", "asc", false, 1, 20, Arg.Any<CancellationToken>())
             .Returns((new List<BranchListRow>
             {
                 new(branchId, "Accra HQ", "Greater Accra, 4th Avenue", "Ghana", null, 5, false, now, now, null, null),
             }, 1));
 
-        var result = await _sut.ListBranchesAsync("t1", "o1", null, false, 1, 20);
+        var result = await _sut.ListBranchesAsync("t1", "o1", new OrgStructureListQuery(), CancellationToken.None);
 
         result.Success.Should().BeTrue();
         result.Data!.Items.Should().ContainSingle(i =>

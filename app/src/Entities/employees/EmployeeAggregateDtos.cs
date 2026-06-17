@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Files;
+using ZelosHR.Api.Shared.Constants;
 
 namespace ZelosHR.Api.Entities.Employees;
 
@@ -237,52 +238,58 @@ public sealed class EmployeeAggregateCompensationReadDto : EmployeeAggregateComp
     public string? CurrencySymbol { get; init; }
 }
 
+/// <summary>Query filters for <c>GET /api/v1/employees/list</c> — matches frontend <c>EmployeeParams</c>.</summary>
 public sealed class EmployeeListQuery
 {
-    [FromQuery(Name = "search")]
+    [FromQuery(Name = PlatformQueryParams.Search)]
     public string? Search { get; init; }
 
-    [FromQuery(Name = "employment_status")]
+    [FromQuery(Name = PlatformQueryParams.EmploymentStatus)]
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.EmploymentStatuses),
         Description = "Exact match on stored employment_status (Draft, Active, Probation, …).")]
     public string? EmploymentStatus { get; init; }
 
-    [FromQuery(Name = "status")]
+    [FromQuery(Name = PlatformQueryParams.Status)]
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.ListStatusFilters),
         Description = "Smart filter using simple commands (active, probation, on_leave, …). Ignored when employment_status is set.")]
     public string? Status { get; init; }
 
-    [FromQuery(Name = "department_id")]
+    [FromQuery(Name = PlatformQueryParams.DepartmentId)]
     public Guid? DepartmentId { get; init; }
 
-    [FromQuery(Name = "branch_id")]
+    [FromQuery(Name = PlatformQueryParams.BranchId)]
     public Guid? BranchId { get; init; }
 
-    [FromQuery(Name = "employment_type")]
+    [FromQuery(Name = PlatformQueryParams.EmploymentType)]
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.EmploymentTypes))]
     public string? EmploymentType { get; init; }
 
-    [FromQuery(Name = "work_location")]
+    [FromQuery(Name = PlatformQueryParams.WorkLocation)]
     public string? WorkLocation { get; init; }
 
     /// <summary>Employment start on or after this date (<c>YYYY-MM-DD</c>).</summary>
-    [FromQuery(Name = "start_date")]
+    [FromQuery(Name = PlatformQueryParams.StartDate)]
     public DateOnly? StartDate { get; init; }
 
     /// <summary>Employment start on or before this date (<c>YYYY-MM-DD</c>).</summary>
-    [FromQuery(Name = "end_date")]
+    [FromQuery(Name = PlatformQueryParams.EndDate)]
     public DateOnly? EndDate { get; init; }
 
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.ListSortBy))]
+    [FromQuery(Name = PlatformQueryParams.SortBy)]
     public string SortBy { get; init; } = "name";
 
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.SortOrder))]
+    [FromQuery(Name = PlatformQueryParams.SortOrder)]
     public string SortOrder { get; init; } = "asc";
 
+    [FromQuery(Name = PlatformQueryParams.Page)]
     public int Page { get; init; } = 1;
+
+    [FromQuery(Name = PlatformQueryParams.Size)]
     public int Size { get; init; } = 20;
 
-    [FromQuery(Name = "include_inactive")]
+    [FromQuery(Name = PlatformQueryParams.IncludeInactive)]
     public bool IncludeInactive { get; init; }
 }
 
