@@ -766,9 +766,9 @@ public class LeaveMapperTests
     }
 
     [Theory]
-    [InlineData(true, 2026, 3, 6, 2026, 3, 6)]
-    [InlineData(true, 2027, 12, 25, 2027, 12, 25)]
-    [InlineData(false, 2026, 3, 6, 2026, 3, 6)]
+    [InlineData(true, 2026, 3, 6, 2026, 2026, 3, 6)]
+    [InlineData(true, 2027, 12, 25, 2027, 2027, 12, 25)]
+    [InlineData(false, 2026, 3, 6, 2026, 2026, 3, 6)]
     public void ProjectHolidayOccurrence_maps_recurring_and_one_off(
         bool recurring, int anchorYear, int month, int day, int listYear, int expectedYear, int expectedMonth, int expectedDay)
     {
