@@ -1811,7 +1811,7 @@ internal static class SwaggerExamples
                 leaveDays: 5,
                 approvedBy: new JsonArray(
                     LeaveApprovalApproverData("Fiifi Boakye", includeProfile: false),
-                    LeaveApprovalApproverData("Kwame Mensah", includeProfile: false))),
+                    LeaveApprovalApproverData("Kwame Mensah", includeProfile: false)))),
     };
 
     internal static JsonObject LeaveApprovalListResponse() =>
