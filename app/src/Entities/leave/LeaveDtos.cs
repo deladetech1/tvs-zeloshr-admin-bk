@@ -345,20 +345,14 @@ public sealed class PublicHolidayListItemDto
     /// <summary>Stored calendar date. For recurring rows this is the anchor month/day (year is not significant).</summary>
     public DateOnly Date { get; init; }
 
-    /// <summary>When <c>is_recurring_annually</c> is true, the API does not insert a new row each year — leave working-day logic projects this anchor into each calendar year. Populated on list when <c>year</c> query is set.</summary>
+    /// <summary>When <c>is_recurring_annually</c> is true, the API does not insert a new row each year — leave working-day logic projects this anchor into each calendar year. Populated on list when <c>year=true</c>.</summary>
     public bool IsRecurringAnnually { get; init; }
 
-    /// <summary>Projected date in the requested list <c>year</c> (recurring) or same as <c>date</c> when non-recurring.</summary>
+    /// <summary>Projected date when list <c>year=true</c> (recurring) or same as <c>date</c> when non-recurring.</summary>
     public DateOnly? OccurrenceDate { get; init; }
 
-    /// <summary>Country catalog id from <c>GET /countries/list</c> (use returned <c>id</c>). Not an ISO code.</summary>
-    public required string CountryId { get; init; }
-
-    /// <summary>Joined on read — ISO 3166-1 alpha-2.</summary>
-    public string? CountryCode { get; init; }
-
-    /// <summary>Joined on read — display name.</summary>
-    public string? CountryName { get; init; }
+    /// <summary>Country name (e.g. <c>Ghana</c>).</summary>
+    public required string Country { get; init; }
 
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }

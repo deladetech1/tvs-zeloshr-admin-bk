@@ -694,27 +694,29 @@ public class LeaveService
     }
 
     public async Task<Respons<PublicHolidayListDto>> ListHolidaysAsync(
-        string? countryId, int? year, int page, int size,
+        PublicHolidayListQuery query,
         string tenantId, string orgId, CancellationToken ct = default)
     {
         string? countryCode = null;
-        if (!string.IsNullOrWhiteSpace(countryId))
+        if (!string.IsNullOrWhiteSpace(query.Country))
         {
-            if (!CountryCatalog.TryGetById(countryId, out var country))
+            if (!CountryCatalog.TryGetByName(query.Country, out var country))
             {
                 return Respons<PublicHolidayListDto>.ValidationError(
-                    new Dictionary<string, string> { ["country_id"] = "Country not found." });
+                    new Dictionary<string, string> { ["country"] = "Country not found." });
             }
 
             countryCode = country.Code;
         }
 
-        var paging = PagedQuery.From(page, size);
+        int? listYear = query.Year ? DateOnly.FromDateTime(DateTime.UtcNow).Year : null;
+
+        var paging = PagedQuery.From(query.Page, query.Size);
         var (items, total) = await _leave.ListHolidaysScopedAsync(
-            tenantId, orgId, countryCode, year, paging.Page, paging.Size, ct);
+            tenantId, orgId, query.Search, countryCode, listYear, paging.Page, paging.Size, ct);
 
         return Respons<PublicHolidayListDto>.Ok(
-            new PublicHolidayListDto { Items = await EnrichHolidaysAsync(items, tenantId, year, ct) },
+            new PublicHolidayListDto { Items = await EnrichHolidaysAsync(items, tenantId, listYear, ct) },
             pagination: new PaginationMeta
             {
                 Page = paging.Page,
@@ -738,10 +740,10 @@ public class LeaveService
     public async Task<Respons<PublicHolidayListItemDto>> CreateHolidayAsync(
         CreatePublicHolidayDto data, string tenantId, string orgId, string? actorUserId = null, CancellationToken ct = default)
     {
-        if (!CountryCatalog.TryGetById(data.CountryId, out var country))
+        if (!CountryCatalog.TryGetByName(data.Country, out var country))
         {
             return Respons<PublicHolidayListItemDto>.ValidationError(
-                new Dictionary<string, string> { ["country_id"] = "Country not found." });
+                new Dictionary<string, string> { ["country"] = "Country not found." });
         }
 
         var id = await _leave.CreateHolidayScopedAsync(tenantId, orgId, country.Code, data, actorUserId, ct);
@@ -749,28 +751,17 @@ public class LeaveService
     }
 
     public async Task<Respons<PublicHolidayListItemDto>> UpdateHolidayAsync(
-        Guid id, UpdatePublicHolidayDto data, string tenantId, string orgId, string? actorUserId = null, CancellationToken ct = default)
+        Guid id, CreatePublicHolidayDto data, string tenantId, string orgId, string? actorUserId = null, CancellationToken ct = default)
     {
-        string? countryCode = null;
-        if (!string.IsNullOrWhiteSpace(data.CountryId))
+        if (!CountryCatalog.TryGetByName(data.Country, out var country))
         {
-            if (!CountryCatalog.TryGetById(data.CountryId, out var country))
-            {
-                return Respons<PublicHolidayListItemDto>.ValidationError(
-                    new Dictionary<string, string> { ["country_id"] = "Country not found." });
-            }
-
-            countryCode = country.Code;
+            return Respons<PublicHolidayListItemDto>.ValidationError(
+                new Dictionary<string, string> { ["country"] = "Country not found." });
         }
 
-        var updated = await _leave.UpdateHolidayScopedAsync(id, tenantId, orgId, countryCode, data, actorUserId, ct);
+        var updated = await _leave.UpdateHolidayScopedAsync(id, tenantId, orgId, country.Code, data, actorUserId, ct);
         if (updated is null)
-        {
-            var exists = await _leave.GetHolidayByIdScopedAsync(id, tenantId, orgId, ct);
-            return exists is null
-                ? Respons<PublicHolidayListItemDto>.Fail("Public holiday not found.", statusCode: 404)
-                : Respons<PublicHolidayListItemDto>.EmptyUpdateRequest();
-        }
+            return Respons<PublicHolidayListItemDto>.Fail("Public holiday not found.", statusCode: 404);
 
         var items = await EnrichHolidaysAsync([updated], tenantId, listYear: null, ct);
         return Respons<PublicHolidayListItemDto>.Ok(items[0]);

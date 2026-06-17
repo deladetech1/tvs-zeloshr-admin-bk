@@ -15,7 +15,6 @@ public static class SwaggerGroups
         AuditLogs,
         Users,
         Leave,
-        Holidays,
         Countries,
     };
 
@@ -34,7 +33,6 @@ public static class SwaggerGroups
     public const string Users = "Users";
     public const string Attendance = "Attendance";
     public const string Leave = "Leave";
-    public const string Holidays = "Holidays";
     public const string Countries = "Countries";
     public const string Recruitment = "Recruitment";
     public const string Onboarding = "Onboarding";

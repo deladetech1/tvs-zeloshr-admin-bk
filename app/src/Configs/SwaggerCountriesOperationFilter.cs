@@ -20,7 +20,7 @@ public sealed class SwaggerCountriesOperationFilter : IOperationFilter
                 SetJsonResponseExample(operation, 200, SwaggerExamples.CountryListResponse());
                 operation.Summary ??= "List countries";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
-                    "Use returned `id` as `country_id` on POST /holidays/add — same pattern as `compensation.currency_id` on employees.");
+                    "Use returned `name` as `country` on POST /leave/holidays/add and PUT /leave/holidays/update.");
                 return;
 
             case "api/v1/countries/get" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
@@ -28,7 +28,7 @@ public sealed class SwaggerCountriesOperationFilter : IOperationFilter
                 SetJsonResponseExample(operation, 404, SwaggerExamples.CountryNotFoundResponse());
                 operation.Summary ??= "Get country";
                 AppendParameterDescription(operation, "country_id",
-                    "Country id from GET /countries/list (e.g. ctr_gh). Used as country_id on holidays.");
+                    "Country id from GET /countries/list (e.g. ctr_gh).");
                 return;
         }
     }

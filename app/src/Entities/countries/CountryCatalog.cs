@@ -1,6 +1,6 @@
 namespace ZelosHR.Api.Entities.Countries;
 
-/// <summary>Platform country catalog — stable ids for pickers (DB stores ISO alpha-2 code).</summary>
+/// <summary>Platform country catalog — API wire uses <see cref="CountryRecord.Name"/>; DB stores ISO alpha-2 code.</summary>
 internal static class CountryCatalog
 {
     internal static readonly IReadOnlyList<CountryRecord> All =
@@ -38,6 +38,25 @@ internal static class CountryCatalog
         return false;
     }
 
+    internal static bool TryGetByName(string? countryName, out CountryRecord country)
+    {
+        country = default!;
+        if (string.IsNullOrWhiteSpace(countryName))
+            return false;
+
+        var normalized = countryName.Trim();
+        foreach (var entry in All)
+        {
+            if (entry.Name.Equals(normalized, StringComparison.OrdinalIgnoreCase))
+            {
+                country = entry;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     internal static bool TryGetByCode(string? countryCode, out CountryRecord country)
     {
         country = default!;
@@ -64,15 +83,10 @@ internal static class CountryCatalog
         Code = country.Code,
     };
 
-    internal static (string CountryId, string CountryCode, string CountryName) ResolveHolidayCountryFields(
-        string storedCountryCode)
-    {
-        if (TryGetByCode(storedCountryCode, out var country))
-            return (country.Id, country.Code, country.Name);
-
-        var code = storedCountryCode.Trim().ToUpperInvariant();
-        return (code, code, code);
-    }
+    internal static string ToHolidayCountryName(string storedCountryCode) =>
+        TryGetByCode(storedCountryCode, out var country)
+            ? country.Name
+            : storedCountryCode.Trim().ToUpperInvariant();
 
     internal sealed record CountryRecord(string Id, string Code, string Name);
 }

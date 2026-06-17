@@ -158,7 +158,14 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(UpdateLeaveBalanceDto) => SwaggerExamples.UpdateLeaveBalanceBody(),
             nameof(CreateLeaveTypeDto) => SwaggerExamples.CreateLeaveTypeBody(optionHints: true),
             nameof(CreatePublicHolidayDto) => SwaggerExamples.CreatePublicHolidayBody(),
-            nameof(UpdatePublicHolidayDto) => SwaggerExamples.UpdatePublicHolidayBody(),
+            nameof(PublicHolidayListQuery) => new JsonObject
+            {
+                ["search"] = "",
+                ["year"] = true,
+                ["country"] = SwaggerExamples.SampleCountryName,
+                ["page"] = 1,
+                ["size"] = 50,
+            },
             nameof(AuditLogEmployeeRefDto) => new JsonObject
             {
                 ["employee_id"] = SwaggerExamples.SampleEmployeeId.ToString(),
@@ -273,9 +280,11 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(LeaveTypeListItemDto) => AppendDescription(schema.Description,
                 $"Settings table row: name · default_entitled_days · is_paid ({SwaggerExampleHints.BooleanPipe}) · accrual_method ({SwaggerExampleHints.LeaveAccrualMethod}) · carry_over_allowed ({SwaggerExampleHints.BooleanPipe}) · applies_to_employment_types ({SwaggerExampleHints.LeaveTypeEmploymentType}) · min_notice_working_days · max_consecutive_days · requires_supporting_document ({SwaggerExampleHints.BooleanPipe}) · audit fields."),
             nameof(PublicHolidayListItemDto) => AppendDescription(schema.Description,
-                "Public holiday row: holiday_name · date · is_recurring_annually · occurrence_date (when list year= set) · country_id + joined country_code/country_name (same pattern as compensation.currency_id on employees). Standard audit fields."),
+                "Public holiday row: holiday_name · date · is_recurring_annually · occurrence_date (when list year=true) · country. Standard audit fields."),
+            nameof(PublicHolidayListQuery) => AppendDescription(schema.Description,
+                "List filters — matches frontend PublicHolidayParams. year=true scopes to current UTC calendar year."),
             nameof(GetCountrySimpleReadDto) => AppendDescription(schema.Description,
-                "Country picker row. Use id as country_id on POST /holidays/add — not code."),
+                "Country picker row. Use name as country on POST /leave/holidays/add and PUT /leave/holidays/update."),
             nameof(CreateLeaveRequestDto) => AppendDescription(schema.Description,
                 "Admin create on behalf of employee. leave_type_id from GET /leave/types/list. days_requested validated against balance when present."),
             nameof(CreateMyLeaveRequestDto) => AppendDescription(schema.Description,
@@ -287,9 +296,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(CreateLeaveTypeDto) => AppendDescription(schema.Description,
                 $"Add / edit leave type modal. Required: name, default_entitled_days, accrual_method ({SwaggerExampleHints.LeaveAccrualMethod}), applies_to_employment_types (min 1; All = send {SwaggerExampleHints.LeaveTypeEmploymentType}). Optional: is_paid ({SwaggerExampleHints.BooleanPipe}), carry_over_allowed ({SwaggerExampleHints.BooleanPipe}), min_notice_working_days, max_consecutive_days, requires_supporting_document ({SwaggerExampleHints.BooleanPipe}). Update: PUT /types/update?leave_type_id= with the same body."),
             nameof(CreatePublicHolidayDto) => AppendDescription(schema.Description,
-                "Add public holiday modal. country_id from GET /api/v1/countries/list (use returned id, not code) — same workflow as compensation.currency_id on employees."),
-            nameof(UpdatePublicHolidayDto) => AppendDescription(schema.Description,
-                "Edit public holiday — same fields as create; send only fields to change."),
+                "Add public holiday — matches frontend AddPublicHolidayRequest. country is the display name from GET /api/v1/countries/list (e.g. Ghana)."),
             _ => schema.Description,
         };
     }
@@ -489,29 +496,31 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 schema.Description = AppendDescription(schema.Description,
                     "Computed on save: Monthly × 12 | Bi-weekly × 26.");
                 return;
-            case "CountryId" when property.DeclaringType == typeof(CreatePublicHolidayDto):
-                schema.Example = JsonValue.Create(SwaggerExamples.SampleCountryId);
+            case "Country" when property.DeclaringType == typeof(CreatePublicHolidayDto):
+                schema.Example = JsonValue.Create(SwaggerExamples.SampleCountryName);
                 schema.Description = AppendDescription(schema.Description,
-                    "List options: GET /api/v1/countries/list — use returned id, not code.");
+                    "List options: GET /api/v1/countries/list — use returned name.");
                 return;
-            case "CountryId" when property.DeclaringType == typeof(PublicHolidayListItemDto):
-                schema.Example = JsonValue.Create(SwaggerExamples.SampleCountryId);
+            case "Country" when property.DeclaringType == typeof(PublicHolidayListItemDto):
+                schema.Example = JsonValue.Create(SwaggerExamples.SampleCountryName);
                 return;
-            case "CountryId" when property.DeclaringType == typeof(UpdatePublicHolidayDto):
-                schema.Example = JsonValue.Create(SwaggerExamples.SampleCountryId);
+            case "Country" when property.DeclaringType == typeof(PublicHolidayListQuery):
+                schema.Example = JsonValue.Create(SwaggerExamples.SampleCountryName);
                 schema.Description = AppendDescription(schema.Description,
-                    "List options: GET /api/v1/countries/list — use returned id, not code.");
+                    "Country name from GET /countries/list (e.g. Ghana).");
                 return;
-            case nameof(PublicHolidayListItemDto.CountryCode):
-                schema.Example = JsonValue.Create("GH");
+            case nameof(PublicHolidayListQuery.Search):
+                schema.Example = JsonValue.Create("independence");
                 return;
-            case nameof(PublicHolidayListItemDto.CountryName):
-                schema.Example = JsonValue.Create("Ghana");
+            case nameof(PublicHolidayListQuery.Year):
+                schema.Example = JsonValue.Create(true);
+                schema.Description = AppendDescription(schema.Description,
+                    "When true, filter to current UTC year and set occurrence_date on recurring rows.");
                 return;
             case nameof(GetCountrySimpleReadDto.Id):
                 schema.Example = JsonValue.Create(SwaggerExamples.SampleCountryId);
                 schema.Description = AppendDescription(schema.Description,
-                    "Use as country_id on POST /holidays/add.");
+                    "Catalog id (picker metadata). Use name as country on holidays.");
                 return;
             case "Options" when IsCustomFieldDefinitionProperty(property):
                 schema.Example = JsonValue.Create(SwaggerExampleHints.SelectOptionsPipe);

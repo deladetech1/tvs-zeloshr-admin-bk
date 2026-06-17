@@ -12,6 +12,13 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
     private const string PipeExampleNote =
         "Pipe-separated values in examples list allowed shapes — send **one** value on real API calls.";
 
+    private const string RecurringNote =
+        "**Recurring holidays:** `is_recurring_annually: true` stores **one** row with an anchor month/day (`date`). " +
+        "The API does **not** insert a new row each year. Leave working-day logic and list with `year=true` project that anchor into the current UTC calendar year (`occurrence_date`).";
+
+    private const string CountryNote =
+        "`country` — display name from `GET /api/v1/countries/list` (returned `name`, e.g. Ghana).";
+
     public void Apply(OpenApiOperation operation, OperationFilterContext context)
     {
         var method = context.ApiDescription.HttpMethod ?? "";
@@ -318,6 +325,48 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
                     "Delete action — permanently removes when not referenced. Returns 409 when in use; archive instead.");
                 AppendParameterDescription(operation, "leave_type_id", "Leave type UUID to delete.");
+                return;
+
+            case "api/v1/leave/holidays/list" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
+                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveHolidayListResponse());
+                operation.Summary ??= "Public holidays";
+                operation.Description = SwaggerOptionFormat.Append(operation.Description,
+                    "Matches frontend PublicHolidayParams. " + RecurringNote + " " + CountryNote);
+                AppendParameterDescription(operation, "search", "Partial match on holiday_name.");
+                AppendParameterDescription(operation, "year",
+                    "When true, scope to current UTC calendar year and set occurrence_date on recurring rows.");
+                AppendParameterDescription(operation, "country",
+                    "Country name from GET /countries/list (e.g. Ghana).");
+                return;
+
+            case "api/v1/leave/holidays/get" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
+                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveHolidayGetResponse());
+                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<PublicHolidayListItemDto>), 404));
+                operation.Summary ??= "Get public holiday";
+                operation.Description = SwaggerOptionFormat.Append(operation.Description, RecurringNote);
+                AppendParameterDescription(operation, "holiday_id", "Holiday UUID.");
+                return;
+
+            case "api/v1/leave/holidays/add" when method.Equals("POST", StringComparison.OrdinalIgnoreCase):
+                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveHolidayGetResponse());
+                operation.Summary ??= "Create public holiday (admin)";
+                operation.Description = SwaggerOptionFormat.Append(operation.Description,
+                    "Body matches frontend AddPublicHolidayRequest. " + CountryNote + " " + RecurringNote);
+                return;
+
+            case "api/v1/leave/holidays/update" when method.Equals("PUT", StringComparison.OrdinalIgnoreCase):
+                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveHolidayGetResponse());
+                operation.Summary ??= "Update public holiday (admin)";
+                operation.Description = SwaggerOptionFormat.Append(operation.Description,
+                    "Same body as create. " + RecurringNote + " " + CountryNote);
+                AppendParameterDescription(operation, "holiday_id", "Holiday UUID.");
+                return;
+
+            case "api/v1/leave/holidays/delete" when method.Equals("DELETE", StringComparison.OrdinalIgnoreCase):
+                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveDeleteHolidayResponse());
+                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<PublicHolidayListItemDto>), 404));
+                operation.Summary ??= "Remove public holiday (admin)";
+                AppendParameterDescription(operation, "holiday_id", "Soft-deactivates the holiday row.");
                 return;
         }
     }

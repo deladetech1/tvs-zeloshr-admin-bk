@@ -195,7 +195,7 @@ class LeaveLiveReporter:
         self.call(
             "Holidays list",
             "GET",
-            "/api/v1/holidays/list?country_id=ctr_gh&year=2026&page=1&size=10",
+            "/api/v1/leave/holidays/list?country=Ghana&year=true&page=1&size=10",
         )
 
         # --- Leave type CRUD ---
@@ -444,12 +444,12 @@ class LeaveLiveReporter:
         hol_add = self.call(
             "Create public holiday",
             "POST",
-            "/api/v1/holidays/add",
+            "/api/v1/leave/holidays/add",
             {
                 "holiday_name": f"Live report holiday {self.run_tag}",
                 "date": holiday_date,
                 "is_recurring_annually": False,
-                "country_id": "ctr_gh",
+                "country": "Ghana",
             },
         )
         hol_id = self.jpath(hol_add, "data", "holiday_id")
@@ -458,18 +458,23 @@ class LeaveLiveReporter:
             self.call(
                 "Get public holiday",
                 "GET",
-                f"/api/v1/holidays/get?holiday_id={hol_id}",
+                f"/api/v1/leave/holidays/get?holiday_id={hol_id}",
             )
             self.call(
                 "Update public holiday",
                 "PUT",
-                f"/api/v1/holidays/update?holiday_id={hol_id}",
-                {"holiday_name": f"Live report holiday updated {self.run_tag}"},
+                f"/api/v1/leave/holidays/update?holiday_id={hol_id}",
+                {
+                    "holiday_name": f"Live report holiday updated {self.run_tag}",
+                    "date": holiday_date,
+                    "is_recurring_annually": False,
+                    "country": "Ghana",
+                },
             )
             self.call(
                 "Delete public holiday",
                 "DELETE",
-                f"/api/v1/holidays/delete?holiday_id={hol_id}",
+                f"/api/v1/leave/holidays/delete?holiday_id={hol_id}",
             )
 
         # Cleanup leave type — delete when unused, otherwise archive

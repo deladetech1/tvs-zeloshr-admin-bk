@@ -20,7 +20,7 @@ public class CountriesController : ControllerBase
     /// <summary>List countries for pickers.</summary>
     /// <remarks>
     /// Returns <c>id</c>, <c>name</c>, <c>code</c>.
-    /// Use returned <c>id</c> as <c>country_id</c> on <c>POST /holidays/add</c> (same pattern as <c>compensation.currency_id</c> on employees).
+    /// Use returned <c>name</c> as <c>country</c> on <c>POST /leave/holidays/add</c>.
     /// </remarks>
     [HttpGet("list")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]

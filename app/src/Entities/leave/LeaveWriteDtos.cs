@@ -111,11 +111,8 @@ public sealed class CreateLeaveTypeDto
     public bool RequiresSupportingDocument { get; set; }
 }
 
-/// <summary>Add public holiday — matches Add public holiday modal.</summary>
-/// <remarks>
-/// <b>Country:</b> Use <c>country_id</c> from <c>GET /api/v1/countries/list</c> (returned <c>id</c>), not ISO <c>code</c> —
-/// same workflow as <c>compensation.currency_id</c> on employees.
-/// </remarks>
+/// <summary>Add / update public holiday — matches frontend <c>AddPublicHolidayRequest</c>.</summary>
+/// <remarks><c>country</c> is the display name from the country picker (e.g. <c>Ghana</c>).</remarks>
 public sealed class CreatePublicHolidayDto
 {
     [Required]
@@ -128,22 +125,9 @@ public sealed class CreatePublicHolidayDto
     /// <summary>When true, one DB row is stored; leave calculations project this anchor date into every year in range (no annual row insert job).</summary>
     public bool IsRecurringAnnually { get; set; }
 
-    /// <summary>Country catalog id from <c>GET /countries/list</c> (use returned <c>id</c>). Not an ISO code.</summary>
+    /// <summary>Country name from <c>GET /countries/list</c> (e.g. <c>Ghana</c>).</summary>
     [Required]
-    public string? CountryId { get; set; }
-}
-
-public sealed class UpdatePublicHolidayDto
-{
-    [MaxLength(200)]
-    public string? HolidayName { get; set; }
-
-    public DateOnly? Date { get; set; }
-
-    public bool? IsRecurringAnnually { get; set; }
-
-    /// <summary>Country catalog id from <c>GET /countries/list</c> (use returned <c>id</c>). Not an ISO code.</summary>
-    public string? CountryId { get; set; }
+    public string? Country { get; set; }
 }
 
 public sealed class RejectLeaveRequestDto

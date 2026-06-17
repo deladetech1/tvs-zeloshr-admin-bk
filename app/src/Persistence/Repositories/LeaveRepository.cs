@@ -722,6 +722,7 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
     public async Task<(IReadOnlyList<PublicHolidayListItemDto> Items, int Total)> ListHolidaysScopedAsync(
         string tenantId,
         string orgId,
+        string? search,
         string? countryCode,
         int? year,
         int page,
@@ -732,6 +733,11 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
             .Where(h => h.TenantId == tenantId && h.OrgId == orgId && h.IsActive);
         if (!string.IsNullOrWhiteSpace(countryCode))
             query = query.Where(h => h.CountryCode == countryCode.Trim().ToUpperInvariant());
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = $"%{search.Trim()}%";
+            query = query.Where(h => EF.Functions.ILike(h.Name, term));
+        }
         if (year.HasValue)
             query = query.Where(h => h.HolidayDate.Year == year.Value || h.IsRecurring);
 
@@ -788,8 +794,8 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
         Guid id,
         string tenantId,
         string orgId,
-        string? countryCode,
-        UpdatePublicHolidayDto data,
+        string countryCode,
+        CreatePublicHolidayDto data,
         string? actorUserId = null,
         CancellationToken ct = default)
     {
@@ -798,31 +804,10 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
         if (entity is null)
             return null;
 
-        var changed = false;
-        if (!string.IsNullOrWhiteSpace(countryCode))
-        {
-            entity.CountryCode = countryCode.Trim().ToUpperInvariant();
-            changed = true;
-        }
-        if (!string.IsNullOrWhiteSpace(data.HolidayName))
-        {
-            entity.Name = data.HolidayName.Trim();
-            changed = true;
-        }
-        if (data.Date.HasValue)
-        {
-            entity.HolidayDate = data.Date.Value;
-            changed = true;
-        }
-        if (data.IsRecurringAnnually.HasValue)
-        {
-            entity.IsRecurring = data.IsRecurringAnnually.Value;
-            changed = true;
-        }
-
-        if (!changed)
-            return null;
-
+        entity.CountryCode = countryCode.Trim().ToUpperInvariant();
+        entity.Name = data.HolidayName!.Trim();
+        entity.HolidayDate = data.Date;
+        entity.IsRecurring = data.IsRecurringAnnually;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
         entity.UpdatedBy = actorUserId;
         await db.SaveChangesAsync(ct);
@@ -1080,9 +1065,6 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
 
     private static PublicHolidayListItemDto ToHolidayDto(PublicHolidayEntity h)
     {
-        var (countryId, countryCode, countryName) =
-            CountryCatalog.ResolveHolidayCountryFields(h.CountryCode);
-
         return new PublicHolidayListItemDto
         {
             HolidayId = h.Id.ToString(),
@@ -1090,9 +1072,7 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
             Date = h.HolidayDate,
             IsRecurringAnnually = h.IsRecurring,
             OccurrenceDate = null,
-            CountryId = countryId,
-            CountryCode = countryCode,
-            CountryName = countryName,
+            Country = CountryCatalog.ToHolidayCountryName(h.CountryCode),
             CreatedAt = h.CreatedAt,
             UpdatedAt = h.UpdatedAt,
             CreatedById = h.CreatedBy,

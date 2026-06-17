@@ -151,6 +151,7 @@ public interface ILeaveRepository
     Task<(IReadOnlyList<PublicHolidayListItemDto> Items, int Total)> ListHolidaysScopedAsync(
         string tenantId,
         string orgId,
+        string? search,
         string? countryCode,
         int? year,
         int page,
@@ -172,8 +173,8 @@ public interface ILeaveRepository
         Guid id,
         string tenantId,
         string orgId,
-        string? countryCode,
-        UpdatePublicHolidayDto data,
+        string countryCode,
+        CreatePublicHolidayDto data,
         string? actorUserId = null,
         CancellationToken ct = default);
 

@@ -35,6 +35,7 @@ internal static class SwaggerExamples
 
     internal const string SampleCurrencyId = "cur_ghs_default";
     internal const string SampleCountryId = "ctr_gh";
+    internal const string SampleCountryName = "Ghana";
     internal const string SampleDocumentId1 = "doc_contract_a1b2c3";
     internal const string SampleDocumentId2 = "doc_national_id_d4e5f6";
     internal const string SampleBlobPathSingle = "tenant_demo/org_demo/bus_demo/employees/documents/a1b2c3d4-contract.pdf";
@@ -1993,10 +1994,7 @@ internal static class SwaggerExamples
             ["holiday_name"] = "Independence Day",
             ["date"] = "2026-03-06",
             ["is_recurring_annually"] = true,
-            ["occurrence_date"] = "2026-03-06",
-            ["country_id"] = SampleCountryId,
-            ["country_code"] = "GH",
-            ["country_name"] = "Ghana",
+            ["country"] = SampleCountryName,
         };
         AppendResourceAuditFields(data, "2026-01-10T09:00:00+00:00", "2026-01-10T09:00:00+00:00");
         return data;
@@ -2011,9 +2009,7 @@ internal static class SwaggerExamples
             ["date"] = "2026-06-01",
             ["is_recurring_annually"] = true,
             ["occurrence_date"] = "2026-06-01",
-            ["country_id"] = "ctr_ke",
-            ["country_code"] = "KE",
-            ["country_name"] = "Kenya",
+            ["country"] = "Kenya",
         };
         AppendResourceAuditFields(second, "2026-01-10T09:00:00+00:00", "2026-01-10T09:00:00+00:00");
         return new JsonObject
@@ -2162,13 +2158,8 @@ internal static class SwaggerExamples
         ["holiday_name"] = "Christmas Day",
         ["date"] = "2026-12-25",
         ["is_recurring_annually"] = true,
-        ["country_id"] = SampleCountryId,
+        ["country"] = SampleCountryName,
     };
 
-    internal static JsonObject UpdatePublicHolidayBody() => new()
-    {
-        ["holiday_name"] = "Christmas Day (observed)",
-        ["date"] = "2026-12-26",
-        ["is_recurring_annually"] = true,
-    };
+    internal static JsonObject UpdatePublicHolidayBody() => CreatePublicHolidayBody();
 }

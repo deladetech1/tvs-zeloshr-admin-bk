@@ -318,7 +318,7 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
                 || name.Equals("holidayId", StringComparison.OrdinalIgnoreCase))
             {
                 schema.Example = SwaggerExamples.SampleHolidayId.ToString();
-                parameter.Description = "Public holiday UUID from GET /holidays/list.";
+                parameter.Description = "Public holiday UUID from GET /leave/holidays/list.";
                 return;
             }
 
@@ -390,12 +390,20 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
                 return;
             }
 
+            if (name.Equals(PlatformQueryParams.Country, StringComparison.OrdinalIgnoreCase)
+                || name.Equals("country", StringComparison.OrdinalIgnoreCase))
+            {
+                schema.Example = SwaggerExamples.SampleCountryName;
+                parameter.Description =
+                    "Country name from GET /countries/list (e.g. Ghana). Matches frontend PublicHolidayParams.country.";
+                return;
+            }
+
             if (name.Equals(PlatformQueryParams.CountryId, StringComparison.OrdinalIgnoreCase)
                 || name.Equals("country_id", StringComparison.OrdinalIgnoreCase))
             {
                 schema.Example = SwaggerExamples.SampleCountryId;
-                parameter.Description =
-                    "Catalog country id from GET /countries/list (e.g. ctr_gh). Use returned id — same workflow as compensation.currency_id on employees.";
+                parameter.Description = "Country id from GET /countries/get (countries module only).";
                 return;
             }
 
@@ -408,8 +416,8 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
 
             if (name.Equals("year", StringComparison.OrdinalIgnoreCase))
             {
-                schema.Example = 2026;
-                parameter.Description = "Calendar year. For holidays list: filters rows and sets occurrence_date on recurring items.";
+                schema.Example = true;
+                parameter.Description = "When true, filter holidays to the current UTC calendar year and set occurrence_date on recurring rows.";
                 return;
             }
 
@@ -547,7 +555,6 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
     private static bool IsLeaveParameter(ParameterFilterContext context)
     {
         var declaringType = context.ParameterInfo?.Member.DeclaringType?.FullName;
-        return declaringType?.Contains(".Entities.Leave.", StringComparison.Ordinal) == true
-            || declaringType?.Contains(".Entities.Holidays.", StringComparison.Ordinal) == true;
+        return declaringType?.Contains(".Entities.Leave.", StringComparison.Ordinal) == true;
     }
 }

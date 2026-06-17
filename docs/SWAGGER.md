@@ -66,29 +66,40 @@ Tree shape comes from employee `reports_to_id`. Department badge requires `head_
 | Leave Approvals | `GET /leave/approvals/list` — flat employee rows for Approvals table (see below) |
 | My Leave | `GET /leave/my/summary?employee_id=` · `GET /leave/my/requests/list?employee_id=` · `GET /leave/my/balances/list?employee_id=` · `POST /leave/my/requests/add?employee_id=` |
 | Balances | `GET /leave/balances/list` · admin CRUD on `/leave/balances/*` |
-| Settings | Leave types `/leave/types/*` |
+| Settings | Leave types `/leave/types/*` · public holidays `/leave/holidays/*` |
 
-### Public Holidays (`/api/v1/holidays/*`)
+### Public holidays (`/api/v1/leave/holidays/*`)
 
 | Action | Endpoint |
 |--------|----------|
-| List | `GET /holidays/list?country_id=&year=&page=&size=` |
-| View | `GET /holidays/get?holiday_id=` |
-| Create | `POST /holidays/add` |
-| Update | `PUT /holidays/update?holiday_id=` |
-| Delete | `DELETE /holidays/delete?holiday_id=` |
+| List | `GET /leave/holidays/list?search=&year=&country=&page=&size=` |
+| View | `GET /leave/holidays/get?holiday_id=` |
+| Create | `POST /leave/holidays/add` |
+| Update | `PUT /leave/holidays/update?holiday_id=` |
+| Delete | `DELETE /leave/holidays/delete?holiday_id=` |
 
 Country-based holidays for leave working-day calculations. Standard audit fields on every item.
 
-**Country (same as employee currency workflow):**
+**List params** (matches frontend `PublicHolidayParams`):
 
-1. `GET /countries/list` → pick `id` from response
-2. `POST /holidays/add` with `country_id` set to that `id` (not ISO `code`)
-3. Reads return `country_id`, `country_code`, `country_name` (joined metadata — like `compensation.currency_id` / `currency_code` / `currency_name` on employees)
+| Param | Type | Meaning |
+|-------|------|---------|
+| `search` | string | Partial match on `holiday_name` |
+| `year` | boolean | When `true`, scope to current UTC calendar year and set `occurrence_date` on recurring rows |
+| `country` | string | Country name from `GET /countries/list` (e.g. `Ghana`) |
+| `page` | number | Page index |
+| `size` | number | Page size |
 
-**Add body** (`POST /holidays/add`): `holiday_name` · `date` · `is_recurring_annually` · `country_id`
+**Country workflow:**
 
-**Recurring annually (`is_recurring_annually: true`)** — stores **one** database row with an anchor month/day on `date` (year on the row is not significant). The API does **not** insert a new row each year. Leave working-day calculations and `GET /holidays/list?year=` project that anchor into the requested calendar year (`occurrence_date` on list when `year` is set).
+1. `GET /countries/list` → pick `name` from response
+2. `POST /leave/holidays/add` with `country` set to that name (e.g. `Ghana`)
+3. Reads return `country` (display name only)
+4. `PUT /leave/holidays/update?holiday_id=` — same body as POST
+
+**Add body** (`POST /leave/holidays/add` — matches frontend `AddPublicHolidayRequest`): `holiday_name` · `date` · `is_recurring_annually` · `country`
+
+**Recurring annually (`is_recurring_annually: true`)** — stores **one** database row with an anchor month/day on `date`. The API does **not** insert a new row each year. Leave working-day calculations and `GET /leave/holidays/list?year=true` project that anchor into the current UTC calendar year (`occurrence_date` when `year=true`).
 
 ### Countries (`/api/v1/countries/*`)
 
@@ -97,7 +108,7 @@ Country-based holidays for leave working-day calculations. Standard audit fields
 | List | `GET /countries/list` |
 | Get | `GET /countries/get?country_id=` |
 
-Returns `id`, `name`, `code` (ISO alpha-2). Use `id` as `country_id` on holidays — mirrors `GET /currencies/list` → `compensation.currency_id` on employees.
+Returns `id`, `name`, `code` (ISO alpha-2). Use `id` as `country` on holidays.
 
 **Leave types table** (`GET /leave/types/list?page=&size=`) — paginated `data.items[]` with audit fields on every row. Actions:
 
@@ -110,7 +121,7 @@ Returns `id`, `name`, `code` (ISO alpha-2). Use `id` as `country_id` on holidays
 
 List responses use **`data.items[]`** (not `requests[]`). Rows include nested **`employee`** (`employee_id`, `full_name`, `job_title`, `profile_url`) and **`leave_type`** (`leave_type_id`, `name`). Request rows expose **`approver`** (`approver_id`, `full_name`) when decided.
 
-Every leave resource item (requests, balances, types) includes standard audit fields per [AUDIT_FIELDS.md](AUDIT_FIELDS.md). Holiday items use the same audit fields under `/holidays/*`.
+Every leave resource item (requests, balances, types, holidays) includes standard audit fields per [AUDIT_FIELDS.md](AUDIT_FIELDS.md).
 
 **List filters** (`GET /leave/requests/list`) — map UI controls to query params (combine with AND):
 

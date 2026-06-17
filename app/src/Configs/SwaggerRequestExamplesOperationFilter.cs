@@ -285,19 +285,19 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
         }
 
         if (method.Equals("POST", StringComparison.OrdinalIgnoreCase)
-            && path.Equals("api/v1/holidays/add", StringComparison.OrdinalIgnoreCase))
+            && path.Equals("api/v1/leave/holidays/add", StringComparison.OrdinalIgnoreCase))
         {
             return new Dictionary<string, IOpenApiExample>
             {
                 ["add_holiday"] = Example(
                     SwaggerExamples.CreatePublicHolidayBody(),
                     "Add public holiday",
-                    "holiday_name · date · is_recurring_annually · country_id (from GET /countries/list — same workflow as compensation.currency_id)."),
+                    "holiday_name · date · is_recurring_annually · country (from GET /countries/list)."),
             };
         }
 
         if (method.Equals("PUT", StringComparison.OrdinalIgnoreCase)
-            && path.Equals("api/v1/holidays/update", StringComparison.OrdinalIgnoreCase))
+            && path.Equals("api/v1/leave/holidays/update", StringComparison.OrdinalIgnoreCase))
         {
             return new Dictionary<string, IOpenApiExample>
             {
