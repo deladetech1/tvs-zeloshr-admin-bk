@@ -489,13 +489,18 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 schema.Description = AppendDescription(schema.Description,
                     "Computed on save: Monthly × 12 | Bi-weekly × 26.");
                 return;
-            case nameof(CreatePublicHolidayDto.CountryId):
+            case "CountryId" when property.DeclaringType == typeof(CreatePublicHolidayDto):
                 schema.Example = JsonValue.Create(SwaggerExamples.SampleCountryId);
                 schema.Description = AppendDescription(schema.Description,
                     "List options: GET /api/v1/countries/list — use returned id, not code.");
                 return;
             case "CountryId" when property.DeclaringType == typeof(PublicHolidayListItemDto):
                 schema.Example = JsonValue.Create(SwaggerExamples.SampleCountryId);
+                return;
+            case "CountryId" when property.DeclaringType == typeof(UpdatePublicHolidayDto):
+                schema.Example = JsonValue.Create(SwaggerExamples.SampleCountryId);
+                schema.Description = AppendDescription(schema.Description,
+                    "List options: GET /api/v1/countries/list — use returned id, not code.");
                 return;
             case nameof(PublicHolidayListItemDto.CountryCode):
                 schema.Example = JsonValue.Create("GH");
