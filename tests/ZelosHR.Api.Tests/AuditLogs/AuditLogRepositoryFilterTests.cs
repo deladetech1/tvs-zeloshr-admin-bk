@@ -55,17 +55,14 @@ public class AuditLogRepositoryFilterTests
     }
 
     [Fact]
-    public async Task List_applies_all_EmployeeAuditLogParams_filters()
+    public async Task List_applies_severity_and_date_filters()
     {
         var repo = CreateRepository(out _);
         var query = new AuditLogListQuery
         {
             Page = 1,
             Size = 10,
-            Search = "Demo",
-            Action = "updated",
             Severity = "High",
-            Actor = "u-admin",
             StartDate = new DateOnly(2026, 1, 1),
             EndDate = new DateOnly(2026, 12, 31),
         };

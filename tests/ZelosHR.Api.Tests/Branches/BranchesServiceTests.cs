@@ -24,7 +24,16 @@ public class BranchesServiceTests
     {
         var branchId = Guid.NewGuid();
         var now = DateTimeOffset.UtcNow;
-        _repo.ListPagedScopedAsync("t1", "o1", null, "name", "asc", false, 1, 20, Arg.Any<CancellationToken>())
+        _repo.ListPagedScopedAsync(
+                "t1",
+                "o1",
+                null,
+                "name",
+                "asc",
+                false,
+                1,
+                15,
+                Arg.Any<CancellationToken>())
             .Returns((new List<BranchListRow>
             {
                 new(branchId, "Accra HQ", "Greater Accra, 4th Avenue", "Ghana", null, 5, false, now, now, null, null),
