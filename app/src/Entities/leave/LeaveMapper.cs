@@ -1,3 +1,4 @@
+using ZelosHR.Api.Entities.Countries;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Files;
 
@@ -376,6 +377,46 @@ internal static class LeaveMapper
         };
     }
 
+    internal static LeaveCalendarListItemDto MapCalendarListItem(
+        Guid employeeId,
+        EmployeeLeaveContext? employee,
+        DocumentReadDto? profileUrl,
+        LeaveRequestRawRow? leaveRow,
+        IReadOnlyDictionary<Guid, string> leaveTypes) =>
+        new()
+        {
+            EmployeeId = employeeId.ToString(),
+            EmployeeName = employee?.FullName ?? leaveRow?.EmployeeFullName ?? string.Empty,
+            EmployeeCode = employee?.EmployeeCode,
+            Title = employee?.JobTitle,
+            ProfileUrl = profileUrl,
+            LeaveRequestId = leaveRow?.LeaveRequestId,
+            LeaveTypeId = leaveRow?.LeaveTypeId,
+            LeaveType = leaveRow is null ? null : ResolveLeaveTypeName(leaveRow, leaveTypes),
+            Status = leaveRow?.Status,
+            LeaveFrom = leaveRow?.StartDate,
+            LeaveTo = leaveRow?.EndDate,
+            LeaveDays = leaveRow?.DaysRequested,
+        };
+
+    internal static IReadOnlyList<LeaveCalendarListItemDto> ExpandCalendarItems(
+        Guid employeeId,
+        IReadOnlyDictionary<Guid, EmployeeLeaveContext> employees,
+        IReadOnlyDictionary<Guid, DocumentReadDto?> profileUrlsByEmployeeId,
+        IReadOnlyList<LeaveRequestRawRow> leaveRows,
+        IReadOnlyDictionary<Guid, string> leaveTypes)
+    {
+        employees.TryGetValue(employeeId, out var employee);
+        profileUrlsByEmployeeId.TryGetValue(employeeId, out var profileUrl);
+
+        if (leaveRows.Count == 0)
+            return [MapCalendarListItem(employeeId, employee, profileUrl, null, leaveTypes)];
+
+        return leaveRows
+            .Select(row => MapCalendarListItem(employeeId, employee, profileUrl, row, leaveTypes))
+            .ToList();
+    }
+
     private static string ResolveEmployeeName(
         LeaveRequestRawRow row,
         IReadOnlyDictionary<Guid, EmployeeLeaveContext> employees)
@@ -572,12 +613,13 @@ internal static class LeaveMapper
         return new PublicHolidayListItemDto
         {
             HolidayId = item.HolidayId,
+            HolidayName = item.HolidayName,
+            Date = item.Date,
+            IsRecurringAnnually = item.IsRecurringAnnually,
+            OccurrenceDate = item.OccurrenceDate,
+            CountryId = item.CountryId,
             CountryCode = item.CountryCode,
-            Name = item.Name,
-            HolidayDate = item.HolidayDate,
-            IsRecurring = item.IsRecurring,
-            BranchId = item.BranchId,
-            IsActive = item.IsActive,
+            CountryName = item.CountryName,
             CreatedAt = audit.CreatedAt,
             UpdatedAt = audit.UpdatedAt,
             CreatedById = audit.CreatedById,
@@ -586,6 +628,11 @@ internal static class LeaveMapper
             UpdatedBy = audit.UpdatedBy,
         };
     }
+
+    internal static DateOnly? ProjectHolidayOccurrence(DateOnly anchor, bool isRecurringAnnually, int year) =>
+        isRecurringAnnually
+            ? new DateOnly(year, anchor.Month, anchor.Day)
+            : anchor.Year == year ? anchor : null;
 
     private static LeaveEmployeeRefDto ToEmployeeRef(
         string employeeId,

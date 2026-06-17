@@ -61,10 +61,11 @@ public static class SwaggerConfiguration
                        Employee form schema: `GET /api/v1/custom-fields/schema?entity_type=employee`
                     2. **(Optional) Documents** — `POST /api/v1/file/post/multiple` → attach returned IDs as `document_ids` (strings) on employee create/update. On read, `GET /employees/get` returns `documents[]` (MyStoreGuard `DocumentReadDto`: `doc_id`, `name`, `presigned_url`, `description`).
                     3. **Currency** — `GET /api/v1/currencies/list` → use returned `id` as `compensation.currency_id` (not a currency code string)
-                    4. **Create** — `POST /api/v1/employees/add` (finalises automatically when `identity.work_email` is set)
-                    5. **Read / update** — `GET /api/v1/employees/get?employee_id=` (`documents[]` with presigned URLs on read) · `PUT /api/v1/employees/update?employee_id=` (string `document_ids` / `delete_document_ids` on write)
-                    6. **Bulk import** — `GET /api/v1/employees/bulk/template` → fill CSV → `POST /api/v1/employees/bulk?status=`
-                    7. **Export** — `GET /api/v1/employees/export` (`start_date`, `end_date`, and list filters)
+                    4. **Countries (holidays)** — `GET /api/v1/countries/list` → use returned `id` as `country_id` on `POST /api/v1/holidays/add` (not ISO `code`)
+                    5. **Create** — `POST /api/v1/employees/add` (finalises automatically when `identity.work_email` is set)
+                    6. **Read / update** — `GET /api/v1/employees/get?employee_id=` (`documents[]` with presigned URLs on read) · `PUT /api/v1/employees/update?employee_id=` (string `document_ids` / `delete_document_ids` on write)
+                    7. **Bulk import** — `GET /api/v1/employees/bulk/template` → fill CSV → `POST /api/v1/employees/bulk?status=`
+                    8. **Export** — `GET /api/v1/employees/export` (`start_date`, `end_date`, and list filters)
 
                     ---
 
@@ -99,7 +100,7 @@ public static class SwaggerConfiguration
 
                     ### Documented modules
 
-                    **Employees** · **Users** · **Currencies** · **Custom Fields** · **File Management** · **Organisation** (org chart, departments, branches) · **Lifecycle Events** · **Audit Logs**
+                    **Employees** · **Users** · **Currencies** · **Countries** · **Custom Fields** · **File Management** · **Organisation** (org chart, departments, branches) · **Lifecycle Events** · **Audit Logs** · **Leave** · **Holidays**
 
                     Conformance: `docs/MYSTOREGUARD_API_CONFORMANCE.md` · Navigation: `GET /api/v1/navigation`
                     """,
@@ -139,6 +140,8 @@ public static class SwaggerConfiguration
             options.OperationFilter<SwaggerFileManagementOperationFilter>();
             options.OperationFilter<SwaggerOrgStructureOperationFilter>();
             options.OperationFilter<SwaggerLeaveOperationFilter>();
+            options.OperationFilter<SwaggerHolidaysOperationFilter>();
+            options.OperationFilter<SwaggerCountriesOperationFilter>();
             options.OperationFilter<SwaggerAuditLogsOperationFilter>();
             options.OperationFilter<SwaggerUsersOperationFilter>();
             options.OperationFilter<SwaggerResponseExamplesOperationFilter>();
@@ -272,6 +275,8 @@ public static class SwaggerConfiguration
         "Users" => SwaggerGroups.Users,
         "Attendance" => SwaggerGroups.Attendance,
         "Leave" => SwaggerGroups.Leave,
+        "PublicHolidays" => SwaggerGroups.Holidays,
+        "Countries" => SwaggerGroups.Countries,
         "Recruitment" => SwaggerGroups.Recruitment,
         "Onboarding" => SwaggerGroups.Onboarding,
         "Performance" => SwaggerGroups.Performance,

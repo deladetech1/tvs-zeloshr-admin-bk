@@ -61,11 +61,43 @@ Tree shape comes from employee `reports_to_id`. Department badge requires `head_
 | Area | Key routes |
 |------|------------|
 | Dashboard | `GET /leave/summary` (KPIs + widgets — **use for Leave Management page**) · `GET /leave/statistics` (counts only) · `GET /leave/dashboard` (alias of summary widgets) |
+| Leave Calendar | `GET /leave/calendar` — employee rows with `leave_bars[]` for Approved/Pending leave in the visible date window |
 | Admin requests | `GET /leave/requests/list` · `GET /leave/requests/get` · `POST /requests/add` · `POST /requests/approve` · `POST /requests/reject` |
 | Leave Approvals | `GET /leave/approvals/list` — flat employee rows for Approvals table (see below) |
 | My Leave | `GET /leave/my/summary?employee_id=` · `GET /leave/my/requests/list?employee_id=` · `GET /leave/my/balances/list?employee_id=` · `POST /leave/my/requests/add?employee_id=` |
 | Balances | `GET /leave/balances/list` · admin CRUD on `/leave/balances/*` |
-| Settings | Leave types `/leave/types/*` · public holidays `/leave/holidays/*` |
+| Settings | Leave types `/leave/types/*` |
+
+### Public Holidays (`/api/v1/holidays/*`)
+
+| Action | Endpoint |
+|--------|----------|
+| List | `GET /holidays/list?country_id=&year=&page=&size=` |
+| View | `GET /holidays/get?holiday_id=` |
+| Create | `POST /holidays/add` |
+| Update | `PUT /holidays/update?holiday_id=` |
+| Delete | `DELETE /holidays/delete?holiday_id=` |
+
+Country-based holidays for leave working-day calculations. Standard audit fields on every item.
+
+**Country (same as employee currency workflow):**
+
+1. `GET /countries/list` → pick `id` from response
+2. `POST /holidays/add` with `country_id` set to that `id` (not ISO `code`)
+3. Reads return `country_id`, `country_code`, `country_name` (joined metadata — like `compensation.currency_id` / `currency_code` / `currency_name` on employees)
+
+**Add body** (`POST /holidays/add`): `holiday_name` · `date` · `is_recurring_annually` · `country_id`
+
+**Recurring annually (`is_recurring_annually: true`)** — stores **one** database row with an anchor month/day on `date` (year on the row is not significant). The API does **not** insert a new row each year. Leave working-day calculations and `GET /holidays/list?year=` project that anchor into the requested calendar year (`occurrence_date` on list when `year` is set).
+
+### Countries (`/api/v1/countries/*`)
+
+| Action | Endpoint |
+|--------|----------|
+| List | `GET /countries/list` |
+| Get | `GET /countries/get?country_id=` |
+
+Returns `id`, `name`, `code` (ISO alpha-2). Use `id` as `country_id` on holidays — mirrors `GET /currencies/list` → `compensation.currency_id` on employees.
 
 **Leave types table** (`GET /leave/types/list?page=&size=`) — paginated `data.items[]` with audit fields on every row. Actions:
 
@@ -78,7 +110,7 @@ Tree shape comes from employee `reports_to_id`. Department badge requires `head_
 
 List responses use **`data.items[]`** (not `requests[]`). Rows include nested **`employee`** (`employee_id`, `full_name`, `job_title`, `profile_url`) and **`leave_type`** (`leave_type_id`, `name`). Request rows expose **`approver`** (`approver_id`, `full_name`) when decided.
 
-Every leave resource item (requests, balances, types, holidays) includes standard audit fields per [AUDIT_FIELDS.md](AUDIT_FIELDS.md).
+Every leave resource item (requests, balances, types) includes standard audit fields per [AUDIT_FIELDS.md](AUDIT_FIELDS.md). Holiday items use the same audit fields under `/holidays/*`.
 
 **List filters** (`GET /leave/requests/list`) — map UI controls to query params (combine with AND):
 
@@ -127,6 +159,19 @@ Tabs: `tab=pending|history`. Sort: `sort_by=name` · `sort_order=asc|desc`. Filt
 | `leaving_this_week[]` | `starts_on` · `employee_name` · `profile_url` · `leave_type` · `leave_days` |
 
 Each row includes `leave_request_id` and `employee_id` for navigation / approve actions, plus standard audit fields (`created_at`, `updated_at`, `created_by_id`, `updated_by_id`, `created_by`, `updated_by`). `pending_approvals` lists **all** pending requests (any approval stage), oldest `submitted_at` first.
+
+**Leave Calendar** (`GET /leave/calendar?view=week|month&anchor_date=&page=&size=`) — flat rows (employee + leave range on the same level):
+
+| Field | Description |
+|-------|-------------|
+| `view` | `week` (Mon–Sun) or `month` — sets window from `anchor_date` when dates omitted |
+| `anchor_date` | Date inside the week/month to show (default today UTC) |
+| `from_date` / `to_date` | Explicit window (overrides `view` when both set) |
+| `items[]` | Flat rows: employee fields + `leave_from` · `leave_to` · `leave_type` · `status` · `leave_days` |
+| No leave | One row per employee with null `leave_request_id` / leave fields |
+| Multiple leaves | Same `employee_id` repeated — one row per Approved/Pending range |
+
+Filters: `search` (min 2 chars) · `department_id` · `leave_type_id`. Pagination counts **employees** (page may return more than `size` rows when employees have multiple leaves).
 
 **Balances** (`GET /leave/my/summary?employee_id=`, `/leave/my/balances/list?employee_id=`, `/leave/balances/*`) use the same nested ref pattern on each balance row.
 

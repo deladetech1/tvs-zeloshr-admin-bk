@@ -111,41 +111,39 @@ public sealed class CreateLeaveTypeDto
     public bool RequiresSupportingDocument { get; set; }
 }
 
+/// <summary>Add public holiday — matches Add public holiday modal.</summary>
+/// <remarks>
+/// <b>Country:</b> Use <c>country_id</c> from <c>GET /api/v1/countries/list</c> (returned <c>id</c>), not ISO <c>code</c> —
+/// same workflow as <c>compensation.currency_id</c> on employees.
+/// </remarks>
 public sealed class CreatePublicHolidayDto
 {
     [Required]
-    [MaxLength(2)]
-    public string? CountryCode { get; set; }
-
-    [Required]
     [MaxLength(200)]
-    public string? Name { get; set; }
+    public string? HolidayName { get; set; }
 
     [Required]
-    public DateOnly HolidayDate { get; set; }
+    public DateOnly Date { get; set; }
 
-    public bool IsRecurring { get; set; }
+    /// <summary>When true, one DB row is stored; leave calculations project this anchor date into every year in range (no annual row insert job).</summary>
+    public bool IsRecurringAnnually { get; set; }
 
-    public Guid? BranchId { get; set; }
-
-    public bool IsActive { get; set; } = true;
+    /// <summary>Country catalog id from <c>GET /countries/list</c> (use returned <c>id</c>). Not an ISO code.</summary>
+    [Required]
+    public string? CountryId { get; set; }
 }
 
 public sealed class UpdatePublicHolidayDto
 {
-    [MaxLength(2)]
-    public string? CountryCode { get; set; }
-
     [MaxLength(200)]
-    public string? Name { get; set; }
+    public string? HolidayName { get; set; }
 
-    public DateOnly? HolidayDate { get; set; }
+    public DateOnly? Date { get; set; }
 
-    public bool? IsRecurring { get; set; }
+    public bool? IsRecurringAnnually { get; set; }
 
-    public Guid? BranchId { get; set; }
-
-    public bool? IsActive { get; set; }
+    /// <summary>Country catalog id from <c>GET /countries/list</c> (use returned <c>id</c>). Not an ISO code.</summary>
+    public string? CountryId { get; set; }
 }
 
 public sealed class RejectLeaveRequestDto

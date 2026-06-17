@@ -1,3 +1,4 @@
+using ZelosHR.Api.Entities.Countries;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Entities.Shared;
@@ -179,6 +180,52 @@ public class LeaveService
                 Size = paging.Size,
                 Total = total,
                 HasNext = paging.Offset + items.Count < total,
+            });
+    }
+
+    public async Task<Respons<LeaveCalendarDto>> GetCalendarAsync(
+        LeaveCalendarQuery query, string tenantId, string orgId, CancellationToken ct = default)
+    {
+        var paging = PagedQuery.From(query.Page, query.Size);
+        var calendarQuery = query with { Page = paging.Page, Size = paging.Size };
+        var scoped = await _leave.ListCalendarScopedAsync(tenantId, orgId, calendarQuery, ct);
+
+        var employees = await _employees.ResolveLeaveContextsAsync(scoped.EmployeeIds, tenantId, orgId, ct);
+        var profileUrlsByEmployeeId = await ResolveEmployeeProfileUrlsAsync(employees, ct);
+
+        var allLeaveRows = scoped.LeaveByEmployeeId.Values.SelectMany(rows => rows).ToList();
+        var leaveTypes = LeaveMapper.MergeLeaveTypeLookups(
+            LeaveMapper.IndexTypes(await _leave.ListAllTypesScopedAsync(tenantId, orgId, false, ct)),
+            allLeaveRows.Select(r => (r.LeaveTypeId, r.LeaveTypeName)));
+
+        var items = scoped.EmployeeIds
+            .SelectMany(employeeId =>
+            {
+                scoped.LeaveByEmployeeId.TryGetValue(employeeId, out var leaveRows);
+                return LeaveMapper.ExpandCalendarItems(
+                    employeeId,
+                    employees,
+                    profileUrlsByEmployeeId,
+                    leaveRows ?? [],
+                    leaveTypes);
+            })
+            .ToList();
+
+        return Respons<LeaveCalendarDto>.Ok(
+            new LeaveCalendarDto
+            {
+                View = scoped.View,
+                AnchorDate = scoped.AnchorDate,
+                FromDate = scoped.FromDate,
+                ToDate = scoped.ToDate,
+                Items = items,
+            },
+            pagination: new PaginationMeta
+            {
+                Page = paging.Page,
+                Size = paging.Size,
+                Total = scoped.TotalEmployees,
+                HasNext = paging.Offset + scoped.EmployeeIds.Count < scoped.TotalEmployees,
             });
     }
 
@@ -647,15 +694,27 @@ public class LeaveService
     }
 
     public async Task<Respons<PublicHolidayListDto>> ListHolidaysAsync(
-        string? countryCode, int? year, Guid? branchId, int page, int size,
+        string? countryId, int? year, int page, int size,
         string tenantId, string orgId, CancellationToken ct = default)
     {
+        string? countryCode = null;
+        if (!string.IsNullOrWhiteSpace(countryId))
+        {
+            if (!CountryCatalog.TryGetById(countryId, out var country))
+            {
+                return Respons<PublicHolidayListDto>.ValidationError(
+                    new Dictionary<string, string> { ["country_id"] = "Country not found." });
+            }
+
+            countryCode = country.Code;
+        }
+
         var paging = PagedQuery.From(page, size);
         var (items, total) = await _leave.ListHolidaysScopedAsync(
-            tenantId, orgId, countryCode, year, branchId, paging.Page, paging.Size, ct);
+            tenantId, orgId, countryCode, year, paging.Page, paging.Size, ct);
 
         return Respons<PublicHolidayListDto>.Ok(
-            new PublicHolidayListDto { Items = await EnrichHolidaysAsync(items, tenantId, ct) },
+            new PublicHolidayListDto { Items = await EnrichHolidaysAsync(items, tenantId, year, ct) },
             pagination: new PaginationMeta
             {
                 Page = paging.Page,
@@ -672,21 +731,39 @@ public class LeaveService
         if (row is null)
             return Respons<PublicHolidayListItemDto>.Fail("Public holiday not found.", statusCode: 404);
 
-        var items = await EnrichHolidaysAsync([row], tenantId, ct);
+        var items = await EnrichHolidaysAsync([row], tenantId, listYear: null, ct);
         return Respons<PublicHolidayListItemDto>.Ok(items[0]);
     }
 
     public async Task<Respons<PublicHolidayListItemDto>> CreateHolidayAsync(
         CreatePublicHolidayDto data, string tenantId, string orgId, string? actorUserId = null, CancellationToken ct = default)
     {
-        var id = await _leave.CreateHolidayScopedAsync(tenantId, orgId, data, actorUserId, ct);
+        if (!CountryCatalog.TryGetById(data.CountryId, out var country))
+        {
+            return Respons<PublicHolidayListItemDto>.ValidationError(
+                new Dictionary<string, string> { ["country_id"] = "Country not found." });
+        }
+
+        var id = await _leave.CreateHolidayScopedAsync(tenantId, orgId, country.Code, data, actorUserId, ct);
         return await GetHolidayByIdAsync(id, tenantId, orgId, ct);
     }
 
     public async Task<Respons<PublicHolidayListItemDto>> UpdateHolidayAsync(
         Guid id, UpdatePublicHolidayDto data, string tenantId, string orgId, string? actorUserId = null, CancellationToken ct = default)
     {
-        var updated = await _leave.UpdateHolidayScopedAsync(id, tenantId, orgId, data, actorUserId, ct);
+        string? countryCode = null;
+        if (!string.IsNullOrWhiteSpace(data.CountryId))
+        {
+            if (!CountryCatalog.TryGetById(data.CountryId, out var country))
+            {
+                return Respons<PublicHolidayListItemDto>.ValidationError(
+                    new Dictionary<string, string> { ["country_id"] = "Country not found." });
+            }
+
+            countryCode = country.Code;
+        }
+
+        var updated = await _leave.UpdateHolidayScopedAsync(id, tenantId, orgId, countryCode, data, actorUserId, ct);
         if (updated is null)
         {
             var exists = await _leave.GetHolidayByIdScopedAsync(id, tenantId, orgId, ct);
@@ -695,7 +772,7 @@ public class LeaveService
                 : Respons<PublicHolidayListItemDto>.EmptyUpdateRequest();
         }
 
-        var items = await EnrichHolidaysAsync([updated], tenantId, ct);
+        var items = await EnrichHolidaysAsync([updated], tenantId, listYear: null, ct);
         return Respons<PublicHolidayListItemDto>.Ok(items[0]);
     }
 
@@ -884,6 +961,7 @@ public class LeaveService
     private async Task<IReadOnlyList<PublicHolidayListItemDto>> EnrichHolidaysAsync(
         IReadOnlyList<PublicHolidayListItemDto> items,
         string tenantId,
+        int? listYear,
         CancellationToken ct)
     {
         if (items.Count == 0)
@@ -896,7 +974,20 @@ public class LeaveService
             ct);
 
         return items
-            .Select(item => LeaveMapper.EnrichHolidayAudit(item, userNames))
+            .Select(item =>
+            {
+                var enriched = LeaveMapper.EnrichHolidayAudit(item, userNames);
+                if (!listYear.HasValue)
+                    return enriched;
+
+                return enriched with
+                {
+                    OccurrenceDate = LeaveMapper.ProjectHolidayOccurrence(
+                        enriched.Date,
+                        enriched.IsRecurringAnnually,
+                        listYear.Value),
+                };
+            })
             .ToList();
     }
 

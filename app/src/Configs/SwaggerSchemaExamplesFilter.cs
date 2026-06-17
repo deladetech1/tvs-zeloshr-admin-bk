@@ -5,6 +5,7 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 using ZelosHR.Api.Entities.AuditLogs;
 using ZelosHR.Api.Entities.Users;
 using ZelosHR.Api.Entities.Branches;
+using ZelosHR.Api.Entities.Countries;
 using ZelosHR.Api.Entities.Currencies;
 using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Departments;
@@ -72,6 +73,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(DocumentReadDto) => SwaggerExamples.EmployeeDocumentItem(),
             nameof(EmployeeDirectorySummaryDto) => SwaggerExamples.EmployeeDirectorySummaryData(),
             nameof(GetCurrencySimpleReadDto) => SwaggerExamples.CurrencyItem(),
+            nameof(GetCountrySimpleReadDto) => SwaggerExamples.CountryItem(),
             nameof(FileDeleteReadDto) => SwaggerExamples.FileDeleteData(),
             nameof(FileResponseReadDto) => SwaggerExamples.FileResponseData(),
             nameof(FileUploadMultipleReadDto) => new JsonObject { ["id"] = SwaggerExamples.SampleDocumentId1 },
@@ -121,6 +123,8 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 "Maternity Leave",
                 "2026-06-10",
                 2),
+            nameof(LeaveCalendarDto) => SwaggerExamples.LeaveCalendarData(),
+            nameof(LeaveCalendarListItemDto) => SwaggerExamples.LeaveCalendarListItemData(),
             nameof(LeaveMyRequestListDto) => SwaggerExamples.LeaveMyRequestListData(),
             nameof(LeaveRequestListItemDto) => SwaggerExamples.LeaveRequestItemData(),
             nameof(LeaveRequestDetailDto) => SwaggerExamples.LeaveRequestDetailData(),
@@ -234,6 +238,10 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 "Pending approvals row (oldest first): employee_name · leave_type · leave_days · waiting OR hours_since_last_approval OR days_since_last_approval · standard audit fields."),
             nameof(LeaveDashboardLeavingItemDto) => AppendDescription(schema.Description,
                 "Leaving this week row: starts_on · employee_name · leave_type · leave_days · standard audit fields."),
+            nameof(LeaveCalendarDto) => AppendDescription(schema.Description,
+                $"Leave Calendar (`GET /leave/calendar`): view · anchor_date · from_date · to_date · flat items[] (employee + leave range per row). View: {SwaggerExampleHints.LeaveCalendarView}."),
+            nameof(LeaveCalendarListItemDto) => AppendDescription(schema.Description,
+                "Calendar row — employee fields plus one leave range (null leave fields when employee has no overlapping leave). Same employee may repeat for multiple ranges."),
             nameof(LeavePersonalSummaryDto) => AppendDescription(schema.Description,
                 "My Leave (`GET /leave/my/summary?employee_id=`): total_remaining_days · pending_requests · approved_this_year · balances[]."),
             nameof(LeaveListDto) => AppendDescription(schema.Description,
@@ -265,7 +273,9 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(LeaveTypeListItemDto) => AppendDescription(schema.Description,
                 $"Settings table row: name · default_entitled_days · is_paid ({SwaggerExampleHints.BooleanPipe}) · accrual_method ({SwaggerExampleHints.LeaveAccrualMethod}) · carry_over_allowed ({SwaggerExampleHints.BooleanPipe}) · applies_to_employment_types ({SwaggerExampleHints.LeaveTypeEmploymentType}) · min_notice_working_days · max_consecutive_days · requires_supporting_document ({SwaggerExampleHints.BooleanPipe}) · audit fields."),
             nameof(PublicHolidayListItemDto) => AppendDescription(schema.Description,
-                "Public holiday for leave calendar. branch_id null = org-wide; set for branch-only observance. Standard audit fields."),
+                "Public holiday row: holiday_name · date · is_recurring_annually · occurrence_date (when list year= set) · country_id + joined country_code/country_name (same pattern as compensation.currency_id on employees). Standard audit fields."),
+            nameof(GetCountrySimpleReadDto) => AppendDescription(schema.Description,
+                "Country picker row. Use id as country_id on POST /holidays/add — not code."),
             nameof(CreateLeaveRequestDto) => AppendDescription(schema.Description,
                 "Admin create on behalf of employee. leave_type_id from GET /leave/types/list. days_requested validated against balance when present."),
             nameof(CreateMyLeaveRequestDto) => AppendDescription(schema.Description,
@@ -277,7 +287,9 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(CreateLeaveTypeDto) => AppendDescription(schema.Description,
                 $"Add / edit leave type modal. Required: name, default_entitled_days, accrual_method ({SwaggerExampleHints.LeaveAccrualMethod}), applies_to_employment_types (min 1; All = send {SwaggerExampleHints.LeaveTypeEmploymentType}). Optional: is_paid ({SwaggerExampleHints.BooleanPipe}), carry_over_allowed ({SwaggerExampleHints.BooleanPipe}), min_notice_working_days, max_consecutive_days, requires_supporting_document ({SwaggerExampleHints.BooleanPipe}). Update: PUT /types/update?leave_type_id= with the same body."),
             nameof(CreatePublicHolidayDto) => AppendDescription(schema.Description,
-                "International holidays module. country_code ISO alpha-2 (GH, KE, NG, …)."),
+                "Add public holiday modal. country_id from GET /api/v1/countries/list (use returned id, not code) — same workflow as compensation.currency_id on employees."),
+            nameof(UpdatePublicHolidayDto) => AppendDescription(schema.Description,
+                "Edit public holiday — same fields as create; send only fields to change."),
             _ => schema.Description,
         };
     }
@@ -476,6 +488,25 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 schema.Example = JsonValue.Create(102000.00m);
                 schema.Description = AppendDescription(schema.Description,
                     "Computed on save: Monthly × 12 | Bi-weekly × 26.");
+                return;
+            case nameof(CreatePublicHolidayDto.CountryId):
+                schema.Example = JsonValue.Create(SwaggerExamples.SampleCountryId);
+                schema.Description = AppendDescription(schema.Description,
+                    "List options: GET /api/v1/countries/list — use returned id, not code.");
+                return;
+            case nameof(PublicHolidayListItemDto.CountryId):
+                schema.Example = JsonValue.Create(SwaggerExamples.SampleCountryId);
+                return;
+            case nameof(PublicHolidayListItemDto.CountryCode):
+                schema.Example = JsonValue.Create("GH");
+                return;
+            case nameof(PublicHolidayListItemDto.CountryName):
+                schema.Example = JsonValue.Create("Ghana");
+                return;
+            case nameof(GetCountrySimpleReadDto.Id):
+                schema.Example = JsonValue.Create(SwaggerExamples.SampleCountryId);
+                schema.Description = AppendDescription(schema.Description,
+                    "Use as country_id on POST /holidays/add.");
                 return;
             case "Options" when IsCustomFieldDefinitionProperty(property):
                 schema.Example = JsonValue.Create(SwaggerExampleHints.SelectOptionsPipe);

@@ -285,23 +285,19 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
         }
 
         if (method.Equals("POST", StringComparison.OrdinalIgnoreCase)
-            && path.Equals("api/v1/leave/holidays/add", StringComparison.OrdinalIgnoreCase))
+            && path.Equals("api/v1/holidays/add", StringComparison.OrdinalIgnoreCase))
         {
             return new Dictionary<string, IOpenApiExample>
             {
-                ["national"] = Example(
+                ["add_holiday"] = Example(
                     SwaggerExamples.CreatePublicHolidayBody(),
-                    "National recurring holiday",
-                    "is_recurring=true matches the holiday every year on month/day."),
-                ["branch_specific"] = Example(
-                    SwaggerExamples.CreatePublicHolidayBranchBody(),
-                    "Branch-only holiday",
-                    "Set branch_id to limit holiday to one location; omit for org-wide."),
+                    "Add public holiday",
+                    "holiday_name · date · is_recurring_annually · country_id (from GET /countries/list — same workflow as compensation.currency_id)."),
             };
         }
 
         if (method.Equals("PUT", StringComparison.OrdinalIgnoreCase)
-            && path.Equals("api/v1/leave/holidays/update", StringComparison.OrdinalIgnoreCase))
+            && path.Equals("api/v1/holidays/update", StringComparison.OrdinalIgnoreCase))
         {
             return new Dictionary<string, IOpenApiExample>
             {

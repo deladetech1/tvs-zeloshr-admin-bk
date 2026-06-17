@@ -33,6 +33,7 @@ internal static class SwaggerExamples
     internal static readonly Guid SampleHolidayId = Guid.Parse("a2222222-2222-2222-2222-222222222204");
 
     internal const string SampleCurrencyId = "cur_ghs_default";
+    internal const string SampleCountryId = "ctr_gh";
     internal const string SampleDocumentId1 = "doc_contract_a1b2c3";
     internal const string SampleDocumentId2 = "doc_national_id_d4e5f6";
     internal const string SampleBlobPathSingle = "tenant_demo/org_demo/bus_demo/employees/documents/a1b2c3d4-contract.pdf";
@@ -252,6 +253,7 @@ internal static class SwaggerExamples
             nameof(LeaveListDto) => LeaveListResponse(),
             nameof(LeaveApprovalListDto) => LeaveApprovalListResponse(),
             nameof(LeaveDashboardDto) => LeaveDashboardResponse(),
+            nameof(LeaveCalendarDto) => LeaveCalendarResponse(),
             nameof(LeaveMyRequestListDto) => LeaveMyRequestListResponse(),
             nameof(LeaveRequestListItemDto) => EnvelopeOk(LeaveRequestItemData()),
             nameof(LeaveRequestDetailDto) => LeaveRequestGetResponse(),
@@ -261,6 +263,7 @@ internal static class SwaggerExamples
             nameof(LeaveTypeListItemDto) => EnvelopeOk(LeaveTypeItemData()),
             nameof(PublicHolidayListDto) => LeaveHolidayListResponse(),
             nameof(PublicHolidayListItemDto) => EnvelopeOk(PublicHolidayItemData()),
+            nameof(GetCountrySimpleReadDto) => EnvelopeOk(CountryItem()),
             _ when dataType == typeof(string) => EnvelopeOk(JsonValue.Create("Operation completed successfully.")),
             _ when dataType == typeof(object) => EnvelopeOk(new JsonObject()),
             _ => EnvelopeOk(new JsonObject()),
@@ -310,6 +313,7 @@ internal static class SwaggerExamples
         nameof(CustomFieldDefinitionDto) => CustomFieldDefinitionItemsAllSections(),
         nameof(CpUserDto) => new JsonArray(CpUserSearchItem()),
         nameof(GetCurrencySimpleReadDto) => new JsonArray(CurrencyItem()),
+        nameof(GetCountrySimpleReadDto) => new JsonArray(CountryItem()),
         _ => new JsonArray(),
     };
 
@@ -1713,6 +1717,71 @@ internal static class SwaggerExamples
 
     internal static JsonObject LeaveDashboardResponse() => EnvelopeOk(LeaveDashboardData());
 
+    internal static JsonObject LeaveCalendarListItemData(
+        string employeeName = "Ama Asante",
+        string title = "Senior Product Designer",
+        string employeeCode = "ZEL-0042",
+        bool includeProfile = true,
+        bool includeLeave = true,
+        string? employeeId = null,
+        string leaveType = "Annual Leave",
+        string status = "Approved",
+        string leaveFrom = "2026-06-05",
+        string leaveTo = "2026-06-07") => new()
+    {
+        ["employee_id"] = employeeId ?? SampleEmployeeId.ToString(),
+        ["employee_name"] = employeeName,
+        ["employee_code"] = employeeCode,
+        ["title"] = title,
+        ["profile_url"] = includeProfile
+            ? EmployeeDocumentItem(SampleDocumentId1, "Profile photo", "ama.jpg")
+            : null,
+        ["leave_request_id"] = includeLeave ? SampleLeaveRequestId.ToString() : null,
+        ["leave_type_id"] = includeLeave ? SampleLeaveTypeId.ToString() : null,
+        ["leave_type"] = includeLeave ? leaveType : null,
+        ["status"] = includeLeave ? status : null,
+        ["leave_from"] = includeLeave ? leaveFrom : null,
+        ["leave_to"] = includeLeave ? leaveTo : null,
+        ["leave_days"] = includeLeave ? 3 : null,
+    };
+
+    internal static JsonObject LeaveCalendarData() => new()
+    {
+        ["view"] = "week",
+        ["anchor_date"] = "2026-06-05",
+        ["from_date"] = "2026-06-02",
+        ["to_date"] = "2026-06-08",
+        ["items"] = new JsonArray(
+            LeaveCalendarListItemData(),
+            LeaveCalendarListItemData(
+                "Ama Asante",
+                "Senior Product Designer",
+                "ZEL-0042",
+                includeProfile: true,
+                includeLeave: true,
+                leaveType: "Maternity Leave",
+                status: "Pending",
+                leaveFrom: "2026-06-10",
+                leaveTo: "2026-06-12"),
+            LeaveCalendarListItemData(
+                "Kwame Asare",
+                "Software Engineer",
+                "ZEL-0055",
+                includeLeave: false,
+                employeeId: "a2222222-2222-2222-2222-222222222212")),
+    };
+
+    internal static JsonObject LeaveCalendarPagination() => new()
+    {
+        ["page"] = 1,
+        ["size"] = 50,
+        ["total"] = 42,
+        ["has_next"] = false,
+    };
+
+    internal static JsonObject LeaveCalendarResponse() =>
+        EnvelopeOk(LeaveCalendarData(), LeaveCalendarPagination());
+
     internal static JsonObject LeaveBalanceListResponse() => EnvelopeOk(LeaveBalanceListData());
 
     internal static JsonObject LeaveBalanceGetResponse() => EnvelopeOk(LeaveBalanceItemData());
@@ -1920,12 +1989,13 @@ internal static class SwaggerExamples
         var data = new JsonObject
         {
             ["holiday_id"] = SampleHolidayId.ToString(),
+            ["holiday_name"] = "Independence Day",
+            ["date"] = "2026-03-06",
+            ["is_recurring_annually"] = true,
+            ["occurrence_date"] = "2026-03-06",
+            ["country_id"] = SampleCountryId,
             ["country_code"] = "GH",
-            ["name"] = "Independence Day",
-            ["holiday_date"] = "2026-03-06",
-            ["is_recurring"] = true,
-            ["branch_id"] = null,
-            ["is_active"] = true,
+            ["country_name"] = "Ghana",
         };
         AppendResourceAuditFields(data, "2026-01-10T09:00:00+00:00", "2026-01-10T09:00:00+00:00");
         return data;
@@ -1936,12 +2006,13 @@ internal static class SwaggerExamples
         var second = new JsonObject
         {
             ["holiday_id"] = "a2222222-2222-2222-2222-222222222207",
+            ["holiday_name"] = "Madaraka Day",
+            ["date"] = "2026-06-01",
+            ["is_recurring_annually"] = true,
+            ["occurrence_date"] = "2026-06-01",
+            ["country_id"] = "ctr_ke",
             ["country_code"] = "KE",
-            ["name"] = "Madaraka Day",
-            ["holiday_date"] = "2026-06-01",
-            ["is_recurring"] = true,
-            ["branch_id"] = null,
-            ["is_active"] = true,
+            ["country_name"] = "Kenya",
         };
         AppendResourceAuditFields(second, "2026-01-10T09:00:00+00:00", "2026-01-10T09:00:00+00:00");
         return new JsonObject
@@ -1949,6 +2020,31 @@ internal static class SwaggerExamples
             ["items"] = new JsonArray(PublicHolidayItemData(), second),
         };
     }
+
+    internal static JsonObject CountryItem() => new()
+    {
+        ["id"] = SampleCountryId,
+        ["name"] = "Ghana",
+        ["code"] = "GH",
+    };
+
+    internal static JsonArray CountryListData() => new JsonArray(CountryItem(), new JsonObject
+    {
+        ["id"] = "ctr_ke",
+        ["name"] = "Kenya",
+        ["code"] = "KE",
+    });
+
+    internal static JsonObject CountryListResponse() => EnvelopeOk(CountryListData());
+
+    internal static JsonObject CountryGetResponse() => EnvelopeOk(new JsonArray(CountryItem()));
+
+    internal static JsonObject CountryNotFoundResponse() => new()
+    {
+        ["success"] = false,
+        ["status_code"] = 404,
+        ["detail"] = "Country not found.",
+    };
 
     internal static JsonObject LeaveHolidayListResponse() =>
         EnvelopeOk(PublicHolidayListData(), LeaveHolidayListPagination());
@@ -2062,28 +2158,16 @@ internal static class SwaggerExamples
 
     internal static JsonObject CreatePublicHolidayBody() => new()
     {
-        ["country_code"] = "GH",
-        ["name"] = "Independence Day",
-        ["holiday_date"] = "2026-03-06",
-        ["is_recurring"] = true,
-        ["branch_id"] = null,
-        ["is_active"] = true,
-    };
-
-    internal static JsonObject CreatePublicHolidayBranchBody() => new()
-    {
-        ["country_code"] = "GH",
-        ["name"] = "Regional Founders Day",
-        ["holiday_date"] = "2026-08-04",
-        ["is_recurring"] = false,
-        ["branch_id"] = SampleBranchId.ToString(),
-        ["is_active"] = true,
+        ["holiday_name"] = "Christmas Day",
+        ["date"] = "2026-12-25",
+        ["is_recurring_annually"] = true,
+        ["country_id"] = SampleCountryId,
     };
 
     internal static JsonObject UpdatePublicHolidayBody() => new()
     {
-        ["name"] = "Independence Day (observed)",
-        ["holiday_date"] = "2026-03-07",
-        ["is_active"] = true,
+        ["holiday_name"] = "Christmas Day (observed)",
+        ["date"] = "2026-12-26",
+        ["is_recurring_annually"] = true,
     };
 }

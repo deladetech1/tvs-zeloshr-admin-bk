@@ -44,6 +44,28 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                     """);
                 return;
 
+            case "api/v1/leave/calendar" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
+                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveCalendarResponse());
+                operation.Summary ??= "Leave Calendar";
+                operation.Description = SwaggerOptionFormat.Append(operation.Description,
+                    $"""
+                    Flat employee + leave-range rows for the Leave Calendar grid (response example shows three rows).
+                    Each row: employee_id · employee_name · employee_code · title · profile_url · leave_request_id · leave_type · status · leave_from · leave_to · leave_days.
+                    Same employee may appear on multiple rows when they have overlapping Approved/Pending leave in the window.
+                    Employees with no leave still appear once with null leave fields.
+                    View: `view={SwaggerExampleHints.LeaveCalendarView}` with optional `anchor_date` (defaults to today UTC).
+                    `from_date`/`to_date` override `view` when both set. Pagination counts employees, not leave rows.
+                    Filters: search (min 2 chars) · department_id · leave_type_id · page · size.
+                    """);
+                AppendParameterDescription(operation, "view", $"Visible window. Allowed: {SwaggerExampleHints.LeaveCalendarView}. Defaults to week when dates omitted.");
+                AppendParameterDescription(operation, "anchor_date", "Date inside the week or month to display (defaults to today UTC).");
+                AppendParameterDescription(operation, "search", "Free text (min 2 chars): employee name, employee code, or job title.");
+                AppendParameterDescription(operation, "department_id", "Optional department UUID filter.");
+                AppendParameterDescription(operation, "leave_type_id", "Optional leave type UUID filter.");
+                AppendParameterDescription(operation, "from_date", "Explicit window start (overrides view when paired with to_date).");
+                AppendParameterDescription(operation, "to_date", "Explicit window end (overrides view when paired with from_date).");
+                return;
+
             case "api/v1/leave/approvals/list" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
                 SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveApprovalListResponse());
                 operation.Summary ??= "Leave Approvals table";
@@ -296,41 +318,6 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
                     "Delete action — permanently removes when not referenced. Returns 409 when in use; archive instead.");
                 AppendParameterDescription(operation, "leave_type_id", "Leave type UUID to delete.");
-                return;
-
-            case "api/v1/leave/holidays/list" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
-                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveHolidayListResponse());
-                operation.Summary ??= "Public holidays";
-                operation.Description = SwaggerOptionFormat.Append(operation.Description,
-                    "Country-based holidays for leave planning. Filter by country_code, year, and optional branch_id (includes org-wide rows where branch_id is null).");
-                AppendParameterDescription(operation, "country_code", "ISO country code (GH, KE, NG, …).");
-                AppendParameterDescription(operation, "year", "Calendar year; includes recurring holidays from any year.");
-                AppendParameterDescription(operation, "branch_id", "Optional branch UUID — returns org-wide + branch-specific holidays.");
-                return;
-
-            case "api/v1/leave/holidays/get" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
-                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveHolidayGetResponse());
-                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<PublicHolidayListItemDto>), 404));
-                operation.Summary ??= "Get public holiday";
-                AppendParameterDescription(operation, "holiday_id", "Holiday UUID.");
-                return;
-
-            case "api/v1/leave/holidays/add" when method.Equals("POST", StringComparison.OrdinalIgnoreCase):
-                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveHolidayGetResponse());
-                operation.Summary ??= "Create public holiday (admin)";
-                return;
-
-            case "api/v1/leave/holidays/update" when method.Equals("PUT", StringComparison.OrdinalIgnoreCase):
-                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveHolidayGetResponse());
-                operation.Summary ??= "Update public holiday (admin)";
-                AppendParameterDescription(operation, "holiday_id", "Holiday UUID.");
-                return;
-
-            case "api/v1/leave/holidays/delete" when method.Equals("DELETE", StringComparison.OrdinalIgnoreCase):
-                SetJsonResponseExample(operation, 200, SwaggerExamples.LeaveDeleteHolidayResponse());
-                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<PublicHolidayListItemDto>), 404));
-                operation.Summary ??= "Remove public holiday (admin)";
-                AppendParameterDescription(operation, "holiday_id", "Soft-deactivates the holiday row.");
                 return;
         }
     }

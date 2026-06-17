@@ -47,4 +47,5 @@ internal static class SwaggerExampleHints
     internal static string LeaveApprovalListTab => SwaggerOptionFormat.JoinPipe(LeaveFieldOptions.ApprovalListTabs);
     internal static string LeaveApprovalListSortBy => SwaggerOptionFormat.JoinPipe(LeaveFieldOptions.ApprovalListSortBy);
     internal static string LeaveApprovalListSortOrder => SwaggerOptionFormat.JoinPipe(LeaveFieldOptions.ApprovalListSortOrder);
+    internal static string LeaveCalendarView => SwaggerOptionFormat.JoinPipe(LeaveFieldOptions.CalendarViews);
 }

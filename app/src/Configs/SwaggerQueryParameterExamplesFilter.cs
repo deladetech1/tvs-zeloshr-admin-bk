@@ -318,7 +318,7 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
                 || name.Equals("holidayId", StringComparison.OrdinalIgnoreCase))
             {
                 schema.Example = SwaggerExamples.SampleHolidayId.ToString();
-                parameter.Description = "Public holiday UUID from GET /leave/holidays/list.";
+                parameter.Description = "Public holiday UUID from GET /holidays/list.";
                 return;
             }
 
@@ -390,17 +390,29 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
                 return;
             }
 
+            if (name.Equals(PlatformQueryParams.CountryId, StringComparison.OrdinalIgnoreCase)
+                || name.Equals("country_id", StringComparison.OrdinalIgnoreCase))
+            {
+                var path = context.ApiParameterDescription.RelativePath ?? "";
+                schema.Example = SwaggerExamples.SampleCountryId;
+                parameter.Description = path.StartsWith("api/v1/countries", StringComparison.OrdinalIgnoreCase)
+                    || path.StartsWith("api/v1/holidays", StringComparison.OrdinalIgnoreCase)
+                    ? "Catalog country id from GET /countries/list (e.g. ctr_gh). Use returned id — same workflow as compensation.currency_id on employees."
+                    : "Country id from GET /countries/list.";
+                return;
+            }
+
             if (name.Equals("country_code", StringComparison.OrdinalIgnoreCase))
             {
                 schema.Example = "GH";
-                parameter.Description = "ISO 3166-1 alpha-2 country code (GH, KE, NG, …).";
+                parameter.Description = "ISO 3166-1 alpha-2 country id (e.g. GH).";
                 return;
             }
 
             if (name.Equals("year", StringComparison.OrdinalIgnoreCase))
             {
                 schema.Example = 2026;
-                parameter.Description = "Calendar year for public holiday lookup.";
+                parameter.Description = "Calendar year. For holidays list: filters rows and sets occurrence_date on recurring items.";
                 return;
             }
 
@@ -535,8 +547,10 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
         }
     }
 
-    private static bool IsLeaveParameter(ParameterFilterContext context) =>
-        context.ParameterInfo?.Member.DeclaringType?.FullName?.Contains(
-            ".Entities.Leave.",
-            StringComparison.Ordinal) == true;
+    private static bool IsLeaveParameter(ParameterFilterContext context)
+    {
+        var declaringType = context.ParameterInfo?.Member.DeclaringType?.FullName;
+        return declaringType?.Contains(".Entities.Leave.", StringComparison.Ordinal) == true
+            || declaringType?.Contains(".Entities.Holidays.", StringComparison.Ordinal) == true;
+    }
 }

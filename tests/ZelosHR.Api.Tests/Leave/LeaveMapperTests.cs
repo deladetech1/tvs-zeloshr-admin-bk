@@ -642,4 +642,146 @@ public class LeaveMapperTests
         Assert.Null(item.ApprovedBy[1].ProfileUrl);
         Assert.NotNull(item.Waiting);
     }
+
+    [Fact]
+    public void ExpandCalendarItems_emits_flat_rows_per_leave_range()
+    {
+        var approvedRow = new LeaveRequestRawRow(
+            "req-cal-1",
+            EmployeeId.ToString(),
+            "Jane Doe",
+            LeaveTypeId.ToString(),
+            "Annual Leave",
+            new DateOnly(2026, 6, 5),
+            new DateOnly(2026, 6, 14),
+            8,
+            LeaveRequestStatuses.Approved,
+            LeaveApprovalStages.Approved,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            SampleAuditAt,
+            null,
+            SampleAuditAt,
+            SampleAuditAt,
+            null,
+            null);
+
+        var pendingRow = new LeaveRequestRawRow(
+            "req-cal-2",
+            EmployeeId.ToString(),
+            "Jane Doe",
+            LeaveTypeId.ToString(),
+            "Maternity Leave",
+            new DateOnly(2026, 6, 10),
+            new DateOnly(2026, 6, 12),
+            3,
+            LeaveRequestStatuses.Pending,
+            LeaveApprovalStages.PendingFinal,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            SampleAuditAt,
+            null,
+            SampleAuditAt,
+            SampleAuditAt,
+            null,
+            null);
+
+        var employees = new Dictionary<Guid, EmployeeLeaveContext>
+        {
+            [EmployeeId] = new(
+                EmployeeId,
+                "Jane Doe",
+                "ZEL-0042",
+                "Senior Product Designer",
+                null,
+                null,
+                null,
+                null,
+                null),
+        };
+
+        var profileUrls = new Dictionary<Guid, DocumentReadDto?>
+        {
+            [EmployeeId] = new()
+            {
+                DocId = "doc-profile",
+                Name = "jane.jpg",
+                PresignedUrl = "https://example.com/jane.jpg",
+            },
+        };
+
+        var leaveTypes = new Dictionary<Guid, string> { [LeaveTypeId] = "Annual Leave" };
+
+        var rows = LeaveMapper.ExpandCalendarItems(
+            EmployeeId,
+            employees,
+            profileUrls,
+            [approvedRow, pendingRow],
+            leaveTypes);
+
+        Assert.Equal(2, rows.Count);
+        Assert.Equal("Jane Doe", rows[0].EmployeeName);
+        Assert.Equal("ZEL-0042", rows[0].EmployeeCode);
+        Assert.Equal("Approved", rows[0].Status);
+        Assert.Equal(new DateOnly(2026, 6, 5), rows[0].LeaveFrom);
+        Assert.Equal("Pending", rows[1].Status);
+        Assert.Equal("Maternity Leave", rows[1].LeaveType);
+
+        var emptyRows = LeaveMapper.ExpandCalendarItems(
+            EmployeeId,
+            employees,
+            profileUrls,
+            [],
+            leaveTypes);
+
+        Assert.Single(emptyRows);
+        Assert.Null(emptyRows[0].LeaveRequestId);
+        Assert.Null(emptyRows[0].LeaveFrom);
+    }
+
+    [Fact]
+    public void LeaveCalendarWindow_week_view_uses_monday_to_sunday()
+    {
+        var window = LeaveCalendarWindow.Resolve(
+            LeaveCalendarViews.Week,
+            new DateOnly(2026, 6, 5),
+            null,
+            null);
+
+        Assert.Equal(LeaveCalendarViews.Week, window.View);
+        Assert.Equal(new DateOnly(2026, 6, 2), window.FromDate);
+        Assert.Equal(new DateOnly(2026, 6, 8), window.ToDate);
+    }
+
+    [Theory]
+    [InlineData(true, 2026, 3, 6, 2026, 3, 6)]
+    [InlineData(true, 2027, 12, 25, 2027, 12, 25)]
+    [InlineData(false, 2026, 3, 6, 2026, 3, 6)]
+    public void ProjectHolidayOccurrence_maps_recurring_and_one_off(
+        bool recurring, int anchorYear, int month, int day, int listYear, int expectedYear, int expectedMonth, int expectedDay)
+    {
+        var anchor = new DateOnly(anchorYear, month, day);
+        var occurrence = LeaveMapper.ProjectHolidayOccurrence(anchor, recurring, listYear);
+
+        if (!recurring && anchorYear != listYear)
+        {
+            Assert.Null(occurrence);
+            return;
+        }
+
+        Assert.NotNull(occurrence);
+        Assert.Equal(new DateOnly(expectedYear, expectedMonth, expectedDay), occurrence);
+    }
 }

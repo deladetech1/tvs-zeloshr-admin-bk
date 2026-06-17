@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ZelosHR.Api.Entities.Employees;
+using ZelosHR.Api.Entities.Countries;
 using ZelosHR.Api.Entities.Leave;
 using ZelosHR.Api.Persistence.Entities;
 
@@ -86,6 +87,85 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
             .ToListAsync(ct);
 
         return (await MapRawRowsAsync(tenantId, orgId, entities, ct), total);
+    }
+
+    public async Task<LeaveCalendarScopedResult> ListCalendarScopedAsync(
+        string tenantId,
+        string orgId,
+        LeaveCalendarQuery query,
+        CancellationToken ct = default)
+    {
+        var window = LeaveCalendarWindow.Resolve(
+            query.View,
+            query.AnchorDate,
+            query.FromDate,
+            query.ToDate);
+        var fromDate = window.FromDate;
+        var toDate = window.ToDate;
+
+        var employeeQuery = db.Employees.AsNoTracking()
+            .Where(e => e.TenantId == tenantId && e.OrgId == orgId && !e.IsDeleted)
+            .Where(e => e.EmploymentStatus != EmploymentStatusValues.Terminated
+                        && e.EmploymentStatus != EmploymentStatusValues.Resigned);
+
+        if (query.DepartmentId.HasValue)
+            employeeQuery = employeeQuery.Where(e => e.DepartmentId == query.DepartmentId.Value);
+
+        if (!string.IsNullOrWhiteSpace(query.Search) && query.Search.Trim().Length >= 2)
+        {
+            var term = $"%{query.Search.Trim()}%";
+            employeeQuery = employeeQuery.Where(e =>
+                EF.Functions.ILike(e.FullName, term)
+                || EF.Functions.ILike(e.EmployeeCode, term)
+                || (e.JobTitle != null && EF.Functions.ILike(e.JobTitle, term)));
+        }
+
+        var total = await employeeQuery.CountAsync(ct);
+        var employeeIds = await employeeQuery
+            .OrderBy(e => e.FullName)
+            .ThenBy(e => e.EmployeeCode)
+            .Skip((query.Page - 1) * query.Size)
+            .Take(query.Size)
+            .Select(e => e.Id)
+            .ToListAsync(ct);
+
+        if (employeeIds.Count == 0)
+        {
+            return new LeaveCalendarScopedResult(
+                window.View,
+                window.AnchorDate,
+                fromDate,
+                toDate,
+                [],
+                new Dictionary<Guid, IReadOnlyList<LeaveRequestRawRow>>(),
+                total);
+        }
+
+        var leaveQuery = Requests(tenantId, orgId)
+            .Where(r => employeeIds.Contains(r.EmployeeId))
+            .Where(r => r.EndDate >= fromDate && r.StartDate <= toDate)
+            .Where(r => r.Status == LeaveRequestStatuses.Pending || r.Status == LeaveRequestStatuses.Approved);
+
+        if (query.LeaveTypeId.HasValue)
+            leaveQuery = leaveQuery.Where(r => r.LeaveTypeId == query.LeaveTypeId.Value);
+
+        var leaveEntities = await leaveQuery
+            .OrderBy(r => r.StartDate)
+            .ToListAsync(ct);
+
+        var rawRows = await MapRawRowsAsync(tenantId, orgId, leaveEntities, ct);
+        var leaveByEmployee = rawRows
+            .GroupBy(r => Guid.Parse(r.EmployeeId))
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<LeaveRequestRawRow>)g.ToList());
+
+        return new LeaveCalendarScopedResult(
+            window.View,
+            window.AnchorDate,
+            fromDate,
+            toDate,
+            employeeIds,
+            leaveByEmployee,
+            total);
     }
 
     public async Task<LeaveRequestRawRow?> GetRequestRawByIdScopedAsync(
@@ -644,7 +724,6 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
         string orgId,
         string? countryCode,
         int? year,
-        Guid? branchId,
         int page,
         int pageSize,
         CancellationToken ct = default)
@@ -655,8 +734,6 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
             query = query.Where(h => h.CountryCode == countryCode.Trim().ToUpperInvariant());
         if (year.HasValue)
             query = query.Where(h => h.HolidayDate.Year == year.Value || h.IsRecurring);
-        if (branchId.HasValue)
-            query = query.Where(h => h.BranchId == null || h.BranchId == branchId.Value);
 
         var total = await query.CountAsync(ct);
         var items = await query
@@ -678,7 +755,12 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
             .FirstOrDefaultAsync(ct);
 
     public async Task<Guid> CreateHolidayScopedAsync(
-        string tenantId, string orgId, CreatePublicHolidayDto data, string? actorUserId = null, CancellationToken ct = default)
+        string tenantId,
+        string orgId,
+        string countryCode,
+        CreatePublicHolidayDto data,
+        string? actorUserId = null,
+        CancellationToken ct = default)
     {
         var now = DateTimeOffset.UtcNow;
         var entity = new PublicHolidayEntity
@@ -686,12 +768,12 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
             Id = Guid.NewGuid(),
             TenantId = tenantId,
             OrgId = orgId,
-            CountryCode = data.CountryCode!.Trim().ToUpperInvariant(),
-            Name = data.Name!.Trim(),
-            HolidayDate = data.HolidayDate,
-            IsRecurring = data.IsRecurring,
-            BranchId = data.BranchId,
-            IsActive = data.IsActive,
+            CountryCode = countryCode.Trim().ToUpperInvariant(),
+            Name = data.HolidayName!.Trim(),
+            HolidayDate = data.Date,
+            IsRecurring = data.IsRecurringAnnually,
+            BranchId = null,
+            IsActive = true,
             CreatedAt = now,
             UpdatedAt = now,
             CreatedBy = actorUserId,
@@ -703,7 +785,13 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
     }
 
     public async Task<PublicHolidayListItemDto?> UpdateHolidayScopedAsync(
-        Guid id, string tenantId, string orgId, UpdatePublicHolidayDto data, string? actorUserId = null, CancellationToken ct = default)
+        Guid id,
+        string tenantId,
+        string orgId,
+        string? countryCode,
+        UpdatePublicHolidayDto data,
+        string? actorUserId = null,
+        CancellationToken ct = default)
     {
         var entity = await db.PublicHolidays.FirstOrDefaultAsync(
             h => h.Id == id && h.TenantId == tenantId && h.OrgId == orgId, ct);
@@ -711,34 +799,24 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
             return null;
 
         var changed = false;
-        if (!string.IsNullOrWhiteSpace(data.CountryCode))
+        if (!string.IsNullOrWhiteSpace(countryCode))
         {
-            entity.CountryCode = data.CountryCode.Trim().ToUpperInvariant();
+            entity.CountryCode = countryCode.Trim().ToUpperInvariant();
             changed = true;
         }
-        if (!string.IsNullOrWhiteSpace(data.Name))
+        if (!string.IsNullOrWhiteSpace(data.HolidayName))
         {
-            entity.Name = data.Name.Trim();
+            entity.Name = data.HolidayName.Trim();
             changed = true;
         }
-        if (data.HolidayDate.HasValue)
+        if (data.Date.HasValue)
         {
-            entity.HolidayDate = data.HolidayDate.Value;
+            entity.HolidayDate = data.Date.Value;
             changed = true;
         }
-        if (data.IsRecurring.HasValue)
+        if (data.IsRecurringAnnually.HasValue)
         {
-            entity.IsRecurring = data.IsRecurring.Value;
-            changed = true;
-        }
-        if (data.BranchId.HasValue)
-        {
-            entity.BranchId = data.BranchId;
-            changed = true;
-        }
-        if (data.IsActive.HasValue)
-        {
-            entity.IsActive = data.IsActive.Value;
+            entity.IsRecurring = data.IsRecurringAnnually.Value;
             changed = true;
         }
 
@@ -1000,18 +1078,25 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
         UpdatedById = t.UpdatedBy,
     };
 
-    private static PublicHolidayListItemDto ToHolidayDto(PublicHolidayEntity h) => new()
+    private static PublicHolidayListItemDto ToHolidayDto(PublicHolidayEntity h)
     {
-        HolidayId = h.Id.ToString(),
-        CountryCode = h.CountryCode,
-        Name = h.Name,
-        HolidayDate = h.HolidayDate,
-        IsRecurring = h.IsRecurring,
-        BranchId = h.BranchId?.ToString(),
-        IsActive = h.IsActive,
-        CreatedAt = h.CreatedAt,
-        UpdatedAt = h.UpdatedAt,
-        CreatedById = h.CreatedBy,
-        UpdatedById = h.UpdatedBy,
-    };
+        var (countryId, countryCode, countryName) =
+            CountryCatalog.ResolveHolidayCountryFields(h.CountryCode);
+
+        return new PublicHolidayListItemDto
+        {
+            HolidayId = h.Id.ToString(),
+            HolidayName = h.Name,
+            Date = h.HolidayDate,
+            IsRecurringAnnually = h.IsRecurring,
+            OccurrenceDate = null,
+            CountryId = countryId,
+            CountryCode = countryCode,
+            CountryName = countryName,
+            CreatedAt = h.CreatedAt,
+            UpdatedAt = h.UpdatedAt,
+            CreatedById = h.CreatedBy,
+            UpdatedById = h.UpdatedBy,
+        };
+    }
 }

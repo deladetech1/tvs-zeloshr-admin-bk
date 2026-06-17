@@ -8,7 +8,7 @@ using ZelosHR.Api.Shared.Validation;
 
 namespace ZelosHR.Api.Entities.Leave;
 
-/// <summary>Leave management — admin requests, My Leave, balances, types, and public holidays.</summary>
+/// <summary>Leave management — admin requests, My Leave, balances, and leave types.</summary>
 [ApiController]
 [ApiExplorerSettings(GroupName = SwaggerGroups.Leave)]
 [Route("api/v1/leave")]
@@ -54,6 +54,42 @@ public class LeaveController : ControllerBase
     {
         var ctx = _tenant.Current;
         var result = await _service.GetDashboardAsync(ctx.TenantId, ctx.OrgId, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    /// <summary>Leave Calendar — employee rows with approved and pending leave bars for the visible date window.</summary>
+    [HttpGet("calendar")]
+    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
+    [ProducesResponseType(typeof(Respons<LeaveCalendarDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<Respons<LeaveCalendarDto>>> Calendar(
+        [FromQuery] string? view,
+        [FromQuery(Name = "anchor_date")] DateOnly? anchorDate,
+        [FromQuery] string? search,
+        [FromQuery(Name = PlatformQueryParams.DepartmentId)] Guid? departmentId,
+        [FromQuery(Name = PlatformQueryParams.LeaveTypeId)] Guid? leaveTypeId,
+        [FromQuery(Name = "from_date")] DateOnly? fromDate,
+        [FromQuery(Name = "to_date")] DateOnly? toDate,
+        [FromQuery] int page = 1,
+        [FromQuery] int size = 50,
+        CancellationToken ct = default)
+    {
+        var ctx = _tenant.Current;
+        var result = await _service.GetCalendarAsync(
+            new LeaveCalendarQuery
+            {
+                View = view,
+                AnchorDate = anchorDate,
+                Search = search,
+                DepartmentId = departmentId,
+                LeaveTypeId = leaveTypeId,
+                FromDate = fromDate,
+                ToDate = toDate,
+                Page = page,
+                Size = size,
+            },
+            ctx.TenantId,
+            ctx.OrgId,
+            ct);
         return StatusCode(result.StatusCode, result);
     }
 
@@ -513,92 +549,6 @@ public class LeaveController : ControllerBase
 
         var ctx = _tenant.Current;
         var result = await _service.DeleteTypeAsync(leaveTypeId, ctx.TenantId, ctx.OrgId, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
-    /// <summary>List public holidays by country, year, and optional branch.</summary>
-    [HttpGet("holidays/list")]
-    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
-    [ProducesResponseType(typeof(Respons<PublicHolidayListDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<Respons<PublicHolidayListDto>>> ListHolidays(
-        [FromQuery] string? countryCode,
-        [FromQuery] int? year,
-        [FromQuery(Name = PlatformQueryParams.BranchId)] Guid? branchId,
-        [FromQuery] int page = 1,
-        [FromQuery] int size = 50,
-        CancellationToken ct = default)
-    {
-        var ctx = _tenant.Current;
-        var result = await _service.ListHolidaysAsync(
-            countryCode, year, branchId, page, size, ctx.TenantId, ctx.OrgId, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
-    /// <summary>Get a public holiday by id.</summary>
-    [HttpGet("holidays/get")]
-    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]
-    [ProducesResponseType(typeof(Respons<PublicHolidayListItemDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(Respons<PublicHolidayListItemDto>), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<Respons<PublicHolidayListItemDto>>> GetHoliday(
-        [FromQuery(Name = PlatformQueryParams.HolidayId)] Guid holidayId,
-        CancellationToken ct)
-    {
-        if (QueryParamValidation.BadRequestIfEmptyGuid<PublicHolidayListItemDto>(
-                holidayId, PlatformQueryParams.HolidayId) is { } missingId)
-            return missingId;
-
-        var ctx = _tenant.Current;
-        var result = await _service.GetHolidayByIdAsync(holidayId, ctx.TenantId, ctx.OrgId, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
-    /// <summary>Create a public holiday (admin).</summary>
-    [HttpPost("holidays/add")]
-    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveAdmin)]
-    [ProducesResponseType(typeof(Respons<PublicHolidayListItemDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<Respons<PublicHolidayListItemDto>>> CreateHoliday(
-        [FromBody] CreatePublicHolidayDto body,
-        CancellationToken ct)
-    {
-        var ctx = _tenant.Current;
-        var result = await _service.CreateHolidayAsync(body, ctx.TenantId, ctx.OrgId, ctx.UserId, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
-    /// <summary>Update a public holiday (admin).</summary>
-    [HttpPut("holidays/update")]
-    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveAdmin)]
-    [ProducesResponseType(typeof(Respons<PublicHolidayListItemDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(Respons<PublicHolidayListItemDto>), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<Respons<PublicHolidayListItemDto>>> UpdateHoliday(
-        [FromQuery(Name = PlatformQueryParams.HolidayId)] Guid holidayId,
-        [FromBody] UpdatePublicHolidayDto body,
-        CancellationToken ct)
-    {
-        if (QueryParamValidation.BadRequestIfEmptyGuid<PublicHolidayListItemDto>(
-                holidayId, PlatformQueryParams.HolidayId) is { } missingId)
-            return missingId;
-
-        var ctx = _tenant.Current;
-        var result = await _service.UpdateHolidayAsync(holidayId, body, ctx.TenantId, ctx.OrgId, ctx.UserId, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
-    /// <summary>Remove a public holiday (admin).</summary>
-    [HttpDelete("holidays/delete")]
-    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveAdmin)]
-    [ProducesResponseType(typeof(Respons<object>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(Respons<object>), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<Respons<object>>> DeleteHoliday(
-        [FromQuery(Name = PlatformQueryParams.HolidayId)] Guid holidayId,
-        CancellationToken ct)
-    {
-        if (QueryParamValidation.BadRequestIfEmptyGuid<object>(
-                holidayId, PlatformQueryParams.HolidayId) is { } missingId)
-            return missingId;
-
-        var ctx = _tenant.Current;
-        var result = await _service.DeleteHolidayAsync(holidayId, ctx.TenantId, ctx.OrgId, ct);
         return StatusCode(result.StatusCode, result);
     }
 }

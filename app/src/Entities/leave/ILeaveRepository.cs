@@ -20,6 +20,12 @@ public interface ILeaveRepository
         LeaveRequestListQuery query,
         CancellationToken ct = default);
 
+    Task<LeaveCalendarScopedResult> ListCalendarScopedAsync(
+        string tenantId,
+        string orgId,
+        LeaveCalendarQuery query,
+        CancellationToken ct = default);
+
     Task<LeaveRequestRawRow?> GetRequestRawByIdScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default);
 
@@ -147,7 +153,6 @@ public interface ILeaveRepository
         string orgId,
         string? countryCode,
         int? year,
-        Guid? branchId,
         int page,
         int pageSize,
         CancellationToken ct = default);
@@ -156,10 +161,21 @@ public interface ILeaveRepository
         Guid id, string tenantId, string orgId, CancellationToken ct = default);
 
     Task<Guid> CreateHolidayScopedAsync(
-        string tenantId, string orgId, CreatePublicHolidayDto data, string? actorUserId = null, CancellationToken ct = default);
+        string tenantId,
+        string orgId,
+        string countryCode,
+        CreatePublicHolidayDto data,
+        string? actorUserId = null,
+        CancellationToken ct = default);
 
     Task<PublicHolidayListItemDto?> UpdateHolidayScopedAsync(
-        Guid id, string tenantId, string orgId, UpdatePublicHolidayDto data, string? actorUserId = null, CancellationToken ct = default);
+        Guid id,
+        string tenantId,
+        string orgId,
+        string? countryCode,
+        UpdatePublicHolidayDto data,
+        string? actorUserId = null,
+        CancellationToken ct = default);
 
     Task<bool> DeleteHolidayScopedAsync(Guid id, string tenantId, string orgId, CancellationToken ct = default);
 }

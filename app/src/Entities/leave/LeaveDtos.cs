@@ -279,6 +279,37 @@ public sealed class LeaveDashboardDto
     public IReadOnlyList<LeaveDashboardLeavingItemDto> LeavingThisWeek { get; init; } = [];
 }
 
+/// <summary>Leave Calendar — flat employee + leave-range rows for the visible window.</summary>
+public sealed class LeaveCalendarDto
+{
+    [SwaggerAllowedValues(typeof(LeaveFieldOptions), nameof(LeaveFieldOptions.CalendarViews))]
+    public required string View { get; init; }
+
+    public DateOnly AnchorDate { get; init; }
+    public DateOnly FromDate { get; init; }
+    public DateOnly ToDate { get; init; }
+    public IReadOnlyList<LeaveCalendarListItemDto> Items { get; init; } = [];
+}
+
+/// <summary>One calendar grid row — employee identity plus one leave range (or null leave fields when none).</summary>
+public sealed class LeaveCalendarListItemDto
+{
+    public required string EmployeeId { get; init; }
+    public required string EmployeeName { get; init; }
+    public string? EmployeeCode { get; init; }
+    public string? Title { get; init; }
+
+    /// <summary>Profile photo (<c>DocumentReadDto</c>): <c>doc_id</c>, <c>name</c>, <c>presigned_url</c> (~24h), <c>description</c>.</summary>
+    public DocumentReadDto? ProfileUrl { get; init; }
+    public string? LeaveRequestId { get; init; }
+    public string? LeaveTypeId { get; init; }
+    public string? LeaveType { get; init; }
+    public string? Status { get; init; }
+    public DateOnly? LeaveFrom { get; init; }
+    public DateOnly? LeaveTo { get; init; }
+    public decimal? LeaveDays { get; init; }
+}
+
 public sealed class LeaveTypeListItemDto
 {
     public required string LeaveTypeId { get; init; }
@@ -309,12 +340,26 @@ public sealed class LeaveTypeListDto
 public sealed class PublicHolidayListItemDto
 {
     public required string HolidayId { get; init; }
-    public required string CountryCode { get; init; }
-    public required string Name { get; init; }
-    public DateOnly HolidayDate { get; init; }
-    public bool IsRecurring { get; init; }
-    public string? BranchId { get; init; }
-    public bool IsActive { get; init; }
+    public required string HolidayName { get; init; }
+
+    /// <summary>Stored calendar date. For recurring rows this is the anchor month/day (year is not significant).</summary>
+    public DateOnly Date { get; init; }
+
+    /// <summary>When <c>is_recurring_annually</c> is true, the API does not insert a new row each year — leave working-day logic projects this anchor into each calendar year. Populated on list when <c>year</c> query is set.</summary>
+    public bool IsRecurringAnnually { get; init; }
+
+    /// <summary>Projected date in the requested list <c>year</c> (recurring) or same as <c>date</c> when non-recurring.</summary>
+    public DateOnly? OccurrenceDate { get; init; }
+
+    /// <summary>Country catalog id from <c>GET /countries/list</c> (use returned <c>id</c>). Not an ISO code.</summary>
+    public required string CountryId { get; init; }
+
+    /// <summary>Joined on read — ISO 3166-1 alpha-2.</summary>
+    public string? CountryCode { get; init; }
+
+    /// <summary>Joined on read — display name.</summary>
+    public string? CountryName { get; init; }
+
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
     public string? CreatedById { get; init; }
