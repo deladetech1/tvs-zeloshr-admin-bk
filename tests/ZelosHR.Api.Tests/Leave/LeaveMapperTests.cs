@@ -8,6 +8,7 @@ public class LeaveMapperTests
 {
     private static readonly Guid EmployeeId = Guid.Parse("3804deee-d6ee-4b05-9efc-6e8ccf3b5ae3");
     private static readonly Guid LeaveTypeId = Guid.Parse("a2222222-2222-2222-2222-222222222203");
+    private static readonly Guid MaternityLeaveTypeId = Guid.Parse("a2222222-2222-2222-2222-222222222204");
 
     private static readonly IReadOnlyDictionary<Guid, EmployeeLeaveContext> NoEmployees =
         new Dictionary<Guid, EmployeeLeaveContext>();
@@ -676,7 +677,7 @@ public class LeaveMapperTests
             "req-cal-2",
             EmployeeId.ToString(),
             "Jane Doe",
-            LeaveTypeId.ToString(),
+            MaternityLeaveTypeId.ToString(),
             "Maternity Leave",
             new DateOnly(2026, 6, 10),
             new DateOnly(2026, 6, 12),
@@ -722,7 +723,11 @@ public class LeaveMapperTests
             },
         };
 
-        var leaveTypes = new Dictionary<Guid, string> { [LeaveTypeId] = "Annual Leave" };
+        var leaveTypes = new Dictionary<Guid, string>
+        {
+            [LeaveTypeId] = "Annual Leave",
+            [MaternityLeaveTypeId] = "Maternity Leave",
+        };
 
         var rows = LeaveMapper.ExpandCalendarItems(
             EmployeeId,
@@ -761,8 +766,8 @@ public class LeaveMapperTests
             null);
 
         Assert.Equal(LeaveCalendarViews.Week, window.View);
-        Assert.Equal(new DateOnly(2026, 6, 2), window.FromDate);
-        Assert.Equal(new DateOnly(2026, 6, 8), window.ToDate);
+        Assert.Equal(new DateOnly(2026, 6, 1), window.FromDate);
+        Assert.Equal(new DateOnly(2026, 6, 7), window.ToDate);
     }
 
     [Theory]
