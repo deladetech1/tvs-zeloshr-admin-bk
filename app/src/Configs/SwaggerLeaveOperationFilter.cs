@@ -14,7 +14,7 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
 
     private const string RecurringNote =
         "**Recurring holidays:** `is_recurring_annually: true` stores **one** row with an anchor month/day (`date`). " +
-        "The API does **not** insert a new row each year. Leave working-day logic and list with `year=true` project that anchor into the current UTC calendar year (`occurrence_date`).";
+        "The API does **not** insert a new row each year. Leave working-day logic and list with `year=2026` project that anchor into the requested calendar year (`occurrence_date`).";
 
     private const string CountryNote =
         "`country` — display name from `GET /api/v1/countries/list` (returned `name`, e.g. Ghana).";
@@ -334,7 +334,7 @@ public sealed class SwaggerLeaveOperationFilter : IOperationFilter
                     "Matches frontend PublicHolidayParams. " + RecurringNote + " " + CountryNote);
                 AppendParameterDescription(operation, "search", "Partial match on holiday_name.");
                 AppendParameterDescription(operation, "year",
-                    "When true, scope to current UTC calendar year and set occurrence_date on recurring rows.");
+                    "Calendar year (e.g. 2026). Filters holidays for that year and sets occurrence_date on recurring rows. Omit for no year filter.");
                 AppendParameterDescription(operation, "country",
                     "Country name from GET /countries/list (e.g. Ghana).");
                 return;

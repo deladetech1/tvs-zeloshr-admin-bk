@@ -85,7 +85,7 @@ Country-based holidays for leave working-day calculations. Standard audit fields
 | Param | Type | Meaning |
 |-------|------|---------|
 | `search` | string | Partial match on `holiday_name` |
-| `year` | boolean | When `true`, scope to current UTC calendar year and set `occurrence_date` on recurring rows |
+| `year` | number | Calendar year (e.g. `2026`). Omit for no year filter; sets `occurrence_date` on recurring rows when set |
 | `country` | string | Country name from `GET /countries/list` (e.g. `Ghana`) |
 | `page` | number | Page index |
 | `size` | number | Page size |
@@ -99,7 +99,7 @@ Country-based holidays for leave working-day calculations. Standard audit fields
 
 **Add body** (`POST /leave/holidays/add` — matches frontend `AddPublicHolidayRequest`): `holiday_name` · `date` · `is_recurring_annually` · `country`
 
-**Recurring annually (`is_recurring_annually: true`)** — stores **one** database row with an anchor month/day on `date`. The API does **not** insert a new row each year. Leave working-day calculations and `GET /leave/holidays/list?year=true` project that anchor into the current UTC calendar year (`occurrence_date` when `year=true`).
+**Recurring annually (`is_recurring_annually: true`)** — stores **one** database row with an anchor month/day on `date`. The API does **not** insert a new row each year. Leave working-day calculations and `GET /leave/holidays/list?year=2026` project that anchor into the requested calendar year (`occurrence_date` when `year` is set).
 
 ### Countries (`/api/v1/countries/*`)
 

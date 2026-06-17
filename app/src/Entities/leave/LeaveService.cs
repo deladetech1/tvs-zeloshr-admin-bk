@@ -709,7 +709,13 @@ public class LeaveService
             countryCode = country.Code;
         }
 
-        int? listYear = query.Year ? DateOnly.FromDateTime(DateTime.UtcNow).Year : null;
+        if (query.Year is < 1 or > 9999)
+        {
+            return Respons<PublicHolidayListDto>.ValidationError(
+                new Dictionary<string, string> { ["year"] = "Year must be a calendar year (e.g. 2026)." });
+        }
+
+        int? listYear = query.Year;
 
         var paging = PagedQuery.From(query.Page, query.Size);
         var (items, total) = await _leave.ListHolidaysScopedAsync(

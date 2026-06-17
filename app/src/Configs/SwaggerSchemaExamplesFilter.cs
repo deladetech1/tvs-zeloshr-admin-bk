@@ -161,7 +161,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(PublicHolidayListQuery) => new JsonObject
             {
                 ["search"] = "",
-                ["year"] = true,
+                ["year"] = 2026,
                 ["country"] = SwaggerExamples.SampleCountryName,
                 ["page"] = 1,
                 ["size"] = 50,
@@ -280,9 +280,9 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(LeaveTypeListItemDto) => AppendDescription(schema.Description,
                 $"Settings table row: name · default_entitled_days · is_paid ({SwaggerExampleHints.BooleanPipe}) · accrual_method ({SwaggerExampleHints.LeaveAccrualMethod}) · carry_over_allowed ({SwaggerExampleHints.BooleanPipe}) · applies_to_employment_types ({SwaggerExampleHints.LeaveTypeEmploymentType}) · min_notice_working_days · max_consecutive_days · requires_supporting_document ({SwaggerExampleHints.BooleanPipe}) · audit fields."),
             nameof(PublicHolidayListItemDto) => AppendDescription(schema.Description,
-                "Public holiday row: holiday_name · date · is_recurring_annually · occurrence_date (when list year=true) · country. Standard audit fields."),
+                "Public holiday row: holiday_name · date · is_recurring_annually · occurrence_date (when list year is set) · country. Standard audit fields."),
             nameof(PublicHolidayListQuery) => AppendDescription(schema.Description,
-                "List filters — matches frontend PublicHolidayParams. year=true scopes to current UTC calendar year."),
+                "List filters — matches frontend PublicHolidayParams. year scopes to that calendar year (e.g. 2026)."),
             nameof(GetCountrySimpleReadDto) => AppendDescription(schema.Description,
                 "Country picker row. Use name as country on POST /leave/holidays/add and PUT /leave/holidays/update."),
             nameof(CreateLeaveRequestDto) => AppendDescription(schema.Description,
@@ -513,9 +513,9 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 schema.Example = JsonValue.Create("independence");
                 return;
             case nameof(PublicHolidayListQuery.Year):
-                schema.Example = JsonValue.Create(true);
+                schema.Example = JsonValue.Create(2026);
                 schema.Description = AppendDescription(schema.Description,
-                    "When true, filter to current UTC year and set occurrence_date on recurring rows.");
+                    "Calendar year (e.g. 2026). Omit for no year filter.");
                 return;
             case nameof(GetCountrySimpleReadDto.Id):
                 schema.Example = JsonValue.Create(SwaggerExamples.SampleCountryId);

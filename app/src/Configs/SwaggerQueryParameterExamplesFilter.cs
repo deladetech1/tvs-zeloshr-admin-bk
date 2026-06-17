@@ -416,8 +416,8 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
 
             if (name.Equals("year", StringComparison.OrdinalIgnoreCase))
             {
-                schema.Example = true;
-                parameter.Description = "When true, filter holidays to the current UTC calendar year and set occurrence_date on recurring rows.";
+                schema.Example = 2026;
+                parameter.Description = "Calendar year (e.g. 2026). Filters holidays for that year and sets occurrence_date on recurring rows. Omit for no filter.";
                 return;
             }
 

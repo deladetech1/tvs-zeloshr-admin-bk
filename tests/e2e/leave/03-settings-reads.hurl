@@ -15,7 +15,7 @@ jsonpath "$.data.items" isCollection
 jsonpath "$.pagination.page" isInteger
 jsonpath "$.pagination.total" isInteger
 
-GET {{base}}/api/v1/leave/holidays/list?country=Ghana&year=true&page=1&size=10
+GET {{base}}/api/v1/leave/holidays/list?country=Ghana&year=2026&page=1&size=10
 accept: application/json
 app-id: {{app_id}}
 authorization: Bearer {{token}}

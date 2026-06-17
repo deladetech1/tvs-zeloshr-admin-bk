@@ -554,7 +554,7 @@ public class LeaveController : ControllerBase
 
     /// <summary>List public holidays.</summary>
     /// <remarks>
-    /// Matches frontend <c>PublicHolidayParams</c>: <c>search</c> · <c>year</c> (boolean — when true, current UTC year + <c>occurrence_date</c>) · <c>country</c> (name from <c>GET /countries/list</c>, e.g. Ghana) · <c>page</c> · <c>size</c>.
+    /// Matches frontend <c>PublicHolidayParams</c>: <c>search</c> · <c>year</c> (calendar year number, e.g. <c>2026</c> — sets <c>occurrence_date</c> on recurring rows) · <c>country</c> (name from <c>GET /countries/list</c>, e.g. Ghana) · <c>page</c> · <c>size</c>.
     /// </remarks>
     [HttpGet("holidays/list")]
     [RequiresZelosHrPermission(ZelosHrPermissions.LeaveGet)]

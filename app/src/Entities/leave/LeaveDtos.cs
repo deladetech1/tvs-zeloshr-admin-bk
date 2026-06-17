@@ -345,10 +345,10 @@ public sealed class PublicHolidayListItemDto
     /// <summary>Stored calendar date. For recurring rows this is the anchor month/day (year is not significant).</summary>
     public DateOnly Date { get; init; }
 
-    /// <summary>When <c>is_recurring_annually</c> is true, the API does not insert a new row each year — leave working-day logic projects this anchor into each calendar year. Populated on list when <c>year=true</c>.</summary>
+    /// <summary>When <c>is_recurring_annually</c> is true, the API does not insert a new row each year — leave working-day logic projects this anchor into each calendar year. Populated on list when <c>year</c> query param is set.</summary>
     public bool IsRecurringAnnually { get; init; }
 
-    /// <summary>Projected date when list <c>year=true</c> (recurring) or same as <c>date</c> when non-recurring.</summary>
+    /// <summary>Projected date when list <c>year</c> is set (recurring) or same as <c>date</c> when non-recurring.</summary>
     public DateOnly? OccurrenceDate { get; init; }
 
     /// <summary>Country name (e.g. <c>Ghana</c>).</summary>

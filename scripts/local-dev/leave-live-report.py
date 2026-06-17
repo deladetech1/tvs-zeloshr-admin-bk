@@ -195,7 +195,7 @@ class LeaveLiveReporter:
         self.call(
             "Holidays list",
             "GET",
-            "/api/v1/leave/holidays/list?country=Ghana&year=true&page=1&size=10",
+            "/api/v1/leave/holidays/list?country=Ghana&year=2026&page=1&size=10",
         )
 
         # --- Leave type CRUD ---

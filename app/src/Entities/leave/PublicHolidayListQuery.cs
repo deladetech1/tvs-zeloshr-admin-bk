@@ -6,8 +6,8 @@ public sealed record PublicHolidayListQuery
     /// <summary>Partial match on holiday name.</summary>
     public string? Search { get; init; }
 
-    /// <summary>When <c>true</c>, scope to the current UTC calendar year and set <c>occurrence_date</c> on recurring rows.</summary>
-    public bool Year { get; init; }
+    /// <summary>Calendar year to filter and project <c>occurrence_date</c> (e.g. <c>2026</c>). Omit for no year filter.</summary>
+    public int? Year { get; init; }
 
     /// <summary>Country name from <c>GET /countries/list</c> (e.g. <c>Ghana</c>).</summary>
     public string? Country { get; init; }
