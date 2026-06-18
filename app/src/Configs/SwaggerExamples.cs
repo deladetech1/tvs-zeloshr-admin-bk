@@ -1190,6 +1190,9 @@ internal static class SwaggerExamples
         {
             obj["department_name"] = "Engineering";
             obj["branch_name"] = "Accra HQ";
+            obj["reports_to_name"] = "Demo Admin";
+            obj["reports_to_position"] = "Head of Engineering";
+            obj["reports_to_photo_url"] = EmployeeDocumentItem(SampleDocumentId2, "Manager profile photo");
         }
 
         return obj;

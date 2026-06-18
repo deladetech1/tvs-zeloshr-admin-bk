@@ -19,6 +19,7 @@ public sealed class EmployeeRepository(ZelosHrDbContext db) : IEmployeeRepositor
             .Include(e => e.Department)
             .Include(e => e.Branch)
             .Include(e => e.Manager)
+            .Include(e => e.ReportsTo)
             .FirstOrDefaultAsync(
                 e => e.Id == id && e.TenantId == tenantId && e.OrgId == orgId && !e.IsDeleted,
                 ct);

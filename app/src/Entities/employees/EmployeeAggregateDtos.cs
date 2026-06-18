@@ -228,6 +228,15 @@ public sealed class EmployeeAggregateEmploymentReadDto : EmployeeAggregateEmploy
 {
     public string? DepartmentName { get; init; }
     public string? BranchName { get; init; }
+
+    /// <summary>Display name of the employee referenced by <see cref="EmployeeAggregateEmploymentDto.ReportsToId"/>.</summary>
+    public string? ReportsToName { get; init; }
+
+    /// <summary>Job title of the employee referenced by <see cref="EmployeeAggregateEmploymentDto.ReportsToId"/>.</summary>
+    public string? ReportsToPosition { get; init; }
+
+    /// <summary>Profile photo of the reports-to employee (<c>DocumentReadDto</c>, same shape as <c>identity.profile_url</c>).</summary>
+    public DocumentReadDto? ReportsToPhotoUrl { get; init; }
 }
 
 public sealed class EmployeeAggregateCompensationReadDto : EmployeeAggregateCompensationDto

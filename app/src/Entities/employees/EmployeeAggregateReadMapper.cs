@@ -3,6 +3,11 @@ using ZelosHR.Api.Persistence.Entities;
 
 namespace ZelosHR.Api.Entities.Employees;
 
+internal sealed record ReportsToDisplay(
+    string? Name,
+    string? Position,
+    DocumentReadDto? PhotoUrl);
+
 internal static class EmployeeAggregateReadMapper
 {
     internal static Dictionary<string, string?>? CustomFieldsOrNull(Dictionary<string, string?>? fields) =>
@@ -69,7 +74,8 @@ internal static class EmployeeAggregateReadMapper
 
     internal static EmployeeAggregateEmploymentReadDto? BuildEmployment(
         EmployeeEntity entity,
-        Dictionary<string, string?>? customFields)
+        Dictionary<string, string?>? customFields,
+        ReportsToDisplay? reportsTo = null)
     {
         if (!HasEmployment(entity, customFields))
             return null;
@@ -93,6 +99,9 @@ internal static class EmployeeAggregateReadMapper
             NoticePeriod = entity.NoticePeriod,
             ReportsToId = entity.ReportsToId,
             DottedLineManagerId = entity.DottedLineManagerId,
+            ReportsToName = reportsTo?.Name,
+            ReportsToPosition = reportsTo?.Position,
+            ReportsToPhotoUrl = reportsTo?.PhotoUrl,
             CustomFields = CustomFieldsOrNull(customFields),
         };
     }

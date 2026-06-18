@@ -638,6 +638,8 @@ public sealed class EmployeeAggregateService
             _tenant.TenantId,
             ct);
 
+        var reportsTo = await ResolveReportsToDisplayAsync(entity, ct);
+
         var read = new EmployeeAggregateReadDto
         {
             Id = entity.Id,
@@ -650,7 +652,7 @@ public sealed class EmployeeAggregateService
                 workEmail,
                 profileUrl,
                 sections.Identity),
-            Employment = EmployeeAggregateReadMapper.BuildEmployment(entity, sections.Employment),
+            Employment = EmployeeAggregateReadMapper.BuildEmployment(entity, sections.Employment, reportsTo),
             Compensation = EmployeeAggregateReadMapper.BuildCompensation(
                 entity,
                 sections.Compensation,
@@ -854,6 +856,37 @@ public sealed class EmployeeAggregateService
             deleteDocumentIds.Where(id => !string.IsNullOrWhiteSpace(id)).Select(id => id.Trim()),
             StringComparer.Ordinal);
         entity.DocumentIds = entity.DocumentIds.Where(id => !remove.Contains(id)).ToList();
+    }
+
+    private async Task<ReportsToDisplay?> ResolveReportsToDisplayAsync(
+        EmployeeEntity entity,
+        CancellationToken ct)
+    {
+        if (!entity.ReportsToId.HasValue)
+            return null;
+
+        var reportsTo = entity.ReportsTo
+            ?? (entity.ManagerId == entity.ReportsToId ? entity.Manager : null);
+        if (reportsTo is null)
+        {
+            reportsTo = await _employees.GetByIdScopedAsync(
+                entity.ReportsToId.Value, _tenant.TenantId, _tenant.OrgId, ct);
+        }
+
+        if (reportsTo is null)
+            return null;
+
+        CpUserDto? reportsToCp = null;
+        if (!string.IsNullOrWhiteSpace(reportsTo.UserId))
+            reportsToCp = await _cpUsers.GetByIdAsync(reportsTo.UserId, _tenant.TenantId, ct);
+
+        var photoRef = EmployeeIdentityResolver.ResolveStoredProfileReference(reportsTo, reportsToCp);
+        var photoUrl = await _profileUrls.ResolveDocumentReadAsync(photoRef, ct);
+
+        return new ReportsToDisplay(
+            EmployeeIdentityResolver.ResolveFullName(reportsTo, reportsToCp),
+            reportsTo.JobTitle,
+            photoUrl);
     }
 
     private static Dictionary<string, string>? ValidateUpdate(UpdateEmployeeAggregateRequest request)
