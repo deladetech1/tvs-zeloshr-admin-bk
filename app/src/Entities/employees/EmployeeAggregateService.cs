@@ -884,6 +884,7 @@ public sealed class EmployeeAggregateService
         var photoUrl = await _profileUrls.ResolveDocumentReadAsync(photoRef, ct);
 
         return new ReportsToDisplay(
+            entity.ReportsToId.Value,
             EmployeeIdentityResolver.ResolveFullName(reportsTo, reportsToCp),
             reportsTo.JobTitle,
             photoUrl);

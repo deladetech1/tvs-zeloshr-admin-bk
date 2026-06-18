@@ -1182,17 +1182,23 @@ internal static class SwaggerExamples
             ["probation_end_date"] = "2025-12-01",
             ["working_hours"] = "40",
             ["notice_period"] = "30 days",
-            ["reports_to_id"] = SampleReportsToId.ToString(),
             ["custom_fields"] = EmptyCustomFields(EmployeeCustomFieldSections.Employment),
         };
+
+        if (!withNames)
+            obj["reports_to_id"] = SampleReportsToId.ToString();
 
         if (withNames)
         {
             obj["department_name"] = "Engineering";
             obj["branch_name"] = "Accra HQ";
-            obj["reports_to_name"] = "Demo Admin";
-            obj["reports_to_position"] = "Head of Engineering";
-            obj["reports_to_photo_url"] = EmployeeDocumentItem(SampleDocumentId2, "Manager profile photo");
+            obj["reports_to"] = new JsonObject
+            {
+                ["id"] = SampleReportsToId.ToString(),
+                ["name"] = "Demo Admin",
+                ["position"] = "Head of Engineering",
+                ["photo_url"] = EmployeeDocumentItem(SampleDocumentId2, "Manager profile photo"),
+            };
         }
 
         return obj;

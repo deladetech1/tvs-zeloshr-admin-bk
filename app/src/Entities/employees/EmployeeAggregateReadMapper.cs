@@ -4,6 +4,7 @@ using ZelosHR.Api.Persistence.Entities;
 namespace ZelosHR.Api.Entities.Employees;
 
 internal sealed record ReportsToDisplay(
+    Guid Id,
     string? Name,
     string? Position,
     DocumentReadDto? PhotoUrl);
@@ -97,11 +98,17 @@ internal static class EmployeeAggregateReadMapper
             ProbationEndDate = entity.ProbationEndDate,
             WorkingHours = entity.WorkingHours,
             NoticePeriod = entity.NoticePeriod,
-            ReportsToId = entity.ReportsToId,
+            ReportsToId = null,
             DottedLineManagerId = entity.DottedLineManagerId,
-            ReportsToName = reportsTo?.Name,
-            ReportsToPosition = reportsTo?.Position,
-            ReportsToPhotoUrl = reportsTo?.PhotoUrl,
+            ReportsTo = reportsTo is null
+                ? null
+                : new EmployeeReportsToRefDto
+                {
+                    Id = reportsTo.Id.ToString(),
+                    Name = reportsTo.Name,
+                    Position = reportsTo.Position,
+                    PhotoUrl = reportsTo.PhotoUrl,
+                },
             CustomFields = CustomFieldsOrNull(customFields),
         };
     }

@@ -184,6 +184,17 @@ public class EmployeeAggregateEmploymentDto
     public Dictionary<string, string?>? CustomFields { get; init; }
 }
 
+/// <summary>Nested reports-to manager on employee read (<c>employment.reports_to</c>).</summary>
+public sealed class EmployeeReportsToRefDto
+{
+    public required string Id { get; init; }
+    public string? Name { get; init; }
+    public string? Position { get; init; }
+
+    /// <summary>Profile photo (<c>DocumentReadDto</c>) — same shape as <c>identity.profile_url</c>.</summary>
+    public DocumentReadDto? PhotoUrl { get; init; }
+}
+
 /// <summary>Compensation on write. Read response adds <c>annualized_cost</c> and joined currency metadata.</summary>
 public class EmployeeAggregateCompensationDto
 {
@@ -229,14 +240,8 @@ public sealed class EmployeeAggregateEmploymentReadDto : EmployeeAggregateEmploy
     public string? DepartmentName { get; init; }
     public string? BranchName { get; init; }
 
-    /// <summary>Display name of the employee referenced by <see cref="EmployeeAggregateEmploymentDto.ReportsToId"/>.</summary>
-    public string? ReportsToName { get; init; }
-
-    /// <summary>Job title of the employee referenced by <see cref="EmployeeAggregateEmploymentDto.ReportsToId"/>.</summary>
-    public string? ReportsToPosition { get; init; }
-
-    /// <summary>Profile photo of the reports-to employee (<c>DocumentReadDto</c>, same shape as <c>identity.profile_url</c>).</summary>
-    public DocumentReadDto? ReportsToPhotoUrl { get; init; }
+    /// <summary>Manager reference — write uses <see cref="EmployeeAggregateEmploymentDto.ReportsToId"/>; read returns this object only.</summary>
+    public EmployeeReportsToRefDto? ReportsTo { get; init; }
 }
 
 public sealed class EmployeeAggregateCompensationReadDto : EmployeeAggregateCompensationDto

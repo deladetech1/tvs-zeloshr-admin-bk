@@ -8,7 +8,7 @@ namespace ZelosHR.Api.Tests.Employees;
 public class EmployeeAggregateReadMapperTests
 {
     [Fact]
-    public void BuildEmployment_includes_flat_reports_to_display_fields()
+    public void BuildEmployment_includes_nested_reports_to_ref()
     {
         var managerId = Guid.NewGuid();
         var entity = new EmployeeEntity
@@ -34,12 +34,14 @@ public class EmployeeAggregateReadMapperTests
         var employment = EmployeeAggregateReadMapper.BuildEmployment(
             entity,
             customFields: null,
-            new ReportsToDisplay("Demo Admin", "Head of Engineering", photo));
+            new ReportsToDisplay(managerId, "Demo Admin", "Head of Engineering", photo));
 
         employment.Should().NotBeNull();
-        employment!.ReportsToId.Should().Be(managerId);
-        employment.ReportsToName.Should().Be("Demo Admin");
-        employment.ReportsToPosition.Should().Be("Head of Engineering");
-        employment.ReportsToPhotoUrl.Should().BeEquivalentTo(photo);
+        employment!.ReportsToId.Should().BeNull();
+        employment.ReportsTo.Should().NotBeNull();
+        employment.ReportsTo!.Id.Should().Be(managerId.ToString());
+        employment.ReportsTo.Name.Should().Be("Demo Admin");
+        employment.ReportsTo.Position.Should().Be("Head of Engineering");
+        employment.ReportsTo.PhotoUrl.Should().BeEquivalentTo(photo);
     }
 }
