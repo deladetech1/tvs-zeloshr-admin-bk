@@ -1,20 +1,21 @@
 using FluentAssertions;
-using Moq;
+using NSubstitute;
 using ZelosHR.Api.Entities.EmploymentTypes;
 using ZelosHR.Api.Persistence.Entities;
 using ZelosHR.Api.Persistence.Repositories;
 
 namespace ZelosHR.Api.Tests.EmploymentTypes;
 
-public class EmploymentTypesServiceTests{
+public class EmploymentTypesServiceTests
+{
     [Fact]
     public async Task UpdateAsync_rejects_rename_for_system_default()
     {
         var typeId = Guid.NewGuid();
-        var repository = new Mock<IEmploymentTypeRepository>();
+        var repository = Substitute.For<IEmploymentTypeRepository>();
         repository
-            .Setup(r => r.GetEntityByIdScopedAsync(typeId, "t1", "o1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new EmploymentTypeEntity
+            .GetEntityByIdScopedAsync(typeId, "t1", "o1", Arg.Any<CancellationToken>())
+            .Returns(new EmploymentTypeEntity
             {
                 Id = typeId,
                 TenantId = "t1",
@@ -24,7 +25,7 @@ public class EmploymentTypesServiceTests{
                 IsActive = true,
             });
 
-        var service = new EmploymentTypesService(repository.Object, Mock.Of<ICpUserRepository>());
+        var service = new EmploymentTypesService(repository, Substitute.For<ICpUserRepository>());
         var result = await service.UpdateAsync(
             typeId,
             new UpdateEmploymentTypeDto { Name = "Renamed Full-time" },
@@ -41,10 +42,10 @@ public class EmploymentTypesServiceTests{
     public async Task DeleteAsync_rejects_system_default()
     {
         var typeId = Guid.NewGuid();
-        var repository = new Mock<IEmploymentTypeRepository>();
+        var repository = Substitute.For<IEmploymentTypeRepository>();
         repository
-            .Setup(r => r.GetEntityByIdScopedAsync(typeId, "t1", "o1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new EmploymentTypeEntity
+            .GetEntityByIdScopedAsync(typeId, "t1", "o1", Arg.Any<CancellationToken>())
+            .Returns(new EmploymentTypeEntity
             {
                 Id = typeId,
                 TenantId = "t1",
@@ -54,7 +55,7 @@ public class EmploymentTypesServiceTests{
                 IsActive = true,
             });
 
-        var service = new EmploymentTypesService(repository.Object, Mock.Of<ICpUserRepository>());
+        var service = new EmploymentTypesService(repository, Substitute.For<ICpUserRepository>());
         var result = await service.DeleteAsync(typeId, "t1", "o1");
 
         result.Success.Should().BeFalse();
