@@ -43,6 +43,7 @@ public static class PlatformQueryParams
     public const string ChangedTo = "changed_to";
     public const string EmploymentStatus = "employment_status";
     public const string EmploymentType = "employment_type";
+    public const string EmploymentTypeId = "employment_type_id";
     public const string WorkLocation = "work_location";
     public const string LifecycleState = "lifecycle_state";
     public const string StatusFilter = "status_filter";

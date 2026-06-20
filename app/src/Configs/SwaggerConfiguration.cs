@@ -339,6 +339,7 @@ public sealed class TroveStandardHeadersOperationFilter(IHostEnvironment environ
         string description,
         string defaultValue)
     {
+        operation.Parameters ??= [];
         if (operation.Parameters.Any(p =>
                 string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase)))
             return;
@@ -365,6 +366,7 @@ public sealed class StandardResponsesOperationFilter : IOperationFilter
 {
     public void Apply(OpenApiOperation operation, OperationFilterContext context)
     {
+        operation.Responses ??= [];
         operation.Responses.TryAdd("400", new OpenApiResponse { Description = "Validation error or missing required Trove header (`fieldErrors` when applicable)" });
         operation.Responses.TryAdd("401", new OpenApiResponse { Description = "Missing or invalid Bearer token" });
         operation.Responses.TryAdd("404", new OpenApiResponse { Description = "Resource not found" });
