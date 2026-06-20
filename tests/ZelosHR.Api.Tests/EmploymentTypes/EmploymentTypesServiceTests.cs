@@ -1,5 +1,6 @@
 using FluentAssertions;
 using NSubstitute;
+using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.EmploymentTypes;
 using ZelosHR.Api.Persistence.Entities;
 using ZelosHR.Api.Persistence.Repositories;

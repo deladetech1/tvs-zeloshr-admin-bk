@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Npgsql;
 using NSubstitute;
 using ZelosHR.Api.Entities.Employees;
+using ZelosHR.Api.Entities.EmploymentTypes;
 using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Persistence;
 using ZelosHR.Api.Persistence.Entities;
@@ -44,6 +45,9 @@ public class EmployeeRegistrationTests
             new DbContextOptionsBuilder<ZelosHrDbContext>()
                 .UseInMemoryDatabase(Guid.NewGuid().ToString())
                 .Options);
+        var employmentTypes = new EmploymentTypesService(
+            Substitute.For<IEmploymentTypeRepository>(),
+            _cpUsers);
         _sut = new EmployeeRegistrationService(
             db,
             _employees,
@@ -53,6 +57,7 @@ public class EmployeeRegistrationTests
             _documents,
             storageConfig,
             profileUrls,
+            employmentTypes,
             _tenant,
             _currentUser);
     }
