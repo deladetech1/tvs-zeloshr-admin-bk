@@ -70,7 +70,7 @@ public sealed class EmploymentTypeListQuery
     public int Size { get; init; } = 20;
 }
 
-public sealed class EmploymentTypeListItemDto
+public sealed record EmploymentTypeListItemDto
 {
     public required string EmploymentTypeId { get; init; }
     public required string Name { get; init; }

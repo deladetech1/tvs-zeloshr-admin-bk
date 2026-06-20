@@ -679,11 +679,11 @@ public sealed class EmployeeRegistrationService
         CreateEmployeeRequest dto,
         CancellationToken ct)
     {
-        if (dto.EmploymentTypeId is null)
+        if (dto.EmploymentTypeId is null && string.IsNullOrWhiteSpace(dto.EmploymentTypeName))
             return null;
 
         var (ok, error, type) = await _employmentTypes.ResolveForWriteAsync(
-            dto.EmploymentTypeId, null, _tenant.TenantId, _tenant.OrgId, ct);
+            dto.EmploymentTypeId, dto.EmploymentTypeName, _tenant.TenantId, _tenant.OrgId, ct);
         if (!ok)
         {
             return Respons<EmployeeRegistrationReadDto>.ValidationError(new Dictionary<string, string>

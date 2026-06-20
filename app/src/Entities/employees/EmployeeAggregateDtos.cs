@@ -162,6 +162,10 @@ public class EmployeeAggregateEmploymentDto
     /// <summary>FK from <c>GET /employment-types/list</c>. Denormalised name is stored on the employee row.</summary>
     public Guid? EmploymentTypeId { get; init; }
 
+    /// <summary>Bulk CSV import only — resolved by name when <see cref="EmploymentTypeId"/> is omitted.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string? EmploymentTypeName { get; init; }
+
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.EmploymentStatuses))]
     public string? EmploymentStatus { get; init; }
 

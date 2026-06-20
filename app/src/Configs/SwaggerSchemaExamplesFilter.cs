@@ -608,6 +608,11 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 schema.Description = AppendDescription(schema.Description,
                     "Chart nodes are employees in the reporting tree.");
                 return;
+            case "EmployeeCount" when property.DeclaringType == typeof(EmploymentTypeListItemDto):
+                schema.Example = JsonValue.Create(198);
+                schema.Description = AppendDescription(schema.Description,
+                    "Count of non-deleted employees with this employment_type_id.");
+                return;
             case "EmployeeCount":
                 schema.Example = JsonValue.Create(24);
                 schema.Description = AppendDescription(schema.Description,
@@ -666,12 +671,6 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 schema.Example = JsonValue.Create(SwaggerExampleHints.BooleanPipe);
                 schema.Description = AppendDescription(schema.Description,
                     "true for seeded Ghana defaults; false for custom types added via POST /add.");
-                return;
-            case nameof(EmploymentTypeListItemDto.EmployeeCount)
-                when property.DeclaringType == typeof(EmploymentTypeListItemDto):
-                schema.Example = JsonValue.Create(198);
-                schema.Description = AppendDescription(schema.Description,
-                    "Count of non-deleted employees with this employment_type_id.");
                 return;
             case nameof(UpdateEmploymentTypeDto.IsActive)
                 when property.DeclaringType == typeof(UpdateEmploymentTypeDto):

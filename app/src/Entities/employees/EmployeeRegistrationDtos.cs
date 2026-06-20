@@ -20,6 +20,7 @@ public sealed record CreateEmployeeRequest
     public Guid? DepartmentId { get; init; }
     public Guid? BranchId { get; init; }
     public Guid? EmploymentTypeId { get; init; }
+    public string? EmploymentTypeName { get; init; }
     public string? WorkArrangement { get; init; }
     public string? WorkLocation { get; init; }
     public string? PayGrade { get; init; }

@@ -89,6 +89,9 @@ public sealed class EmployeeBulkImportService
                 continue;
             }
 
+            var employmentTypeRaw = map.GetValueOrDefault("employment_type");
+            var employmentTypeId = ParseGuid(employmentTypeRaw);
+
             var request = new CreateEmployeeAggregateRequest
             {
                 Identity = new EmployeeAggregateIdentityDto
@@ -105,7 +108,8 @@ public sealed class EmployeeBulkImportService
                         JobTitle = map.GetValueOrDefault("job_title"),
                         DepartmentId = ParseGuid(map.GetValueOrDefault("department_id")),
                         BranchId = ParseGuid(map.GetValueOrDefault("branch_id")),
-                        EmploymentType = map.GetValueOrDefault("employment_type"),
+                        EmploymentTypeId = employmentTypeId,
+                        EmploymentTypeName = employmentTypeId is null ? employmentTypeRaw : null,
                         WorkLocation = map.GetValueOrDefault("work_location"),
                     }
                     : null,
