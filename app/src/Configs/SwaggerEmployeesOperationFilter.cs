@@ -21,8 +21,13 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
             AppendParameterDescription(operation, "employee_id",
                 "Required. Employee UUID from POST /employees/add or GET /employees/list → items[].employee_id.");
             operation.Description = AppendDescription(operation.Description,
-                "Response `documents[]` and `identity.profile_url`: MyStoreGuard DocumentReadDto (`doc_id`, `name`, `presigned_url`, `description`). "
-                + "On update send document id strings (or round-trip the read objects).");
+                """
+                Response `documents[]` and `identity.profile_url`: MyStoreGuard DocumentReadDto (`doc_id`, `name`, `presigned_url`, `description`).
+                On update send document id strings (or round-trip the read objects).
+
+                **employment.employment_type (read):** nested object `{ id, name, description, type }` — flat `employment_type_id` is omitted.
+                `id` matches `employment_type_id` from GET /employment-types/list used on write.
+                """);
             return;
         }
 
@@ -142,6 +147,8 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
 
                 delete_education_ids / delete_certification_ids remove rows by UUID without sending arrays.
                 Include id from GET on education/certification items to update; omit id to add.
+
+                **employment:** write `employment_type_id` (UUID from GET /employment-types/list). Response uses nested `employment.employment_type.id` only.
                 """);
             return;
         }

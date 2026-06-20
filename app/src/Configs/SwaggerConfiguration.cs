@@ -100,7 +100,18 @@ public static class SwaggerConfiguration
 
                     ### Documented modules
 
-                    **Employees** · **Users** · **Currencies** · **Countries** · **Custom Fields** · **File Management** · **Organisation** (org chart, departments, branches) · **Lifecycle Events** · **Audit Logs** · **Leave**
+                    **Employees** · **Users** · **Currencies** · **Countries** · **Custom Fields** · **File Management** · **Organisation** (org chart, departments, branches) · **Company Settings** (employment types) · **Lifecycle Events** · **Audit Logs** · **Leave**
+
+                    ---
+
+                    ### Company Settings — employment types
+
+                    1. **List** — `GET /api/v1/employment-types/list` (Ghana defaults seed on first access)
+                    2. **Add custom** — `POST /api/v1/employment-types/add` (name · description)
+                    3. **Update** — `PUT /api/v1/employment-types/update?employment_type_id=` (system defaults: description only; custom: full edit)
+                    4. **Delete** — `DELETE /api/v1/employment-types/delete?employment_type_id=` (custom only; blocked when assigned)
+                    5. **Employee write** — pass `employment.employment_type_id` from list on POST/PUT `/employees/*`
+                    6. **Employee read** — nested `employment.employment_type.id` (same UUID; flat FK omitted)
 
                     Conformance: `docs/MYSTOREGUARD_API_CONFORMANCE.md` · Navigation: `GET /api/v1/navigation`
                     """,
@@ -140,6 +151,7 @@ public static class SwaggerConfiguration
             options.OperationFilter<SwaggerFileManagementOperationFilter>();
             options.OperationFilter<SwaggerOrgStructureOperationFilter>();
             options.OperationFilter<SwaggerLeaveOperationFilter>();
+            options.OperationFilter<SwaggerEmploymentTypesOperationFilter>();
             options.OperationFilter<SwaggerCountriesOperationFilter>();
             options.OperationFilter<SwaggerAuditLogsOperationFilter>();
             options.OperationFilter<SwaggerUsersOperationFilter>();

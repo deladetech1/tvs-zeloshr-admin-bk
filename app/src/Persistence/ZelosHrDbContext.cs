@@ -14,6 +14,7 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
     public DbSet<HrEmployeeEntity> HrEmployees => Set<HrEmployeeEntity>();
     public DbSet<DepartmentEntity> Departments => Set<DepartmentEntity>();
     public DbSet<BranchEntity> Branches => Set<BranchEntity>();
+    public DbSet<EmploymentTypeEntity> EmploymentTypes => Set<EmploymentTypeEntity>();
     public DbSet<AuditLogEntity> AuditLogs => Set<AuditLogEntity>();
     public DbSet<LifecycleEventEntity> LifecycleEvents => Set<LifecycleEventEntity>();
     public DbSet<AttendanceRecordEntity> AttendanceRecords => Set<AttendanceRecordEntity>();
@@ -146,6 +147,20 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
             b.HasOne(x => x.Manager).WithMany().HasForeignKey(x => x.ManagerId);
             b.HasOne(x => x.ReportsTo).WithMany().HasForeignKey(x => x.ReportsToId);
             b.HasOne(x => x.DottedLineManager).WithMany().HasForeignKey(x => x.DottedLineManagerId);
+            b.HasOne(x => x.EmploymentTypeRef).WithMany().HasForeignKey(x => x.EmploymentTypeId);
+        });
+
+        modelBuilder.Entity<EmploymentTypeEntity>(b =>
+        {
+            b.ToTable("zhr_employment_types");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.TenantId).HasMaxLength(128).IsRequired();
+            b.Property(x => x.OrgId).HasMaxLength(128).IsRequired();
+            b.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            b.Property(x => x.Description).HasMaxLength(500);
+            b.Property(x => x.IsSystemDefault).HasDefaultValue(false);
+            b.Property(x => x.IsActive).HasDefaultValue(true);
+            b.HasIndex(x => new { x.TenantId, x.OrgId, x.Name }).IsUnique();
         });
 
         modelBuilder.Entity<DepartmentEntity>(b =>

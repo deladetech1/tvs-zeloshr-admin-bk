@@ -44,4 +44,38 @@ public class EmployeeAggregateReadMapperTests
         employment.ReportsTo.Position.Should().Be("Head of Engineering");
         employment.ReportsTo.PhotoUrl.Should().BeEquivalentTo(photo);
     }
+
+    [Fact]
+    public void BuildEmployment_includes_nested_employment_type_ref()
+    {
+        var typeId = Guid.NewGuid();
+        var entity = new EmployeeEntity
+        {
+            Id = Guid.NewGuid(),
+            EmployeeCode = "EMP-0001",
+            TenantId = "t1",
+            OrgId = "o1",
+            FullName = "Ama Mensah",
+            LifecycleState = EmployeeLifecycleStates.Active,
+            LifecycleStatus = EmployeeLifecycleStates.Active,
+            EmploymentTypeId = typeId,
+            JobTitle = "Software Engineer",
+        };
+
+        var employment = EmployeeAggregateReadMapper.BuildEmployment(
+            entity,
+            customFields: null,
+            reportsTo: null,
+            employmentType: new EmploymentTypeDisplay(
+                typeId.ToString(),
+                "Full-time",
+                "Standard salaried employment",
+                "default"));
+
+        employment.Should().NotBeNull();
+        employment!.EmploymentType.Should().NotBeNull();
+        employment.EmploymentType!.Id.Should().Be(typeId.ToString());
+        employment.EmploymentType.Name.Should().Be("Full-time");
+        employment.EmploymentType.Type.Should().Be("default");
+    }
 }

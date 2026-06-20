@@ -43,6 +43,8 @@ public sealed class EmployeeEntity
     public Guid? BranchId { get; set; }
     public BranchEntity? Branch { get; set; }
     public string? EmploymentType { get; set; }
+    public Guid? EmploymentTypeId { get; set; }
+    public EmploymentTypeEntity? EmploymentTypeRef { get; set; }
     public string? WorkArrangement { get; set; }
     public string? WorkLocation { get; set; }
     public string? PayGrade { get; set; }

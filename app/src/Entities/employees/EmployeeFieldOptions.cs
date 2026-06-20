@@ -65,7 +65,7 @@ public static class EmployeeFieldOptions
     public static readonly IReadOnlyList<string> ListStatusFilters = EmployeeStatusFilter.ListStatusFilters;
 
     public static readonly IReadOnlyList<string> EmploymentTypes =
-        ["Full-time", "Part-time", "Contractor", "Casual"];
+        ["Full-time", "Part-time", "Contractor", "Casual", "Intern"];
 
     public static readonly IReadOnlyList<string> ContractTypes = ["Permanent", "Fixed-term"];
 

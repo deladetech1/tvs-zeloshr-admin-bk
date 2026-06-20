@@ -1,4 +1,5 @@
 using ZelosHR.Api.Entities.Files;
+using ZelosHR.Api.Entities.EmploymentTypes;
 using ZelosHR.Api.Persistence.Entities;
 
 namespace ZelosHR.Api.Entities.Employees;
@@ -8,6 +9,12 @@ internal sealed record ReportsToDisplay(
     string? Name,
     string? Position,
     DocumentReadDto? PhotoUrl);
+
+internal sealed record EmploymentTypeDisplay(
+    string Id,
+    string Name,
+    string? Description,
+    string Type);
 
 internal static class EmployeeAggregateReadMapper
 {
@@ -22,6 +29,7 @@ internal static class EmployeeAggregateReadMapper
         !string.IsNullOrWhiteSpace(entity.JobTitle)
         || entity.DepartmentId is not null
         || entity.BranchId is not null
+        || entity.EmploymentTypeId is not null
         || !string.IsNullOrWhiteSpace(entity.EmploymentType)
         || !string.IsNullOrWhiteSpace(entity.EmploymentStatus)
         || !string.IsNullOrWhiteSpace(entity.ContractType)
@@ -76,7 +84,8 @@ internal static class EmployeeAggregateReadMapper
     internal static EmployeeAggregateEmploymentReadDto? BuildEmployment(
         EmployeeEntity entity,
         Dictionary<string, string?>? customFields,
-        ReportsToDisplay? reportsTo = null)
+        ReportsToDisplay? reportsTo = null,
+        EmploymentTypeDisplay? employmentType = null)
     {
         if (!HasEmployment(entity, customFields))
             return null;
@@ -88,7 +97,15 @@ internal static class EmployeeAggregateReadMapper
             BranchId = entity.BranchId,
             DepartmentName = entity.Department?.Name,
             BranchName = entity.Branch?.Name,
-            EmploymentType = entity.EmploymentType,
+            EmploymentType = employmentType is null
+                ? null
+                : new EmployeeEmploymentTypeRefDto
+                {
+                    Id = employmentType.Id,
+                    Name = employmentType.Name,
+                    Description = employmentType.Description,
+                    Type = employmentType.Type,
+                },
             EmploymentStatus = entity.EmploymentStatus,
             ContractType = entity.ContractType,
             WorkArrangement = entity.WorkArrangement,
@@ -98,7 +115,6 @@ internal static class EmployeeAggregateReadMapper
             ProbationEndDate = entity.ProbationEndDate,
             WorkingHours = entity.WorkingHours,
             NoticePeriod = entity.NoticePeriod,
-            ReportsToId = null,
             DottedLineManagerId = entity.DottedLineManagerId,
             ReportsTo = reportsTo is null
                 ? null

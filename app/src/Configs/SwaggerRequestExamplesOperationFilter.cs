@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using ZelosHR.Api.Entities.EmploymentTypes;
 using ZelosHR.Api.Entities.Leave;
 
 namespace ZelosHR.Api.Configs;
@@ -34,7 +35,11 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
                 ["full_profile"] = Example(
                     SwaggerExamples.CreateEmployeeFinalised(),
                     "Full profile",
-                    "Creates employee and links cp_users when work_email is set. Attach files via document_ids (from POST /file/post/multiple). Read response returns documents[] (DocumentReadDto with presigned URLs)."),
+                    """
+                    Creates employee and links cp_users when work_email is set. Attach files via document_ids (from POST /file/post/multiple).
+                    Read response returns documents[] (DocumentReadDto with presigned URLs).
+                    employment.employment_type_id — pick from GET /employment-types/list; read returns nested employment.employment_type.id.
+                    """),
                 ["minimal"] = Example(
                     SwaggerExamples.CreateEmployeeDraft(),
                     "Minimal",
@@ -93,6 +98,13 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
                     """
                     sync_education: true + full education[] replaces the education section.
                     delete_certification_ids removes specific certification rows without sending certifications[].
+                    """),
+                ["partial_employment_type"] = Example(
+                    SwaggerExamples.UpdateEmployeePartialEmployment(),
+                    "Partial — employment type only",
+                    """
+                    Pick employment_type_id from GET /employment-types/list.
+                    Write uses flat employment_type_id; GET /employees/get returns nested employment.employment_type.id (same UUID).
                     """),
                 ["full_profile_update"] = Example(
                     SwaggerExamples.UpdateEmployeeFull(),
@@ -281,6 +293,42 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
                     SwaggerExamples.UpdateLeaveTypeBody(optionHints: true),
                     "Update leave type policy",
                     "leave_type_id required on query string. Same body shape as POST /types/add."),
+            };
+        }
+
+        if (method.Equals("POST", StringComparison.OrdinalIgnoreCase)
+            && path.Equals("api/v1/employment-types/add", StringComparison.OrdinalIgnoreCase))
+        {
+            return new Dictionary<string, IOpenApiExample>
+            {
+                ["add_custom"] = Example(
+                    SwaggerExamples.CreateEmploymentTypeBody(),
+                    "Add custom type",
+                    "Creates type=custom. System defaults (Full-time, Part-time, …) are seeded — do not POST them."),
+                ["minimal"] = Example(
+                    new JsonObject { ["name"] = "Apprentice" },
+                    "Name only",
+                    "description is optional."),
+            };
+        }
+
+        if (method.Equals("PUT", StringComparison.OrdinalIgnoreCase)
+            && path.Equals("api/v1/employment-types/update", StringComparison.OrdinalIgnoreCase))
+        {
+            return new Dictionary<string, IOpenApiExample>
+            {
+                ["custom_full"] = Example(
+                    SwaggerExamples.UpdateEmploymentTypeCustom(),
+                    "Update custom type (full)",
+                    "Custom types: name · description · is_active. employment_type_id on query string."),
+                ["system_description_only"] = Example(
+                    SwaggerExamples.UpdateEmploymentTypeSystemDefault(),
+                    "Update system default (description only)",
+                    "System defaults cannot be renamed — name change returns 400 field_errors.name."),
+                ["deactivate_custom"] = Example(
+                    new JsonObject { ["is_active"] = false },
+                    "Deactivate custom type",
+                    "Set is_active false instead of delete when employees still reference the type."),
             };
         }
 

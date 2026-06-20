@@ -10,6 +10,7 @@ using ZelosHR.Api.Entities.Currencies;
 using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Employees;
+using ZelosHR.Api.Entities.EmploymentTypes;
 using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Entities.Leave;
 using ZelosHR.Api.Entities.OrgStructure;
@@ -148,6 +149,26 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(LeaveBalanceListItemDto) => SwaggerExamples.LeaveBalanceItemData(),
             nameof(LeaveTypeListDto) => SwaggerExamples.LeaveTypeListData(),
             nameof(LeaveTypeListItemDto) => SwaggerExamples.LeaveTypeItemData(),
+            nameof(EmploymentTypeListDto) => SwaggerExamples.EmploymentTypeListData(),
+            nameof(EmploymentTypeListItemDto) => SwaggerExamples.EmploymentTypeItemData(),
+            nameof(EmployeeEmploymentTypeRefDto) => new JsonObject
+            {
+                ["id"] = SwaggerExamples.SampleEmploymentTypeId.ToString(),
+                ["name"] = "Full-time",
+                ["description"] = "Standard salaried employment",
+                ["type"] = "default",
+            },
+            nameof(CreateEmploymentTypeDto) => SwaggerExamples.CreateEmploymentTypeBody(),
+            nameof(UpdateEmploymentTypeDto) => SwaggerExamples.UpdateEmploymentTypeCustom(),
+            nameof(EmploymentTypeListQuery) => new JsonObject
+            {
+                ["search"] = "",
+                ["is_active"] = true,
+                ["sort_by"] = "name",
+                ["sort_order"] = "asc",
+                ["page"] = 1,
+                ["size"] = 20,
+            },
             nameof(PublicHolidayListDto) => SwaggerExamples.PublicHolidayListData(),
             nameof(PublicHolidayListItemDto) => SwaggerExamples.PublicHolidayItemData(),
             nameof(CreateLeaveRequestDto) => SwaggerExamples.CreateLeaveRequestBody(),
@@ -178,9 +199,9 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
         schema.Description = context.Type.Name switch
         {
             nameof(CreateEmployeeAggregateRequest) => AppendDescription(schema.Description,
-                "One-shot employee create. See operation examples (full profile vs minimal). Upload files first via POST /api/v1/file/post/multiple."),
+                "One-shot employee create. See operation examples (full profile vs minimal). employment.employment_type_id from GET /employment-types/list."),
             nameof(UpdateEmployeeAggregateRequest) => AppendDescription(schema.Description,
-                "Partial update — only include sections to change. education[]/certifications[]: id to update, omit id to add. sync_* + full array replaces section."),
+                "Partial update — only include sections to change. Write employment_type_id; read returns nested employment.employment_type. education[]/certifications[]: id to update, omit id to add. sync_* + full array replaces section."),
             nameof(EmployeeDirectorySummaryDto) => AppendDescription(schema.Description,
                 "Directory KPI cards: total headcount, active, on probation, on contract."),
             nameof(CreateCustomFieldDefinitionDto) => AppendDescription(schema.Description,
@@ -293,6 +314,23 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 $"Partial update. Prefer POST /requests/approve or /reject for workflow. status: {SwaggerExampleHints.LeaveRequestStatus}."),
             nameof(CreateLeaveBalanceDto) => AppendDescription(schema.Description,
                 "Admin assigns entitlement. Unique per employee + leave_type_id."),
+            nameof(EmployeeAggregateEmploymentDto) => AppendDescription(schema.Description,
+                "Write shape. employment_type_id from GET /employment-types/list. On read, GET /employees/get returns nested employment.employment_type instead."),
+            nameof(EmployeeAggregateEmploymentReadDto) => AppendDescription(schema.Description,
+                "Read shape. employment_type nested object only (id · name · description · type). Flat employment_type_id and reports_to_id omitted."),
+            nameof(EmployeeEmploymentTypeRefDto) => AppendDescription(schema.Description,
+                $"Nested on GET /employees/get → employment.employment_type. id matches write employment_type_id. type: {SwaggerExampleHints.EmploymentTypeKind}."),
+            nameof(EmploymentTypeListItemDto) => AppendDescription(schema.Description,
+                $"Company Settings table row: name · description · type ({SwaggerExampleHints.EmploymentTypeKind}) · employee_count · is_active · is_system_default · audit fields."),
+            nameof(EmploymentTypeListQuery) => AppendDescription(schema.Description,
+                "List filters for Company Settings employment types table."),
+            nameof(CreateEmploymentTypeDto) => AppendDescription(schema.Description,
+                "Add custom type modal — name (required) · description (optional). System defaults are seeded automatically."),
+            nameof(UpdateEmploymentTypeDto) => AppendDescription(schema.Description,
+                $"""
+                Partial update. Custom: name · description · is_active ({SwaggerExampleHints.BooleanPipe}).
+                System default: description and is_active only — name change returns 400.
+                """),
             nameof(CreateLeaveTypeDto) => AppendDescription(schema.Description,
                 $"Add / edit leave type modal. Required: name, default_entitled_days, accrual_method ({SwaggerExampleHints.LeaveAccrualMethod}), applies_to_employment_types (min 1; All = send {SwaggerExampleHints.LeaveTypeEmploymentType}). Optional: is_paid ({SwaggerExampleHints.BooleanPipe}), carry_over_allowed ({SwaggerExampleHints.BooleanPipe}), min_notice_working_days, max_consecutive_days, requires_supporting_document ({SwaggerExampleHints.BooleanPipe}). Update: PUT /types/update?leave_type_id= with the same body."),
             nameof(CreatePublicHolidayDto) => AppendDescription(schema.Description,
@@ -421,6 +459,22 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 return;
             case nameof(EmployeeAggregateIdentityDto.ResidentialAddress):
                 schema.Example = JsonValue.Create("12 Independence Ave, Accra");
+                return;
+            case nameof(EmployeeAggregateEmploymentDto.EmploymentTypeId):
+                schema.Example = JsonValue.Create(SwaggerExamples.SampleEmploymentTypeId.ToString());
+                schema.Description = AppendDescription(schema.Description,
+                    "Write only. UUID from GET /employment-types/list. Read response uses employment.employment_type.id (same value).");
+                return;
+            case nameof(EmployeeAggregateEmploymentReadDto.EmploymentType):
+                schema.Example = new JsonObject
+                {
+                    ["id"] = SwaggerExamples.SampleEmploymentTypeId.ToString(),
+                    ["name"] = "Full-time",
+                    ["description"] = "Standard salaried employment",
+                    ["type"] = "default",
+                };
+                schema.Description = AppendDescription(schema.Description,
+                    "Read only. Nested ref — id matches employment_type_id sent on write.");
                 return;
             case nameof(EmployeeAggregateEmploymentDto.JobTitle):
                 schema.Example = JsonValue.Create("Software Engineer");
@@ -599,6 +653,32 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 schema.Description = AppendDescription(schema.Description,
                     $"Common names: {SwaggerExampleHints.LeaveTypeName}.");
                 return;
+            case nameof(EmploymentTypeListItemDto.Type)
+                when property.DeclaringType == typeof(EmploymentTypeListItemDto):
+            case nameof(EmployeeEmploymentTypeRefDto.Type)
+                when property.DeclaringType == typeof(EmployeeEmploymentTypeRefDto):
+                schema.Example = JsonValue.Create(SwaggerExampleHints.EmploymentTypeKind);
+                schema.Description = AppendDescription(schema.Description,
+                    $"default = Ghana system seed (not renameable/deletable). custom = user-added. Allowed: {SwaggerExampleHints.EmploymentTypeKind}.");
+                return;
+            case nameof(EmploymentTypeListItemDto.IsSystemDefault)
+                when property.DeclaringType == typeof(EmploymentTypeListItemDto):
+                schema.Example = JsonValue.Create(SwaggerExampleHints.BooleanPipe);
+                schema.Description = AppendDescription(schema.Description,
+                    "true for seeded Ghana defaults; false for custom types added via POST /add.");
+                return;
+            case nameof(EmploymentTypeListItemDto.EmployeeCount)
+                when property.DeclaringType == typeof(EmploymentTypeListItemDto):
+                schema.Example = JsonValue.Create(198);
+                schema.Description = AppendDescription(schema.Description,
+                    "Count of non-deleted employees with this employment_type_id.");
+                return;
+            case nameof(UpdateEmploymentTypeDto.IsActive)
+                when property.DeclaringType == typeof(UpdateEmploymentTypeDto):
+                schema.Example = JsonValue.Create(SwaggerExampleHints.BooleanPipe);
+                schema.Description = AppendDescription(schema.Description,
+                    $"Deactivate instead of delete when employees still reference the type. Allowed: {SwaggerExampleHints.BooleanPipe}.");
+                return;
         }
 
         if (IsDateOnly(type))
@@ -703,6 +783,9 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 => SwaggerExamples.SampleDepartmentId.ToString(),
             var n when n.Contains("Branch", StringComparison.OrdinalIgnoreCase)
                 => SwaggerExamples.SampleBranchId.ToString(),
+            var n when n.Contains("EmploymentType", StringComparison.OrdinalIgnoreCase)
+                && n.Contains("Id", StringComparison.OrdinalIgnoreCase)
+                => SwaggerExamples.SampleEmploymentTypeId.ToString(),
             var n when n.Contains("ReportsTo", StringComparison.OrdinalIgnoreCase)
                 || n.Contains("Manager", StringComparison.OrdinalIgnoreCase)
                 => SwaggerExamples.SampleReportsToId.ToString(),

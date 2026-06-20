@@ -6,6 +6,7 @@ using ZelosHR.Api.Entities.Countries;
 using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Employees;
+using ZelosHR.Api.Entities.EmploymentTypes;
 using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Entities.Leave;
 using ZelosHR.Api.Entities.OrgStructure;
@@ -18,6 +19,7 @@ namespace ZelosHR.Api.Configs;
 internal static class SwaggerExamples
 {
     internal static readonly Guid SampleDepartmentId = Guid.Parse("823eb77c-11b7-452b-9c18-6f547a0cd003");
+    internal static readonly Guid SampleEmploymentTypeId = Guid.Parse("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
     internal static readonly Guid SampleChildDepartmentId = Guid.Parse("cc194e8e-b34d-42f6-baae-aae3b12041aa");
     internal static readonly Guid SampleBranchId = Guid.Parse("063e2b9a-9254-4154-89e7-98b8de5a4df5");
     internal static readonly Guid SampleBranchId2 = Guid.Parse("7f4e8291-2c55-4a9b-8d1e-5b6c7d8e9f0a");
@@ -263,6 +265,8 @@ internal static class SwaggerExamples
             nameof(LeaveBalanceListItemDto) => EnvelopeOk(LeaveBalanceItemData()),
             nameof(LeaveTypeListDto) => EnvelopeOk(LeaveTypeListData()),
             nameof(LeaveTypeListItemDto) => EnvelopeOk(LeaveTypeItemData()),
+            nameof(EmploymentTypeListDto) => EnvelopeOk(EmploymentTypeListData()),
+            nameof(EmploymentTypeListItemDto) => EnvelopeOk(EmploymentTypeItemData()),
             nameof(PublicHolidayListDto) => LeaveHolidayListResponse(),
             nameof(PublicHolidayListItemDto) => EnvelopeOk(PublicHolidayItemData()),
             nameof(GetCountrySimpleReadDto) => EnvelopeOk(CountryItem()),
@@ -949,7 +953,7 @@ internal static class SwaggerExamples
     internal static JsonObject UpdateEmployeeFull() => new()
     {
         ["identity"] = IdentitySection(withCustomField: true),
-        ["employment"] = EmploymentSection(withNames: true),
+        ["employment"] = EmploymentSection(),
         ["compensation"] = CompensationSection(withCustomField: true),
         ["education"] = new JsonArray(
             EducationEntry(withId: true),
@@ -965,6 +969,29 @@ internal static class SwaggerExamples
                 id: Guid.Parse("66666666-6666-6666-6666-666666666602"),
                 name: "Masters in react fundamentals")),
         ["document_ids"] = new JsonArray(SampleDocumentId1, SampleDocumentId2),
+    };
+
+    /// <summary>Partial update — employment section only (e.g. change type from list).</summary>
+    internal static JsonObject UpdateEmployeePartialEmployment() => new()
+    {
+        ["employment"] = new JsonObject
+        {
+            ["employment_type_id"] = SampleEmploymentTypeId.ToString(),
+        },
+    };
+
+    /// <summary>Update custom employment type — system defaults: description/is_active only (name locked).</summary>
+    internal static JsonObject UpdateEmploymentTypeCustom() => new()
+    {
+        ["name"] = "Apprentice",
+        ["description"] = "Structured on-the-job training programme",
+        ["is_active"] = true,
+    };
+
+    /// <summary>Update system default — name change rejected; description allowed.</summary>
+    internal static JsonObject UpdateEmploymentTypeSystemDefault() => new()
+    {
+        ["description"] = "Standard salaried employment",
     };
 
     /// <summary>Partial update — one section only (typical bulk save).</summary>
@@ -1172,7 +1199,6 @@ internal static class SwaggerExamples
             ["job_title"] = "Software Engineer",
             ["department_id"] = SampleDepartmentId.ToString(),
             ["branch_id"] = SampleBranchId.ToString(),
-            ["employment_type"] = optionHints ? SwaggerExampleHints.EmploymentType : "Full-time",
             ["employment_status"] = optionHints ? SwaggerExampleHints.EmploymentStatus : "Active",
             ["contract_type"] = optionHints ? SwaggerExampleHints.ContractType : "Permanent",
             ["work_arrangement"] = optionHints ? SwaggerExampleHints.WorkArrangement : "hybrid",
@@ -1186,12 +1212,22 @@ internal static class SwaggerExamples
         };
 
         if (!withNames)
+        {
+            obj["employment_type_id"] = SampleEmploymentTypeId.ToString();
             obj["reports_to_id"] = SampleReportsToId.ToString();
+        }
 
         if (withNames)
         {
             obj["department_name"] = "Engineering";
             obj["branch_name"] = "Accra HQ";
+            obj["employment_type"] = new JsonObject
+            {
+                ["id"] = SampleEmploymentTypeId.ToString(),
+                ["name"] = "Full-time",
+                ["description"] = "Standard salaried employment",
+                ["type"] = "default",
+            };
             obj["reports_to"] = new JsonObject
             {
                 ["id"] = SampleReportsToId.ToString(),
@@ -1807,6 +1843,58 @@ internal static class SwaggerExamples
             ["has_next"] = false,
         });
 
+    internal static JsonObject EmploymentTypeListResponse() => EnvelopeOk(
+        EmploymentTypeListData(),
+        pagination: new JsonObject
+        {
+            ["page"] = 1,
+            ["size"] = 20,
+            ["total"] = 5,
+            ["has_next"] = false,
+        });
+
+    internal static JsonObject EmploymentTypeGetResponse() => EnvelopeOk(EmploymentTypeItemData());
+
+    internal static JsonObject EmploymentTypeGetCustomResponse() => EnvelopeOk(EmploymentTypeCustomItemData());
+
+    internal static JsonObject CreateEmploymentTypeBody() => new()
+    {
+        ["name"] = "Apprentice",
+        ["description"] = "Structured on-the-job training programme",
+    };
+
+    internal static JsonObject EmploymentTypeRenameBlockedResponse() => ValidationErrorEnvelope(
+        new JsonObject { ["name"] = "System default employment types cannot be renamed." });
+
+    internal static JsonObject EmploymentTypeDeleteBlockedResponse() => new()
+    {
+        ["success"] = false,
+        ["status_code"] = 409,
+        ["detail"] = "Employment type is assigned to employees and cannot be deleted.",
+        ["data"] = null,
+        ["field_errors"] = null,
+    };
+
+    internal static JsonObject EmploymentTypeDeleteSuccessResponse() => EnvelopeOk(
+        new JsonObject(),
+        detail: "Employment type deleted.");
+
+    internal static JsonObject EmploymentTypeCustomItemData()
+    {
+        var data = new JsonObject
+        {
+            ["employment_type_id"] = "b3333333-3333-3333-3333-333333333307",
+            ["name"] = "Apprentice",
+            ["description"] = "Structured on-the-job training programme",
+            ["type"] = "custom",
+            ["is_system_default"] = false,
+            ["employee_count"] = 8,
+            ["is_active"] = true,
+        };
+        AppendResourceAuditFields(data);
+        return data;
+    }
+
     internal static JsonObject LeaveTypeGetResponse() => EnvelopeOk(LeaveTypeItemData());
 
     internal static JsonObject LeaveHolidayGetResponse() => EnvelopeOk(PublicHolidayItemData());
@@ -1992,6 +2080,41 @@ internal static class SwaggerExamples
         return new JsonObject
         {
             ["items"] = new JsonArray(LeaveTypeItemData(), second),
+        };
+    }
+
+    internal static JsonObject EmploymentTypeItemData(bool optionHints = false)
+    {
+        var data = new JsonObject
+        {
+            ["employment_type_id"] = SampleEmploymentTypeId.ToString(),
+            ["name"] = optionHints ? SwaggerExampleHints.EmploymentType : "Full-time",
+            ["description"] = "Standard salaried employment",
+            ["type"] = optionHints ? "default|custom" : "default",
+            ["is_system_default"] = true,
+            ["employee_count"] = 198,
+            ["is_active"] = true,
+        };
+        AppendResourceAuditFields(data);
+        return data;
+    }
+
+    internal static JsonObject EmploymentTypeListData()
+    {
+        var custom = new JsonObject
+        {
+            ["employment_type_id"] = "b3333333-3333-3333-3333-333333333307",
+            ["name"] = "Apprentice",
+            ["description"] = "Structured on-the-job training",
+            ["type"] = "custom",
+            ["is_system_default"] = false,
+            ["employee_count"] = 8,
+            ["is_active"] = true,
+        };
+        AppendResourceAuditFields(custom);
+        return new JsonObject
+        {
+            ["items"] = new JsonArray(EmploymentTypeItemData(), custom),
         };
     }
 

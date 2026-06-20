@@ -211,6 +211,49 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
             return;
         }
 
+        if (name.Equals(PlatformQueryParams.EmploymentTypeId, StringComparison.OrdinalIgnoreCase))
+        {
+            schema.Example = SwaggerExamples.SampleEmploymentTypeId.ToString();
+            parameter.Description = SwaggerOptionFormat.Append(
+                parameter.Description,
+                "Employment type UUID from GET /employment-types/list or GET /employment-types/get.");
+            return;
+        }
+
+        if (name.Equals("search", StringComparison.OrdinalIgnoreCase)
+            && context.ParameterInfo?.Member.DeclaringType?.FullName?.Contains(
+                "EmploymentTypeListQuery",
+                StringComparison.Ordinal) == true)
+        {
+            schema.Example = "full";
+            parameter.Description = "Optional filter on name or description (minimum 2 characters).";
+            return;
+        }
+
+        if (name.Equals("sort_by", StringComparison.OrdinalIgnoreCase)
+            && context.ParameterInfo?.Member.DeclaringType?.FullName?.Contains(
+                "EmploymentTypeListQuery",
+                StringComparison.Ordinal) == true)
+        {
+            schema.Example = "name";
+            parameter.Description = SwaggerOptionFormat.Append(
+                parameter.Description,
+                $"Allowed: {SwaggerExampleHints.EmploymentTypeSortBy}.");
+            return;
+        }
+
+        if (name.Equals("is_active", StringComparison.OrdinalIgnoreCase)
+            && context.ParameterInfo?.Member.DeclaringType?.FullName?.Contains(
+                "EmploymentTypeListQuery",
+                StringComparison.Ordinal) == true)
+        {
+            schema.Example = SwaggerExampleHints.BooleanPipe;
+            parameter.Description = SwaggerOptionFormat.Append(
+                parameter.Description,
+                $"Filter active/inactive rows. Allowed: {SwaggerExampleHints.BooleanPipe}. Omit for all.");
+            return;
+        }
+
         if (name.Equals("search", StringComparison.OrdinalIgnoreCase)
             && context.ParameterInfo?.Member.DeclaringType?.FullName?.Contains(
                 "OrgStructure",

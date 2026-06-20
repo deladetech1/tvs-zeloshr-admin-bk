@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using ZelosHR.Api.Entities.AuditLogs;
 using ZelosHR.Api.Entities.Branches;
 using ZelosHR.Api.Entities.CustomFields;
+using ZelosHR.Api.Entities.EmploymentTypes;
 using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Entities.Shared;
@@ -33,6 +34,7 @@ public sealed class EmployeeAggregateService
     private readonly IHrDocumentPathRepository _hrDocuments;
     private readonly ICpCurrencyRepository _currencies;
     private readonly HrDocumentPresignedUrlService _profileUrls;
+    private readonly EmploymentTypesService _employmentTypes;
     private readonly IAuditLogWriter _auditLogs;
     private readonly ITenantContext _tenant;
     private readonly ILogger<EmployeeAggregateService> _logger;
@@ -50,6 +52,7 @@ public sealed class EmployeeAggregateService
         IHrDocumentPathRepository hrDocuments,
         ICpCurrencyRepository currencies,
         HrDocumentPresignedUrlService profileUrls,
+        EmploymentTypesService employmentTypes,
         IAuditLogWriter auditLogs,
         ITenantContext tenant,
         ILogger<EmployeeAggregateService> logger)
@@ -66,6 +69,7 @@ public sealed class EmployeeAggregateService
         _hrDocuments = hrDocuments;
         _currencies = currencies;
         _profileUrls = profileUrls;
+        _employmentTypes = employmentTypes;
         _auditLogs = auditLogs;
         _tenant = tenant;
         _logger = logger;
@@ -639,6 +643,7 @@ public sealed class EmployeeAggregateService
             ct);
 
         var reportsTo = await ResolveReportsToDisplayAsync(entity, ct);
+        var employmentType = await ResolveEmploymentTypeDisplayAsync(entity, ct);
 
         var read = new EmployeeAggregateReadDto
         {
@@ -652,7 +657,7 @@ public sealed class EmployeeAggregateService
                 workEmail,
                 profileUrl,
                 sections.Identity),
-            Employment = EmployeeAggregateReadMapper.BuildEmployment(entity, sections.Employment, reportsTo),
+            Employment = EmployeeAggregateReadMapper.BuildEmployment(entity, sections.Employment, reportsTo, employmentType),
             Compensation = EmployeeAggregateReadMapper.BuildCompensation(
                 entity,
                 sections.Compensation,
@@ -856,6 +861,38 @@ public sealed class EmployeeAggregateService
             deleteDocumentIds.Where(id => !string.IsNullOrWhiteSpace(id)).Select(id => id.Trim()),
             StringComparer.Ordinal);
         entity.DocumentIds = entity.DocumentIds.Where(id => !remove.Contains(id)).ToList();
+    }
+
+    private async Task<EmploymentTypeDisplay?> ResolveEmploymentTypeDisplayAsync(
+        EmployeeEntity entity,
+        CancellationToken ct)
+    {
+        if (entity.EmploymentTypeRef is not null)
+        {
+            return new EmploymentTypeDisplay(
+                entity.EmploymentTypeRef.Id.ToString(),
+                entity.EmploymentTypeRef.Name,
+                entity.EmploymentTypeRef.Description,
+                entity.EmploymentTypeRef.IsSystemDefault
+                    ? EmploymentTypeKind.Default
+                    : EmploymentTypeKind.Custom);
+        }
+
+        var resolved = await _employmentTypes.ResolveRefAsync(
+            entity.EmploymentTypeId,
+            entity.EmploymentType,
+            _tenant.TenantId,
+            _tenant.OrgId,
+            ct);
+
+        if (resolved is null || string.IsNullOrWhiteSpace(resolved.Id))
+            return null;
+
+        return new EmploymentTypeDisplay(
+            resolved.Id,
+            resolved.Name,
+            resolved.Description,
+            resolved.Type);
     }
 
     private async Task<ReportsToDisplay?> ResolveReportsToDisplayAsync(

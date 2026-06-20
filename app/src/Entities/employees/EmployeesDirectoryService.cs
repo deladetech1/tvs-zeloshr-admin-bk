@@ -1,7 +1,9 @@
 using ZelosHR.Api.Entities.Branches;
 using ZelosHR.Api.Entities.Departments;
+using ZelosHR.Api.Entities.EmploymentTypes;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Persistence.Entities;
+using ZelosHR.Api.Persistence.Repositories;
 using ZelosHR.Api.Shared.Formatting;
 using ZelosHR.Api.Shared.Pagination;
 
@@ -13,17 +15,20 @@ public class EmployeesDirectoryService
     private readonly ICpUserRepository _cpUsers;
     private readonly IDepartmentRepository _departments;
     private readonly IBranchRepository _branches;
+    private readonly IEmploymentTypeRepository _employmentTypes;
 
     public EmployeesDirectoryService(
         IEmployeeDirectoryRepository directory,
         ICpUserRepository cpUsers,
         IDepartmentRepository departments,
-        IBranchRepository branches)
+        IBranchRepository branches,
+        IEmploymentTypeRepository employmentTypes)
     {
         _directory = directory;
         _cpUsers = cpUsers;
         _departments = departments;
         _branches = branches;
+        _employmentTypes = employmentTypes;
     }
 
     public async Task<Respons<EmployeeDirectorySummaryDto>> GetSummaryAsync(
@@ -82,6 +87,14 @@ public class EmployeesDirectoryService
         var deptRows = await _departments.ListScopedAsync(
             tenantId, orgId, null, "name", "asc", includeArchived: false, page: 1, pageSize: 500, ct);
         var branchRows = await _branches.ListScopedAsync(tenantId, orgId, includeArchived: false, ct);
+        await _employmentTypes.EnsureSystemDefaultsScopedAsync(tenantId, orgId, ct);
+        var (employmentTypeRows, _) = await _employmentTypes.ListScopedAsync(
+            tenantId,
+            orgId,
+            new EmploymentTypeListQuery { IsActive = true, Size = 200, Page = 1 },
+            1,
+            200,
+            ct);
 
         return Respons<EmployeeFilterOptionsDto>.Ok(new EmployeeFilterOptionsDto
         {
@@ -92,7 +105,7 @@ public class EmployeesDirectoryService
                 .Where(b => !b.IsArchived)
                 .Select(b => new FilterOptionDto { Id = b.Id.ToString(), Name = b.Name })
                 .ToList(),
-            EmploymentTypes = EmployeeFieldOptions.EmploymentTypes.ToList(),
+            EmploymentTypes = employmentTypeRows.Select(t => t.Name).ToList(),
             Statuses = EmployeeFieldOptions.EmploymentStatuses.ToList(),
             StatusFilters = EmployeeFieldOptions.ListStatusFilters.ToList(),
         });

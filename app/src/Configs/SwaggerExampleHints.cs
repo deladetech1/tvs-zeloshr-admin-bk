@@ -3,6 +3,7 @@ using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Leave;
 using ZelosHR.Api.Entities.OrgStructure;
+using ZelosHR.Api.Entities.EmploymentTypes;
 
 namespace ZelosHR.Api.Configs;
 
@@ -48,4 +49,6 @@ internal static class SwaggerExampleHints
     internal static string LeaveApprovalListSortBy => SwaggerOptionFormat.JoinPipe(LeaveFieldOptions.ApprovalListSortBy);
     internal static string LeaveApprovalListSortOrder => SwaggerOptionFormat.JoinPipe(LeaveFieldOptions.ApprovalListSortOrder);
     internal static string LeaveCalendarView => SwaggerOptionFormat.JoinPipe(LeaveFieldOptions.CalendarViews);
+    internal static string EmploymentTypeKind => SwaggerOptionFormat.JoinPipe(EmploymentTypeFieldOptions.Kind);
+    internal static string EmploymentTypeSortBy => SwaggerOptionFormat.JoinPipe(EmploymentTypeFieldOptions.SortBy);
 }

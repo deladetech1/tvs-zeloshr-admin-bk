@@ -34,6 +34,7 @@ public static class PersistenceRegistration
                 .UseSnakeCaseNamingConvention();
         });
 
+        services.AddScoped<IEmploymentTypeRepository, EmploymentTypeRepository>();
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
         services.AddScoped<ICpUserRepository, CpUserRepository>();
         services.AddScoped<ICpCurrencyRepository, CpCurrencyRepository>();

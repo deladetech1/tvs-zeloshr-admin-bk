@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 using ZelosHR.Api.Configs;
+using ZelosHR.Api.Entities.EmploymentTypes;
 using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Shared.Constants;
 
@@ -158,8 +159,8 @@ public class EmployeeAggregateEmploymentDto
     public Guid? DepartmentId { get; init; }
     public Guid? BranchId { get; init; }
 
-    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.EmploymentTypes))]
-    public string? EmploymentType { get; init; }
+    /// <summary>FK from <c>GET /employment-types/list</c>. Denormalised name is stored on the employee row.</summary>
+    public Guid? EmploymentTypeId { get; init; }
 
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.EmploymentStatuses))]
     public string? EmploymentStatus { get; init; }
@@ -240,7 +241,18 @@ public sealed class EmployeeAggregateEmploymentReadDto : EmployeeAggregateEmploy
     public string? DepartmentName { get; init; }
     public string? BranchName { get; init; }
 
-    /// <summary>Manager reference — write uses <see cref="EmployeeAggregateEmploymentDto.ReportsToId"/>; read returns this object only.</summary>
+    /// <summary>Write-only FK — read uses <see cref="EmploymentType"/> (<c>employment_type.id</c>).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+    public new Guid? EmploymentTypeId { get; init; }
+
+    /// <summary>Employment type reference (<c>employment_type.id</c> matches write <c>employment_type_id</c>).</summary>
+    public EmployeeEmploymentTypeRefDto? EmploymentType { get; init; }
+
+    /// <summary>Write-only FK — read uses <see cref="ReportsTo"/> (<c>reports_to.id</c>).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+    public new Guid? ReportsToId { get; init; }
+
+    /// <summary>Manager reference — write uses flat <c>reports_to_id</c>.</summary>
     public EmployeeReportsToRefDto? ReportsTo { get; init; }
 }
 

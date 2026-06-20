@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using ZelosHR.Api.Entities.EmploymentTypes;
 using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Persistence;
@@ -22,6 +23,7 @@ public sealed class EmployeeRegistrationService
     private readonly IHrDocumentPathRepository _documents;
     private readonly FileManagementStorage _storageConfig;
     private readonly HrDocumentPresignedUrlService _profileUrls;
+    private readonly EmploymentTypesService _employmentTypes;
     private readonly ITenantContext _tenant;
     private readonly ICurrentUserService _currentUser;
 
@@ -34,6 +36,7 @@ public sealed class EmployeeRegistrationService
         IHrDocumentPathRepository documents,
         FileManagementStorage storageConfig,
         HrDocumentPresignedUrlService profileUrls,
+        EmploymentTypesService employmentTypes,
         ITenantContext tenant,
         ICurrentUserService currentUser)
     {
@@ -45,6 +48,7 @@ public sealed class EmployeeRegistrationService
         _documents = documents;
         _storageConfig = storageConfig;
         _profileUrls = profileUrls;
+        _employmentTypes = employmentTypes;
         _tenant = tenant;
         _currentUser = currentUser;
     }
@@ -268,6 +272,10 @@ public sealed class EmployeeRegistrationService
                 new Dictionary<string, string> { ["reportsToId"] = "Employee cannot report to themselves." });
 
         ApplyEmployment(entity.Value!, dto);
+        var typeError = await ApplyEmploymentTypeAsync(entity.Value!, dto, ct);
+        if (typeError is not null)
+            return typeError;
+
         entity.Value!.UpdatedAt = DateTimeOffset.UtcNow;
         await _employees.UpdateAsync(entity.Value, ct);
         return Respons<EmployeeRegistrationReadDto>.Ok(await ToReadDtoAsync(entity.Value, ct));
@@ -653,7 +661,6 @@ public sealed class EmployeeRegistrationService
         e.JobTitle = dto.JobTitle ?? e.JobTitle;
         e.DepartmentId = dto.DepartmentId ?? e.DepartmentId;
         e.BranchId = dto.BranchId ?? e.BranchId;
-        e.EmploymentType = dto.EmploymentType ?? e.EmploymentType;
         e.WorkArrangement = WorkArrangementRules.Normalize(dto.WorkArrangement) ?? e.WorkArrangement;
         e.WorkLocation = dto.WorkLocation ?? e.WorkLocation;
         e.PayGrade = dto.PayGrade ?? e.PayGrade;
@@ -665,6 +672,32 @@ public sealed class EmployeeRegistrationService
         e.ReportsToId = dto.ReportsToId ?? e.ReportsToId;
         e.ManagerId = dto.ReportsToId ?? e.ManagerId;
         e.DottedLineManagerId = dto.DottedLineManagerId ?? e.DottedLineManagerId;
+    }
+
+    private async Task<Respons<EmployeeRegistrationReadDto>?> ApplyEmploymentTypeAsync(
+        EmployeeEntity e,
+        CreateEmployeeRequest dto,
+        CancellationToken ct)
+    {
+        if (dto.EmploymentTypeId is null)
+            return null;
+
+        var (ok, error, type) = await _employmentTypes.ResolveForWriteAsync(
+            dto.EmploymentTypeId, null, _tenant.TenantId, _tenant.OrgId, ct);
+        if (!ok)
+        {
+            return Respons<EmployeeRegistrationReadDto>.ValidationError(new Dictionary<string, string>
+            {
+                ["employment_type_id"] = error ?? "Invalid employment type.",
+            });
+        }
+
+        if (type is null)
+            return null;
+
+        e.EmploymentTypeId = type.Id;
+        e.EmploymentType = type.Name;
+        return null;
     }
 
     internal static void ApplyEmploymentExtras(
