@@ -48,7 +48,7 @@ public sealed class SwaggerFileManagementOperationFilter : IOperationFilter
             operation.Summary = "Upload multiple files";
             operation.Description =
                 "Multipart `files` + optional `blob_paths` / `descriptions`. Omit `blob_paths` to store under "
-                + "`{tenant}/{org}/{bus}/employees/documents/` in the **zeloshr** container. Returns registry `id` values for employee `document_ids`.";
+                + "`{tenant}/{org}/{bus}/employees/documents/` in the **employee-documents** container. Returns registry `id` values for employee `document_ids`.";
             SetJsonResponseExample(operation, SwaggerExamples.FileUploadMultipleResponse(), "upload_multiple");
             return;
         }

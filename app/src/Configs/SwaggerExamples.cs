@@ -43,7 +43,7 @@ internal static class SwaggerExamples
     internal const string SampleBlobPathSingle = "tenant_demo/org_demo/bus_demo/employees/documents/a1b2c3d4-contract.pdf";
     internal const string SampleBlobPathMulti1 = "tenant_demo/org_demo/bus_demo/employees/documents/a1b2c3d4-contract.pdf";
     internal const string SampleBlobPathMulti2 = "tenant_demo/org_demo/bus_demo/employees/documents/e5f6g7h8-national_id.jpg";
-    internal const string SampleDocumentsContainer = "zeloshr";
+    internal const string SampleDocumentsContainer = "employee-documents";
     internal const string SamplePresignedUrl =
         "https://devstorage.blob.core.windows.net/zeloshr/tenant_demo/org_demo/bus_demo/employees/documents/a1b2c3d4-contract.pdf?sv=2024&se=2026-05-20T12%3A00%3A00Z&sig=example";
 

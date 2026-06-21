@@ -21,9 +21,9 @@ public sealed class AzureStorageOptions
     /// <summary>Optional override, e.g. Azurite or private endpoint URI.</summary>
     public string BlobServiceUri { get; set; } = "";
 
-    public string ProfilePhotosContainer { get; set; } = "zeloshr";
+    public string ProfilePhotosContainer { get; set; } = "profile-photos";
 
-    public string DocumentsContainer { get; set; } = "zeloshr";
+    public string DocumentsContainer { get; set; } = "employee-documents";
 }
 
 public sealed class AzureBlobStorageService : IFileStorageService
