@@ -76,13 +76,13 @@ jobs:
           if [[ "${{ github.ref_name }}" == "main" ]]; then
             echo "env=prod" >> "$GITHUB_OUTPUT"
             echo "acr_name=tvsprodacr" >> "$GITHUB_OUTPUT"
-            echo "subscription_id=${{ secrets.TROVESUITE_PROD_AZURE_SUBSCRIPTION_ID }}" >> "$GITHUB_OUTPUT"
+            echo "subscription_id=81e2c7de-1a2f-4947-9fb9-cdd43f54a8ac" >> "$GITHUB_OUTPUT"
             echo "container_app_name=tvs-prod-zeloshr-admin-ca" >> "$GITHUB_OUTPUT"
             echo "resource_group=tvs-prod-appservers-rg" >> "$GITHUB_OUTPUT"
           else
             echo "env=dev" >> "$GITHUB_OUTPUT"
             echo "acr_name=tvsdevacr" >> "$GITHUB_OUTPUT"
-            echo "subscription_id=${{ secrets.TROVESUITE_DEV_AZURE_SUBSCRIPTION_ID }}" >> "$GITHUB_OUTPUT"
+            echo "subscription_id=94e81654-0f7e-46ea-9f21-c0640cdc6c97" >> "$GITHUB_OUTPUT"
             echo "container_app_name=tvs-dev-zeloshr-admin-ca" >> "$GITHUB_OUTPUT"
             echo "resource_group=tvs-dev-appservers-rg" >> "$GITHUB_OUTPUT"
           fi
@@ -115,46 +115,6 @@ jobs:
           echo "If Azure Login fails with AADSTS700213, add this subject under"
           echo "TROVESUITE_AZURE_CLIENT_ID → Federated credentials (same app as Core Platform)."
           echo "See docs/CICD.md#azure-oidc-federated-credentials"
-
-      # TEMPORARY: remove after OIDC/credential debugging (secrets are masked in Actions logs).
-      - name: Debug secrets and vars (temporary — container app)
-        env:
-          TROVESUITE_AZURE_CLIENT_ID: ${{ secrets.TROVESUITE_AZURE_CLIENT_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          TROVESUITE_PROD_AZURE_SUBSCRIPTION_ID: ${{ secrets.TROVESUITE_PROD_AZURE_SUBSCRIPTION_ID }}
-          TROVESUITE_DEV_AZURE_SUBSCRIPTION_ID: ${{ secrets.TROVESUITE_DEV_AZURE_SUBSCRIPTION_ID }}
-          TROVESUITE_SHARED_AZURE_SUBSCRIPTION_ID: ${{ secrets.TROVESUITE_SHARED_AZURE_SUBSCRIPTION_ID }}
-          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
-        run: |
-          set -euo pipefail
-          echo "=== GitHub context ==="
-          echo "ref_name=${{ github.ref_name }}"
-          echo "repository=${{ github.repository }}"
-          echo "workflow=${{ github.workflow }}"
-          echo "run_id=${{ github.run_id }}"
-          echo ""
-          echo "=== Repository variables (vars.*) ==="
-          echo "PROD_CONTAINER_REGISTRY_NAME=tvsprodacr"
-          echo "DEV_CONTAINER_REGISTRY_NAME=tvsdevacr"
-          echo "PROD_RESOURCE_GROUP=tvs-prod-appservers-rg"
-          echo "DEV_RESOURCE_GROUP=tvs-dev-appservers-rg"
-          echo ""
-          echo "=== Step outputs (env job) ==="
-          echo "env=${{ steps.env.outputs.env }}"
-          echo "acr_name=${{ steps.env.outputs.acr_name }}"
-          echo "container_app_name=${{ steps.env.outputs.container_app_name }}"
-          echo "resource_group=${{ steps.env.outputs.resource_group }}"
-          echo "subscription_id(step)=${{ steps.env.outputs.subscription_id }}"
-          echo ""
-          echo "=== Secrets (values masked by GitHub if non-empty) ==="
-          for name in TROVESUITE_AZURE_CLIENT_ID AZURE_TENANT_ID TROVESUITE_PROD_AZURE_SUBSCRIPTION_ID TROVESUITE_DEV_AZURE_SUBSCRIPTION_ID TROVESUITE_SHARED_AZURE_SUBSCRIPTION_ID PACKAGES_TOKEN; do
-            val="${!name-}"
-            if [[ -z "$val" ]]; then
-              echo "${name}=<empty>"
-            else
-              echo "${name}=<set len=${#val}> value=${val}"
-            fi
-          done
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2
@@ -225,12 +185,12 @@ jobs:
         run: |
           if [[ "${{ github.ref_name }}" == "main" ]]; then
             echo "env=prod" >> "$GITHUB_OUTPUT"
-            echo "subscription_id=${{ secrets.TROVESUITE_PROD_AZURE_SUBSCRIPTION_ID }}" >> "$GITHUB_OUTPUT"
+            echo "subscription_id=81e2c7de-1a2f-4947-9fb9-cdd43f54a8ac" >> "$GITHUB_OUTPUT"
             echo "function_app_name=tvs-prod-zeloshr-admin-func" >> "$GITHUB_OUTPUT"
             echo "resource_group=tvs-prod-appservers-rg" >> "$GITHUB_OUTPUT"
           else
             echo "env=dev" >> "$GITHUB_OUTPUT"
-            echo "subscription_id=${{ secrets.TROVESUITE_DEV_AZURE_SUBSCRIPTION_ID }}" >> "$GITHUB_OUTPUT"
+            echo "subscription_id=94e81654-0f7e-46ea-9f21-c0640cdc6c97" >> "$GITHUB_OUTPUT"
             echo "function_app_name=tvs-dev-zeloshr-admin-func" >> "$GITHUB_OUTPUT"
             echo "resource_group=tvs-dev-appservers-rg" >> "$GITHUB_OUTPUT"
           fi
@@ -257,40 +217,6 @@ jobs:
           echo "GitHub federated identity subject for this run:"
           echo "  repo:${{ github.repository }}:ref:refs/heads/${{ github.ref_name }}"
           echo "See docs/CICD.md#azure-oidc-federated-credentials"
-
-      # TEMPORARY: remove after OIDC/credential debugging (secrets are masked in Actions logs).
-      - name: Debug secrets and vars (temporary — functions)
-        env:
-          TROVESUITE_AZURE_CLIENT_ID: ${{ secrets.TROVESUITE_AZURE_CLIENT_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          TROVESUITE_PROD_AZURE_SUBSCRIPTION_ID: ${{ secrets.TROVESUITE_PROD_AZURE_SUBSCRIPTION_ID }}
-          TROVESUITE_DEV_AZURE_SUBSCRIPTION_ID: ${{ secrets.TROVESUITE_DEV_AZURE_SUBSCRIPTION_ID }}
-          TROVESUITE_SHARED_AZURE_SUBSCRIPTION_ID: ${{ secrets.TROVESUITE_SHARED_AZURE_SUBSCRIPTION_ID }}
-        run: |
-          set -euo pipefail
-          echo "=== GitHub context ==="
-          echo "ref_name=${{ github.ref_name }}"
-          echo "repository=${{ github.repository }}"
-          echo ""
-          echo "=== Repository variables (vars.*) ==="
-          echo "PROD_RESOURCE_GROUP=tvs-prod-appservers-rg"
-          echo "DEV_RESOURCE_GROUP=tvs-dev-appservers-rg"
-          echo ""
-          echo "=== Step outputs (env job) ==="
-          echo "env=${{ steps.env.outputs.env }}"
-          echo "function_app_name=${{ steps.env.outputs.function_app_name }}"
-          echo "resource_group=${{ steps.env.outputs.resource_group }}"
-          echo "subscription_id(step)=${{ steps.env.outputs.subscription_id }}"
-          echo ""
-          echo "=== Secrets (values masked by GitHub if non-empty) ==="
-          for name in TROVESUITE_AZURE_CLIENT_ID AZURE_TENANT_ID TROVESUITE_PROD_AZURE_SUBSCRIPTION_ID TROVESUITE_DEV_AZURE_SUBSCRIPTION_ID TROVESUITE_SHARED_AZURE_SUBSCRIPTION_ID; do
-            val="${!name-}"
-            if [[ -z "$val" ]]; then
-              echo "${name}=<empty>"
-            else
-              echo "${name}=<set len=${#val}> value=${val}"
-            fi
-          done
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2
