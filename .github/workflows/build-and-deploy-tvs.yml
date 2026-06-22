@@ -71,7 +71,7 @@ jobs:
       needs.detect-changes.outputs.app_changed == 'true'
       || needs.detect-changes.outputs.func_changed == 'true'
       || (github.event_name == 'workflow_dispatch' && (inputs.deploy_container_app || inputs.deploy_functions))
-    uses: deladetech1/tvs-sqlscript/.github/workflows/migrate.yml@main
+    uses: deladetech1/tvs-sqlscript/.github/workflows/migrate.yml@master
     with:
       scope: saas
       environment: ${{ github.ref_name == 'dev' && 'dev' || 'prod' }}

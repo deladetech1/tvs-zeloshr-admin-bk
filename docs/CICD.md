@@ -14,7 +14,7 @@ Workflows:
 
 Schema lives in [tvs-sqlscript](https://github.com/deladetech1/tvs-sqlscript). **This repo never runs migrations itself** — the deploy pipeline *calls* the central migrator's reusable workflow (`tvs-sqlscript/.github/workflows/migrate.yml`, module `human_resource`) **before** rolling out the new image, and the rollout is **gated on that migration succeeding**. The migrator (`tvs_migrator`) owns the schema; the app connects with a per-role CRUD login.
 
-When both repos change: just push ZelosHR — the deploy migrates `tvs-sqlscript@main` first, so merge tvs-sqlscript before deploying ZelosHR. Manual DB commands (rollback, enterprise, `migrations-list`): tvs-sqlscript workflow **Database (EF Core dispatch)**.
+When both repos change: just push ZelosHR — the deploy migrates `tvs-sqlscript@master` first, so merge tvs-sqlscript before deploying ZelosHR. Manual DB commands (rollback, enterprise, `migrations-list`): tvs-sqlscript workflow **Database (EF Core dispatch)**.
 
 | Branch | Environment | Container App | Function App | ACR image |
 |--------|-------------|---------------|--------------|-----------|
