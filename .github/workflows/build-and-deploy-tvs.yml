@@ -1,9 +1,10 @@
 name: Build & Deploy ZelosHR Backend (TVS)
 
 on:
+  # Prod (main) deploys are MANUAL — use the Actions "Run workflow" button
+  # (workflow_dispatch) on main. Only dev auto-deploys on push.
   push:
     branches:
-      - main
       - dev
     paths:
       - "app/**"
@@ -57,15 +58,39 @@ jobs:
             func:
               - 'func/**'
 
+  # Apply the ZelosHR (human_resource) schema via the central migrator
+  # (tvs-sqlscript) BEFORE the new image rolls out. ZelosHR is SaaS-only:
+  # main → prod, dev → dev. DATABASE_URL + prod reviewers live on tvs-sqlscript's
+  # saas-<environment> environments — never in this repo. `secrets: inherit`
+  # forwards PACKAGES_TOKEN so the reusable workflow can check out the migrator.
+  # (This replaces the dev-only embedded SchemaInitializer for real environments.)
+  migrate:
+    name: Migrate database (tvs-sqlscript)
+    needs: detect-changes
+    if: >-
+      needs.detect-changes.outputs.app_changed == 'true'
+      || needs.detect-changes.outputs.func_changed == 'true'
+      || (github.event_name == 'workflow_dispatch' && (inputs.deploy_container_app || inputs.deploy_functions))
+    uses: deladetech1/tvs-sqlscript/.github/workflows/migrate.yml@main
+    with:
+      scope: saas
+      environment: ${{ github.ref_name == 'dev' && 'dev' || 'prod' }}
+      module: human_resource
+    secrets: inherit
+
   build-and-deploy-app:
     name: Build & Deploy Container App
-    needs: detect-changes
+    needs: [detect-changes, migrate]
     if: needs.detect-changes.outputs.app_changed == 'true' || (github.event_name == 'workflow_dispatch' && inputs.deploy_container_app)
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
       packages: read
+    outputs:
+      # 'true' when the Container App existed and the new image was rolled out —
+      # gates the post-deploy Leave E2E job below.
+      container_app_deployed: ${{ steps.containerapp.outputs.exists }}
 
     steps:
       - uses: actions/checkout@v5
@@ -75,22 +100,22 @@ jobs:
         run: |
           if [[ "${{ github.ref_name }}" == "main" ]]; then
             echo "env=prod" >> "$GITHUB_OUTPUT"
-            echo "acr_name=tvsprodacr" >> "$GITHUB_OUTPUT"
-            echo "subscription_id=81e2c7de-1a2f-4947-9fb9-cdd43f54a8ac" >> "$GITHUB_OUTPUT"
+            echo "acr_name=${{ vars.TVS_PROD_ACR }}" >> "$GITHUB_OUTPUT"
+            echo "subscription_id=${{ vars.TVS_PROD_SUBSCRIPTION_ID }}" >> "$GITHUB_OUTPUT"
             echo "container_app_name=tvs-prod-zeloshr-admin-ca" >> "$GITHUB_OUTPUT"
-            echo "resource_group=tvs-prod-appservers-rg" >> "$GITHUB_OUTPUT"
+            echo "resource_group=${{ vars.TVS_PROD_APPSERVERS_RG }}" >> "$GITHUB_OUTPUT"
           else
             echo "env=dev" >> "$GITHUB_OUTPUT"
-            echo "acr_name=tvsdevacr" >> "$GITHUB_OUTPUT"
-            echo "subscription_id=94e81654-0f7e-46ea-9f21-c0640cdc6c97" >> "$GITHUB_OUTPUT"
+            echo "acr_name=${{ vars.TVS_DEV_ACR }}" >> "$GITHUB_OUTPUT"
+            echo "subscription_id=${{ vars.TVS_DEV_SUBSCRIPTION_ID }}" >> "$GITHUB_OUTPUT"
             echo "container_app_name=tvs-dev-zeloshr-admin-ca" >> "$GITHUB_OUTPUT"
-            echo "resource_group=tvs-dev-appservers-rg" >> "$GITHUB_OUTPUT"
+            echo "resource_group=${{ vars.TVS_DEV_APPSERVERS_RG }}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Sanity-check OIDC inputs
         env:
-          CID: ${{ secrets.TROVESUITE_AZURE_CLIENT_ID }}
-          TID: ${{ secrets.AZURE_TENANT_ID }}
+          CID: ${{ vars.TVS_AZURE_CLIENT_ID }}
+          TID: ${{ vars.TVS_TENANT_ID }}
           SID: ${{ steps.env.outputs.subscription_id }}
           PKG: ${{ secrets.PACKAGES_TOKEN }}
         run: |
@@ -119,8 +144,8 @@ jobs:
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.TROVESUITE_AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          client-id: ${{ vars.TVS_AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.TVS_TENANT_ID }}
           subscription-id: ${{ steps.env.outputs.subscription_id }}
 
       - name: Login to Azure Container Registry
@@ -168,9 +193,95 @@ jobs:
             --resource-group "${{ steps.env.outputs.resource_group }}" \
             --image "${{ steps.build.outputs.image }}"
 
+  # Post-deploy verification (ported from the retired legacy build-and-deploy.yml;
+  # ci.yml only covers pre-merge unit tests). Runs after a successful rollout.
+  post-deploy-regression:
+    name: Post-deploy regression tests
+    needs: build-and-deploy-app
+    if: needs.build-and-deploy-app.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Run regression suite (Docker Compose)
+        env:
+          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+        run: |
+          chmod +x scripts/ci/regression-test.sh scripts/compose.sh scripts/compose/*.sh
+          ./scripts/ci/regression-test.sh
+
+  post-deploy-leave-e2e:
+    name: Leave E2E (Hurl)
+    needs: [build-and-deploy-app, post-deploy-regression]
+    if: |
+      needs.build-and-deploy-app.result == 'success' &&
+      needs.post-deploy-regression.result == 'success' &&
+      github.ref_name == 'dev' &&
+      needs.build-and-deploy-app.outputs.container_app_deployed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check Leave E2E configuration
+        id: e2e_cfg
+        env:
+          TROVESUITE_SECRET_KEY: ${{ secrets.TROVESUITE_SECRET_KEY }}
+          ZELOSHR_E2E_ORG_ID: ${{ secrets.ZELOSHR_E2E_ORG_ID }}
+          ZELOSHR_E2E_USER_ID: ${{ secrets.ZELOSHR_E2E_USER_ID }}
+        run: |
+          if [[ -z "${TROVESUITE_SECRET_KEY}" || -z "${ZELOSHR_E2E_ORG_ID}" || -z "${ZELOSHR_E2E_USER_ID}" ]]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Leave E2E skipped — configure ZELOSHR_E2E_* secrets (docs/CICD.md#leave-e2e-hurl)."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install Hurl
+        if: steps.e2e_cfg.outputs.configured == 'true'
+        run: |
+          HURL_VERSION="6.0.0"
+          curl -sSL "https://github.com/Orange-OpenSource/hurl/releases/download/${HURL_VERSION}/hurl-${HURL_VERSION}-x86_64-unknown-linux-gnu.tar.gz" \
+            | tar xz -C /tmp
+          sudo mv "/tmp/hurl-${HURL_VERSION}-x86_64-unknown-linux-gnu/bin/hurl" /usr/local/bin/hurl
+          hurl --version
+
+      - name: Run Leave E2E against deployed dev API
+        if: steps.e2e_cfg.outputs.configured == 'true'
+        env:
+          CI: "true"
+          TROVESUITE_SECRET_KEY: ${{ secrets.TROVESUITE_SECRET_KEY }}
+          ZELOSHR_E2E_USER_ID: ${{ secrets.ZELOSHR_E2E_USER_ID }}
+          ZELOSHR_E2E_TENANT_ID: ${{ secrets.ZELOSHR_E2E_TENANT_ID }}
+          ZELOSHR_E2E_ORG_ID: ${{ secrets.ZELOSHR_E2E_ORG_ID }}
+          ZELOSHR_E2E_BUS_ID: ${{ secrets.ZELOSHR_E2E_BUS_ID }}
+          ZELOSHR_E2E_LOC_ID: ${{ secrets.ZELOSHR_E2E_LOC_ID }}
+          ZELOSHR_E2E_EMAIL: ${{ secrets.ZELOSHR_E2E_EMAIL }}
+          ZELOSHR_E2E_FULLNAME: ${{ secrets.ZELOSHR_E2E_FULLNAME }}
+          ZELOSHR_API_BASE: https://zeloshr.app.backend.dev.trovesuite.com
+        run: |
+          chmod +x scripts/ci/leave-e2e.sh scripts/ci/mint-e2e-session.sh scripts/local-dev/test-leave-e2e.sh
+          ./scripts/ci/leave-e2e.sh
+
+      - name: Upload Leave E2E report
+        if: steps.e2e_cfg.outputs.configured == 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: leave-e2e-report
+          path: |
+            reports/e2e/leave/latest/html/
+            reports/e2e/leave/latest/junit.xml
+            reports/e2e/leave/latest/summary.txt
+          retention-days: 14
+          if-no-files-found: warn
+
   deploy-functions:
     name: Deploy Azure Functions
-    needs: detect-changes
+    needs: [detect-changes, migrate]
     if: needs.detect-changes.outputs.func_changed == 'true' || (github.event_name == 'workflow_dispatch' && inputs.deploy_functions)
     runs-on: ubuntu-latest
     permissions:
@@ -185,20 +296,20 @@ jobs:
         run: |
           if [[ "${{ github.ref_name }}" == "main" ]]; then
             echo "env=prod" >> "$GITHUB_OUTPUT"
-            echo "subscription_id=81e2c7de-1a2f-4947-9fb9-cdd43f54a8ac" >> "$GITHUB_OUTPUT"
+            echo "subscription_id=${{ vars.TVS_PROD_SUBSCRIPTION_ID }}" >> "$GITHUB_OUTPUT"
             echo "function_app_name=tvs-prod-zeloshr-admin-func" >> "$GITHUB_OUTPUT"
-            echo "resource_group=tvs-prod-appservers-rg" >> "$GITHUB_OUTPUT"
+            echo "resource_group=${{ vars.TVS_PROD_APPSERVERS_RG }}" >> "$GITHUB_OUTPUT"
           else
             echo "env=dev" >> "$GITHUB_OUTPUT"
-            echo "subscription_id=94e81654-0f7e-46ea-9f21-c0640cdc6c97" >> "$GITHUB_OUTPUT"
+            echo "subscription_id=${{ vars.TVS_DEV_SUBSCRIPTION_ID }}" >> "$GITHUB_OUTPUT"
             echo "function_app_name=tvs-dev-zeloshr-admin-func" >> "$GITHUB_OUTPUT"
-            echo "resource_group=tvs-dev-appservers-rg" >> "$GITHUB_OUTPUT"
+            echo "resource_group=${{ vars.TVS_DEV_APPSERVERS_RG }}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Sanity-check OIDC inputs
         env:
-          CID: ${{ secrets.TROVESUITE_AZURE_CLIENT_ID }}
-          TID: ${{ secrets.AZURE_TENANT_ID }}
+          CID: ${{ vars.TVS_AZURE_CLIENT_ID }}
+          TID: ${{ vars.TVS_TENANT_ID }}
           SID: ${{ steps.env.outputs.subscription_id }}
         run: |
           echo "branch          = ${{ github.ref_name }}"
@@ -221,8 +332,8 @@ jobs:
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.TROVESUITE_AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          client-id: ${{ vars.TVS_AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.TVS_TENANT_ID }}
           subscription-id: ${{ steps.env.outputs.subscription_id }}
 
       - name: Verify Function App exists in Azure

@@ -3,7 +3,7 @@
 Workflows:
 
 - [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) — PRs and feature branches: `dotnet test` + Docker build (no deploy)
-- [`.github/workflows/build-and-deploy.yml`](../.github/workflows/build-and-deploy.yml) — `main` / `dev`: build, push ACR, deploy Container Apps + Functions
+- [`.github/workflows/build-and-deploy-tvs.yml`](../.github/workflows/build-and-deploy-tvs.yml) — `main` / `dev`: migrate DB (via tvs-sqlscript, gated), then build, push ACR, deploy Container Apps + Functions, then post-deploy regression + Leave E2E
 
 ## Database migrations (tvs-sqlscript)
 
@@ -12,9 +12,9 @@ Workflows:
 | `dev` | `saas-dev` | EF Core `deploy` (all modules incl. `human_resource`) |
 | `main` | `saas-prod` | EF Core `deploy` (all modules incl. `human_resource`) |
 
-Schema lives in [tvs-sqlscript](https://github.com/deladetech1/tvs-sqlscript). **This repo does not migrate Postgres on deploy.**
+Schema lives in [tvs-sqlscript](https://github.com/deladetech1/tvs-sqlscript). **This repo never runs migrations itself** — the deploy pipeline *calls* the central migrator's reusable workflow (`tvs-sqlscript/.github/workflows/migrate.yml`, module `human_resource`) **before** rolling out the new image, and the rollout is **gated on that migration succeeding**. The migrator (`tvs_migrator`) owns the schema; the app connects with a per-role CRUD login.
 
-When both repos change: **merge tvs-sqlscript first**, then ZelosHR. Manual DB commands (rollback, enterprise, `migrations-list`): tvs-sqlscript workflow **Database (EF Core dispatch)**.
+When both repos change: just push ZelosHR — the deploy migrates `tvs-sqlscript@main` first, so merge tvs-sqlscript before deploying ZelosHR. Manual DB commands (rollback, enterprise, `migrations-list`): tvs-sqlscript workflow **Database (EF Core dispatch)**.
 
 | Branch | Environment | Container App | Function App | ACR image |
 |--------|-------------|---------------|--------------|-----------|
@@ -86,7 +86,7 @@ After a successful Container App deploy, CI runs **regression tests only** (Dock
 
 | Where | What |
 |-------|------|
-| **CI** (`build-and-deploy.yml`) | `./scripts/ci/regression-test.sh` + optional **Leave E2E** (`./scripts/ci/leave-e2e.sh`, artifact `leave-e2e-report`) |
+| **CI** (`build-and-deploy-tvs.yml`) | `./scripts/ci/regression-test.sh` + optional **Leave E2E** (`./scripts/ci/leave-e2e.sh`, artifact `leave-e2e-report`) |
 | **Local** (after deploy) | `./scripts/local-dev/post-deploy-verify.sh` |
 
 Live smoke needs a Trove Bearer token that expires — **not stored in GitHub**. Run locally:
