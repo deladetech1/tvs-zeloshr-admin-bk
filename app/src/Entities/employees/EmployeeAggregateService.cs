@@ -85,7 +85,7 @@ public sealed class EmployeeAggregateService
             return Respons<EmployeeAggregateReadDto>.ValidationError(validation);
 
         var isFinalised = finaliseOverride
-            ?? !string.IsNullOrWhiteSpace(request.Identity.WorkEmail);
+            ?? (!request.IsDraft && !string.IsNullOrWhiteSpace(request.Identity.WorkEmail));
 
         await using var transaction = await _db.Database.BeginTransactionAsync(ct);
         try
@@ -297,6 +297,7 @@ public sealed class EmployeeAggregateService
             return Respons<EmployeeAggregateReadDto>.Fail("Employee not found.", statusCode: 404);
 
         var shouldFinalise = entityBeforeUpdate.IsDraft
+            && !request.IsDraft
             && !string.IsNullOrWhiteSpace(request.Identity?.WorkEmail);
 
         await using var transaction = await _db.Database.BeginTransactionAsync(ct);

@@ -1,15 +1,15 @@
 using Microsoft.EntityFrameworkCore;
-using ZelosHR.Api.Entities.EmploymentTypes;
+using ZelosHR.Api.Entities.IdCardTypes;
 using ZelosHR.Api.Persistence.Entities;
 
 namespace ZelosHR.Api.Persistence.Repositories;
 
-public sealed class EmploymentTypeRepository(ZelosHrDbContext db) : IEmploymentTypeRepository
+public sealed class IdCardTypeRepository(ZelosHrDbContext db) : IIdCardTypeRepository
 {
     public async Task EnsureSystemDefaultsScopedAsync(
         string tenantId, string orgId, CancellationToken ct = default)
     {
-        var existingNames = await db.EmploymentTypes
+        var existingNames = await db.IdCardTypes
             .Where(t => t.TenantId == tenantId && t.OrgId == orgId && t.IsSystemDefault)
             .Select(t => t.Name)
             .ToListAsync(ct);
@@ -18,12 +18,12 @@ public sealed class EmploymentTypeRepository(ZelosHrDbContext db) : IEmploymentT
         var now = DateTimeOffset.UtcNow;
         var added = false;
 
-        foreach (var (name, description) in EmploymentTypeDefaults.SystemTypes)
+        foreach (var (name, description) in IdCardTypeDefaults.SystemTypes)
         {
             if (existingSet.Contains(name))
                 continue;
 
-            db.EmploymentTypes.Add(new EmploymentTypeEntity
+            db.IdCardTypes.Add(new IdCardTypeEntity
             {
                 Id = Guid.NewGuid(),
                 TenantId = tenantId,
@@ -42,48 +42,15 @@ public sealed class EmploymentTypeRepository(ZelosHrDbContext db) : IEmploymentT
             await db.SaveChangesAsync(ct);
     }
 
-    public async Task BackfillEmployeeTypeIdsScopedAsync(
-        string tenantId, string orgId, CancellationToken ct = default)
-    {
-        var types = await db.EmploymentTypes.AsNoTracking()
-            .Where(t => t.TenantId == tenantId && t.OrgId == orgId)
-            .Select(t => new { t.Id, t.Name })
-            .ToListAsync(ct);
-
-        if (types.Count == 0)
-            return;
-
-        var byName = types.ToDictionary(t => t.Name, t => t.Id, StringComparer.OrdinalIgnoreCase);
-        var employees = await db.Employees
-            .Where(e => e.TenantId == tenantId
-                        && e.OrgId == orgId
-                        && !e.IsDeleted
-                        && e.EmploymentTypeId == null
-                        && e.EmploymentType != null
-                        && e.EmploymentType != "")
-            .ToListAsync(ct);
-
-        if (employees.Count == 0)
-            return;
-
-        foreach (var employee in employees)
-        {
-            if (byName.TryGetValue(employee.EmploymentType!.Trim(), out var typeId))
-                employee.EmploymentTypeId = typeId;
-        }
-
-        await db.SaveChangesAsync(ct);
-    }
-
-    public async Task<(IReadOnlyList<EmploymentTypeListItemDto> Items, int Total)> ListScopedAsync(
+    public async Task<(IReadOnlyList<IdCardTypeListItemDto> Items, int Total)> ListScopedAsync(
         string tenantId,
         string orgId,
-        EmploymentTypeListQuery query,
+        IdCardTypeListQuery query,
         int page,
         int size,
         CancellationToken ct = default)
     {
-        var baseQuery = db.EmploymentTypes.AsNoTracking()
+        var baseQuery = db.IdCardTypes.AsNoTracking()
             .Where(t => t.TenantId == tenantId && t.OrgId == orgId);
 
         if (query.IsActive is true)
@@ -101,67 +68,50 @@ public sealed class EmploymentTypeRepository(ZelosHrDbContext db) : IEmploymentT
 
         var total = await baseQuery.CountAsync(ct);
 
-        var employeeCounts = db.Employees.AsNoTracking()
-            .Where(e => e.TenantId == tenantId && e.OrgId == orgId && !e.IsDeleted && e.EmploymentTypeId != null)
-            .GroupBy(e => e.EmploymentTypeId)
-            .Select(g => new { TypeId = g.Key, Count = g.Count() });
-
-        var joined = from t in baseQuery
-                     join c in employeeCounts on (Guid?)t.Id equals c.TypeId into counts
-                     from c in counts.DefaultIfEmpty()
-                     select new { Type = t, EmployeeCount = c == null ? 0 : c.Count };
-
         var sortBy = query.SortBy.Trim().ToLowerInvariant();
         var desc = string.Equals(query.SortOrder, "desc", StringComparison.OrdinalIgnoreCase);
 
-        joined = sortBy switch
+        baseQuery = sortBy switch
         {
             "type" => desc
-                ? joined.OrderByDescending(x => x.Type.IsSystemDefault).ThenBy(x => x.Type.Name)
-                : joined.OrderBy(x => x.Type.IsSystemDefault).ThenBy(x => x.Type.Name),
-            "employees" or "employee_count" => desc
-                ? joined.OrderByDescending(x => x.EmployeeCount).ThenBy(x => x.Type.Name)
-                : joined.OrderBy(x => x.EmployeeCount).ThenBy(x => x.Type.Name),
+                ? baseQuery.OrderByDescending(x => x.IsSystemDefault).ThenBy(x => x.Name)
+                : baseQuery.OrderBy(x => x.IsSystemDefault).ThenBy(x => x.Name),
             "status" or "is_active" => desc
-                ? joined.OrderByDescending(x => x.Type.IsActive).ThenBy(x => x.Type.Name)
-                : joined.OrderBy(x => x.Type.IsActive).ThenBy(x => x.Type.Name),
+                ? baseQuery.OrderByDescending(x => x.IsActive).ThenBy(x => x.Name)
+                : baseQuery.OrderBy(x => x.IsActive).ThenBy(x => x.Name),
             "created_at" => desc
-                ? joined.OrderByDescending(x => x.Type.CreatedAt)
-                : joined.OrderBy(x => x.Type.CreatedAt),
+                ? baseQuery.OrderByDescending(x => x.CreatedAt)
+                : baseQuery.OrderBy(x => x.CreatedAt),
             _ => desc
-                ? joined.OrderByDescending(x => x.Type.Name)
-                : joined.OrderBy(x => x.Type.Name),
+                ? baseQuery.OrderByDescending(x => x.Name)
+                : baseQuery.OrderBy(x => x.Name),
         };
 
-        var rows = await joined
+        var rows = await baseQuery
             .Skip((page - 1) * size)
             .Take(size)
             .ToListAsync(ct);
 
-        var items = rows.Select(r => ToDto(r.Type, r.EmployeeCount)).ToList();
+        var items = rows.Select(ToDto).ToList();
         return (items, total);
     }
 
-    public async Task<EmploymentTypeListItemDto?> GetByIdScopedAsync(
+    public async Task<IdCardTypeListItemDto?> GetByIdScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default)
     {
         var entity = await GetEntityByIdScopedAsync(id, tenantId, orgId, ct);
-        if (entity is null)
-            return null;
-
-        var count = await CountEmployeesUsingTypeScopedAsync(id, tenantId, orgId, ct);
-        return ToDto(entity, count);
+        return entity is null ? null : ToDto(entity);
     }
 
-    public Task<EmploymentTypeEntity?> GetEntityByIdScopedAsync(
+    public Task<IdCardTypeEntity?> GetEntityByIdScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default) =>
-        db.EmploymentTypes.AsNoTracking()
+        db.IdCardTypes.AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == id && t.TenantId == tenantId && t.OrgId == orgId, ct);
 
     public async Task<bool> NameExistsScopedAsync(
         string tenantId, string orgId, string name, Guid? excludeId, CancellationToken ct = default)
     {
-        var query = db.EmploymentTypes.AsNoTracking()
+        var query = db.IdCardTypes.AsNoTracking()
             .Where(t => t.TenantId == tenantId && t.OrgId == orgId && t.Name == name);
         if (excludeId.HasValue)
             query = query.Where(t => t.Id != excludeId.Value);
@@ -171,12 +121,12 @@ public sealed class EmploymentTypeRepository(ZelosHrDbContext db) : IEmploymentT
     public async Task<Guid> CreateScopedAsync(
         string tenantId,
         string orgId,
-        CreateEmploymentTypeDto data,
+        CreateIdCardTypeDto data,
         string? actorUserId,
         CancellationToken ct = default)
     {
         var now = DateTimeOffset.UtcNow;
-        var entity = new EmploymentTypeEntity
+        var entity = new IdCardTypeEntity
         {
             Id = Guid.NewGuid(),
             TenantId = tenantId,
@@ -190,20 +140,20 @@ public sealed class EmploymentTypeRepository(ZelosHrDbContext db) : IEmploymentT
             CreatedBy = actorUserId,
             UpdatedBy = actorUserId,
         };
-        db.EmploymentTypes.Add(entity);
+        db.IdCardTypes.Add(entity);
         await db.SaveChangesAsync(ct);
         return entity.Id;
     }
 
-    public async Task<EmploymentTypeListItemDto?> UpdateScopedAsync(
+    public async Task<IdCardTypeListItemDto?> UpdateScopedAsync(
         Guid id,
         string tenantId,
         string orgId,
-        UpdateEmploymentTypeDto data,
+        UpdateIdCardTypeDto data,
         string? actorUserId,
         CancellationToken ct = default)
     {
-        var entity = await db.EmploymentTypes
+        var entity = await db.IdCardTypes
             .FirstOrDefaultAsync(t => t.Id == id && t.TenantId == tenantId && t.OrgId == orgId, ct);
         if (entity is null)
             return null;
@@ -212,7 +162,7 @@ public sealed class EmploymentTypeRepository(ZelosHrDbContext db) : IEmploymentT
         {
             var trimmed = data.Name.Trim();
             if (entity.IsSystemDefault && !string.Equals(trimmed, entity.Name, StringComparison.Ordinal))
-                throw new InvalidOperationException("System default employment types cannot be renamed.");
+                throw new InvalidOperationException("System default ID card types cannot be renamed.");
 
             entity.Name = trimmed;
         }
@@ -231,49 +181,33 @@ public sealed class EmploymentTypeRepository(ZelosHrDbContext db) : IEmploymentT
         entity.UpdatedBy = actorUserId;
         await db.SaveChangesAsync(ct);
 
-        var count = await CountEmployeesUsingTypeScopedAsync(id, tenantId, orgId, ct);
-        return ToDto(entity, count);
+        return ToDto(entity);
     }
 
     public async Task<(bool Found, bool InUse)> DeleteScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default)
     {
-        var entity = await db.EmploymentTypes
+        var entity = await db.IdCardTypes
             .FirstOrDefaultAsync(t => t.Id == id && t.TenantId == tenantId && t.OrgId == orgId, ct);
         if (entity is null)
             return (false, false);
 
         if (entity.IsSystemDefault)
-            throw new InvalidOperationException("System default employment types cannot be deleted.");
+            throw new InvalidOperationException("System default ID card types cannot be deleted.");
 
-        var inUse = await CountEmployeesUsingTypeScopedAsync(id, tenantId, orgId, ct) > 0;
-        if (inUse)
-            return (true, true);
-
-        db.EmploymentTypes.Remove(entity);
+        db.IdCardTypes.Remove(entity);
         await db.SaveChangesAsync(ct);
         return (true, false);
     }
 
-    public Task<int> CountEmployeesUsingTypeScopedAsync(
-        Guid id, string tenantId, string orgId, CancellationToken ct = default) =>
-        db.Employees.AsNoTracking()
-            .CountAsync(
-                e => e.TenantId == tenantId
-                     && e.OrgId == orgId
-                     && !e.IsDeleted
-                     && e.EmploymentTypeId == id,
-                ct);
-
-    private static EmploymentTypeListItemDto ToDto(EmploymentTypeEntity entity, int employeeCount) =>
+    private static IdCardTypeListItemDto ToDto(IdCardTypeEntity entity) =>
         new()
         {
-            EmploymentTypeId = entity.Id.ToString(),
+            IdCardTypeId = entity.Id.ToString(),
             Name = entity.Name,
             Description = entity.Description,
-            Type = entity.IsSystemDefault ? EmploymentTypeKind.Default : EmploymentTypeKind.Custom,
+            Type = entity.IsSystemDefault ? IdCardTypeKind.Default : IdCardTypeKind.Custom,
             IsSystemDefault = entity.IsSystemDefault,
-            EmployeeCount = employeeCount,
             IsActive = entity.IsActive,
             CreatedAt = entity.CreatedAt,
             UpdatedAt = entity.UpdatedAt,
