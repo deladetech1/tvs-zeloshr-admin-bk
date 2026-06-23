@@ -58,29 +58,9 @@ jobs:
             func:
               - 'func/**'
 
-  # Apply the ZelosHR (human_resource) schema via the central migrator
-  # (tvs-sqlscript) BEFORE the new image rolls out. ZelosHR is SaaS-only:
-  # main → prod, dev → dev. DATABASE_URL + prod reviewers live on tvs-sqlscript's
-  # saas-<environment> environments — never in this repo. `secrets: inherit`
-  # forwards PACKAGES_TOKEN so the reusable workflow can check out the migrator.
-  # (This replaces the dev-only embedded SchemaInitializer for real environments.)
-  migrate:
-    name: Migrate database (tvs-sqlscript)
-    needs: detect-changes
-    if: >-
-      needs.detect-changes.outputs.app_changed == 'true'
-      || needs.detect-changes.outputs.func_changed == 'true'
-      || (github.event_name == 'workflow_dispatch' && (inputs.deploy_container_app || inputs.deploy_functions))
-    uses: deladetech1/tvs-sqlscript/.github/workflows/migrate.yml@master
-    with:
-      scope: saas
-      environment: ${{ github.ref_name == 'dev' && 'dev' || 'prod' }}
-      module: human_resource
-    secrets: inherit
-
   build-and-deploy-app:
     name: Build & Deploy Container App
-    needs: [detect-changes, migrate]
+    needs: detect-changes
     if: needs.detect-changes.outputs.app_changed == 'true' || (github.event_name == 'workflow_dispatch' && inputs.deploy_container_app)
     runs-on: ubuntu-latest
     permissions:
@@ -281,7 +261,7 @@ jobs:
 
   deploy-functions:
     name: Deploy Azure Functions
-    needs: [detect-changes, migrate]
+    needs: detect-changes
     if: needs.detect-changes.outputs.func_changed == 'true' || (github.event_name == 'workflow_dispatch' && inputs.deploy_functions)
     runs-on: ubuntu-latest
     permissions:
