@@ -11,6 +11,7 @@ using ZelosHR.Api.Entities.Currencies;
 using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Files;
+using ZelosHR.Api.Entities.IdCardTypes;
 using ZelosHR.Api.Entities.Leave;
 
 namespace ZelosHR.Api.Tests.Swagger;
@@ -27,7 +28,8 @@ public sealed class SwaggerGenerationTests
             .AddApplicationPart(typeof(CurrenciesController).Assembly)
             .AddApplicationPart(typeof(CustomFieldsController).Assembly)
             .AddApplicationPart(typeof(FileManagementController).Assembly)
-            .AddApplicationPart(typeof(LeaveController).Assembly);
+            .AddApplicationPart(typeof(LeaveController).Assembly)
+            .AddApplicationPart(typeof(IdCardTypesController).Assembly);
         services.AddEndpointsApiExplorer();
 
         var configuration = new ConfigurationBuilder()
@@ -52,6 +54,12 @@ public sealed class SwaggerGenerationTests
         document.Paths.Should().ContainKey("/api/v1/leave/requests/list");
         document.Paths.Should().ContainKey("/api/v1/leave/summary");
         document.Paths.Should().ContainKey("/api/v1/leave/my/summary");
+        document.Paths.Should().ContainKey("/api/v1/employment-types/list");
+        document.Paths.Should().ContainKey("/api/v1/id-card-types/list");
+        document.Paths.Should().ContainKey("/api/v1/id-card-types/get");
+        document.Paths.Should().ContainKey("/api/v1/id-card-types/add");
+        document.Paths.Should().ContainKey("/api/v1/id-card-types/update");
+        document.Paths.Should().ContainKey("/api/v1/id-card-types/delete");
     }
 
     private sealed class TestWebHostEnvironment : IWebHostEnvironment
