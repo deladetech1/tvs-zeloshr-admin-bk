@@ -152,6 +152,7 @@ public static class SwaggerConfiguration
             options.OperationFilter<SwaggerOrgStructureOperationFilter>();
             options.OperationFilter<SwaggerLeaveOperationFilter>();
             options.OperationFilter<SwaggerEmploymentTypesOperationFilter>();
+            options.OperationFilter<SwaggerIdCardTypesOperationFilter>();
             options.OperationFilter<SwaggerCountriesOperationFilter>();
             options.OperationFilter<SwaggerAuditLogsOperationFilter>();
             options.OperationFilter<SwaggerUsersOperationFilter>();
