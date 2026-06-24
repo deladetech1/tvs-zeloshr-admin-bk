@@ -9,7 +9,8 @@ namespace ZelosHR.Api.Entities.Employees;
 
 /// <summary>
 /// One-shot employee create. Required on create: <c>identity.full_name</c> and <c>identity.phone</c>.
-/// When <c>identity.work_email</c> is set, registration finalises and links <c>cp_users</c>.
+/// When <c>identity.work_email</c> is set and <c>is_draft</c> is false (default), registration finalises and links <c>cp_users</c>.
+/// Set <c>is_draft: true</c> to save as draft even when a work email is supplied.
 /// All <c>employment</c> fields are optional; when <c>department_id</c> or <c>branch_id</c> is set, the ID must exist.
 /// <c>work_arrangement: remote</c> with a <c>branch_id</c> is rejected (inconsistent data).
 /// </summary>
@@ -27,6 +28,9 @@ namespace ZelosHR.Api.Entities.Employees;
 /// </remarks>
 public sealed class CreateEmployeeAggregateRequest
 {
+    /// <summary>When true, saves the record as a draft regardless of whether work_email is supplied.</summary>
+    public bool IsDraft { get; init; }
+
     public EmployeeAggregateIdentityDto Identity { get; init; } = new();
     public EmployeeAggregateEmploymentDto? Employment { get; init; }
     public EmployeeAggregateCompensationDto? Compensation { get; init; }
@@ -55,6 +59,9 @@ public sealed class CreateEmployeeAggregateRequest
 /// </remarks>
 public sealed class UpdateEmployeeAggregateRequest
 {
+    /// <summary>When true, suppresses automatic finalization even if work_email is supplied. Use for explicit draft saves.</summary>
+    public bool IsDraft { get; init; }
+
     public EmployeeAggregateIdentityDto? Identity { get; init; }
     public EmployeeAggregateEmploymentDto? Employment { get; init; }
     public EmployeeAggregateCompensationDto? Compensation { get; init; }

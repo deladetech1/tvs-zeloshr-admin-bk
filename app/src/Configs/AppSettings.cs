@@ -41,6 +41,10 @@ public class AppSettings
     /// </summary>
     public bool RunDatabaseMigrations { get; set; }
 
+    // Configurable table names. In deployed environments these are overridden by
+    // App__<Name> env vars, sourced centrally from tvs-iac common.hcl `table_names`
+    // (the single source of truth, like the other apps). The values below are the
+    // local-dev / fallback defaults — not duplicated in appsettings.json anymore.
     // Core platform tables (core_platform schema)
     public string CorePlatformUsersTable { get; set; } = "core_platform.cp_users";
     public string CorePlatformMembersTable { get; set; } = "core_platform.cp_members";

@@ -100,7 +100,7 @@ public static class SwaggerConfiguration
 
                     ### Documented modules
 
-                    **Employees** · **Users** · **Currencies** · **Countries** · **Custom Fields** · **File Management** · **Organisation** (org chart, departments, branches) · **Company Settings** (employment types) · **Lifecycle Events** · **Audit Logs** · **Leave**
+                    **Employees** · **Users** · **Currencies** · **Countries** · **Custom Fields** · **File Management** · **Organisation** (org chart, departments, branches) · **Company Settings** (employment types, ID card types) · **Lifecycle Events** · **Audit Logs** · **Leave**
 
                     ---
 
@@ -112,6 +112,16 @@ public static class SwaggerConfiguration
                     4. **Delete** — `DELETE /api/v1/employment-types/delete?employment_type_id=` (custom only; blocked when assigned)
                     5. **Employee write** — pass `employment.employment_type_id` from list on POST/PUT `/employees/*`
                     6. **Employee read** — nested `employment.employment_type.id` (same UUID; flat FK omitted)
+
+                    ---
+
+                    ### Company Settings — ID card types
+
+                    1. **List** — `GET /api/v1/id-card-types/list` (Ghana defaults seed on first access per org: National ID · Voter's ID · Driver's License · National Health Insurance)
+                    2. **Get** — `GET /api/v1/id-card-types/get?id_card_type_id=` (single row for view/edit drawer)
+                    3. **Add custom** — `POST /api/v1/id-card-types/add` (name · description; `type=custom`)
+                    4. **Update** — `PUT /api/v1/id-card-types/update?id_card_type_id=` (system defaults: description + is_active only; custom: full edit including name)
+                    5. **Delete** — `DELETE /api/v1/id-card-types/delete?id_card_type_id=` (custom only; system defaults return 400)
 
                     Conformance: `docs/MYSTOREGUARD_API_CONFORMANCE.md` · Navigation: `GET /api/v1/navigation`
                     """,
@@ -152,6 +162,7 @@ public static class SwaggerConfiguration
             options.OperationFilter<SwaggerOrgStructureOperationFilter>();
             options.OperationFilter<SwaggerLeaveOperationFilter>();
             options.OperationFilter<SwaggerEmploymentTypesOperationFilter>();
+            options.OperationFilter<SwaggerIdCardTypesOperationFilter>();
             options.OperationFilter<SwaggerCountriesOperationFilter>();
             options.OperationFilter<SwaggerAuditLogsOperationFilter>();
             options.OperationFilter<SwaggerUsersOperationFilter>();

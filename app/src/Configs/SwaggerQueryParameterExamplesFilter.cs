@@ -21,7 +21,7 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
         {
             schema.Example = null;
             parameter.Description = """
-                **Optional — leave empty to auto-generate** blob path(s) inside the **zeloshr** container.
+                **Optional — leave empty to auto-generate** blob path(s) inside the **employee-documents** container.
 
                 Auto path pattern:
                 `{tenant_id}/{org_id}/{bus_id}/employees/documents/{unique}-{filename}`
