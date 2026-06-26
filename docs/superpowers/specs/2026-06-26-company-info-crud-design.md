@@ -19,11 +19,12 @@ schema in `tvs-sqlscript` (EF Core, source of truth for DDL), API in this repo (
 | Company Profile CRUD shape | True CRUD — explicit `POST`/`GET`/`PUT`/`DELETE` (not upsert-only), even though it's logically 0/1 per org |
 | Head-office uniqueness | **Not enforced.** `is_head_office` is a plain client-managed boolean; any number (incl. zero) of offices may be flagged; any office, head or not, can be deleted |
 | Logo / banner | In scope now, via the **existing** File Management module (no new upload endpoint) |
-| Delete cascade | `DELETE /company/delete` also deletes all of that org's offices, in one transaction |
+| Delete cascade | `DELETE /company/info/delete` also deletes all of that org's offices, in one transaction |
 | Routes / permissions | Match existing convention exactly — verb-suffix routes, reuse `EmployeeGet`/`EmployeeUpdate` permissions, no new RBAC seed |
 | Office fields | `name`, `country`, `city`, `phone`, `is_head_office` only — no street address (not in mockup, YAGNI) |
-| **Office API shape (revised 2026-06-26)** | **Offices are not an independent CRUD resource.** They're embedded in the company profile for reads (`GET /company/get` returns `offices[]`) and bulk writes (`POST /company/add` / `PUT /company/update` accept a full `offices[]` replacement array — diffed server-side to add/remove). The **one exception**: a dedicated `PUT /company/offices/update?office_id=` for in-place single-office edits (partial body), so the pencil-edit UI action doesn't need to resend the whole payload. No standalone list/get/add/delete routes for offices. |
+| **Office API shape (revised 2026-06-26)** | **Offices are not an independent CRUD resource.** They're embedded in the company profile for reads (`GET /company/info/get` returns `offices[]`) and bulk writes (`POST /company/info/add` / `PUT /company/info/update` accept a full `offices[]` replacement array — diffed server-side to add/remove). The **one exception**: a dedicated `PUT /company/info/offices/update?office_id=` for in-place single-office edits (partial body), so the pencil-edit UI action doesn't need to resend the whole payload. No standalone list/get/add/delete routes for offices. |
 | Country validation | Free text, like `BranchEntity.Country` — no FK to the `countries` reference table |
+| **Route prefix (revised 2026-06-26)** | `api/v1/company/info` (not bare `api/v1/company`) — explicit and leaves room for other `company/*` resources later without colliding with this one |
 
 ## Data model (tvs-sqlscript, branch `dev`)
 
@@ -78,12 +79,13 @@ parent row either; tenant+org scoping already implies the org).
 
 ## API surface (ZelosHR.Api)
 
-New folder `app/src/Entities/company/` with `CompanyDtos.cs`, `CompanyController.cs`,
-`CompanyService.cs` — a single controller/service pair (no separate offices controller; the one
-remaining office-specific action lives as an extra route on `CompanyController`). New persistence
-entities `CompanyProfileEntity` / `CompanyOfficeEntity`, repositories `ICompanyProfileRepository` /
-`ICompanyOfficeRepository` (+ implementations) since they're still two separate tables — registered
-in `PersistenceRegistration.cs`.
+New folder `app/src/Entities/company_info/` (snake_case folder matching route, same convention as
+`id_card_types`, `employment_types`) with `CompanyInfoDtos.cs`, `CompanyInfoController.cs`,
+`CompanyInfoService.cs` — a single controller/service pair (no separate offices controller; the
+one remaining office-specific action lives as an extra route on `CompanyInfoController`). New
+persistence entities `CompanyProfileEntity` / `CompanyOfficeEntity`, repositories
+`ICompanyProfileRepository` / `ICompanyOfficeRepository` (+ implementations) since they're still
+two separate tables — registered in `PersistenceRegistration.cs`.
 
 All responses use the `Respons<T>` envelope and include the 6 standard audit fields
 (`created_at`, `updated_at`, `created_by_id`, `updated_by_id`, `created_by`, `updated_by`) per
@@ -91,7 +93,7 @@ All responses use the `Respons<T>` envelope and include the 6 standard audit fie
 params follow snake_case via `[FromQuery(Name = ...)]` per `docs/API_QUERY_PARAMS.md`. New
 constant: `PlatformQueryParams.OfficeId = "office_id"`.
 
-### Company profile — `api/v1/company`
+### Company profile — `api/v1/company/info`
 
 | Method | Route | Permission | Behavior |
 |---|---|---|---|
@@ -100,6 +102,9 @@ constant: `PlatformQueryParams.OfficeId = "office_id"`.
 | `PUT` | `/update` | `EmployeeUpdate` | Partial body for profile fields (same convention as `UpdateIdCardTypeDto`) — **plus** an optional `offices` array; see "Offices write semantics" below. `404` if not created yet. |
 | `DELETE` | `/delete` | `EmployeeUpdate` | Deletes the profile **and all offices for that org**, in one transaction. `404` if no profile exists. |
 | `PUT` | `/offices/update?office_id=` | `EmployeeUpdate` | **Single-office in-place edit.** Partial body (`name`/`country`/`city`/`phone`/`is_head_office` — only supplied fields change), same convention as the rest of this API. `404` if no office with that id exists for the org. |
+
+Full paths: `api/v1/company/info/get`, `.../add`, `.../update`, `.../delete`,
+`.../offices/update?office_id=`.
 
 #### Offices write semantics on `POST /add` / `PUT /update`
 
@@ -143,7 +148,7 @@ free text; `is_head_office` optional bool (default `false`).
    to `dev`, merge first, wait for `saas-dev` deploy.
 2. **`ZelosHR.Api` (branch `dev`)**: entities/repositories/services/controllers/DTOs as above,
    `PersistenceRegistration.cs` DI entries, Swagger sync (new
-   `SwaggerCompanyOperationFilter` mirroring `SwaggerIdCardTypesOperationFilter`, examples in
+   `SwaggerCompanyInfoOperationFilter` mirroring `SwaggerIdCardTypesOperationFilter`, examples in
    `SwaggerExamples`/`SwaggerSchemaExamplesFilter`, controller XML docs, `SwaggerConfiguration`
    workflow text), tests (service + controller tests mirroring
    `EmploymentTypesServiceTests`; extend `SwaggerGenerationTests` to assert the new paths,
@@ -159,7 +164,7 @@ free text; `is_head_office` optional bool (default `false`).
 - Office street address field (not in the mockup)
 - Dedicated RBAC permissions for Company Settings (reusing `EmployeeGet`/`EmployeeUpdate`)
 - Standalone office list/get/add/delete endpoints, and any pagination/search/sort over offices
-  (confirmed 2026-06-26: offices are always returned in full, embedded on `GET /company/get`)
+  (confirmed 2026-06-26: offices are always returned in full, embedded on `GET /company/info/get`)
 - Optimistic concurrency control on the `offices` full-replace write. Two clients editing the
   array at the same time can clobber each other (last write wins) — accepted given offices are
   edited by a small number of admins on an infrequently-touched settings page. Revisit if this
