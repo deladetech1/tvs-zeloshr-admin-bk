@@ -99,7 +99,7 @@ public class CompanyInfoServiceTests
 
         result.Success.Should().BeFalse();
         result.StatusCode.Should().Be(400);
-        result.FieldErrors!["body"].Should().Contain("at least one field");
+        result.FieldErrors!["request"].Should().Contain("at least one field");
     }
 
     [Fact]
