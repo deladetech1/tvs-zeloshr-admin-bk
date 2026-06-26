@@ -54,6 +54,9 @@ public class TroveRequestHeadersMiddlewareTests
             ValidatePlatformContext = validatePlatform,
         });
 
+    private static IOptions<AppSettings> AppSettingsOptions() =>
+        Options.Create(new AppSettings());
+
     [Fact]
     public async Task Invoke_WhenRequiredHeadersMissing_Returns400()
     {
@@ -61,7 +64,7 @@ public class TroveRequestHeadersMiddlewareTests
         var sut = CreateSut(_ => Task.CompletedTask);
         var platform = ValidPlatform();
 
-        await sut.InvokeAsync(ctx, IntegrationOptions(), platform);
+        await sut.InvokeAsync(ctx, IntegrationOptions(), AppSettingsOptions(), platform);
 
         ctx.Response.StatusCode.Should().Be(StatusCodes.Status400BadRequest);
     }
@@ -79,7 +82,7 @@ public class TroveRequestHeadersMiddlewareTests
 
         var nextCalled = false;
         var (sut, platform) = CreateWithPlatform(() => nextCalled = true);
-        await sut.InvokeAsync(ctx, IntegrationOptions(), platform);
+        await sut.InvokeAsync(ctx, IntegrationOptions(), AppSettingsOptions(), platform);
 
         nextCalled.Should().BeTrue();
         ctx.Items[TrovesuiteHttpContextKeys.OrgId].Should().Be(TestDefaults.OrgId);
@@ -97,7 +100,7 @@ public class TroveRequestHeadersMiddlewareTests
         ctx.Request.Headers[TroveStandardHeaders.OrgId] = TestDefaults.OrgId;
 
         var (sut, platform) = CreateWithPlatform();
-        await sut.InvokeAsync(ctx, IntegrationOptions(), platform);
+        await sut.InvokeAsync(ctx, IntegrationOptions(), AppSettingsOptions(), platform);
 
         ctx.Response.StatusCode.Should().Be(StatusCodes.Status400BadRequest);
     }
@@ -120,7 +123,7 @@ public class TroveRequestHeadersMiddlewareTests
             .Returns(false);
 
         var sut = CreateSut(_ => Task.CompletedTask);
-        await sut.InvokeAsync(ctx, IntegrationOptions(), platform);
+        await sut.InvokeAsync(ctx, IntegrationOptions(), AppSettingsOptions(), platform);
 
         ctx.Response.StatusCode.Should().Be(StatusCodes.Status403Forbidden);
     }
@@ -137,7 +140,7 @@ public class TroveRequestHeadersMiddlewareTests
         });
         var platform = ValidPlatform();
 
-        await sut.InvokeAsync(ctx, IntegrationOptions(), platform);
+        await sut.InvokeAsync(ctx, IntegrationOptions(), AppSettingsOptions(), platform);
 
         nextCalled.Should().BeTrue();
     }

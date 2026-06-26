@@ -6,7 +6,7 @@ namespace ZelosHR.Api.Utils.Auth;
 /// </summary>
 public static class CustomAuthService
 {
-    public const string AppId = "app-zeloshr";
+    public const string AppId = "app-hr";
 
     public static readonly HashSet<string> BlockingErrors = new(StringComparer.OrdinalIgnoreCase)
     {
