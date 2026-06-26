@@ -96,11 +96,16 @@ All responses use the `Respons<T>` envelope and include the 6 standard audit fie
 | `PUT` | `/update` | `EmployeeUpdate` | Partial body — only supplied fields change (same convention as `UpdateIdCardTypeDto`). `404` if not created yet. |
 | `DELETE` | `/delete` | `EmployeeUpdate` | Deletes the profile **and all offices for that org**, in one transaction. `404` if no profile exists. |
 
-`logo_document_id` / `banner_document_id` on write: accept a registry id from
-`POST /api/v1/file/post/multiple` (reuse `HrDocumentPresignedUrlService.ValidateDocumentReferenceAsync`
-for validation, same as `identity.profile_url`). On read, resolve to `DocumentReadDto`
-(`doc_id`, `name`, `presigned_url`, `description`) via
-`HrDocumentPresignedUrlService.ResolveDocumentReadAsync` — no new upload endpoint.
+`logo_url` / `banner_url` follow the exact `identity.profile_url` convention (same field name,
+different shape per direction — not split into separate `*_document_id` fields):
+- **Write** (`POST /add`, `PUT /update`): plain string — a registry id from
+  `POST /api/v1/file/post/multiple`. Empty string `""` clears it. Validated via
+  `HrDocumentPresignedUrlService.ValidateDocumentReferenceAsync`.
+- **Read** (`GET /get`): resolved to `DocumentReadDto` (`doc_id`, `name`, `presigned_url`,
+  `description`) via `HrDocumentPresignedUrlService.ResolveDocumentReadAsync`, or `null` if unset.
+
+DB columns stay `logo_document_id` / `banner_document_id` (internal storage only). No new upload
+endpoint.
 
 ### Offices — `api/v1/company/offices`
 
