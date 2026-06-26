@@ -22,6 +22,7 @@ schema in `tvs-sqlscript` (EF Core, source of truth for DDL), API in this repo (
 | Delete cascade | `DELETE /company/delete` also deletes all of that org's offices, in one transaction |
 | Routes / permissions | Match existing convention exactly — verb-suffix routes, reuse `EmployeeGet`/`EmployeeUpdate` permissions, no new RBAC seed |
 | Office fields | `name`, `country`, `city`, `phone`, `is_head_office` only — no street address (not in mockup, YAGNI) |
+| **Office API shape (revised 2026-06-26)** | **Offices are not an independent CRUD resource.** They're embedded in the company profile for reads (`GET /company/get` returns `offices[]`) and bulk writes (`POST /company/add` / `PUT /company/update` accept a full `offices[]` replacement array — diffed server-side to add/remove). The **one exception**: a dedicated `PUT /company/offices/update?office_id=` for in-place single-office edits (partial body), so the pencil-edit UI action doesn't need to resend the whole payload. No standalone list/get/add/delete routes for offices. |
 | Country validation | Free text, like `BranchEntity.Country` — no FK to the `countries` reference table |
 
 ## Data model (tvs-sqlscript, branch `dev`)
@@ -78,23 +79,47 @@ parent row either; tenant+org scoping already implies the org).
 ## API surface (ZelosHR.Api)
 
 New folder `app/src/Entities/company/` with `CompanyDtos.cs`, `CompanyController.cs`,
-`CompanyService.cs`, `CompanyOfficesController.cs`, `CompanyOfficesService.cs`. New persistence
+`CompanyService.cs` — a single controller/service pair (no separate offices controller; the one
+remaining office-specific action lives as an extra route on `CompanyController`). New persistence
 entities `CompanyProfileEntity` / `CompanyOfficeEntity`, repositories `ICompanyProfileRepository` /
-`ICompanyOfficeRepository` (+ implementations), registered in `PersistenceRegistration.cs`.
+`ICompanyOfficeRepository` (+ implementations) since they're still two separate tables — registered
+in `PersistenceRegistration.cs`.
 
 All responses use the `Respons<T>` envelope and include the 6 standard audit fields
 (`created_at`, `updated_at`, `created_by_id`, `updated_by_id`, `created_by`, `updated_by`) per
-`docs/AUDIT_FIELDS.md`. Query params follow snake_case via `[FromQuery(Name = ...)]` per
-`docs/API_QUERY_PARAMS.md`. New constant: `PlatformQueryParams.OfficeId = "office_id"`.
+`docs/AUDIT_FIELDS.md`, **including each item inside the embedded `offices[]` array**. Query
+params follow snake_case via `[FromQuery(Name = ...)]` per `docs/API_QUERY_PARAMS.md`. New
+constant: `PlatformQueryParams.OfficeId = "office_id"`.
 
 ### Company profile — `api/v1/company`
 
 | Method | Route | Permission | Behavior |
 |---|---|---|---|
-| `GET` | `/get` | `EmployeeGet` | Fetch the profile scoped to current tenant/org. `404` if none exists. |
-| `POST` | `/add` | `EmployeeUpdate` | Create the profile. `400` validation error if one already exists for this org (point to `PUT /update`). |
-| `PUT` | `/update` | `EmployeeUpdate` | Partial body — only supplied fields change (same convention as `UpdateIdCardTypeDto`). `404` if not created yet. |
+| `GET` | `/get` | `EmployeeGet` | Fetch the profile scoped to current tenant/org, **with `offices[]` embedded** (every office for the org — no pagination, no separate list call). `404` if no profile exists. |
+| `POST` | `/add` | `EmployeeUpdate` | Create the profile. Body may include an optional `offices` array to seed initial offices in the same call. `400` validation error if a profile already exists for this org (point to `PUT /update`). |
+| `PUT` | `/update` | `EmployeeUpdate` | Partial body for profile fields (same convention as `UpdateIdCardTypeDto`) — **plus** an optional `offices` array; see "Offices write semantics" below. `404` if not created yet. |
 | `DELETE` | `/delete` | `EmployeeUpdate` | Deletes the profile **and all offices for that org**, in one transaction. `404` if no profile exists. |
+| `PUT` | `/offices/update?office_id=` | `EmployeeUpdate` | **Single-office in-place edit.** Partial body (`name`/`country`/`city`/`phone`/`is_head_office` — only supplied fields change), same convention as the rest of this API. `404` if no office with that id exists for the org. |
+
+#### Offices write semantics on `POST /add` / `PUT /update`
+
+The `offices` field on these two routes is a **full-replacement array**, diffed server-side
+against the org's current offices in one transaction:
+
+- **Key absent from the body** → offices are left untouched entirely.
+- **Key present as `[]`** → every existing office for the org is deleted.
+- **Key present as `[...]`** → for each entry:
+  - No `id` (or `id` null/absent) → create a new office.
+  - `id` matches an existing office for this org → that office's fields are replaced with the
+    entry's values (full replace per item, not a partial patch — partial patches are what the
+    dedicated `PUT /offices/update?office_id=` route is for).
+  - `id` doesn't match any office owned by this org → `400` validation error.
+  - Any existing office **not** present in the array (by id) → deleted.
+
+This means a client must fetch the current `offices[]` from `GET /get`, mutate the array
+client-side, and resend the full array to add or remove an office in bulk — same pattern as
+editing a list in a form and saving the whole form. The dedicated single-office route exists
+specifically so a one-field edit doesn't require round-tripping the entire array.
 
 `logo_url` / `banner_url` follow the exact `identity.profile_url` convention (same field name,
 different shape per direction — not split into separate `*_document_id` fields):
@@ -107,17 +132,8 @@ different shape per direction — not split into separate `*_document_id` fields
 DB columns stay `logo_document_id` / `banner_document_id` (internal storage only). No new upload
 endpoint.
 
-### Offices — `api/v1/company/offices`
-
-| Method | Route | Permission | Behavior |
-|---|---|---|---|
-| `GET` | `/list` | `EmployeeGet` | Paginated; `search` (name), `sort_by` (`name`\|`country`\|`created_at`), `sort_order`, `page`, `size` — same shape as `IdCardTypeListQuery`. |
-| `GET` | `/get?office_id=` | `EmployeeGet` | `404` if not found. |
-| `POST` | `/add` | `EmployeeUpdate` | Create an office for the current org. |
-| `PUT` | `/update?office_id=` | `EmployeeUpdate` | Partial body. `404` if not found. |
-| `DELETE` | `/delete?office_id=` | `EmployeeUpdate` | No special protection — any office, including a head office, can be deleted. `404` if not found. |
-
-Validation: `name` required (≤150 chars, unique per org); `country`/`city`/`phone` optional
+Office validation (applies on create, on full-replace entries, and on the dedicated update
+route): `name` required on create (≤150 chars, unique per org); `country`/`city`/`phone` optional
 free text; `is_head_office` optional bool (default `false`).
 
 ## Cross-repo workflow (per `AGENTS.md`)
@@ -142,3 +158,9 @@ free text; `is_head_office` optional bool (default `false`).
 - New file-upload endpoints (reusing the existing File Management module as-is)
 - Office street address field (not in the mockup)
 - Dedicated RBAC permissions for Company Settings (reusing `EmployeeGet`/`EmployeeUpdate`)
+- Standalone office list/get/add/delete endpoints, and any pagination/search/sort over offices
+  (confirmed 2026-06-26: offices are always returned in full, embedded on `GET /company/get`)
+- Optimistic concurrency control on the `offices` full-replace write. Two clients editing the
+  array at the same time can clobber each other (last write wins) — accepted given offices are
+  edited by a small number of admins on an infrequently-touched settings page. Revisit if this
+  becomes a real problem.
