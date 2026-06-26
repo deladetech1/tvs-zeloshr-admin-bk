@@ -13,46 +13,6 @@ public sealed class CompanyOfficeRepository(ZelosHrDbContext db) : ICompanyOffic
             .OrderBy(o => o.Name)
             .ToListAsync(ct);
 
-    public Task<CompanyOfficeEntity?> GetEntityByIdAsync(
-        Guid id, string tenantId, string orgId, CancellationToken ct = default) =>
-        db.CompanyOffices.AsNoTracking()
-            .FirstOrDefaultAsync(o => o.Id == id && o.TenantId == tenantId && o.OrgId == orgId, ct);
-
-    public async Task<bool> NameExistsAsync(
-        string tenantId, string orgId, string name, Guid? excludeId, CancellationToken ct = default)
-    {
-        var query = db.CompanyOffices.AsNoTracking()
-            .Where(o => o.TenantId == tenantId && o.OrgId == orgId && o.Name == name);
-        if (excludeId.HasValue)
-            query = query.Where(o => o.Id != excludeId.Value);
-        return await query.AnyAsync(ct);
-    }
-
-    public async Task<CompanyOfficeEntity?> UpdatePartialAsync(
-        Guid id,
-        string tenantId,
-        string orgId,
-        UpdateCompanyOfficeDto data,
-        string? actorUserId,
-        CancellationToken ct = default)
-    {
-        var entity = await db.CompanyOffices
-            .FirstOrDefaultAsync(o => o.Id == id && o.TenantId == tenantId && o.OrgId == orgId, ct);
-        if (entity is null)
-            return null;
-
-        if (data.Name is not null) entity.Name = data.Name.Trim();
-        if (data.Country is not null) entity.Country = Norm(data.Country);
-        if (data.City is not null) entity.City = Norm(data.City);
-        if (data.Phone is not null) entity.Phone = Norm(data.Phone);
-        if (data.IsHeadOffice.HasValue) entity.IsHeadOffice = data.IsHeadOffice.Value;
-
-        entity.UpdatedAt = DateTimeOffset.UtcNow;
-        entity.UpdatedBy = actorUserId;
-        await db.SaveChangesAsync(ct);
-        return entity;
-    }
-
     public async Task<(IReadOnlyList<CompanyOfficeEntity> Items, IReadOnlyList<Guid> UnknownIds)> ReplaceAllAsync(
         string tenantId,
         string orgId,

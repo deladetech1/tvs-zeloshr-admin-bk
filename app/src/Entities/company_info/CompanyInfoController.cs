@@ -2,9 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Shared.Authorization;
-using ZelosHR.Api.Shared.Constants;
 using ZelosHR.Api.Shared.Tenant;
-using ZelosHR.Api.Shared.Validation;
 
 namespace ZelosHR.Api.Entities.CompanyInfo;
 
@@ -57,10 +55,12 @@ public class CompanyInfoController : ControllerBase
 
     /// <summary>Update the company profile.</summary>
     /// <remarks>
-    /// Partial body — only supplied fields change. An optional offices[] array replaces the
-    /// org's entire office list (diffed server-side): entries with no office_id are created,
-    /// entries matching an existing office replace its fields in full, and existing offices not
-    /// present in the array are deleted. Omit offices entirely to leave them untouched.
+    /// Same shape as POST /add, plus id (must match the profile's current id from GET /get).
+    /// This is a full replacement, not a partial patch — omitted optional fields are cleared.
+    /// An optional offices[] array replaces the org's entire office list (diffed server-side):
+    /// entries with no office_id are created, entries matching an existing office replace its
+    /// fields in full, and existing offices not present in the array are deleted. Omit offices
+    /// entirely to leave them untouched; send [] to delete every office.
     /// </remarks>
     [HttpPut("update")]
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
@@ -85,30 +85,6 @@ public class CompanyInfoController : ControllerBase
     {
         var ctx = _tenant.Current;
         var result = await _service.DeleteAsync(ctx.TenantId, ctx.OrgId, ct);
-        return StatusCode(result.StatusCode, result);
-    }
-
-    /// <summary>Update a single office in place.</summary>
-    /// <remarks>
-    /// Partial body: name, country, city, phone, is_head_office — only supplied fields change.
-    /// Use this for one-field edits instead of resending the full offices[] array on PUT /update.
-    /// </remarks>
-    [HttpPut("offices/update")]
-    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
-    [ProducesResponseType(typeof(Respons<CompanyOfficeReadDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(Respons<CompanyOfficeReadDto>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(Respons<CompanyOfficeReadDto>), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<Respons<CompanyOfficeReadDto>>> UpdateOffice(
-        [FromQuery(Name = PlatformQueryParams.OfficeId)] Guid officeId,
-        [FromBody] UpdateCompanyOfficeDto body,
-        CancellationToken ct)
-    {
-        if (QueryParamValidation.BadRequestIfEmptyGuid<CompanyOfficeReadDto>(
-                officeId, PlatformQueryParams.OfficeId) is { } missingId)
-            return missingId;
-
-        var ctx = _tenant.Current;
-        var result = await _service.UpdateOfficeAsync(officeId, body, ctx.TenantId, ctx.OrgId, ctx.UserId, ct);
         return StatusCode(result.StatusCode, result);
     }
 }

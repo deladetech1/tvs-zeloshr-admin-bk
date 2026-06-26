@@ -66,7 +66,6 @@ public sealed class SwaggerGenerationTests
         document.Paths.Should().ContainKey("/api/v1/company/info/add");
         document.Paths.Should().ContainKey("/api/v1/company/info/update");
         document.Paths.Should().ContainKey("/api/v1/company/info/delete");
-        document.Paths.Should().ContainKey("/api/v1/company/info/offices/update");
     }
 
     private sealed class TestWebHostEnvironment : IWebHostEnvironment

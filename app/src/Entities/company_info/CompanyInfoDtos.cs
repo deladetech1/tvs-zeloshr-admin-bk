@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Files;
 
 namespace ZelosHR.Api.Entities.CompanyInfo;
@@ -27,16 +29,6 @@ public sealed record CompanyOfficeReadDto
 public sealed class CompanyOfficeWriteDto
 {
     public Guid? OfficeId { get; set; }
-    public string? Name { get; set; }
-    public string? Country { get; set; }
-    public string? City { get; set; }
-    public string? Phone { get; set; }
-    public bool? IsHeadOffice { get; set; }
-}
-
-/// <summary>Partial body for the dedicated single-office update route.</summary>
-public sealed class UpdateCompanyOfficeDto
-{
     public string? Name { get; set; }
     public string? Country { get; set; }
     public string? City { get; set; }
@@ -81,16 +73,31 @@ public sealed class CreateCompanyInfoDto
     public string? CompanyEmail { get; set; }
     public string? Website { get; set; }
 
-    /// <summary>Document registry id from <c>POST /api/v1/file/post/multiple</c>.</summary>
+    /// <summary>
+    /// Document registry id from <c>POST /api/v1/file/post/multiple</c> — same as
+    /// <c>identity.profile_url</c> on employees. Also accepts the read-shaped object
+    /// (<c>doc_id</c> / <c>id</c> / <c>presigned_url</c>) for round-trip from GET.
+    /// </summary>
+    [JsonConverter(typeof(ProfileUrlWriteJsonConverter))]
     public string? LogoUrl { get; set; }
+
+    [JsonConverter(typeof(ProfileUrlWriteJsonConverter))]
     public string? BannerUrl { get; set; }
 
     /// <summary>Optional initial offices to create alongside the profile.</summary>
     public List<CompanyOfficeWriteDto>? Offices { get; set; }
 }
 
+/// <summary>
+/// Same shape as <see cref="CreateCompanyInfoDto"/>, plus <see cref="Id"/> — a full replacement
+/// of the profile, not a partial patch. Fields omitted from the body are cleared, just like on
+/// create; the only field that's optional-and-preserves-the-existing-value is <see cref="Offices"/>
+/// (see "Offices write semantics" in the design spec).
+/// </summary>
 public sealed class UpdateCompanyInfoDto
 {
+    /// <summary>Must match the profile's current id (from <c>GET /get</c>).</summary>
+    public string? Id { get; set; }
     public string? LegalName { get; set; }
     public string? TradingName { get; set; }
     public string? Industry { get; set; }
@@ -102,7 +109,11 @@ public sealed class UpdateCompanyInfoDto
     [EmailAddress]
     public string? CompanyEmail { get; set; }
     public string? Website { get; set; }
+
+    [JsonConverter(typeof(ProfileUrlWriteJsonConverter))]
     public string? LogoUrl { get; set; }
+
+    [JsonConverter(typeof(ProfileUrlWriteJsonConverter))]
     public string? BannerUrl { get; set; }
 
     /// <summary>

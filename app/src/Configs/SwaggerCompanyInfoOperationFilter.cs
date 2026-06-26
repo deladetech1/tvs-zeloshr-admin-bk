@@ -41,9 +41,8 @@ public sealed class SwaggerCompanyInfoOperationFilter : IOperationFilter
                 operation.Summary ??= "Update company profile";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
                     """
-                    Partial body — send only fields to change.
+                    Same shape as POST /add, plus id (must match the profile's current id from GET /get). This is a full replacement, not a partial patch — omitted optional fields are cleared.
                     offices[] is a full-replacement array when present: an entry with no office_id is created, an entry whose office_id matches an existing office replaces that office's fields in full, and any existing office missing from the array is deleted. Omit offices entirely to leave them untouched; send [] to delete every office.
-                    Use PUT /offices/update?office_id= instead for a single-field edit on one office.
                     """);
                 return;
 
@@ -52,15 +51,6 @@ public sealed class SwaggerCompanyInfoOperationFilter : IOperationFilter
                 operation.Summary ??= "Delete company profile";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
                     "Also deletes every office for this org, in one transaction.");
-                return;
-
-            case "api/v1/company/info/offices/update" when method.Equals("PUT", StringComparison.OrdinalIgnoreCase):
-                SetJsonResponseExample(operation, 400, SwaggerExamples.EnvelopeFor(typeof(Respons<CompanyOfficeReadDto>), 400));
-                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<CompanyOfficeReadDto>), 404));
-                operation.Summary ??= "Update one office";
-                operation.Description = SwaggerOptionFormat.Append(operation.Description,
-                    "Partial body — name · country · city · phone · is_head_office. For one-field edits, instead of resending the full offices[] array on PUT /update.");
-                AppendParameterDescription(operation, "office_id", "Office UUID from the offices[] array on GET /get.");
                 return;
         }
     }
@@ -75,18 +65,5 @@ public sealed class SwaggerCompanyInfoOperationFilter : IOperationFilter
         if (!response.Content.TryGetValue("application/json", out var media))
             return;
         SwaggerMediaExamples.SetSingleExample(media, example);
-    }
-
-    private static void AppendParameterDescription(OpenApiOperation operation, string name, string addition)
-    {
-        if (operation.Parameters is null)
-            return;
-        foreach (var parameter in operation.Parameters)
-        {
-            if (!string.Equals(parameter.Name, name, StringComparison.OrdinalIgnoreCase))
-                continue;
-            parameter.Description = SwaggerOptionFormat.Append(parameter.Description, addition);
-            break;
-        }
     }
 }

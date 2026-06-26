@@ -8,20 +8,6 @@ public interface ICompanyOfficeRepository
     Task<IReadOnlyList<CompanyOfficeEntity>> ListAsync(
         string tenantId, string orgId, CancellationToken ct = default);
 
-    Task<CompanyOfficeEntity?> GetEntityByIdAsync(
-        Guid id, string tenantId, string orgId, CancellationToken ct = default);
-
-    Task<bool> NameExistsAsync(
-        string tenantId, string orgId, string name, Guid? excludeId, CancellationToken ct = default);
-
-    Task<CompanyOfficeEntity?> UpdatePartialAsync(
-        Guid id,
-        string tenantId,
-        string orgId,
-        UpdateCompanyOfficeDto data,
-        string? actorUserId,
-        CancellationToken ct = default);
-
     /// <summary>
     /// Diffs <paramref name="items"/> against the org's current offices: entries with no
     /// <c>OfficeId</c> are created, entries matching an existing office replace its fields,

@@ -96,6 +96,14 @@ public class CompanyInfoService
         if (existing is null)
             return Respons<CompanyInfoReadDto>.Fail("Company profile not found.", statusCode: 404);
 
+        if (!Guid.TryParse(body.Id, out var parsedId) || parsedId != existing.Id)
+        {
+            return Respons<CompanyInfoReadDto>.ValidationError(new Dictionary<string, string>
+            {
+                ["id"] = "id does not match the current company profile.",
+            });
+        }
+
         var documentError = await ValidateLogoAndBannerAsync(body.LogoUrl, body.BannerUrl, ct);
         if (documentError is not null)
             return Respons<CompanyInfoReadDto>.ValidationError(documentError);
@@ -134,38 +142,6 @@ public class CompanyInfoService
         await _offices.DeleteAllAsync(tenantId, orgId, ct);
         await transaction.CommitAsync(ct);
         return Respons<object>.Ok(new { }, detail: "Company profile deleted.");
-    }
-
-    public async Task<Respons<CompanyOfficeReadDto>> UpdateOfficeAsync(
-        Guid officeId,
-        UpdateCompanyOfficeDto body,
-        string tenantId,
-        string orgId,
-        string? actorUserId,
-        CancellationToken ct = default)
-    {
-        var errors = ValidateUpdateOffice(body);
-        if (errors is not null)
-            return Respons<CompanyOfficeReadDto>.ValidationError(errors);
-
-        if (!string.IsNullOrWhiteSpace(body.Name)
-            && await _offices.NameExistsAsync(tenantId, orgId, body.Name.Trim(), officeId, ct))
-        {
-            return Respons<CompanyOfficeReadDto>.ValidationError(new Dictionary<string, string>
-            {
-                ["name"] = "An office with this name already exists.",
-            });
-        }
-
-        var updated = await _offices.UpdatePartialAsync(officeId, tenantId, orgId, body, actorUserId, ct);
-        if (updated is null)
-            return Respons<CompanyOfficeReadDto>.Fail("Office not found.", statusCode: 404);
-
-        var users = await _cpUsers.GetByIdsAsync(
-            ResourceAuditMapper.CollectUserIds(new[] { new[] { updated.CreatedBy, updated.UpdatedBy } }),
-            tenantId,
-            ct);
-        return Respons<CompanyOfficeReadDto>.Ok(ToOfficeDto(updated, users));
     }
 
     private async Task<Respons<CompanyInfoReadDto>> BuildReadResponseAsync(
@@ -245,74 +221,58 @@ public class CompanyInfoService
             UpdatedBy = ResourceAuditMapper.ResolveDisplayName(o.UpdatedBy, users),
         };
 
-    private static Dictionary<string, string>? ValidateCreate(CreateCompanyInfoDto body)
-    {
-        var errors = new Dictionary<string, string>();
-        if (string.IsNullOrWhiteSpace(body.LegalName))
-            errors["legal_name"] = "Legal name is required.";
-        else if (body.LegalName.Trim().Length > 200)
-            errors["legal_name"] = "Legal name must be at most 200 characters.";
+    private static Dictionary<string, string>? ValidateCreate(CreateCompanyInfoDto body) =>
+        ValidateProfileFields(
+            body.LegalName, body.TradingName, body.Industry, body.CompanySize,
+            body.BusinessRegistrationNumber, body.Tin, body.PrimaryWorkCountry,
+            body.CompanyEmail, body.Website, body.Offices);
 
-        AddLengthError(errors, "trading_name", body.TradingName, 200);
-        AddLengthError(errors, "industry", body.Industry, 150);
-        AddLengthError(errors, "company_size", body.CompanySize, 50);
-        AddLengthError(errors, "business_registration_number", body.BusinessRegistrationNumber, 100);
-        AddLengthError(errors, "tin", body.Tin, 100);
-        AddLengthError(errors, "primary_work_country", body.PrimaryWorkCountry, 100);
-        AddLengthError(errors, "company_email", body.CompanyEmail, 200);
-        AddLengthError(errors, "website", body.Website, 300);
-
-        MergeOfficeErrors(errors, ValidateOffices(body.Offices));
-        return errors.Count == 0 ? null : errors;
-    }
-
+    /// <summary>Same field rules as create — update is a full replacement, not a partial patch.</summary>
     private static Dictionary<string, string>? ValidateUpdate(UpdateCompanyInfoDto body)
     {
-        if (body.LegalName is null && body.TradingName is null && body.Industry is null
-            && body.CompanySize is null && body.BusinessRegistrationNumber is null && body.Tin is null
-            && body.PrimaryWorkCountry is null && body.CompanyEmail is null && body.Website is null
-            && body.LogoUrl is null && body.BannerUrl is null && body.Offices is null)
-        {
-            return new Dictionary<string, string> { ["body"] = "Provide at least one field to update." };
-        }
-
         var errors = new Dictionary<string, string>();
-        if (body.LegalName is not null && string.IsNullOrWhiteSpace(body.LegalName))
-            errors["legal_name"] = "Legal name cannot be empty.";
-        else if (body.LegalName is not null && body.LegalName.Trim().Length > 200)
-            errors["legal_name"] = "Legal name must be at most 200 characters.";
+        if (string.IsNullOrWhiteSpace(body.Id))
+            errors["id"] = "Company profile id is required.";
+        else if (!Guid.TryParse(body.Id, out _))
+            errors["id"] = "Company profile id must be a valid UUID.";
 
-        AddLengthError(errors, "trading_name", body.TradingName, 200);
-        AddLengthError(errors, "industry", body.Industry, 150);
-        AddLengthError(errors, "company_size", body.CompanySize, 50);
-        AddLengthError(errors, "business_registration_number", body.BusinessRegistrationNumber, 100);
-        AddLengthError(errors, "tin", body.Tin, 100);
-        AddLengthError(errors, "primary_work_country", body.PrimaryWorkCountry, 100);
-        AddLengthError(errors, "company_email", body.CompanyEmail, 200);
-        AddLengthError(errors, "website", body.Website, 300);
+        var fieldErrors = ValidateProfileFields(
+            body.LegalName, body.TradingName, body.Industry, body.CompanySize,
+            body.BusinessRegistrationNumber, body.Tin, body.PrimaryWorkCountry,
+            body.CompanyEmail, body.Website, body.Offices);
+        MergeErrors(errors, fieldErrors);
 
-        MergeOfficeErrors(errors, ValidateOffices(body.Offices));
         return errors.Count == 0 ? null : errors;
     }
 
-    private static Dictionary<string, string>? ValidateUpdateOffice(UpdateCompanyOfficeDto body)
+    private static Dictionary<string, string>? ValidateProfileFields(
+        string? legalName,
+        string? tradingName,
+        string? industry,
+        string? companySize,
+        string? businessRegistrationNumber,
+        string? tin,
+        string? primaryWorkCountry,
+        string? companyEmail,
+        string? website,
+        List<CompanyOfficeWriteDto>? offices)
     {
-        if (body.Name is null && body.Country is null && body.City is null
-            && body.Phone is null && body.IsHeadOffice is null)
-        {
-            return new Dictionary<string, string> { ["body"] = "Provide at least one field to update." };
-        }
-
         var errors = new Dictionary<string, string>();
-        if (body.Name is not null && string.IsNullOrWhiteSpace(body.Name))
-            errors["name"] = "Office name cannot be empty.";
-        else if (body.Name is not null && body.Name.Trim().Length > 150)
-            errors["name"] = "Office name must be at most 150 characters.";
+        if (string.IsNullOrWhiteSpace(legalName))
+            errors["legal_name"] = "Legal name is required.";
+        else if (legalName.Trim().Length > 200)
+            errors["legal_name"] = "Legal name must be at most 200 characters.";
 
-        if (body.Country is { Length: > 100 }) errors["country"] = "Country must be at most 100 characters.";
-        if (body.City is { Length: > 100 }) errors["city"] = "City must be at most 100 characters.";
-        if (body.Phone is { Length: > 50 }) errors["phone"] = "Phone must be at most 50 characters.";
+        AddLengthError(errors, "trading_name", tradingName, 200);
+        AddLengthError(errors, "industry", industry, 150);
+        AddLengthError(errors, "company_size", companySize, 50);
+        AddLengthError(errors, "business_registration_number", businessRegistrationNumber, 100);
+        AddLengthError(errors, "tin", tin, 100);
+        AddLengthError(errors, "primary_work_country", primaryWorkCountry, 100);
+        AddLengthError(errors, "company_email", companyEmail, 200);
+        AddLengthError(errors, "website", website, 300);
 
+        MergeErrors(errors, ValidateOffices(offices));
         return errors.Count == 0 ? null : errors;
     }
 
@@ -344,7 +304,7 @@ public class CompanyInfoService
         return errors.Count == 0 ? null : errors;
     }
 
-    private static void MergeOfficeErrors(Dictionary<string, string> into, Dictionary<string, string>? from)
+    private static void MergeErrors(Dictionary<string, string> into, Dictionary<string, string>? from)
     {
         if (from is null)
             return;

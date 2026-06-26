@@ -165,7 +165,6 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(CompanyOfficeReadDto) => SwaggerExamples.CompanyOfficeItemData(),
             nameof(CreateCompanyInfoDto) => SwaggerExamples.CreateCompanyInfoBody(),
             nameof(UpdateCompanyInfoDto) => SwaggerExamples.UpdateCompanyInfoBody(),
-            nameof(UpdateCompanyOfficeDto) => SwaggerExamples.UpdateCompanyOfficeBody(),
             nameof(EmploymentTypeListQuery) => new JsonObject
             {
                 ["search"] = "",

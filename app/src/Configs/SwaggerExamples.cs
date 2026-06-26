@@ -2201,7 +2201,17 @@ internal static class SwaggerExamples
 
     internal static JsonObject UpdateCompanyInfoBody() => new()
     {
+        ["id"] = SampleCompanyProfileId.ToString(),
+        ["legal_name"] = "Marvel Industries",
+        ["trading_name"] = "Marvel",
+        ["industry"] = "Technology",
+        ["company_size"] = "201-500 employees",
+        ["business_registration_number"] = "CS-04829-2018",
+        ["tin"] = "C0009827451",
+        ["primary_work_country"] = "Ghana",
+        ["company_email"] = "people@marvel.com",
         ["website"] = "https://marvel.com",
+        ["logo_url"] = SampleDocumentId1,
         ["offices"] = new JsonArray(
             new JsonObject
             {
@@ -2220,11 +2230,6 @@ internal static class SwaggerExamples
                 ["phone"] = "+233322000000",
                 ["is_head_office"] = false,
             }),
-    };
-
-    internal static JsonObject UpdateCompanyOfficeBody() => new()
-    {
-        ["phone"] = "+233244111111",
     };
 
     internal static JsonObject PublicHolidayItemData()

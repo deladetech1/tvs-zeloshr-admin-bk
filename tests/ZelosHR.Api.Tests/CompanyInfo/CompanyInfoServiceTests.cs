@@ -81,33 +81,65 @@ public class CompanyInfoServiceTests
     }
 
     [Fact]
+    public async Task UpdateAsync_rejects_missing_id()
+    {
+        var service = CreateService();
+        var result = await service.UpdateAsync(
+            new UpdateCompanyInfoDto { LegalName = "Marvel Industries" }, "t1", "o1", "user-1");
+
+        result.Success.Should().BeFalse();
+        result.StatusCode.Should().Be(400);
+        result.FieldErrors!["id"].Should().Contain("required");
+    }
+
+    [Fact]
+    public async Task UpdateAsync_rejects_invalid_id_format()
+    {
+        var service = CreateService();
+        var result = await service.UpdateAsync(
+            new UpdateCompanyInfoDto { Id = "not-a-guid", LegalName = "Marvel Industries" }, "t1", "o1", "user-1");
+
+        result.Success.Should().BeFalse();
+        result.StatusCode.Should().Be(400);
+        result.FieldErrors!["id"].Should().Contain("UUID");
+    }
+
+    [Fact]
     public async Task UpdateAsync_returns_404_when_profile_missing()
     {
         var service = CreateService();
         var result = await service.UpdateAsync(
-            new UpdateCompanyInfoDto { Website = "https://marvel.com" }, "t1", "o1", "user-1");
+            new UpdateCompanyInfoDto { Id = Guid.NewGuid().ToString(), LegalName = "Marvel Industries" },
+            "t1", "o1", "user-1");
 
         result.Success.Should().BeFalse();
         result.StatusCode.Should().Be(404);
     }
 
     [Fact]
-    public async Task UpdateAsync_rejects_empty_body()
+    public async Task UpdateAsync_rejects_id_that_does_not_match_existing_profile()
     {
-        var service = CreateService();
-        var result = await service.UpdateAsync(new UpdateCompanyInfoDto(), "t1", "o1", "user-1");
+        var profiles = Substitute.For<ICompanyProfileRepository>();
+        profiles.GetEntityAsync("t1", "o1", Arg.Any<CancellationToken>())
+            .Returns(new CompanyProfileEntity { Id = Guid.NewGuid(), TenantId = "t1", OrgId = "o1", LegalName = "Marvel" });
+
+        var service = CreateService(profiles: profiles);
+        var result = await service.UpdateAsync(
+            new UpdateCompanyInfoDto { Id = Guid.NewGuid().ToString(), LegalName = "Marvel Industries" },
+            "t1", "o1", "user-1");
 
         result.Success.Should().BeFalse();
         result.StatusCode.Should().Be(400);
-        result.FieldErrors!["request"].Should().Contain("at least one field");
+        result.FieldErrors!["id"].Should().Contain("does not match");
     }
 
     [Fact]
     public async Task UpdateAsync_rejects_unknown_office_id()
     {
+        var existingId = Guid.NewGuid();
         var profiles = Substitute.For<ICompanyProfileRepository>();
         profiles.GetEntityAsync("t1", "o1", Arg.Any<CancellationToken>())
-            .Returns(new CompanyProfileEntity { Id = Guid.NewGuid(), TenantId = "t1", OrgId = "o1", LegalName = "Marvel" });
+            .Returns(new CompanyProfileEntity { Id = existingId, TenantId = "t1", OrgId = "o1", LegalName = "Marvel" });
 
         var unknownId = Guid.NewGuid();
         var officeRepo = Substitute.For<ICompanyOfficeRepository>();
@@ -118,6 +150,8 @@ public class CompanyInfoServiceTests
         var result = await service.UpdateAsync(
             new UpdateCompanyInfoDto
             {
+                Id = existingId.ToString(),
+                LegalName = "Marvel Industries",
                 Offices = [new CompanyOfficeWriteDto { OfficeId = unknownId, Name = "Accra Office" }],
             },
             "t1", "o1", "user-1");
@@ -125,38 +159,5 @@ public class CompanyInfoServiceTests
         result.Success.Should().BeFalse();
         result.StatusCode.Should().Be(400);
         result.FieldErrors!["offices"].Should().Contain(unknownId.ToString());
-    }
-
-    [Fact]
-    public async Task UpdateOfficeAsync_returns_404_when_office_missing()
-    {
-        var officeRepo = Substitute.For<ICompanyOfficeRepository>();
-        officeRepo.UpdatePartialAsync(
-                Arg.Any<Guid>(), "t1", "o1", Arg.Any<UpdateCompanyOfficeDto>(), "user-1", Arg.Any<CancellationToken>())
-            .Returns((CompanyOfficeEntity?)null);
-
-        var service = CreateService(offices: officeRepo);
-        var result = await service.UpdateOfficeAsync(
-            Guid.NewGuid(), new UpdateCompanyOfficeDto { Phone = "+233244111111" }, "t1", "o1", "user-1");
-
-        result.Success.Should().BeFalse();
-        result.StatusCode.Should().Be(404);
-    }
-
-    [Fact]
-    public async Task UpdateOfficeAsync_rejects_duplicate_name()
-    {
-        var officeId = Guid.NewGuid();
-        var officeRepo = Substitute.For<ICompanyOfficeRepository>();
-        officeRepo.NameExistsAsync("t1", "o1", "Kumasi Office", officeId, Arg.Any<CancellationToken>())
-            .Returns(true);
-
-        var service = CreateService(offices: officeRepo);
-        var result = await service.UpdateOfficeAsync(
-            officeId, new UpdateCompanyOfficeDto { Name = "Kumasi Office" }, "t1", "o1", "user-1");
-
-        result.Success.Should().BeFalse();
-        result.StatusCode.Should().Be(400);
-        result.FieldErrors!["name"].Should().Contain("already exists");
     }
 }

@@ -57,18 +57,18 @@ public sealed class CompanyProfileRepository(ZelosHrDbContext db) : ICompanyProf
         if (entity is null)
             return null;
 
-        if (data.LegalName is not null) entity.LegalName = data.LegalName.Trim();
-        if (data.TradingName is not null) entity.TradingName = Norm(data.TradingName);
-        if (data.Industry is not null) entity.Industry = Norm(data.Industry);
-        if (data.CompanySize is not null) entity.CompanySize = Norm(data.CompanySize);
-        if (data.BusinessRegistrationNumber is not null)
-            entity.BusinessRegistrationNumber = Norm(data.BusinessRegistrationNumber);
-        if (data.Tin is not null) entity.Tin = Norm(data.Tin);
-        if (data.PrimaryWorkCountry is not null) entity.PrimaryWorkCountry = Norm(data.PrimaryWorkCountry);
-        if (data.CompanyEmail is not null) entity.CompanyEmail = Norm(data.CompanyEmail);
-        if (data.Website is not null) entity.Website = Norm(data.Website);
-        if (data.LogoUrl is not null) entity.LogoDocumentId = Norm(data.LogoUrl);
-        if (data.BannerUrl is not null) entity.BannerDocumentId = Norm(data.BannerUrl);
+        // Full replacement (same shape as create) — omitted optional fields are cleared, not left untouched.
+        entity.LegalName = data.LegalName!.Trim();
+        entity.TradingName = Norm(data.TradingName);
+        entity.Industry = Norm(data.Industry);
+        entity.CompanySize = Norm(data.CompanySize);
+        entity.BusinessRegistrationNumber = Norm(data.BusinessRegistrationNumber);
+        entity.Tin = Norm(data.Tin);
+        entity.PrimaryWorkCountry = Norm(data.PrimaryWorkCountry);
+        entity.CompanyEmail = Norm(data.CompanyEmail);
+        entity.Website = Norm(data.Website);
+        entity.LogoDocumentId = Norm(data.LogoUrl);
+        entity.BannerDocumentId = Norm(data.BannerUrl);
 
         entity.UpdatedAt = DateTimeOffset.UtcNow;
         entity.UpdatedBy = actorUserId;
