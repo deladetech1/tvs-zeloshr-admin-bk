@@ -7,6 +7,8 @@ using Microsoft.Extensions.FileProviders;
 using Swashbuckle.AspNetCore.Swagger;
 using Xunit;
 using ZelosHR.Api.Configs;
+using ZelosHR.Api.Entities.CompanyInfo;
+using ZelosHR.Api.Entities.CompanyLocalization;
 using ZelosHR.Api.Entities.Currencies;
 using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Employees;
@@ -29,7 +31,9 @@ public sealed class SwaggerGenerationTests
             .AddApplicationPart(typeof(CustomFieldsController).Assembly)
             .AddApplicationPart(typeof(FileManagementController).Assembly)
             .AddApplicationPart(typeof(LeaveController).Assembly)
-            .AddApplicationPart(typeof(IdCardTypesController).Assembly);
+            .AddApplicationPart(typeof(IdCardTypesController).Assembly)
+            .AddApplicationPart(typeof(CompanyInfoController).Assembly)
+            .AddApplicationPart(typeof(CompanyLocalizationController).Assembly);
         services.AddEndpointsApiExplorer();
 
         var configuration = new ConfigurationBuilder()
@@ -60,6 +64,14 @@ public sealed class SwaggerGenerationTests
         document.Paths.Should().ContainKey("/api/v1/id-card-types/add");
         document.Paths.Should().ContainKey("/api/v1/id-card-types/update");
         document.Paths.Should().ContainKey("/api/v1/id-card-types/delete");
+        document.Paths.Should().ContainKey("/api/v1/company/info/get");
+        document.Paths.Should().ContainKey("/api/v1/company/info/add");
+        document.Paths.Should().ContainKey("/api/v1/company/info/update");
+        document.Paths.Should().ContainKey("/api/v1/company/info/delete");
+        document.Paths.Should().ContainKey("/api/v1/company/localization/get");
+        document.Paths.Should().ContainKey("/api/v1/company/localization/add");
+        document.Paths.Should().ContainKey("/api/v1/company/localization/update");
+        document.Paths.Should().ContainKey("/api/v1/company/localization/delete");
     }
 
     private sealed class TestWebHostEnvironment : IWebHostEnvironment

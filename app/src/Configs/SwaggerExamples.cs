@@ -1,6 +1,8 @@
 using System.Text.Json.Nodes;
 using ZelosHR.Api.Entities.AuditLogs;
 using ZelosHR.Api.Entities.Branches;
+using ZelosHR.Api.Entities.CompanyInfo;
+using ZelosHR.Api.Entities.CompanyLocalization;
 using ZelosHR.Api.Entities.Currencies;
 using ZelosHR.Api.Entities.Countries;
 using ZelosHR.Api.Entities.CustomFields;
@@ -34,6 +36,10 @@ internal static class SwaggerExamples
     internal static readonly Guid SampleLeaveBalanceId = Guid.Parse("a2222222-2222-2222-2222-222222222202");
     internal static readonly Guid SampleLeaveTypeId = Guid.Parse("a2222222-2222-2222-2222-222222222203");
     internal static readonly Guid SampleHolidayId = Guid.Parse("a2222222-2222-2222-2222-222222222204");
+    internal static readonly Guid SampleCompanyProfileId = Guid.Parse("8f14e45f-ceea-4a3e-8c7f-1d8f6b9e2b41");
+    internal static readonly Guid SampleOfficeId = Guid.Parse("b1000001-0000-4000-8000-000000000001");
+    internal static readonly Guid SampleOfficeId2 = Guid.Parse("b1000001-0000-4000-8000-000000000002");
+    internal static readonly Guid SampleCompanyLocalizationId = Guid.Parse("c1000001-0000-4000-8000-000000000001");
 
     internal const string SampleCurrencyId = "cur_ghs_default";
     internal const string SampleCountryId = "ctr_gh";
@@ -267,6 +273,9 @@ internal static class SwaggerExamples
             nameof(LeaveTypeListItemDto) => EnvelopeOk(LeaveTypeItemData()),
             nameof(EmploymentTypeListDto) => EnvelopeOk(EmploymentTypeListData()),
             nameof(EmploymentTypeListItemDto) => EnvelopeOk(EmploymentTypeItemData()),
+            nameof(CompanyInfoReadDto) => EnvelopeOk(CompanyInfoData()),
+            nameof(CompanyOfficeReadDto) => EnvelopeOk(CompanyOfficeItemData()),
+            nameof(CompanyLocalizationReadDto) => EnvelopeOk(CompanyLocalizationData()),
             nameof(PublicHolidayListDto) => LeaveHolidayListResponse(),
             nameof(PublicHolidayListItemDto) => EnvelopeOk(PublicHolidayItemData()),
             nameof(GetCountrySimpleReadDto) => EnvelopeOk(CountryItem()),
@@ -2117,6 +2126,154 @@ internal static class SwaggerExamples
             ["items"] = new JsonArray(EmploymentTypeItemData(), custom),
         };
     }
+
+    internal static JsonObject CompanyOfficeItemData()
+    {
+        var data = new JsonObject
+        {
+            ["office_id"] = SampleOfficeId.ToString(),
+            ["name"] = "Accra Office",
+            ["country"] = "Ghana",
+            ["city"] = "Accra",
+            ["phone"] = "+233244000000",
+            ["is_head_office"] = true,
+        };
+        AppendResourceAuditFields(data);
+        return data;
+    }
+
+    private static JsonObject CompanyOfficeItemData2()
+    {
+        var data = new JsonObject
+        {
+            ["office_id"] = SampleOfficeId2.ToString(),
+            ["name"] = "Kigali Office",
+            ["country"] = "Rwanda",
+            ["city"] = "Kigali",
+            ["phone"] = "+250788000000",
+            ["is_head_office"] = false,
+        };
+        AppendResourceAuditFields(data);
+        return data;
+    }
+
+    internal static JsonObject CompanyInfoData()
+    {
+        var data = new JsonObject
+        {
+            ["id"] = SampleCompanyProfileId.ToString(),
+            ["legal_name"] = "Marvel Industries",
+            ["trading_name"] = "Marvel",
+            ["industry"] = "Technology",
+            ["company_size"] = "201-500 employees",
+            ["business_registration_number"] = "CS-04829-2018",
+            ["tin"] = "C0009827451",
+            ["primary_work_country"] = "Ghana",
+            ["company_email"] = "people@marvel.com",
+            ["website"] = "marvel.com",
+            ["logo_url"] = EmployeeDocumentItem(SampleDocumentId1, "Company logo", "marvel-logo.png"),
+            ["banner_url"] = null,
+            ["offices"] = new JsonArray(CompanyOfficeItemData(), CompanyOfficeItemData2()),
+        };
+        AppendResourceAuditFields(data);
+        return data;
+    }
+
+    internal static JsonObject CreateCompanyInfoBody() => new()
+    {
+        ["legal_name"] = "Marvel Industries",
+        ["trading_name"] = "Marvel",
+        ["industry"] = "Technology",
+        ["company_size"] = "201-500 employees",
+        ["business_registration_number"] = "CS-04829-2018",
+        ["tin"] = "C0009827451",
+        ["primary_work_country"] = "Ghana",
+        ["company_email"] = "people@marvel.com",
+        ["website"] = "marvel.com",
+        ["logo_url"] = SampleDocumentId1,
+        ["offices"] = new JsonArray(
+            new JsonObject
+            {
+                ["name"] = "Accra Office",
+                ["country"] = "Ghana",
+                ["city"] = "Accra",
+                ["phone"] = "+233244000000",
+                ["is_head_office"] = true,
+            }),
+    };
+
+    internal static JsonObject UpdateCompanyInfoBody() => new()
+    {
+        ["id"] = SampleCompanyProfileId.ToString(),
+        ["legal_name"] = "Marvel Industries",
+        ["trading_name"] = "Marvel",
+        ["industry"] = "Technology",
+        ["company_size"] = "201-500 employees",
+        ["business_registration_number"] = "CS-04829-2018",
+        ["tin"] = "C0009827451",
+        ["primary_work_country"] = "Ghana",
+        ["company_email"] = "people@marvel.com",
+        ["website"] = "https://marvel.com",
+        ["logo_url"] = SampleDocumentId1,
+        ["offices"] = new JsonArray(
+            new JsonObject
+            {
+                ["office_id"] = SampleOfficeId.ToString(),
+                ["name"] = "Accra Office",
+                ["country"] = "Ghana",
+                ["city"] = "Accra",
+                ["phone"] = "+233244000000",
+                ["is_head_office"] = true,
+            },
+            new JsonObject
+            {
+                ["name"] = "Kumasi Office",
+                ["country"] = "Ghana",
+                ["city"] = "Kumasi",
+                ["phone"] = "+233322000000",
+                ["is_head_office"] = false,
+            }),
+    };
+
+    internal static JsonObject CompanyLocalizationData()
+    {
+        var data = new JsonObject
+        {
+            ["id"] = SampleCompanyLocalizationId.ToString(),
+            ["time_zone"] = "Africa/Accra",
+            ["currency_id"] = SampleCurrencyId,
+            ["date_format"] = "DD/MM/YYYY",
+            ["number_format"] = "1,234.56",
+            ["first_day_of_week"] = "Monday",
+            ["year_start_month"] = "January",
+            ["year_start_day"] = 1,
+        };
+        AppendResourceAuditFields(data);
+        return data;
+    }
+
+    internal static JsonObject CreateCompanyLocalizationBody() => new()
+    {
+        ["time_zone"] = "Africa/Accra",
+        ["currency_id"] = SampleCurrencyId,
+        ["date_format"] = "DD/MM/YYYY",
+        ["number_format"] = "1,234.56",
+        ["first_day_of_week"] = "Monday",
+        ["year_start_month"] = "January",
+        ["year_start_day"] = 1,
+    };
+
+    internal static JsonObject UpdateCompanyLocalizationBody() => new()
+    {
+        ["id"] = SampleCompanyLocalizationId.ToString(),
+        ["time_zone"] = "Africa/Accra",
+        ["currency_id"] = SampleCurrencyId,
+        ["date_format"] = "DD/MM/YYYY",
+        ["number_format"] = "1,234.56",
+        ["first_day_of_week"] = "Monday",
+        ["year_start_month"] = "January",
+        ["year_start_day"] = 1,
+    };
 
     internal static JsonObject PublicHolidayItemData()
     {
