@@ -26,6 +26,7 @@ public sealed class TroveRequestHeadersMiddleware
     public async Task InvokeAsync(
         HttpContext context,
         IOptions<TrovesuiteIntegrationOptions> integrationOptions,
+        IOptions<AppSettings> appSettings,
         IPlatformContextRepository platformContext)
     {
         if (HttpMethods.IsOptions(context.Request.Method))
@@ -69,8 +70,9 @@ public sealed class TroveRequestHeadersMiddleware
             }
         }
 
+        var expectedAppId = appSettings.Value.AppId;
         var appId = context.Request.Headers[TroveStandardHeaders.AppId].ToString().Trim();
-        if (!string.Equals(appId, TroveStandardHeaders.HrAppId, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(appId, expectedAppId, StringComparison.OrdinalIgnoreCase))
         {
             _logger.LogWarning(
                 "Invalid app-id {AppId} on {Method} {Path}",
@@ -83,7 +85,7 @@ public sealed class TroveRequestHeadersMiddleware
                 new Dictionary<string, string>
                 {
                     [TroveStandardHeaders.AppId] =
-                        $"Header '{TroveStandardHeaders.AppId}' must be '{TroveStandardHeaders.HrAppId}'.",
+                        $"Header '{TroveStandardHeaders.AppId}' must be '{expectedAppId}'.",
                 });
             return;
         }
@@ -135,7 +137,7 @@ public sealed class TroveRequestHeadersMiddleware
             var locId = (string)context.Items[TrovesuiteHttpContextKeys.LocId]!;
 
             var valid = await platformContext.ValidateSessionContextAsync(
-                tenantId, userId, orgId, busId, locId, TroveStandardHeaders.HrAppId, context.RequestAborted);
+                tenantId, userId, orgId, busId, locId, expectedAppId, context.RequestAborted);
 
             if (!valid)
             {
