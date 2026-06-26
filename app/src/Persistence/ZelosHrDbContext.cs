@@ -16,6 +16,8 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
     public DbSet<BranchEntity> Branches => Set<BranchEntity>();
     public DbSet<EmploymentTypeEntity> EmploymentTypes => Set<EmploymentTypeEntity>();
     public DbSet<IdCardTypeEntity> IdCardTypes => Set<IdCardTypeEntity>();
+    public DbSet<CompanyProfileEntity> CompanyProfiles => Set<CompanyProfileEntity>();
+    public DbSet<CompanyOfficeEntity> CompanyOffices => Set<CompanyOfficeEntity>();
     public DbSet<AuditLogEntity> AuditLogs => Set<AuditLogEntity>();
     public DbSet<LifecycleEventEntity> LifecycleEvents => Set<LifecycleEventEntity>();
     public DbSet<AttendanceRecordEntity> AttendanceRecords => Set<AttendanceRecordEntity>();
@@ -174,6 +176,40 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
             b.Property(x => x.Description).HasMaxLength(500);
             b.Property(x => x.IsSystemDefault).HasDefaultValue(false);
             b.Property(x => x.IsActive).HasDefaultValue(true);
+            b.HasIndex(x => new { x.TenantId, x.OrgId, x.Name }).IsUnique();
+        });
+
+        modelBuilder.Entity<CompanyProfileEntity>(b =>
+        {
+            b.ToTable("zhr_company_profile");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.TenantId).HasMaxLength(128).IsRequired();
+            b.Property(x => x.OrgId).HasMaxLength(128).IsRequired();
+            b.Property(x => x.LegalName).HasMaxLength(200).IsRequired();
+            b.Property(x => x.TradingName).HasMaxLength(200);
+            b.Property(x => x.Industry).HasMaxLength(150);
+            b.Property(x => x.CompanySize).HasMaxLength(50);
+            b.Property(x => x.BusinessRegistrationNumber).HasMaxLength(100);
+            b.Property(x => x.Tin).HasMaxLength(100);
+            b.Property(x => x.PrimaryWorkCountry).HasMaxLength(100);
+            b.Property(x => x.CompanyEmail).HasMaxLength(200);
+            b.Property(x => x.Website).HasMaxLength(300);
+            b.Property(x => x.LogoDocumentId).HasMaxLength(200);
+            b.Property(x => x.BannerDocumentId).HasMaxLength(200);
+            b.HasIndex(x => new { x.TenantId, x.OrgId }).IsUnique();
+        });
+
+        modelBuilder.Entity<CompanyOfficeEntity>(b =>
+        {
+            b.ToTable("zhr_company_offices");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.TenantId).HasMaxLength(128).IsRequired();
+            b.Property(x => x.OrgId).HasMaxLength(128).IsRequired();
+            b.Property(x => x.Name).HasMaxLength(150).IsRequired();
+            b.Property(x => x.Country).HasMaxLength(100);
+            b.Property(x => x.City).HasMaxLength(100);
+            b.Property(x => x.Phone).HasMaxLength(50);
+            b.Property(x => x.IsHeadOffice).HasDefaultValue(false);
             b.HasIndex(x => new { x.TenantId, x.OrgId, x.Name }).IsUnique();
         });
 

@@ -81,4 +81,5 @@ public static class PlatformQueryParams
     public const string CustomFieldId = "custom_field_id";
     public const string DepartmentId = "department_id";
     public const string BranchId = "branch_id";
+    public const string OfficeId = "office_id";
 }

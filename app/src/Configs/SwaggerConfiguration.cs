@@ -100,7 +100,7 @@ public static class SwaggerConfiguration
 
                     ### Documented modules
 
-                    **Employees** · **Users** · **Currencies** · **Countries** · **Custom Fields** · **File Management** · **Organisation** (org chart, departments, branches) · **Company Settings** (employment types, ID card types) · **Lifecycle Events** · **Audit Logs** · **Leave**
+                    **Employees** · **Users** · **Currencies** · **Countries** · **Custom Fields** · **File Management** · **Organisation** (org chart, departments, branches) · **Company Settings** (employment types, ID card types, company info & offices) · **Lifecycle Events** · **Audit Logs** · **Leave**
 
                     ---
 
@@ -122,6 +122,19 @@ public static class SwaggerConfiguration
                     3. **Add custom** — `POST /api/v1/id-card-types/add` (name · description; `type=custom`)
                     4. **Update** — `PUT /api/v1/id-card-types/update?id_card_type_id=` (system defaults: description + is_active only; custom: full edit including name)
                     5. **Delete** — `DELETE /api/v1/id-card-types/delete?id_card_type_id=` (custom only; system defaults return 400)
+
+                    ---
+
+                    ### Company Settings — company info & offices
+
+                    One profile per org; offices are embedded — not an independent list/get/add/delete resource.
+
+                    1. **Get** — `GET /api/v1/company/info/get` (profile with `offices[]` embedded; 404 if not created yet)
+                    2. **Create** — `POST /api/v1/company/info/add` (legal_name required; optional initial `offices[]`; 400 if a profile already exists)
+                    3. **Update** — `PUT /api/v1/company/info/update` (partial body; optional `offices[]` replaces the org's entire office list — diffed server-side: no `office_id` creates, a matching `office_id` replaces that office's fields in full, an office missing from the array is deleted)
+                    4. **Delete** — `DELETE /api/v1/company/info/delete` (also deletes every office for the org, in one transaction)
+                    5. **Update one office** — `PUT /api/v1/company/info/offices/update?office_id=` (partial body — for single-field edits without resending the whole array)
+                    6. **Logo / banner** — `logo_url` / `banner_url`: send a document id from `POST /file/post/multiple` on write; reads resolve to the same embedded-document shape as `identity.profile_url`
 
                     Conformance: `docs/MYSTOREGUARD_API_CONFORMANCE.md` · Navigation: `GET /api/v1/navigation`
                     """,
@@ -163,6 +176,7 @@ public static class SwaggerConfiguration
             options.OperationFilter<SwaggerLeaveOperationFilter>();
             options.OperationFilter<SwaggerEmploymentTypesOperationFilter>();
             options.OperationFilter<SwaggerIdCardTypesOperationFilter>();
+            options.OperationFilter<SwaggerCompanyInfoOperationFilter>();
             options.OperationFilter<SwaggerCountriesOperationFilter>();
             options.OperationFilter<SwaggerAuditLogsOperationFilter>();
             options.OperationFilter<SwaggerUsersOperationFilter>();
