@@ -100,7 +100,7 @@ public static class SwaggerConfiguration
 
                     ### Documented modules
 
-                    **Employees** · **Users** · **Currencies** · **Countries** · **Custom Fields** · **File Management** · **Organisation** (org chart, departments, branches) · **Company Settings** (employment types, ID card types, company info & offices) · **Lifecycle Events** · **Audit Logs** · **Leave**
+                    **Employees** · **Users** · **Currencies** · **Countries** · **Custom Fields** · **File Management** · **Organisation** (org chart, departments, branches) · **Company Settings** (employment types, ID card types, company info & offices, localization) · **Lifecycle Events** · **Audit Logs** · **Leave**
 
                     ---
 
@@ -134,6 +134,19 @@ public static class SwaggerConfiguration
                     3. **Update** — `PUT /api/v1/company/info/update` (same shape as create, plus `id` — full replacement, not a partial patch; optional `offices[]` replaces the org's entire office list — diffed server-side: no `office_id` creates, a matching `office_id` replaces that office's fields in full, an office missing from the array is deleted)
                     4. **Delete** — `DELETE /api/v1/company/info/delete` (also deletes every office for the org, in one transaction)
                     5. **Logo / banner** — `logo_url` / `banner_url`: same convention as `identity.profile_url` — write accepts a document id from `POST /file/post/multiple` or the read-shaped object (`doc_id`/`id`/`presigned_url`) for round-trip from GET; reads resolve to the same embedded-document shape
+
+                    ---
+
+                    ### Company Settings — localization
+
+                    One row per org — regional formats and the leave/financial year start date. Same CRUD shape as company info.
+
+                    1. **Get** — `GET /api/v1/company/localization/get` (404 if not created yet)
+                    2. **Create** — `POST /api/v1/company/localization/add` (all fields required: `time_zone` IANA id, `currency_id` from `GET /currencies/list`, `date_format`, `number_format`, `first_day_of_week`, `year_start_month`, `year_start_day`; 400 if settings already exist)
+                    3. **Update** — `PUT /api/v1/company/localization/update` (same shape as create, plus `id` — full replacement, not a partial patch)
+                    4. **Delete** — `DELETE /api/v1/company/localization/delete?id=` (`id` must match the settings' current id from `GET /get`)
+
+                    `currency_id` is validated against the tenant's currencies (`GET /currencies/list`); `time_zone` is validated as a real IANA time zone id. `date_format` / `number_format` / `first_day_of_week` / `year_start_month` are free text for now (no fixed allowed-values list yet).
 
                     Conformance: `docs/MYSTOREGUARD_API_CONFORMANCE.md` · Navigation: `GET /api/v1/navigation`
                     """,
@@ -176,6 +189,7 @@ public static class SwaggerConfiguration
             options.OperationFilter<SwaggerEmploymentTypesOperationFilter>();
             options.OperationFilter<SwaggerIdCardTypesOperationFilter>();
             options.OperationFilter<SwaggerCompanyInfoOperationFilter>();
+            options.OperationFilter<SwaggerCompanyLocalizationOperationFilter>();
             options.OperationFilter<SwaggerCountriesOperationFilter>();
             options.OperationFilter<SwaggerAuditLogsOperationFilter>();
             options.OperationFilter<SwaggerUsersOperationFilter>();

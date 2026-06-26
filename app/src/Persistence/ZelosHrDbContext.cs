@@ -18,6 +18,7 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
     public DbSet<IdCardTypeEntity> IdCardTypes => Set<IdCardTypeEntity>();
     public DbSet<CompanyProfileEntity> CompanyProfiles => Set<CompanyProfileEntity>();
     public DbSet<CompanyOfficeEntity> CompanyOffices => Set<CompanyOfficeEntity>();
+    public DbSet<CompanyLocalizationEntity> CompanyLocalizations => Set<CompanyLocalizationEntity>();
     public DbSet<AuditLogEntity> AuditLogs => Set<AuditLogEntity>();
     public DbSet<LifecycleEventEntity> LifecycleEvents => Set<LifecycleEventEntity>();
     public DbSet<AttendanceRecordEntity> AttendanceRecords => Set<AttendanceRecordEntity>();
@@ -211,6 +212,21 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
             b.Property(x => x.Phone).HasMaxLength(50);
             b.Property(x => x.IsHeadOffice).HasDefaultValue(false);
             b.HasIndex(x => new { x.TenantId, x.OrgId, x.Name }).IsUnique();
+        });
+
+        modelBuilder.Entity<CompanyLocalizationEntity>(b =>
+        {
+            b.ToTable("zhr_company_localization");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.TenantId).HasMaxLength(128).IsRequired();
+            b.Property(x => x.OrgId).HasMaxLength(128).IsRequired();
+            b.Property(x => x.TimeZone).HasMaxLength(100).IsRequired();
+            b.Property(x => x.CurrencyId).HasMaxLength(64).IsRequired();
+            b.Property(x => x.DateFormat).HasMaxLength(50).IsRequired();
+            b.Property(x => x.NumberFormat).HasMaxLength(50).IsRequired();
+            b.Property(x => x.FirstDayOfWeek).HasMaxLength(20).IsRequired();
+            b.Property(x => x.YearStartMonth).HasMaxLength(20).IsRequired();
+            b.HasIndex(x => new { x.TenantId, x.OrgId }).IsUnique();
         });
 
         modelBuilder.Entity<DepartmentEntity>(b =>
