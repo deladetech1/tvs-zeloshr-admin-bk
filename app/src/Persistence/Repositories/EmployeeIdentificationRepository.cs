@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Persistence.Entities;
 
 namespace ZelosHR.Api.Persistence.Repositories;
