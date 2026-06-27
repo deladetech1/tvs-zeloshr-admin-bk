@@ -5,6 +5,8 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 using ZelosHR.Api.Entities.AuditLogs;
 using ZelosHR.Api.Entities.Users;
 using ZelosHR.Api.Entities.Branches;
+using ZelosHR.Api.Entities.CompanyInfo;
+using ZelosHR.Api.Entities.CompanyLocalization;
 using ZelosHR.Api.Entities.Countries;
 using ZelosHR.Api.Entities.Currencies;
 using ZelosHR.Api.Entities.CustomFields;
@@ -160,6 +162,13 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             },
             nameof(CreateEmploymentTypeDto) => SwaggerExamples.CreateEmploymentTypeBody(),
             nameof(UpdateEmploymentTypeDto) => SwaggerExamples.UpdateEmploymentTypeCustom(),
+            nameof(CompanyInfoReadDto) => SwaggerExamples.CompanyInfoData(),
+            nameof(CompanyOfficeReadDto) => SwaggerExamples.CompanyOfficeItemData(),
+            nameof(CreateCompanyInfoDto) => SwaggerExamples.CreateCompanyInfoBody(),
+            nameof(UpdateCompanyInfoDto) => SwaggerExamples.UpdateCompanyInfoBody(),
+            nameof(CompanyLocalizationReadDto) => SwaggerExamples.CompanyLocalizationData(),
+            nameof(CreateCompanyLocalizationDto) => SwaggerExamples.CreateCompanyLocalizationBody(),
+            nameof(UpdateCompanyLocalizationDto) => SwaggerExamples.UpdateCompanyLocalizationBody(),
             nameof(EmploymentTypeListQuery) => new JsonObject
             {
                 ["search"] = "",
