@@ -56,7 +56,7 @@ App__AppUrl=https://api.zeloshr.com
 
 | Header | Value |
 |--------|--------|
-| `app-id` | `app-hr` (`App:AppId`) |
+| `app-id` | `app-zeloshr` (`App:AppId`) |
 | `authorization` | `Bearer <JWT>` with `tenant_id`, `user_id` |
 | `org-id`, `bus-id`, `loc-id` | Valid `core_platform` ids |
 
@@ -100,7 +100,7 @@ Optional GitHub Actions: set org/repo secret **`TROVESUITE_SECRET_KEY`** to that
 
 ```bash
 curl -s -o /dev/null -w "%{http_code}\n" https://<fqdn>/api/v1/navigation \
-  -H "app-id: app-hr" \
+  -H "app-id: app-zeloshr" \
   -H "authorization: Bearer <token>" \
   -H "org-id: <org>" -H "bus-id: <bus>" -H "loc-id: <loc>"
 ```

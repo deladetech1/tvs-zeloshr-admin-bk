@@ -13,7 +13,7 @@ public static class TroveStandardHeaders
     public const string OrgId = "org-id";
 
     /// <summary>HR application id expected by ZelosHR API.</summary>
-    public const string HrAppId = "app-hr";
+    public const string HrAppId = "app-zeloshr";
 
     /// <summary>Legacy dev headers (fallback only).</summary>
     public const string LegacyTenantId = "X-Tenant-Id";

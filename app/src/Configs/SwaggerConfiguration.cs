@@ -34,7 +34,7 @@ public static class SwaggerConfiguration
 
                     | Header | Example |
                     |--------|---------|
-                    | `app-id` | `app-hr` |
+                    | `app-id` | `app-zeloshr` |
                     | `authorization` | `Bearer <JWT>` |
                     | `bus-id` | `bus_…` |
                     | `loc-id` | `loc_…` |
