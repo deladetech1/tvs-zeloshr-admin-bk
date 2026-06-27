@@ -32,7 +32,7 @@ internal static class SwaggerExamples
     internal static readonly Guid SampleCertificationRowId = Guid.Parse("66666666-6666-6666-6666-666666666601");
     internal static readonly Guid SampleReportsToId = Guid.Parse("33333333-3333-3333-3333-333333333301");
     internal static readonly Guid SampleIdCardTypeId = Guid.Parse("753e2b9a-2322-4154-3456-98b8de5a4df5");
-    internal static readonly Guid SampleIdCardTypeId2 = Guid.Parse("3453e2b9a-2322-4154-3456-98b8de5a4df5");
+    internal static readonly Guid SampleIdCardTypeId2 = Guid.Parse("3453e2b9-2322-4154-3456-98b8de5a4df5");
     internal static readonly Guid SampleIdentificationRowId = Guid.Parse("88888888-8888-8888-8888-888888888801");
     internal static readonly Guid SampleIdentificationRowId2 = Guid.Parse("88888888-8888-8888-8888-888888888802");
     internal static readonly Guid SampleAuditLogId = Guid.Parse("a1111111-1111-1111-1111-111111111101");

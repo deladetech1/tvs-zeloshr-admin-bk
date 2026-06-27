@@ -140,7 +140,7 @@ Load ID types from **`GET /api/v1/id-card-types/list`** — each list item has `
     "id_expiry_date": "2030-01-10"
   },
   {
-    "id_type_id": "3453e2b9a-2322-4154-3456-98b8de5a4df5",
+    "id_type_id": "3453e2b9-2322-4154-3456-98b8de5a4df5",
     "id_number": "G12345678",
     "id_issue_date": "2023-05-01",
     "id_expiry_date": "2033-05-01"
