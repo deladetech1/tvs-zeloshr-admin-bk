@@ -1196,7 +1196,7 @@ internal static class SwaggerExamples
             : EmptyCustomFields(EmployeeCustomFieldSections.Identity),
     };
 
-    private static JsonArray IdentificationsArray(bool forRead = false, bool withId = false) => new(
+    internal static JsonArray IdentificationsArray(bool forRead = false, bool withId = false) => new(
         IdentificationEntry(forRead: forRead, withId: withId),
         IdentificationEntry(
             forRead: forRead,
