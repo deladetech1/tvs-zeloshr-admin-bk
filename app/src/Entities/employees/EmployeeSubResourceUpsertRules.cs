@@ -44,4 +44,26 @@ internal static class EmployeeSubResourceUpsertRules
 
         return errors.Count > 0 ? errors : null;
     }
+
+    internal static Dictionary<string, string>? ValidateDuplicateIds(
+        IReadOnlyList<EmployeeIdentificationUpsertDto> items, string fieldPrefix = "identity.identifications")
+    {
+        var errors = new Dictionary<string, string>(StringComparer.Ordinal);
+        var seenIds = new HashSet<Guid>();
+        var seenTypeIds = new HashSet<Guid>();
+        for (var i = 0; i < items.Count; i++)
+        {
+            if (HasPersistedId(items[i].Id))
+            {
+                var id = items[i].Id!.Value;
+                if (!seenIds.Add(id))
+                    errors[$"{fieldPrefix}[{i}].id"] = "Duplicate identification id in the same request.";
+            }
+
+            if (items[i].IdTypeId != Guid.Empty && !seenTypeIds.Add(items[i].IdTypeId))
+                errors[$"{fieldPrefix}[{i}].id_type_id"] = "Duplicate id_type_id in the same request.";
+        }
+
+        return errors.Count > 0 ? errors : null;
+    }
 }

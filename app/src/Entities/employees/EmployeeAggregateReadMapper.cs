@@ -58,6 +58,7 @@ internal static class EmployeeAggregateReadMapper
         CpUserDto? cp,
         string? workEmail,
         DocumentReadDto? profileUrl,
+        IReadOnlyList<EmployeeIdentificationDto>? identifications,
         Dictionary<string, string?>? customFields) =>
         new()
         {
@@ -65,16 +66,13 @@ internal static class EmployeeAggregateReadMapper
             DateOfBirth = entity.DateOfBirth ?? ParseCpDob(cp?.Dob),
             Gender = entity.Gender ?? cp?.Gender,
             Country = entity.Nationality,
-            IdType = entity.NationalityIdType,
-            IdIssueDate = entity.IdIssueDate,
-            IdExpiryDate = entity.IdExpiryDate,
-            IdNumber = entity.IdNumber,
             PersonalEmail = entity.PersonalEmail,
             WorkEmail = workEmail,
             Phone = entity.Phone ?? entity.PersonalPhone ?? cp?.Phone,
             LinkedInUrl = entity.LinkedInUrl,
             ResidentialAddress = entity.ResidentialAddress ?? cp?.Address,
             ProfileUrl = profileUrl,
+            Identifications = identifications is { Count: > 0 } ? identifications : null,
             CustomFields = CustomFieldsOrNull(customFields),
         };
 

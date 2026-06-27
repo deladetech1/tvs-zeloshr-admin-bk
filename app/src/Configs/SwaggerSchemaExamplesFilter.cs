@@ -66,6 +66,8 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
         {
             nameof(EmployeeEducationUpsertDto) => SwaggerExamples.EducationEntry(withId: true),
             nameof(EmployeeCertificationUpsertDto) => SwaggerExamples.CertificationEntry(withId: true),
+            nameof(EmployeeIdentificationUpsertDto) => SwaggerExamples.IdentificationEntry(),
+            nameof(EmployeeIdentificationDto) => SwaggerExamples.IdentificationEntry(forRead: true),
             nameof(EmployeeEducationDto) => SwaggerExamples.EducationEntry(withId: true),
             nameof(EmployeeCertificationDto) => SwaggerExamples.CertificationEntry(withId: true),
             nameof(CreateEmployeeAggregateRequest) => SwaggerExamples.CreateEmployeeFinalised(),
@@ -210,7 +212,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(CreateEmployeeAggregateRequest) => AppendDescription(schema.Description,
                 "One-shot employee create. See operation examples (full profile vs minimal). employment.employment_type_id from GET /employment-types/list."),
             nameof(UpdateEmployeeAggregateRequest) => AppendDescription(schema.Description,
-                "Partial update — only include sections to change. Write employment_type_id; read returns nested employment.employment_type. education[]/certifications[]: id to update, omit id to add. sync_* + full array replaces section."),
+                "Partial update — only include sections to change. Write employment_type_id; read returns nested employment.employment_type. identity.identifications[]: id to update, omit id to add. sync_identifications + full array replaces identifications. education[]/certifications[]: id to update, omit id to add. sync_* + full array replaces section."),
             nameof(EmployeeDirectorySummaryDto) => AppendDescription(schema.Description,
                 "Directory KPI cards: total headcount, active, on probation, on contract."),
             nameof(CreateCustomFieldDefinitionDto) => AppendDescription(schema.Description,
@@ -223,6 +225,10 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 "Include id from GET to update; omit to add. institution is required."),
             nameof(EmployeeCertificationUpsertDto) => AppendDescription(schema.Description,
                 "Include id from GET to update; omit to add. name is required."),
+            nameof(EmployeeIdentificationUpsertDto) => AppendDescription(schema.Description,
+                "id_type_id = id_card_type_id from GET /api/v1/id-card-types/list. Include row id from GET to update; omit to add."),
+            nameof(EmployeeIdentificationDto) => AppendDescription(schema.Description,
+                "Read shape on GET /employees/get data.identity.identifications[]. id_type.id matches id_card_type_id from id-card-types."),
             nameof(EmployeeEducationDto) => AppendDescription(schema.Description,
                 "Read shape on GET /employees/get data.education[] (employee scoped by query ?employee_id=)."),
             nameof(EmployeeCertificationDto) => AppendDescription(schema.Description,
@@ -460,8 +466,10 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             case "Country" when property.DeclaringType == typeof(EmployeeAggregateIdentityDto):
                 schema.Example = JsonValue.Create("Ghana");
                 return;
-            case nameof(EmployeeAggregateIdentityDto.IdNumber):
-                schema.Example = JsonValue.Create("GHA-123456789-0");
+            case nameof(EmployeeAggregateIdentityDto.Identifications):
+                schema.Example = SwaggerExamples.IdentificationsArray();
+                schema.Description = AppendDescription(schema.Description,
+                    "Government ID documents. id_type_id = id_card_type_id from GET /api/v1/id-card-types/list. On PUT include row id from GET to update; omit to add.");
                 return;
             case nameof(EmployeeAggregateIdentityDto.LinkedInUrl):
                 schema.Example = JsonValue.Create("https://linkedin.com/in/adalovelace");

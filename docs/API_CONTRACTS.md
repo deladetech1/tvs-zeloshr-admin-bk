@@ -97,9 +97,11 @@ Send **only** sections/fields you are changing. At least one top-level field or 
 | `certifications` | array | optional | Same as education |
 | `sync_education` | no | optional | Default `false`. `true` + full `education` = replace |
 | `sync_certifications` | no | optional | Default `false`. `true` + `certifications` = full replace |
+| `sync_identifications` | no | optional | Default `false`. `true` + `identity.identifications` = full replace |
 | `document_ids` | optional | optional | File-registry IDs (not profile photo) |
 | `delete_education_ids` | no | optional | UUID[] |
 | `delete_certification_ids` | no | optional | UUID[] |
+| `delete_identification_ids` | no | optional | UUID[] |
 | `delete_document_ids` | no | optional | UUID[] |
 
 **Do not** send `import` / `existing_user_id` on `POST /add` — use `POST /import` instead.
@@ -112,10 +114,7 @@ Send **only** sections/fields you are changing. At least one top-level field or 
 | `date_of_birth` | no | date | `YYYY-MM-DD` |
 | `gender` | no | string | e.g. `male`, `female` |
 | `country` | no | string | Country of citizenship, e.g. `Ghana` |
-| `id_type` | no | string | Suggested: `ghana_card`, `passport`, `voter_id`, `drivers_license`, `ssnit`, `other` |
-| `id_issue_date` | no | date | When the ID was issued (`YYYY-MM-DD`) |
-| `id_expiry_date` | no | date | When the ID expires (`YYYY-MM-DD`) |
-| `id_number` | no | string | The ID number matching `id_type` |
+| `identifications` | no | array | ID documents — see table below |
 | `personal_email` | no | string | Non-work email (HR record) |
 | `work_email` | no* | string | Work email; links/creates platform user (*required to finalise) |
 | `phone` | **yes** (create) | string | Contact number, e.g. `+233201234567` |
@@ -128,14 +127,37 @@ Send **only** sections/fields you are changing. At least one top-level field or 
 
 **Attachments on read:** `GET /employees/get` returns `documents[]` (not `document_ids`) — each item is `DocumentReadDto`: `doc_id`, `name`, `presigned_url`, `description`. **Write** still uses `document_ids` string array (same as MyStoreGuard products). Full flows, curl, and errors: [FILE_MANAGEMENT.md](FILE_MANAGEMENT.md).
 
-**Government ID (frontend):** `id_type` + `id_number` + optional `id_issue_date` / `id_expiry_date`. Example:
+**Government ID (frontend):** the only identity change vs the prior flat fields (`id_type`, `id_number`, `id_issue_date`, `id_expiry_date`) is `identity.identifications[]`.
+
+Load ID types from **`GET /api/v1/id-card-types/list`** — each list item has `id_card_type_id`. On employee create/update, send that same UUID as **`id_type_id`** on each identification row:
 
 ```json
-"id_type": "ghana_card",
-"id_number": "GHA-123456789-0",
-"id_issue_date": "2020-05-15",
-"id_expiry_date": "2030-05-14"
+"identifications": [
+  {
+    "id_type_id": "753e2b9a-2322-4154-3456-98b8de5a4df5",
+    "id_number": "GHA-123456789-0",
+    "id_issue_date": "2020-01-10",
+    "id_expiry_date": "2030-01-10"
+  },
+  {
+    "id_type_id": "3453e2b9a-2322-4154-3456-98b8de5a4df5",
+    "id_number": "G12345678",
+    "id_issue_date": "2023-05-01",
+    "id_expiry_date": "2033-05-01"
+  }
+]
 ```
+
+| `identifications[]` item | Required | Notes |
+|--------------------------|----------|-------|
+| `id` | no (write) / yes (read) | Row UUID from GET — include on PUT to update; omit on POST or to add |
+| `id_type_id` | **yes** | Same UUID as `id_card_type_id` from `GET /api/v1/id-card-types/list` |
+| `id_number` | **yes** | Document number |
+| `id_issue_date` | no | `YYYY-MM-DD` |
+| `id_expiry_date` | no | `YYYY-MM-DD` |
+| `id_type` | read only | `{ id, name }` — resolved from id-card-types (not sent on write) |
+
+On **update**: patch with `identity.identifications[]` (include row `id` to update). Use `sync_identifications: true` + full array to replace. Use `delete_identification_ids` to remove specific rows.
 
 ### `education[]` / `certifications[]` (same rules)
 

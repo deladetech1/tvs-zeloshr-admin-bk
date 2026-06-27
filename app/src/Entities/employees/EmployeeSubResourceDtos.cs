@@ -59,6 +59,33 @@ public sealed record EmployeeCertificationUpsertDto(
     string? CredentialUrl,
     Dictionary<string, string?>? CustomFields = null);
 
+/// <summary>ID document row on <c>GET /employees/get</c> (<c>identity.identifications[]</c>).</summary>
+public sealed record EmployeeIdentificationDto(
+    Guid Id,
+    Guid IdTypeId,
+    string IdNumber,
+    DateOnly? IdIssueDate,
+    DateOnly? IdExpiryDate,
+    EmployeeIdCardTypeRefDto? IdType = null);
+
+public sealed record EmployeeIdCardTypeRefDto(
+    string Id,
+    string Name);
+
+public sealed record EmployeeIdentificationWriteDto(
+    Guid IdTypeId,
+    string IdNumber,
+    DateOnly? IdIssueDate,
+    DateOnly? IdExpiryDate);
+
+/// <summary>Include <c>id</c> from GET to update; omit to add. Use <c>sync_identifications: true</c> on PUT for full-array replace.</summary>
+public sealed record EmployeeIdentificationUpsertDto(
+    Guid? Id,
+    Guid IdTypeId,
+    string IdNumber,
+    DateOnly? IdIssueDate,
+    DateOnly? IdExpiryDate);
+
 public sealed record EmployeeWizardDocumentDto(
     Guid Id,
     Guid EmployeeId,

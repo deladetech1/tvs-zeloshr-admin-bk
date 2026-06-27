@@ -36,9 +36,10 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
                     SwaggerExamples.CreateEmployeeFinalised(),
                     "Full profile",
                     """
-                    Creates employee and links cp_users when work_email is set. Attach files via document_ids (from POST /file/post/multiple).
-                    Read response returns documents[] (DocumentReadDto with presigned URLs).
-                    employment.employment_type_id — pick from GET /employment-types/list; read returns nested employment.employment_type.id.
+                    Same shape as the frontend employee form — only identity ID fields changed: flat id_type/id_number/dates replaced by identity.identifications[].
+                    id_type_id on each row = id_card_type_id from GET /api/v1/id-card-types/list.
+                    Creates employee and links cp_users when work_email is set. document_ids from POST /file/post/multiple.
+                    employment.employment_type_id from GET /employment-types/list.
                     """),
                 ["minimal"] = Example(
                     SwaggerExamples.CreateEmployeeDraft(),
@@ -110,8 +111,9 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
                     SwaggerExamples.UpdateEmployeeFull(),
                     "Full profile update",
                     """
-                    All sections optional — send only what you need. education/certifications use the same row shape as GET (with id on existing rows).
-                    document_ids appends; delete_document_ids removes registry IDs.
+                    All sections optional on real calls — send only what you need. This example shows the full wire shape.
+                    identity.identifications[], education[], certifications[]: include id from GET to update existing rows; omit id to add.
+                    sync_* flags default false (patch mode). document_ids appends; delete_document_ids removes registry IDs.
                     """),
             };
         }

@@ -31,6 +31,10 @@ internal static class SwaggerExamples
     internal static readonly Guid SampleEducationRowId = Guid.Parse("55555555-5555-5555-5555-555555555501");
     internal static readonly Guid SampleCertificationRowId = Guid.Parse("66666666-6666-6666-6666-666666666601");
     internal static readonly Guid SampleReportsToId = Guid.Parse("33333333-3333-3333-3333-333333333301");
+    internal static readonly Guid SampleIdCardTypeId = Guid.Parse("753e2b9a-2322-4154-3456-98b8de5a4df5");
+    internal static readonly Guid SampleIdCardTypeId2 = Guid.Parse("3453e2b9a-2322-4154-3456-98b8de5a4df5");
+    internal static readonly Guid SampleIdentificationRowId = Guid.Parse("88888888-8888-8888-8888-888888888801");
+    internal static readonly Guid SampleIdentificationRowId2 = Guid.Parse("88888888-8888-8888-8888-888888888802");
     internal static readonly Guid SampleAuditLogId = Guid.Parse("a1111111-1111-1111-1111-111111111101");
     internal static readonly Guid SampleLeaveRequestId = Guid.Parse("a2222222-2222-2222-2222-222222222201");
     internal static readonly Guid SampleLeaveBalanceId = Guid.Parse("a2222222-2222-2222-2222-222222222202");
@@ -941,9 +945,9 @@ internal static class SwaggerExamples
     {
         ["identity"] = IdentitySection(withCustomField: true, optionHints: true),
         ["employment"] = EmploymentSection(optionHints: true),
-        ["compensation"] = CompensationSection(withCustomField: true),
-        ["education"] = new JsonArray(EducationEntry()),
-        ["certifications"] = new JsonArray(CertificationEntry()),
+        ["compensation"] = CompensationSection(withCustomField: false),
+        ["education"] = new JsonArray(EducationEntry(includeCustomFields: false)),
+        ["certifications"] = new JsonArray(CertificationEntry(includeCustomFields: false)),
         ["document_ids"] = new JsonArray(SampleDocumentId1, SampleDocumentId2),
     };
 
@@ -961,22 +965,12 @@ internal static class SwaggerExamples
 
     internal static JsonObject UpdateEmployeeFull() => new()
     {
-        ["identity"] = IdentitySection(withCustomField: true),
+        ["identity"] = IdentitySection(withCustomField: true, forUpdate: true),
         ["employment"] = EmploymentSection(),
-        ["compensation"] = CompensationSection(withCustomField: true),
-        ["education"] = new JsonArray(
-            EducationEntry(withId: true),
-            EducationEntry(
-                withId: true,
-                id: Guid.Parse("55555555-5555-5555-5555-555555555502"),
-                degree: "MSc",
-                fieldOfStudy: "Software Engineering")),
+        ["compensation"] = CompensationSection(withCustomField: false),
+        ["education"] = new JsonArray(EducationEntry(withId: true, includeCustomFields: false)),
         ["certifications"] = new JsonArray(
-            CertificationEntry(withId: true),
-            CertificationEntry(
-                withId: true,
-                id: Guid.Parse("66666666-6666-6666-6666-666666666602"),
-                name: "Masters in react fundamentals")),
+            CertificationEntry(withId: true, name: "Masters in React", includeCustomFields: false)),
         ["document_ids"] = new JsonArray(SampleDocumentId1, SampleDocumentId2),
     };
 
@@ -1178,16 +1172,17 @@ internal static class SwaggerExamples
         Unknown keys are ignored. Use an empty object when there are no values.
         """;
 
-    private static JsonObject IdentitySection(bool withCustomField = false, bool optionHints = false, bool forRead = false) => new()
+    private static JsonObject IdentitySection(
+        bool withCustomField = false,
+        bool optionHints = false,
+        bool forRead = false,
+        bool forUpdate = false) => new()
     {
         ["full_name"] = "Ada Lovelace",
         ["date_of_birth"] = "1990-05-15",
         ["gender"] = optionHints ? SwaggerExampleHints.Gender : "female",
         ["country"] = "Ghana",
-        ["id_type"] = optionHints ? SwaggerExampleHints.IdType : "ghana_card",
-        ["id_issue_date"] = "2020-01-10",
-        ["id_expiry_date"] = "2030-01-10",
-        ["id_number"] = "GHA-123456789-0",
+        ["identifications"] = IdentificationsArray(forRead: forRead, withId: forUpdate),
         ["personal_email"] = "ada.personal@example.com",
         ["work_email"] = "ada.lovelace@company.com",
         ["phone"] = "+233201234567",
@@ -1200,6 +1195,53 @@ internal static class SwaggerExamples
             ? CustomFieldsForSection(EmployeeCustomFieldSections.Identity)
             : EmptyCustomFields(EmployeeCustomFieldSections.Identity),
     };
+
+    private static JsonArray IdentificationsArray(bool forRead = false, bool withId = false) => new(
+        IdentificationEntry(forRead: forRead, withId: withId),
+        IdentificationEntry(
+            forRead: forRead,
+            withId: withId,
+            id: SampleIdentificationRowId2,
+            idTypeId: SampleIdCardTypeId2,
+            idNumber: "G12345678",
+            idIssueDate: "2023-05-01",
+            idExpiryDate: "2033-05-01"));
+
+    internal static JsonObject IdentificationEntry(
+        bool forRead = false,
+        bool withId = false,
+        Guid? id = null,
+        Guid? idTypeId = null,
+        string? idNumber = null,
+        string? idIssueDate = null,
+        string? idExpiryDate = null)
+    {
+        var resolvedId = id ?? SampleIdentificationRowId;
+        var resolvedTypeId = idTypeId ?? SampleIdCardTypeId;
+        var obj = new JsonObject
+        {
+            ["id_type_id"] = resolvedTypeId.ToString(),
+            ["id_number"] = idNumber ?? "GHA-123456789-0",
+            ["id_issue_date"] = idIssueDate ?? "2020-01-10",
+            ["id_expiry_date"] = idExpiryDate ?? "2030-01-10",
+        };
+
+        if (forRead)
+        {
+            obj["id"] = resolvedId.ToString();
+            obj["id_type"] = new JsonObject
+            {
+                ["id"] = resolvedTypeId.ToString(),
+                ["name"] = "National ID",
+            };
+        }
+        else if (withId)
+        {
+            obj["id"] = resolvedId.ToString();
+        }
+
+        return obj;
+    }
 
     private static JsonObject EmploymentSection(bool withNames = false, bool optionHints = false)
     {
@@ -1275,7 +1317,8 @@ internal static class SwaggerExamples
         bool withId = false,
         Guid? id = null,
         string? degree = null,
-        string? fieldOfStudy = null)
+        string? fieldOfStudy = null,
+        bool includeCustomFields = true)
     {
         var obj = new JsonObject
         {
@@ -1285,8 +1328,10 @@ internal static class SwaggerExamples
             ["start_date"] = "2008-09-01",
             ["end_date"] = "2012-06-30",
             ["is_current"] = false,
-            ["custom_fields"] = EmptyCustomFields(EmployeeCustomFieldSections.Education),
         };
+
+        if (includeCustomFields)
+            obj["custom_fields"] = EmptyCustomFields(EmployeeCustomFieldSections.Education);
 
         if (withId)
             obj["id"] = (id ?? SampleEducationRowId).ToString();
@@ -1302,16 +1347,19 @@ internal static class SwaggerExamples
         string? issueDate = null,
         string? expiryDate = null,
         string? credentialUrl = null,
-        bool omitExpiryDate = true)
+        bool omitExpiryDate = true,
+        bool includeCustomFields = true)
     {
         var obj = new JsonObject
         {
-            ["name"] = name ?? "Masters in react",
+            ["name"] = name ?? "Masters in React",
             ["issuing_body"] = issuingBody ?? "Udemy",
             ["issue_date"] = issueDate ?? "2026-05-31",
             ["credential_url"] = credentialUrl ?? "https://udemy.com/certificate/3424-3424",
-            ["custom_fields"] = EmptyCustomFields(EmployeeCustomFieldSections.Certification),
         };
+
+        if (includeCustomFields)
+            obj["custom_fields"] = EmptyCustomFields(EmployeeCustomFieldSections.Certification);
 
         if (expiryDate is not null)
             obj["expiry_date"] = expiryDate;
