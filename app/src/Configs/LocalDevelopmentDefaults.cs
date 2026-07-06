@@ -21,7 +21,7 @@ public static class LocalDevelopmentDefaults
     public const string BusinessAppId =
         "ba_5d929457b0ea7e6d55c5da25c8cfb38aeef0573658121bf5399f6f1e64d";
 
-    /// <summary><c>cp_business_app_locations.id</c> for demo org + bus + loc + app-hr.</summary>
+    /// <summary><c>cp_business_app_locations.id</c> for demo org + bus + loc + app-zeloshr.</summary>
     public const string BusAppLocationId =
         "bal_c79fd9a5c53a8eaa82805e63a84da112387743c5dcdff7f7b254c02302c";
 

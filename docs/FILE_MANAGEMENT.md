@@ -123,7 +123,7 @@ Values `undefined` and `null` (as strings) are treated as omitted.
 
 ```bash
 curl -X POST "${BASE}/api/v1/file/post/multiple?descriptions=Employment%20contract" \
-  -H "app-id: app-hr" \
+  -H "app-id: app-zeloshr" \
   -H "authorization: Bearer ${TOKEN}" \
   -H "org-id: ${ORG_ID}" \
   -H "bus-id: ${BUS_ID}" \
@@ -148,7 +148,7 @@ if (descriptions.length) {
 const res = await fetch(url, {
   method: "POST",
   headers: {
-    "app-id": "app-hr",
+    "app-id": "app-zeloshr",
     authorization: `Bearer ${token}`,
     "org-id": orgId,
     "bus-id": busId,

@@ -113,7 +113,7 @@ FROM core_platform.cp_user_locations ul
 JOIN core_platform.cp_business_app_locations bal
   ON bal.id = ul.bus_app_loc_id AND bal.tenant_id = ul.tenant_id
 JOIN core_platform.cp_users u ON u.id = ul.user_id AND u.tenant_id = ul.tenant_id
-WHERE ul.app_id = 'app-hr'
+WHERE ul.app_id = 'app-zeloshr'
   AND ul.delete_status = 'NOT_DELETED' AND ul.is_active = true
   AND bal.delete_status = 'NOT_DELETED' AND bal.is_active = true
 ORDER BY u.email;
@@ -129,7 +129,7 @@ if proc.returncode != 0:
 
 rows = [line for line in proc.stdout.splitlines() if line.strip()]
 if not rows:
-    print("No app-hr user locations found in dev Postgres.", file=sys.stderr)
+    print("No app-zeloshr user locations found in dev Postgres.", file=sys.stderr)
     sys.exit(1)
 
 def match(row):
@@ -170,7 +170,7 @@ PY
 BASE="${ZELOSHR_API_BASE:-https://zeloshr.app.backend.dev.trovesuite.com}"
 CODE="$(
   /usr/bin/curl -sS -o /dev/null -w "%{http_code}" \
-    -H "app-id: ${TROVE_APP_ID:-app-hr}" \
+    -H "app-id: ${TROVE_APP_ID:-app-zeloshr}" \
     -H "authorization: Bearer ${NEW_TOKEN}" \
     -H "org-id: ${ORG_ID}" \
     -H "bus-id: ${BUS_ID}" \

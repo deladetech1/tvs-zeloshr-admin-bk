@@ -73,7 +73,7 @@ PY
 probe() {
   local token="$1"
   curl -sS -o /dev/null -w "%{http_code}" \
-    -H "app-id: ${TROVE_APP_ID:-app-hr}" \
+    -H "app-id: ${TROVE_APP_ID:-app-zeloshr}" \
     -H "authorization: Bearer ${token}" \
     -H "bus-id: ${TROVE_BUS_ID}" \
     -H "loc-id: ${TROVE_LOC_ID}" \

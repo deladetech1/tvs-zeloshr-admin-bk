@@ -53,7 +53,7 @@ class LeaveLiveReporter:
             "ZELOSHR_API_BASE", "https://zeloshr.app.backend.dev.trovesuite.com"
         ).rstrip("/")
         self.token = os.environ.get("TROVE_BEARER_TOKEN", "")
-        self.app_id = os.environ.get("TROVE_APP_ID", "app-hr")
+        self.app_id = os.environ.get("TROVE_APP_ID", "app-zeloshr")
         self.org_id = os.environ.get("TROVE_ORG_ID", "")
         self.bus_id = os.environ.get("TROVE_BUS_ID", "")
         self.loc_id = os.environ.get("TROVE_LOC_ID", "")

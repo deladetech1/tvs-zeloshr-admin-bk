@@ -12,8 +12,9 @@ public static class TroveStandardHeaders
     public const string LocId = "loc-id";
     public const string OrgId = "org-id";
 
-    /// <summary>HR application id expected by ZelosHR API.</summary>
-    public const string HrAppId = "app-hr";
+    /// <summary>HR application id expected by ZelosHR API. Must match the platform
+    /// app id registered in core_platform (cp_apps) and App__AppId — see AppSettings.AppId.</summary>
+    public const string HrAppId = "app-zeloshr";
 
     /// <summary>Legacy dev headers (fallback only).</summary>
     public const string LegacyTenantId = "X-Tenant-Id";

@@ -38,7 +38,7 @@ LAST_CODE=""
 
 curl_base=(
   -sS
-  -H "app-id: ${TROVE_APP_ID:-app-hr}"
+  -H "app-id: ${TROVE_APP_ID:-app-zeloshr}"
   -H "authorization: Bearer ${TOKEN}"
   -H "bus-id: ${TROVE_BUS_ID}"
   -H "loc-id: ${TROVE_LOC_ID}"

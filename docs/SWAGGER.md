@@ -17,7 +17,7 @@ Every `/api/v1/*` request must include these headers — **exact names** (lowerc
 
 | Header | Value |
 |--------|--------|
-| `app-id` | `app-hr` |
+| `app-id` | `app-zeloshr` |
 | `authorization` | `Bearer <JWT>` |
 | `bus-id` | Business id from platform context |
 | `loc-id` | Location id from platform context |
@@ -247,7 +247,7 @@ Example `curl` (replace ids and token from your platform session):
 
 ```bash
 curl -s "http://localhost:8000/api/v1/employees/directory/summary" \
-  -H 'app-id: app-hr' \
+  -H 'app-id: app-zeloshr' \
   -H 'authorization: Bearer <JWT>' \
   -H 'bus-id: bus_5d929457b0ea7e6d55c5da25c8cfb38aeef0573658121bf5399f6f1e64d' \
   -H 'loc-id: loc_c79fd9a5c53a8eaa82805e63a84da112387743c5dcdff7f7b254c02302c' \
@@ -262,7 +262,7 @@ In Development, Swagger prefills Trove-style ids from `LocalDevelopment` (same s
 
 | Header | Value |
 |--------|--------|
-| `app-id` | `app-hr` |
+| `app-id` | `app-zeloshr` |
 | `org-id` | `org_bcf5a0951f5ed22448dc5262e641e428caa3638d38b94cfa3b79c13d38a` |
 | `bus-id` | `bus_5d929457b0ea7e6d55c5da25c8cfb38aeef0573658121bf5399f6f1e64d` |
 | `loc-id` | `loc_c79fd9a5c53a8eaa82805e63a84da112387743c5dcdff7f7b254c02302c` |

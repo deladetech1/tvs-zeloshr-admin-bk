@@ -64,7 +64,7 @@ fi
 
 code="$(
   curl -sS -o /dev/null -w "%{http_code}" \
-    -H "app-id: ${TROVE_APP_ID:-app-hr}" \
+    -H "app-id: ${TROVE_APP_ID:-app-zeloshr}" \
     -H "authorization: Bearer ${TOKEN}" \
     -H "org-id: ${ORG_ID}" \
     -H "bus-id: ${BUS_ID}" \
@@ -84,7 +84,7 @@ export TROVE_BUS_ID="${BUS_ID}"
 export TROVE_LOC_ID="${LOC_ID}"
 export TROVE_TENANT_ID="${TENANT_ID}"
 export TROVE_USER_ID="${USER_ID}"
-export TROVE_APP_ID="${TROVE_APP_ID:-app-hr}"
+export TROVE_APP_ID="${TROVE_APP_ID:-app-zeloshr}"
 export ZELOSHR_API_BASE="${BASE}"
 
 echo "E2E session ready (user=${USER_ID}, tenant=${TENANT_ID}, org=${ORG_ID})"

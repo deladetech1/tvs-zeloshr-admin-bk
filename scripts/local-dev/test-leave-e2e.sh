@@ -89,7 +89,7 @@ PY
 
 cat >"${HURL_ENV}" <<EOF
 base=${BASE}
-app_id=${TROVE_APP_ID:-app-hr}
+app_id=${TROVE_APP_ID:-app-zeloshr}
 token=${TROVE_BEARER_TOKEN}
 bus_id=${TROVE_BUS_ID}
 loc_id=${TROVE_LOC_ID}

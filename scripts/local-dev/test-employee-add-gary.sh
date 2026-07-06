@@ -35,7 +35,7 @@ print(jwt.encode(claims, os.environ["TROVESUITE_JWT_SECRET"], algorithm="HS256")
 PY
 )"
   PROBE=$(curl -sS -o /dev/null -w "%{http_code}" \
-    -H "app-id: ${TROVE_APP_ID:-app-hr}" \
+    -H "app-id: ${TROVE_APP_ID:-app-zeloshr}" \
     -H "authorization: Bearer ${MINTED}" \
     -H "bus-id: ${TROVE_BUS_ID}" -H "loc-id: ${TROVE_LOC_ID}" -H "org-id: ${TROVE_ORG_ID}" \
     "${BASE}/api/v1/health")
@@ -63,7 +63,7 @@ curl -sS -w "\nHTTP:%{http_code}\n" \
   -X POST "${BASE}/api/v1/employees/add" \
   -H "accept: application/json" \
   -H "content-type: application/json" \
-  -H "app-id: ${TROVE_APP_ID:-app-hr}" \
+  -H "app-id: ${TROVE_APP_ID:-app-zeloshr}" \
   -H "authorization: Bearer ${TOKEN}" \
   -H "bus-id: ${TROVE_BUS_ID}" \
   -H "loc-id: ${TROVE_LOC_ID}" \

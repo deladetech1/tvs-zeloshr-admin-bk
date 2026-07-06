@@ -242,7 +242,7 @@ jobs:
           ZELOSHR_E2E_LOC_ID: ${{ secrets.ZELOSHR_E2E_LOC_ID }}
           ZELOSHR_E2E_EMAIL: ${{ secrets.ZELOSHR_E2E_EMAIL }}
           ZELOSHR_E2E_FULLNAME: ${{ secrets.ZELOSHR_E2E_FULLNAME }}
-          ZELOSHR_API_BASE: https://zeloshr.app.backend.dev.trovesuite.com
+          ZELOSHR_API_BASE: https://zhr-admin.dev.backend.trovesuite.com
         run: |
           chmod +x scripts/ci/leave-e2e.sh scripts/ci/mint-e2e-session.sh scripts/local-dev/test-leave-e2e.sh
           ./scripts/ci/leave-e2e.sh

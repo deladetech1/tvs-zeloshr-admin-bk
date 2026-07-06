@@ -33,7 +33,7 @@ curl_base=(
   -sS
   -H "accept: application/json"
   -H "content-type: application/json"
-  -H "app-id: ${TROVE_APP_ID:-app-hr}"
+  -H "app-id: ${TROVE_APP_ID:-app-zeloshr}"
   -H "authorization: Bearer ${TOKEN}"
   -H "bus-id: ${TROVE_BUS_ID}"
   -H "loc-id: ${TROVE_LOC_ID}"

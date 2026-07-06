@@ -21,7 +21,7 @@ ensure_live_session_auth
 BASE="${ZELOSHR_API_BASE:-https://zeloshr.app.backend.dev.trovesuite.com}"
 HDR=(
   -H "accept: application/json"
-  -H "app-id: ${TROVE_APP_ID:-app-hr}"
+  -H "app-id: ${TROVE_APP_ID:-app-zeloshr}"
   -H "authorization: Bearer ${TROVE_BEARER_TOKEN}"
   -H "bus-id: ${TROVE_BUS_ID}"
   -H "loc-id: ${TROVE_LOC_ID}"

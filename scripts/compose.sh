@@ -102,7 +102,7 @@ case "${cmd}" in
       exit 1
     fi
     curl_headers=(
-      -H "app-id: ${TROVE_APP_ID:-app-hr}"
+      -H "app-id: ${TROVE_APP_ID:-app-zeloshr}"
       -H "authorization: Bearer ${TOKEN}"
       -H "bus-id: ${TROVE_BUS_ID:-bus_5d929457b0ea7e6d55c5da25c8cfb38aeef0573658121bf5399f6f1e64d}"
       -H "loc-id: ${TROVE_LOC_ID:-loc_c79fd9a5c53a8eaa82805e63a84da112387743c5dcdff7f7b254c02302c}"

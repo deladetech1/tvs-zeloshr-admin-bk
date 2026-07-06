@@ -34,7 +34,7 @@ public class AppSettings
         "http://localhost:8080",
     ];
     public string AppUrl { get; set; } = "https://zeloshr.com";
-    public string AppId { get; set; } = "app-hr";
+    public string AppId { get; set; } = "app-zeloshr";
 
     /// <summary>
     /// When false (default), schema is owned by tvs-sqlscript; API does not run embedded SQL on startup.

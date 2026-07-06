@@ -27,7 +27,7 @@ TOKEN="${TROVE_BEARER_TOKEN:-}"
 ORG="${TROVE_ORG_ID:-}"
 BUS="${TROVE_BUS_ID:-}"
 LOC="${TROVE_LOC_ID:-}"
-APP_ID="${TROVE_APP_ID:-app-hr}"
+APP_ID="${TROVE_APP_ID:-app-zeloshr}"
 
 missing=()
 [[ -z "$TOKEN" ]] && missing+=("TROVE_BEARER_TOKEN (live-session.env)")
