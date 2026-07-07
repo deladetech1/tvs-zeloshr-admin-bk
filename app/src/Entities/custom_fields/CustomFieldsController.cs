@@ -105,7 +105,7 @@ public class CustomFieldsController : ControllerBase
     }
 
     [HttpPut("reorder")]
-    [RequiresZelosHrPermission(ZelosHrPermissions.CustomFieldsAdmin)]
+    [RequiresZelosHrPermission(ZelosHrPermissions.CustomFieldsUpdate)]
     public async Task<ActionResult<Respons<object>>> Reorder(
         [FromBody] ReorderCustomFieldDefinitionDto body,
         CancellationToken ct)

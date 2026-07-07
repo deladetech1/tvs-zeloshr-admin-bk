@@ -322,7 +322,7 @@ public class LeaveController : ControllerBase
 
     /// <summary>Assign leave entitlement to an employee (admin).</summary>
     [HttpPost("balances/add")]
-    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveAdmin)]
+    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveCreate)]
     [ProducesResponseType(typeof(Respons<LeaveBalanceListItemDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Respons<LeaveBalanceListItemDto>), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<Respons<LeaveBalanceListItemDto>>> CreateBalance(
@@ -336,7 +336,7 @@ public class LeaveController : ControllerBase
 
     /// <summary>Adjust entitled or used days on a balance row (admin).</summary>
     [HttpPut("balances/update")]
-    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveAdmin)]
+    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveUpdate)]
     [ProducesResponseType(typeof(Respons<LeaveBalanceListItemDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Respons<LeaveBalanceListItemDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<LeaveBalanceListItemDto>>> UpdateBalance(
@@ -386,7 +386,7 @@ public class LeaveController : ControllerBase
 
     /// <summary>Create a leave type (admin).</summary>
     [HttpPost("types/add")]
-    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveAdmin)]
+    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveCreate)]
     [ProducesResponseType(typeof(Respons<LeaveTypeListItemDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Respons<LeaveTypeListItemDto>), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<Respons<LeaveTypeListItemDto>>> CreateType(
@@ -400,7 +400,7 @@ public class LeaveController : ControllerBase
 
     /// <summary>Update a leave type (admin) — same body as POST /types/add; pass leave_type_id query param.</summary>
     [HttpPut("types/update")]
-    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveAdmin)]
+    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveUpdate)]
     [ProducesResponseType(typeof(Respons<LeaveTypeListItemDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Respons<LeaveTypeListItemDto>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(Respons<LeaveTypeListItemDto>), StatusCodes.Status404NotFound)]
@@ -420,7 +420,7 @@ public class LeaveController : ControllerBase
 
     /// <summary>Archive a leave type (sets is_active=false). Use when the type must stay for history.</summary>
     [HttpPost("types/archive")]
-    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveAdmin)]
+    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveDelete)]
     [ProducesResponseType(typeof(Respons<LeaveTypeListItemDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Respons<LeaveTypeListItemDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<LeaveTypeListItemDto>>> ArchiveType(
@@ -438,7 +438,7 @@ public class LeaveController : ControllerBase
 
     /// <summary>Delete a leave type permanently (only when not referenced). Use archive when in use.</summary>
     [HttpDelete("types/delete")]
-    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveAdmin)]
+    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveDelete)]
     [ProducesResponseType(typeof(Respons<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Respons<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(Respons<object>), StatusCodes.Status409Conflict)]
@@ -492,7 +492,7 @@ public class LeaveController : ControllerBase
     /// <summary>Create a public holiday (admin).</summary>
     /// <remarks>Body matches frontend <c>AddPublicHolidayRequest</c>: holiday_name · date · is_recurring_annually · country.</remarks>
     [HttpPost("holidays/add")]
-    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveAdmin)]
+    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveCreate)]
     [ProducesResponseType(typeof(Respons<PublicHolidayListItemDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Respons<PublicHolidayListItemDto>>> CreateHoliday(
         [FromBody] CreatePublicHolidayDto body,
@@ -506,7 +506,7 @@ public class LeaveController : ControllerBase
     /// <summary>Update a public holiday (admin).</summary>
     /// <remarks>Same body as create; <c>holiday_id</c> on query string.</remarks>
     [HttpPut("holidays/update")]
-    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveAdmin)]
+    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveUpdate)]
     [ProducesResponseType(typeof(Respons<PublicHolidayListItemDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Respons<PublicHolidayListItemDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<PublicHolidayListItemDto>>> UpdateHoliday(
@@ -525,7 +525,7 @@ public class LeaveController : ControllerBase
 
     /// <summary>Remove a public holiday (admin).</summary>
     [HttpDelete("holidays/delete")]
-    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveAdmin)]
+    [RequiresZelosHrPermission(ZelosHrPermissions.LeaveDelete)]
     [ProducesResponseType(typeof(Respons<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Respons<object>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<object>>> DeleteHoliday(
