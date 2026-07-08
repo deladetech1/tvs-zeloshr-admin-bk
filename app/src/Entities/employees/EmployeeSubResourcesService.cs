@@ -255,11 +255,11 @@ public sealed class EmployeeSubResourcesService
         existing.IdNumber = dto.IdNumber.Trim();
         existing.IdIssueDate = dto.IdIssueDate;
         existing.IdExpiryDate = dto.IdExpiryDate;
-        existing.IdCardType = idCardType;
 
         try
         {
             await _identifications.UpdateAsync(existing, ct);
+            existing.IdCardType = idCardType;
             return Respons<EmployeeIdentificationDto>.Ok(ToIdentificationDto(existing));
         }
         catch (Exception ex) when (PostgresSchemaErrors.ReferencesIdentificationsStorage(ex))

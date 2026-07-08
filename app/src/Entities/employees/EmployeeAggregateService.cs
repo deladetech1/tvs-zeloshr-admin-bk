@@ -348,7 +348,7 @@ public sealed class EmployeeAggregateService
         {
             var wizard = EmployeeAggregateMapper.ToWizardRequest(request);
 
-            if (request.Identity is not null)
+            if (request.Identity is not null && HasIdentityPersonalContactUpdate(request.Identity))
             {
                 var personal = await _registration.UpdatePersonalContactAsync(employeeId, wizard, ct);
                 if (!personal.Success)
@@ -962,6 +962,19 @@ public sealed class EmployeeAggregateService
         || request.Certifications?.Any(c => HasCustomFields(c.CustomFields)) == true;
 
     private static bool HasCustomFields(Dictionary<string, string?>? fields) => fields is { Count: > 0 };
+
+    private static bool HasIdentityPersonalContactUpdate(EmployeeAggregateIdentityDto identity) =>
+        !string.IsNullOrWhiteSpace(identity.FullName)
+        || identity.DateOfBirth is not null
+        || !string.IsNullOrWhiteSpace(identity.Gender)
+        || !string.IsNullOrWhiteSpace(identity.Country)
+        || !string.IsNullOrWhiteSpace(identity.PersonalEmail)
+        || !string.IsNullOrWhiteSpace(identity.WorkEmail)
+        || !string.IsNullOrWhiteSpace(identity.Phone)
+        || !string.IsNullOrWhiteSpace(identity.LinkedInUrl)
+        || !string.IsNullOrWhiteSpace(identity.ResidentialAddress)
+        || identity.ProfileUrl is not null
+        || HasCustomFields(identity.CustomFields);
 
     private async Task ApplySectionCustomFieldsAsync(
         EmployeeEntity entity,
