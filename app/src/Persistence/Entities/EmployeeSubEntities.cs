@@ -26,3 +26,16 @@ public sealed class EmployeeCertificationEntity
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 }
+
+public sealed class EmployeeIdentificationEntity
+{
+    public Guid Id { get; set; }
+    public Guid EmployeeId { get; set; }
+    public Guid IdCardTypeId { get; set; }
+    public IdCardTypeEntity? IdCardType { get; set; }
+    public string IdNumber { get; set; } = default!;
+    public DateOnly? IdIssueDate { get; set; }
+    public DateOnly? IdExpiryDate { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}

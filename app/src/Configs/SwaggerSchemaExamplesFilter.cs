@@ -460,9 +460,6 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             case "Country" when property.DeclaringType == typeof(EmployeeAggregateIdentityDto):
                 schema.Example = JsonValue.Create("Ghana");
                 return;
-            case nameof(EmployeeAggregateIdentityDto.IdNumber):
-                schema.Example = JsonValue.Create("GHA-123456789-0");
-                return;
             case nameof(EmployeeAggregateIdentityDto.LinkedInUrl):
                 schema.Example = JsonValue.Create("https://linkedin.com/in/adalovelace");
                 return;

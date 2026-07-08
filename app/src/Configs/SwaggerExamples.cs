@@ -30,6 +30,9 @@ internal static class SwaggerExamples
     internal static readonly Guid SampleEmployeeId = Guid.Parse("3804deee-d6ee-4b05-9efc-6e8ccf3b5ae3");
     internal static readonly Guid SampleEducationRowId = Guid.Parse("55555555-5555-5555-5555-555555555501");
     internal static readonly Guid SampleCertificationRowId = Guid.Parse("66666666-6666-6666-6666-666666666601");
+    internal static readonly Guid SampleIdentificationRowId = Guid.Parse("77777777-7777-7777-7777-777777777701");
+    internal static readonly Guid SampleIdCardTypeId1 = Guid.Parse("753e2b9a-2322-4154-3456-98b8de5a4df5");
+    internal static readonly Guid SampleIdCardTypeId2 = Guid.Parse("3453e2b9a-2322-4154-3456-98b8de5a4df5");
     internal static readonly Guid SampleReportsToId = Guid.Parse("33333333-3333-3333-3333-333333333301");
     internal static readonly Guid SampleAuditLogId = Guid.Parse("a1111111-1111-1111-1111-111111111101");
     internal static readonly Guid SampleLeaveRequestId = Guid.Parse("a2222222-2222-2222-2222-222222222201");
@@ -1077,6 +1080,26 @@ internal static class SwaggerExamples
             Guid.Parse("66666666-6666-6666-6666-666666666602").ToString()),
     };
 
+    /// <summary>sync_identifications true — keep only rows in identity.identifications; delete all others.</summary>
+    internal static JsonObject UpdateEmployeeSyncIdentificationsReplace() => new()
+    {
+        ["sync_identifications"] = true,
+        ["identity"] = new JsonObject
+        {
+            ["identifications"] = new JsonArray(
+                IdentificationEntry(withId: true)),
+        },
+    };
+
+    /// <summary>Add new identification rows under identity (omit id).</summary>
+    internal static JsonObject UpdateEmployeeAddIdentifications() => new()
+    {
+        ["identity"] = new JsonObject
+        {
+            ["identifications"] = new JsonArray(IdentificationEntry()),
+        },
+    };
+
     /// <inheritdoc cref="UpdateEmployeePartialIdentity"/>
     internal static JsonObject UpdateEmployeePartial() => UpdateEmployeePartialIdentity();
 
@@ -1184,10 +1207,6 @@ internal static class SwaggerExamples
         ["date_of_birth"] = "1990-05-15",
         ["gender"] = optionHints ? SwaggerExampleHints.Gender : "female",
         ["country"] = "Ghana",
-        ["id_type"] = optionHints ? SwaggerExampleHints.IdType : "ghana_card",
-        ["id_issue_date"] = "2020-01-10",
-        ["id_expiry_date"] = "2030-01-10",
-        ["id_number"] = "GHA-123456789-0",
         ["personal_email"] = "ada.personal@example.com",
         ["work_email"] = "ada.lovelace@company.com",
         ["phone"] = "+233201234567",
@@ -1196,10 +1215,69 @@ internal static class SwaggerExamples
         ["profile_url"] = forRead
             ? EmployeeDocumentItem(SampleDocumentId1, "Employee profile photo")
             : SampleDocumentId1,
+        ["identifications"] = forRead
+            ? IdentificationsReadArray()
+            : IdentificationsWriteArray(),
         ["custom_fields"] = withCustomField
             ? CustomFieldsForSection(EmployeeCustomFieldSections.Identity)
             : EmptyCustomFields(EmployeeCustomFieldSections.Identity),
     };
+
+    private static JsonArray IdentificationsWriteArray() => new(
+        IdentificationEntry(idTypeId: SampleIdCardTypeId1, idNumber: "GHA-123456789-0"),
+        IdentificationEntry(
+            idTypeId: SampleIdCardTypeId2,
+            idNumber: "G12345678",
+            idIssueDate: "2023-05-01",
+            idExpiryDate: "2033-05-01"));
+
+    private static JsonArray IdentificationsReadArray() => new(
+        IdentificationEntry(
+            withId: true,
+            idTypeId: SampleIdCardTypeId1,
+            idTypeName: "Ghana Card",
+            idNumber: "GHA-123456789-0",
+            forRead: true),
+        IdentificationEntry(
+            withId: true,
+            id: SampleIdentificationRowId,
+            idTypeId: SampleIdCardTypeId2,
+            idTypeName: "Passport",
+            idNumber: "G12345678",
+            idIssueDate: "2023-05-01",
+            idExpiryDate: "2033-05-01",
+            forRead: true));
+
+    internal static JsonObject IdentificationEntry(
+        bool withId = false,
+        Guid? id = null,
+        Guid? idTypeId = null,
+        string? idTypeName = null,
+        string? idNumber = null,
+        string? idIssueDate = "2020-01-10",
+        string? idExpiryDate = "2030-01-10",
+        bool forRead = false)
+    {
+        var obj = new JsonObject
+        {
+            ["id_type_id"] = (idTypeId ?? SampleIdCardTypeId1).ToString(),
+            ["id_number"] = idNumber ?? "GHA-123456789-0",
+            ["id_issue_date"] = idIssueDate,
+            ["id_expiry_date"] = idExpiryDate,
+        };
+
+        if (withId)
+            obj["id"] = (id ?? SampleIdentificationRowId).ToString();
+
+        if (forRead)
+        {
+            obj["id_type_name"] = idTypeName ?? "Ghana Card";
+            obj["created_at"] = "2025-06-01T10:00:00+00:00";
+            obj["updated_at"] = "2025-06-01T10:00:00+00:00";
+        }
+
+        return obj;
+    }
 
     private static JsonObject EmploymentSection(bool withNames = false, bool optionHints = false)
     {

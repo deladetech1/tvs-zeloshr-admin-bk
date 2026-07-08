@@ -22,6 +22,9 @@ namespace ZelosHR.Api.Entities.Employees;
 ///
 /// **Documents:** Upload via <c>POST /api/v1/file/post/multiple</c>, pass returned IDs in <c>document_ids</c>.
 ///
+/// **Identifications:** <c>identity.identifications[]</c> — each row uses <c>id_type_id</c> from
+/// <c>GET /api/v1/id-card-types/list</c> plus <c>id_number</c> and optional issue/expiry dates.
+///
 /// **Currency:** Use <c>compensation.currency_id</c> (FK to <c>core_platform.cp_currencies</c>), not a currency code.
 ///
 /// See operation **Examples** dropdown for <c>full_profile</c> and <c>minimal</c> payloads.
@@ -56,6 +59,14 @@ public sealed class CreateEmployeeAggregateRequest
 /// any existing row not listed is **deleted**. Send <c>[]</c> with sync true to clear the section.
 ///
 /// **delete_education_ids / delete_certification_ids:** remove specific rows by UUID without sending the array.
+///
+/// **identity.identifications[] (default, sync_identifications false):** patch the list — include <c>id</c> from GET to update;
+/// omit <c>id</c> to add. Rows you omit are **unchanged**.
+///
+/// **sync_identifications (true):** replace <c>identity.identifications</c> — the array you send is the **full desired set**;
+/// any existing row not listed is **deleted**. Send <c>[]</c> with sync true to clear all identifications.
+///
+/// **delete_identification_ids:** remove specific identification rows by UUID without sending the array.
 /// </remarks>
 public sealed class UpdateEmployeeAggregateRequest
 {
@@ -84,6 +95,14 @@ public sealed class UpdateEmployeeAggregateRequest
     public IReadOnlyList<Guid>? DeleteEducationIds { get; init; }
     public IReadOnlyList<Guid>? DeleteCertificationIds { get; init; }
 
+    /// <summary>
+    /// Default <c>false</c>: patch <c>identity.identifications[]</c> (upsert sent rows only; others unchanged).
+    /// <c>true</c> + <c>identity.identifications[]</c>: replace section — array is the full desired set; unlisted rows deleted.
+    /// </summary>
+    public bool SyncIdentifications { get; init; }
+
+    public IReadOnlyList<Guid>? DeleteIdentificationIds { get; init; }
+
     /// <inheritdoc cref="CreateEmployeeAggregateRequest.DocumentIds"/>
     public IReadOnlyList<string>? DocumentIds { get; init; }
 
@@ -104,13 +123,6 @@ public sealed class EmployeeAggregateIdentityDto
     /// <summary>Country of citizenship (e.g. <c>Ghana</c>). Wire: <c>country</c>.</summary>
     public string? Country { get; init; }
 
-    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.IdTypes),
-        Description = "Suggested values; free text is accepted.")]
-    public string? IdType { get; init; }
-
-    public DateOnly? IdIssueDate { get; init; }
-    public DateOnly? IdExpiryDate { get; init; }
-    public string? IdNumber { get; init; }
     public string? PersonalEmail { get; init; }
     public string? WorkEmail { get; init; }
 
@@ -125,6 +137,12 @@ public sealed class EmployeeAggregateIdentityDto
     /// </summary>
     [JsonConverter(typeof(ProfileUrlWriteJsonConverter))]
     public string? ProfileUrl { get; init; }
+
+    /// <summary>
+    /// Government / company ID documents. <c>id_type_id</c> from <c>GET /id-card-types/list</c>.
+    /// On update include <c>id</c> from GET to update an existing row; omit to add.
+    /// </summary>
+    public IReadOnlyList<EmployeeIdentificationUpsertDto>? Identifications { get; init; }
 
     /// <summary>Custom field **values** for <c>section_name = employee-directory-identity</c>.</summary>
     public Dictionary<string, string?>? CustomFields { get; init; }
@@ -141,13 +159,6 @@ public sealed class EmployeeAggregateIdentityReadDto
 
     public string? Country { get; init; }
 
-    [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.IdTypes),
-        Description = "Suggested values; free text is accepted.")]
-    public string? IdType { get; init; }
-
-    public DateOnly? IdIssueDate { get; init; }
-    public DateOnly? IdExpiryDate { get; init; }
-    public string? IdNumber { get; init; }
     public string? PersonalEmail { get; init; }
     public string? WorkEmail { get; init; }
     public string? Phone { get; init; }
@@ -156,6 +167,9 @@ public sealed class EmployeeAggregateIdentityReadDto
 
     /// <summary>Profile photo (<c>DocumentReadDto</c>): <c>doc_id</c>, <c>name</c>, <c>presigned_url</c> (~24h), <c>description</c>.</summary>
     public DocumentReadDto? ProfileUrl { get; init; }
+
+    /// <summary>ID documents linked to configured id-card-types.</summary>
+    public IReadOnlyList<EmployeeIdentificationDto>? Identifications { get; init; }
 
     public Dictionary<string, string?>? CustomFields { get; init; }
 }

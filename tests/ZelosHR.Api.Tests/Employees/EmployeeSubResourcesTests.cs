@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using NSubstitute;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Persistence.Entities;
+using ZelosHR.Api.Persistence.Repositories;
 using ZelosHR.Api.Shared.Abstractions;
 using ZelosHR.Api.Shared.Infrastructure;
 
@@ -12,8 +13,10 @@ public class EmployeeSubResourcesTests
 {
     private readonly IEmployeeEducationRepository _education = Substitute.For<IEmployeeEducationRepository>();
     private readonly IEmployeeCertificationRepository _certifications = Substitute.For<IEmployeeCertificationRepository>();
+    private readonly IEmployeeIdentificationRepository _identifications = Substitute.For<IEmployeeIdentificationRepository>();
     private readonly IEmployeeWizardDocumentRepository _documents = Substitute.For<IEmployeeWizardDocumentRepository>();
     private readonly IEmployeeRepository _employees = Substitute.For<IEmployeeRepository>();
+    private readonly IIdCardTypeRepository _idCardTypes = Substitute.For<IIdCardTypeRepository>();
     private readonly IFileStorageService _files = Substitute.For<IFileStorageService>();
     private readonly ITenantContext _tenant = Substitute.For<ITenantContext>();
     private readonly ICurrentUserService _currentUser = Substitute.For<ICurrentUserService>();
@@ -27,8 +30,10 @@ public class EmployeeSubResourcesTests
         _sut = new EmployeeSubResourcesService(
             _education,
             _certifications,
+            _identifications,
             _documents,
             _employees,
+            _idCardTypes,
             _files,
             Options.Create(new AzureStorageOptions()),
             _tenant,
