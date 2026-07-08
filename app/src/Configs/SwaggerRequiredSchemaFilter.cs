@@ -59,6 +59,13 @@ public sealed class SwaggerRequiredSchemaFilter : ISchemaFilter
             required.Add("name");
         }
 
+        if (type == typeof(EmployeeIdentificationUpsertDto)
+            || type == typeof(EmployeeIdentificationWriteDto))
+        {
+            required.Add("id_type_id");
+            required.Add("id_number");
+        }
+
         if (type == typeof(CreateCustomFieldDefinitionDto))
         {
             required.Add("entity_type");

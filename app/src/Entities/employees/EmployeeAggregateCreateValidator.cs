@@ -4,6 +4,7 @@ internal static class EmployeeAggregateCreateValidator
 {
     private const int MaxEducation = 20;
     private const int MaxCertifications = 50;
+    private const int MaxIdentifications = 10;
 
     internal static Dictionary<string, string>? Validate(CreateEmployeeAggregateRequest request)
     {
@@ -31,6 +32,28 @@ internal static class EmployeeAggregateCreateValidator
         {
             if (string.IsNullOrWhiteSpace(request.Certifications[i].Name))
                 errors[$"certifications[{i}].name"] = "Name is required.";
+        }
+
+        var identifications = request.Identity.Identifications ?? [];
+        if (identifications.Count > MaxIdentifications)
+            errors["identity.identifications"] = $"At most {MaxIdentifications} identification records allowed.";
+
+        var duplicateIdErrors = identifications.Count > 0
+            ? EmployeeSubResourceUpsertRules.ValidateDuplicateIdTypeIds(identifications)
+            : null;
+        if (duplicateIdErrors is not null)
+        {
+            foreach (var (key, message) in duplicateIdErrors)
+                errors[key] = message;
+        }
+
+        for (var i = 0; i < identifications.Count; i++)
+        {
+            if (identifications[i].IdTypeId == Guid.Empty)
+                errors[$"identity.identifications[{i}].id_type_id"] = "id_type_id is required.";
+
+            if (string.IsNullOrWhiteSpace(identifications[i].IdNumber))
+                errors[$"identity.identifications[{i}].id_number"] = "id_number is required.";
         }
 
         return errors.Count == 0 ? null : errors;

@@ -33,6 +33,7 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
     public DbSet<EmployeeDocumentEntity> EmployeeDocuments => Set<EmployeeDocumentEntity>();
     public DbSet<EmployeeEducationEntity> EmployeeEducations => Set<EmployeeEducationEntity>();
     public DbSet<EmployeeCertificationEntity> EmployeeCertifications => Set<EmployeeCertificationEntity>();
+    public DbSet<EmployeeIdentificationEntity> EmployeeIdentifications => Set<EmployeeIdentificationEntity>();
     public DbSet<CustomFieldDefinitionEntity> CustomFieldDefinitions => Set<CustomFieldDefinitionEntity>();
     public DbSet<CustomFieldAuditLogEntity> CustomFieldAuditLogs => Set<CustomFieldAuditLogEntity>();
     public DbSet<HrDocumentPathEntity> HrDocumentPaths => Set<HrDocumentPathEntity>();
@@ -325,6 +326,19 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
             b.HasKey(x => x.Id);
             b.Property(x => x.CredentialUrl).HasColumnName("credential_url");
             b.HasOne<EmployeeEntity>().WithMany().HasForeignKey(x => x.EmployeeId);
+        });
+
+        modelBuilder.Entity<EmployeeIdentificationEntity>(b =>
+        {
+            b.ToTable("zhr_employee_identifications");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.IdCardTypeId).HasColumnName("id_card_type_id");
+            b.Property(x => x.IdNumber).HasColumnName("id_number");
+            b.Property(x => x.IdIssueDate).HasColumnName("id_issue_date");
+            b.Property(x => x.IdExpiryDate).HasColumnName("id_expiry_date");
+            b.HasOne<EmployeeEntity>().WithMany().HasForeignKey(x => x.EmployeeId);
+            b.HasOne(x => x.IdCardType).WithMany().HasForeignKey(x => x.IdCardTypeId);
+            b.HasIndex(x => new { x.EmployeeId, x.IdCardTypeId }).IsUnique();
         });
 
         modelBuilder.Entity<CustomFieldDefinitionEntity>(b =>

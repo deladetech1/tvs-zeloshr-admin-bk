@@ -45,6 +45,7 @@ public static class PersistenceRegistration
         services.AddScoped<IPlatformContextRepository, PlatformContextRepository>();
         services.AddScoped<IEmployeeEducationRepository, EmployeeEducationRepository>();
         services.AddScoped<IEmployeeCertificationRepository, EmployeeCertificationRepository>();
+        services.AddScoped<IEmployeeIdentificationRepository, EmployeeIdentificationRepository>();
         services.AddScoped<IEmployeeWizardDocumentRepository, EmployeeWizardDocumentRepository>();
         services.AddScoped<IDepartmentRepository, DepartmentRepository>();
         services.AddScoped<IOrgChartRepository, OrgChartRepository>();

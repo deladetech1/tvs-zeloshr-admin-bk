@@ -11,10 +11,6 @@ internal static class EmployeeAggregateMapper
             DateOfBirth = aggregate.Identity.DateOfBirth,
             Gender = aggregate.Identity.Gender,
             Country = aggregate.Identity.Country,
-            IdType = aggregate.Identity.IdType,
-            IdIssueDate = aggregate.Identity.IdIssueDate,
-            IdExpiryDate = aggregate.Identity.IdExpiryDate,
-            IdNumber = aggregate.Identity.IdNumber,
             PersonalEmail = aggregate.Identity.PersonalEmail,
             WorkEmail = aggregate.Identity.WorkEmail,
             Phone = aggregate.Identity.Phone,
@@ -48,10 +44,6 @@ internal static class EmployeeAggregateMapper
             DateOfBirth = update.Identity?.DateOfBirth,
             Gender = update.Identity?.Gender,
             Country = update.Identity?.Country,
-            IdType = update.Identity?.IdType,
-            IdIssueDate = update.Identity?.IdIssueDate,
-            IdExpiryDate = update.Identity?.IdExpiryDate,
-            IdNumber = update.Identity?.IdNumber,
             PersonalEmail = update.Identity?.PersonalEmail,
             WorkEmail = update.Identity?.WorkEmail,
             Phone = update.Identity?.Phone,
@@ -82,6 +74,9 @@ internal static class EmployeeAggregateMapper
 
     public static EmployeeCertificationWriteDto ToCertificationWrite(EmployeeCertificationUpsertDto dto) =>
         new(dto.Name, dto.IssuingBody, dto.IssueDate, dto.ExpiryDate, dto.CredentialUrl, dto.CustomFields);
+
+    public static EmployeeIdentificationWriteDto ToIdentificationWrite(EmployeeIdentificationUpsertDto dto) =>
+        new(dto.IdTypeId, dto.IdNumber, dto.IdIssueDate, dto.IdExpiryDate);
 
     public static string SerializeCustomFields(Dictionary<string, string?>? fields) =>
         fields is null || fields.Count == 0

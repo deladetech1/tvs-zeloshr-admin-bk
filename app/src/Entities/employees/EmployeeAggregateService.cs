@@ -21,6 +21,7 @@ public sealed class EmployeeAggregateService
 {
     private const int MaxEducation = 20;
     private const int MaxCertifications = 50;
+    private const int MaxIdentifications = 10;
 
     private readonly ZelosHrDbContext _db;
     private readonly EmployeeRegistrationService _registration;
@@ -110,6 +111,17 @@ public sealed class EmployeeAggregateService
             {
                 await RollbackCreateTransactionAsync(transaction, ct);
                 return MapError<EmployeeAggregateReadDto>(personal);
+            }
+
+            if (request.Identity.Identifications is { Count: > 0 })
+            {
+                var identificationError = await ApplyIdentificationsCreateAsync(
+                    employeeId, request.Identity.Identifications, ct);
+                if (identificationError is not null)
+                {
+                    await RollbackCreateTransactionAsync(transaction, ct);
+                    return identificationError;
+                }
             }
 
             if (request.Employment is not null)
@@ -284,7 +296,7 @@ public sealed class EmployeeAggregateService
         {
             return Respons<EmployeeAggregateReadDto>.ValidationError(new Dictionary<string, string>
             {
-                ["body"] = "Include at least one field to update (identity, employment, compensation, education, certifications, documents).",
+                ["body"] = "Include at least one field to update (identity, employment, compensation, education, certifications, identifications, documents).",
             });
         }
 
@@ -312,6 +324,86 @@ public sealed class EmployeeAggregateService
                 {
                     await transaction.RollbackAsync(ct);
                     return MapError<EmployeeAggregateReadDto>(personal);
+                }
+            }
+
+            if (request.DeleteIdentificationIds is { Count: > 0 })
+            {
+                foreach (var identificationId in request.DeleteIdentificationIds)
+                {
+                    var deleted = await _subResources.DeleteIdentificationAsync(employeeId, identificationId, ct);
+                    if (!deleted.Success)
+                    {
+                        await transaction.RollbackAsync(ct);
+                        return Respons<EmployeeAggregateReadDto>.Fail(
+                            deleted.Error ?? deleted.Detail ?? "Could not delete identification.",
+                            statusCode: deleted.StatusCode);
+                    }
+                }
+            }
+
+            if (request.Identity?.Identifications is not null)
+            {
+                var identificationDupErrors = request.Identity.Identifications.Count > 0
+                    ? EmployeeSubResourceUpsertRules.ValidateDuplicateIds(request.Identity.Identifications)
+                    : null;
+                if (identificationDupErrors is not null)
+                {
+                    await transaction.RollbackAsync(ct);
+                    return Respons<EmployeeAggregateReadDto>.ValidationError(identificationDupErrors);
+                }
+
+                var identificationTypeDupErrors = request.Identity.Identifications.Count > 0
+                    ? EmployeeSubResourceUpsertRules.ValidateDuplicateIdTypeIds(request.Identity.Identifications)
+                    : null;
+                if (identificationTypeDupErrors is not null)
+                {
+                    await transaction.RollbackAsync(ct);
+                    return Respons<EmployeeAggregateReadDto>.ValidationError(identificationTypeDupErrors);
+                }
+
+                var existingIdentifications = await _subResources.ListIdentificationsAsync(employeeId, ct);
+                var existingIdentificationRows = existingIdentifications.Success && existingIdentifications.Data is not null
+                    ? existingIdentifications.Data
+                    : Array.Empty<EmployeeIdentificationDto>();
+                var existingIdentificationIds = existingIdentificationRows.Select(r => r.Id).ToHashSet();
+                var preservedIdentificationIds = new HashSet<Guid>();
+
+                for (var i = 0; i < request.Identity.Identifications.Count; i++)
+                {
+                    var identification = request.Identity.Identifications[i];
+                    var write = EmployeeAggregateMapper.ToIdentificationWrite(identification);
+                    var result = EmployeeSubResourceUpsertRules.ShouldUpdateExisting(
+                            identification.Id, existingIdentificationIds)
+                        ? await _subResources.UpdateIdentificationAsync(
+                            employeeId, identification.Id!.Value, write, ct)
+                        : await _subResources.AddIdentificationAsync(employeeId, write, ct);
+                    if (!result.Success)
+                    {
+                        await transaction.RollbackAsync(ct);
+                        return MapIdentificationError<EmployeeAggregateReadDto>(result, i);
+                    }
+
+                    if (result.Data is not null)
+                        preservedIdentificationIds.Add(result.Data.Id);
+                }
+
+                if (request.SyncIdentifications)
+                {
+                    foreach (var row in existingIdentificationRows)
+                    {
+                        if (preservedIdentificationIds.Contains(row.Id))
+                            continue;
+
+                        var deleted = await _subResources.DeleteIdentificationAsync(employeeId, row.Id, ct);
+                        if (!deleted.Success)
+                        {
+                            await transaction.RollbackAsync(ct);
+                            return Respons<EmployeeAggregateReadDto>.Fail(
+                                deleted.Error ?? deleted.Detail ?? "Could not remove identification during sync.",
+                                statusCode: deleted.StatusCode);
+                        }
+                    }
                 }
             }
 
@@ -612,6 +704,7 @@ public sealed class EmployeeAggregateService
 
         var education = await _subResources.ListEducationAsync(id, ct);
         var certifications = await _subResources.ListCertificationsAsync(id, ct);
+        var identifications = await _subResources.ListIdentificationsAsync(id, ct);
 
         var fullName = EmployeeIdentityResolver.ResolveFullName(entity, cp);
         var workEmail = EmployeeIdentityResolver.ResolveWorkEmail(entity, cp);
@@ -621,6 +714,9 @@ public sealed class EmployeeAggregateService
         var educationItems = education.Success && education.Data is { Count: > 0 } data ? data : null;
         var certificationItems = certifications.Success && certifications.Data is { Count: > 0 } certData
             ? certData
+            : null;
+        var identificationItems = identifications.Success && identifications.Data is { Count: > 0 } idData
+            ? idData
             : null;
         var documentIds = entity.DocumentIds.Count > 0
             ? (await _profileUrls.ResolveDocumentsAsync(entity.DocumentIds, ct))
@@ -657,6 +753,7 @@ public sealed class EmployeeAggregateService
                 cp,
                 workEmail,
                 profileUrl,
+                identificationItems,
                 sections.Identity),
             Employment = EmployeeAggregateReadMapper.BuildEmployment(entity, sections.Employment, reportsTo, employmentType),
             Compensation = EmployeeAggregateReadMapper.BuildCompensation(
@@ -769,6 +866,9 @@ public sealed class EmployeeAggregateService
         || request.Certifications is not null
         || request.DeleteEducationIds is { Count: > 0 }
         || request.DeleteCertificationIds is { Count: > 0 }
+        || request.DeleteIdentificationIds is { Count: > 0 }
+        || request.SyncIdentifications
+        || request.Identity?.Identifications is not null
         || request.DeleteDocumentIds is { Count: > 0 }
         || request.DocumentIds is { Count: > 0 }
         || HasSectionCustomFields(request);
@@ -938,7 +1038,59 @@ public sealed class EmployeeAggregateService
         if (request.Certifications is { Count: > MaxCertifications })
             errors["certifications"] = $"At most {MaxCertifications} certification records allowed per request.";
 
+        var identificationCount = request.Identity?.Identifications?.Count ?? 0;
+        if (identificationCount > MaxIdentifications)
+            errors["identity.identifications"] = $"At most {MaxIdentifications} identification records allowed per request.";
+
         return errors.Count == 0 ? null : errors;
+    }
+
+    private async Task<Respons<EmployeeAggregateReadDto>?> ApplyIdentificationsCreateAsync(
+        Guid employeeId,
+        IReadOnlyList<EmployeeIdentificationUpsertDto> identifications,
+        CancellationToken ct)
+    {
+        var duplicateIdErrors = EmployeeSubResourceUpsertRules.ValidateDuplicateIds(identifications);
+        if (duplicateIdErrors is not null)
+            return Respons<EmployeeAggregateReadDto>.ValidationError(duplicateIdErrors);
+
+        var duplicateTypeErrors = EmployeeSubResourceUpsertRules.ValidateDuplicateIdTypeIds(identifications);
+        if (duplicateTypeErrors is not null)
+            return Respons<EmployeeAggregateReadDto>.ValidationError(duplicateTypeErrors);
+
+        for (var i = 0; i < identifications.Count; i++)
+        {
+            var write = EmployeeAggregateMapper.ToIdentificationWrite(identifications[i]);
+            var added = await _subResources.AddIdentificationAsync(employeeId, write, ct);
+            if (!added.Success)
+                return MapIdentificationError<EmployeeAggregateReadDto>(added, i);
+        }
+
+        return null;
+    }
+
+    private static Respons<T> MapIdentificationError<T>(Respons<EmployeeIdentificationDto> source, int index)
+    {
+        if (source.StatusCode == 404)
+        {
+            return Respons<T>.ValidationError(
+                new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    [$"identity.identifications[{index}].id"] = "Identification not found for this employee.",
+                },
+                source.Error ?? source.Detail);
+        }
+
+        if (source.FieldErrors is { Count: > 0 })
+        {
+            var remapped = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var (key, message) in source.FieldErrors)
+                remapped[$"identity.identifications[{index}].{key}"] = message;
+
+            return Respons<T>.ValidationError(remapped, source.Error ?? source.Detail);
+        }
+
+        return MapNestedError<T>(source.StatusCode, source.Error, source.Detail, source.FieldErrors);
     }
 
     private async Task<Respons<EmployeeAggregateReadDto>?> ApplyEmploymentExtrasIfNeededAsync(
