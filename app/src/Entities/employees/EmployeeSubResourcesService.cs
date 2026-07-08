@@ -174,8 +174,15 @@ public sealed class EmployeeSubResourcesService
         if (!await _identifications.EmployeeExistsAsync(employeeId, _tenant.TenantId, _tenant.OrgId, ct))
             return Respons<IReadOnlyList<EmployeeIdentificationDto>>.Fail("Employee not found.", statusCode: 404);
 
-        var rows = await _identifications.ListByEmployeeAsync(employeeId, _tenant.TenantId, _tenant.OrgId, ct);
-        return Respons<IReadOnlyList<EmployeeIdentificationDto>>.Ok(rows.Select(ToIdentificationDto).ToList());
+        try
+        {
+            var rows = await _identifications.ListByEmployeeAsync(employeeId, _tenant.TenantId, _tenant.OrgId, ct);
+            return Respons<IReadOnlyList<EmployeeIdentificationDto>>.Ok(rows.Select(ToIdentificationDto).ToList());
+        }
+        catch (Exception ex) when (PostgresSchemaErrors.ReferencesIdentificationsStorage(ex))
+        {
+            return IdentificationsStorageUnavailable<IReadOnlyList<EmployeeIdentificationDto>>();
+        }
     }
 
     public async Task<Respons<EmployeeIdentificationDto>> AddIdentificationAsync(
@@ -193,27 +200,30 @@ public sealed class EmployeeSubResourcesService
         var idCardType = await _idCardTypes.GetEntityByIdScopedAsync(
             dto.IdTypeId, _tenant.TenantId, _tenant.OrgId, ct);
         if (idCardType is null || !idCardType.IsActive)
-        {
             return ValidationIdentification("id_type_id", "ID card type not found.");
-        }
 
-        if (await _identifications.ExistsForEmployeeAndTypeAsync(employeeId, dto.IdTypeId, excludeId: null, ct))
+        try
         {
-            return ValidationIdentification("id_type_id", "This employee already has an identification for this id type.");
+            if (await _identifications.ExistsForEmployeeAndTypeAsync(employeeId, dto.IdTypeId, excludeId: null, ct))
+                return ValidationIdentification("id_type_id", "This employee already has an identification for this id type.");
+
+            var entity = await _identifications.AddAsync(new EmployeeIdentificationEntity
+            {
+                Id = Guid.NewGuid(),
+                EmployeeId = employeeId,
+                IdCardTypeId = dto.IdTypeId,
+                IdNumber = dto.IdNumber.Trim(),
+                IdIssueDate = dto.IdIssueDate,
+                IdExpiryDate = dto.IdExpiryDate,
+            }, ct);
+
+            entity.IdCardType = idCardType;
+            return Respons<EmployeeIdentificationDto>.Ok(ToIdentificationDto(entity));
         }
-
-        var entity = await _identifications.AddAsync(new EmployeeIdentificationEntity
+        catch (Exception ex) when (PostgresSchemaErrors.ReferencesIdentificationsStorage(ex))
         {
-            Id = Guid.NewGuid(),
-            EmployeeId = employeeId,
-            IdCardTypeId = dto.IdTypeId,
-            IdNumber = dto.IdNumber.Trim(),
-            IdIssueDate = dto.IdIssueDate,
-            IdExpiryDate = dto.IdExpiryDate,
-        }, ct);
-
-        entity.IdCardType = idCardType;
-        return Respons<EmployeeIdentificationDto>.Ok(ToIdentificationDto(entity));
+            return IdentificationsStorageUnavailable<EmployeeIdentificationDto>();
+        }
     }
 
     public async Task<Respons<EmployeeIdentificationDto>> UpdateIdentificationAsync(
@@ -246,16 +256,31 @@ public sealed class EmployeeSubResourcesService
         existing.IdIssueDate = dto.IdIssueDate;
         existing.IdExpiryDate = dto.IdExpiryDate;
         existing.IdCardType = idCardType;
-        await _identifications.UpdateAsync(existing, ct);
-        return Respons<EmployeeIdentificationDto>.Ok(ToIdentificationDto(existing));
+
+        try
+        {
+            await _identifications.UpdateAsync(existing, ct);
+            return Respons<EmployeeIdentificationDto>.Ok(ToIdentificationDto(existing));
+        }
+        catch (Exception ex) when (PostgresSchemaErrors.ReferencesIdentificationsStorage(ex))
+        {
+            return IdentificationsStorageUnavailable<EmployeeIdentificationDto>();
+        }
     }
 
     public async Task<Respons<object>> DeleteIdentificationAsync(
         Guid employeeId, Guid identificationId, CancellationToken ct = default)
     {
-        if (!await _identifications.DeleteAsync(identificationId, employeeId, _tenant.TenantId, _tenant.OrgId, ct))
-            return Respons<object>.Fail("Identification not found.", statusCode: 404);
-        return Respons<object>.Ok(new { id = identificationId });
+        try
+        {
+            if (!await _identifications.DeleteAsync(identificationId, employeeId, _tenant.TenantId, _tenant.OrgId, ct))
+                return Respons<object>.Fail("Identification not found.", statusCode: 404);
+            return Respons<object>.Ok(new { id = identificationId });
+        }
+        catch (Exception ex) when (PostgresSchemaErrors.ReferencesIdentificationsStorage(ex))
+        {
+            return IdentificationsStorageUnavailable<object>();
+        }
     }
 
     public async Task<Respons<IReadOnlyList<EmployeeWizardDocumentDto>>> ListDocumentsAsync(
@@ -355,4 +380,9 @@ public sealed class EmployeeSubResourcesService
 
     private static Respons<EmployeeIdentificationDto> ValidationIdentification(string key, string message) =>
         Respons<EmployeeIdentificationDto>.ValidationError(new Dictionary<string, string> { [key] = message });
+
+    private static Respons<T> IdentificationsStorageUnavailable<T>() =>
+        Respons<T>.Fail(
+            "Employee identifications storage is not deployed on this database.",
+            statusCode: 503);
 }

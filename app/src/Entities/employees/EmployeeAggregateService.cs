@@ -270,15 +270,13 @@ public sealed class EmployeeAggregateService
                     ["identity.phone"] = EmployeeErrorMessages.PhoneAlreadyRegistered,
                 });
         }
-        catch (DbUpdateException ex) when (PostgresSchemaErrors.ReferencesMissingTable(ex, "zhr_employee_identifications"))
+        catch (Exception ex) when (PostgresSchemaErrors.ReferencesIdentificationsStorage(ex))
         {
             if (!committed)
                 await RollbackCreateTransactionAsync(transaction, ct);
-            _logger.LogError(ex, "Employee identifications table missing for tenant {TenantId} org {OrgId}",
+            _logger.LogError(ex, "Employee identifications storage unavailable for tenant {TenantId} org {OrgId}",
                 _tenant.TenantId, _tenant.OrgId);
-            return Respons<EmployeeAggregateReadDto>.Fail(
-                "Employee identifications storage is not deployed on this database.",
-                statusCode: 503);
+            return IdentificationsStorageUnavailable();
         }
         catch (DbUpdateConcurrencyException ex)
         {
@@ -719,14 +717,12 @@ public sealed class EmployeeAggregateService
                     ["identity.phone"] = EmployeeErrorMessages.PhoneAlreadyRegistered,
                 });
         }
-        catch (DbUpdateException ex) when (PostgresSchemaErrors.ReferencesMissingTable(ex, "zhr_employee_identifications"))
+        catch (Exception ex) when (PostgresSchemaErrors.ReferencesIdentificationsStorage(ex))
         {
             if (!committed)
                 await transaction.RollbackAsync(ct);
-            _logger.LogError(ex, "Employee identifications table missing during update for {EmployeeId}", employeeId);
-            return Respons<EmployeeAggregateReadDto>.Fail(
-                "Employee identifications storage is not deployed on this database.",
-                statusCode: 503);
+            _logger.LogError(ex, "Employee identifications storage unavailable during update for {EmployeeId}", employeeId);
+            return IdentificationsStorageUnavailable();
         }
         catch (Exception ex)
         {
@@ -851,10 +847,10 @@ public sealed class EmployeeAggregateService
 
             return new IdentificationReadResult(result.Data, null);
         }
-        catch (Exception ex) when (PostgresSchemaErrors.ReferencesMissingTable(ex, "zhr_employee_identifications"))
+        catch (Exception ex) when (PostgresSchemaErrors.ReferencesIdentificationsStorage(ex))
         {
             _logger.LogWarning(ex,
-                "Employee identifications table missing for employee {EmployeeId}; returning empty list",
+                "Employee identifications storage unavailable for employee {EmployeeId}; returning empty list",
                 employeeId);
             return new IdentificationReadResult(Array.Empty<EmployeeIdentificationDto>(), null);
         }
@@ -1255,6 +1251,11 @@ public sealed class EmployeeAggregateService
 
     private static Respons<T> Fail<T>(int statusCode, string? error, string? detail) =>
         Respons<T>.Fail(error ?? detail ?? "Request failed.", statusCode: statusCode);
+
+    private static Respons<EmployeeAggregateReadDto> IdentificationsStorageUnavailable() =>
+        Respons<EmployeeAggregateReadDto>.Fail(
+            "Employee identifications storage is not deployed on this database.",
+            statusCode: 503);
 
     private async Task TryRecordEmployeeCreateAuditAsync(
         Guid employeeId,
