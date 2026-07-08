@@ -35,6 +35,7 @@ paths=(
   "/api/v1/employees/statistics"
   "/api/v1/employees/directory/summary"
   "/api/v1/employees/list?page=1&size=5"
+  "/api/v1/id-card-types/list?page=1&size=20"
   "/api/v1/employees/import/search?query=a"
   "/api/v1/employees/bulk/template"
   "/api/v1/employees/export"

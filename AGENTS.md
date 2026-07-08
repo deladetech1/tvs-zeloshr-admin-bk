@@ -116,6 +116,20 @@ See `tvs-sqlscript/README.md` for CI dispatch, rollback, and validate.
 
    See [docs/LOCAL_DEV.md](docs/LOCAL_DEV.md).
 
+10. **Live dev + CI (required for API/DTO changes):**
+
+   ```bash
+   cp scripts/local-dev/live-session.example.env scripts/local-dev/live-session.env
+   ./scripts/local-dev/generate-live-session.sh 'eyJhbG...'   # browser Bearer token
+
+   ./scripts/local-dev/test-employee-identifications.sh       # identifications + Swagger shape
+   ./scripts/local-dev/test-live-all.sh                         # full module smoke
+
+   gh run watch --branch $(git branch --show-current)           # after push
+   ```
+
+   See [scripts/local-dev/README.md](scripts/local-dev/README.md). Never commit `live-session.env`.
+
 ## What counts as a database change
 
 - Tables, columns, indexes, constraints

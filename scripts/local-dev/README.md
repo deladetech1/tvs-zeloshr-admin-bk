@@ -37,6 +37,9 @@ cp scripts/local-dev/live-session.example.env scripts/local-dev/live-session.env
 # Education + certification id upsert (GET → sync → update → repeat save)
 ./scripts/local-dev/test-employee-edu-cert.sh
 
+# Identity identifications[] + id-card-types (Swagger shape check + add/update/get)
+./scripts/local-dev/test-employee-identifications.sh
+
 # Organisation / org chart (GET reads)
 ./scripts/local-dev/test-org-structure.sh
 
