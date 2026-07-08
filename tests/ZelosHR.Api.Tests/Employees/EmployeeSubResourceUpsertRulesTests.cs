@@ -106,5 +106,5 @@ public sealed class EmployeeSubResourceUpsertRulesTests
     }
 
     private static readonly Guid SampleIdCardTypeId1 = Guid.Parse("753e2b9a-2322-4154-3456-98b8de5a4df5");
-    private static readonly Guid SampleIdCardTypeId2 = Guid.Parse("3453e2b9a-2322-4154-3456-98b8de5a4df5");
+    private static readonly Guid SampleIdCardTypeId2 = Guid.Parse("345e2b9a-2322-4154-3456-98b8de5a4df5");
 }
