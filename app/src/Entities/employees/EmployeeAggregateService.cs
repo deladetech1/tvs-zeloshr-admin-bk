@@ -1090,7 +1090,7 @@ public sealed class EmployeeAggregateService
             return Respons<T>.ValidationError(remapped, source.Error ?? source.Detail);
         }
 
-        return MapError<T>(source);
+        return MapNestedError<T>(source.StatusCode, source.Error, source.Detail, source.FieldErrors);
     }
 
     private async Task<Respons<EmployeeAggregateReadDto>?> ApplyEmploymentExtrasIfNeededAsync(
