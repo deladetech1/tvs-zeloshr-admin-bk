@@ -88,6 +88,9 @@ public sealed class EmployeeAggregateService
         var isFinalised = finaliseOverride
             ?? (!request.IsDraft && !string.IsNullOrWhiteSpace(request.Identity.WorkEmail));
 
+        var committed = false;
+        Guid employeeId = default;
+
         await using var transaction = await _db.Database.BeginTransactionAsync(ct);
         try
         {
@@ -103,7 +106,7 @@ public sealed class EmployeeAggregateService
                     statusCode: draft.StatusCode);
             }
 
-            var employeeId = draft.Data.Id;
+            employeeId = draft.Data.Id;
             var wizard = EmployeeAggregateMapper.ToWizardRequest(request);
 
             var personal = await _registration.UpdatePersonalContactAsync(employeeId, wizard, ct);
@@ -238,18 +241,19 @@ public sealed class EmployeeAggregateService
             }
 
             await transaction.CommitAsync(ct);
-            await TryRecordEmployeeCreateAuditAsync(employeeId, isFinalised, ct);
-            return await GetAsync(employeeId, ct);
+            committed = true;
         }
         catch (PlatformUserConflictException ex)
         {
-            await RollbackCreateTransactionAsync(transaction, ct);
+            if (!committed)
+                await RollbackCreateTransactionAsync(transaction, ct);
             return Respons<EmployeeAggregateReadDto>.ValidationError(
                 new Dictionary<string, string> { [ex.FieldKey] = ex.Message });
         }
         catch (DbUpdateException ex) when (PostgresUniqueViolation.IsCpUserEmail(ex))
         {
-            await RollbackCreateTransactionAsync(transaction, ct);
+            if (!committed)
+                await RollbackCreateTransactionAsync(transaction, ct);
             return Respons<EmployeeAggregateReadDto>.ValidationError(
                 new Dictionary<string, string>
                 {
@@ -258,16 +262,28 @@ public sealed class EmployeeAggregateService
         }
         catch (DbUpdateException ex) when (PostgresUniqueViolation.IsCpUserContact(ex))
         {
-            await RollbackCreateTransactionAsync(transaction, ct);
+            if (!committed)
+                await RollbackCreateTransactionAsync(transaction, ct);
             return Respons<EmployeeAggregateReadDto>.ValidationError(
                 new Dictionary<string, string>
                 {
                     ["identity.phone"] = EmployeeErrorMessages.PhoneAlreadyRegistered,
                 });
         }
+        catch (DbUpdateException ex) when (PostgresSchemaErrors.ReferencesMissingTable(ex, "zhr_employee_identifications"))
+        {
+            if (!committed)
+                await RollbackCreateTransactionAsync(transaction, ct);
+            _logger.LogError(ex, "Employee identifications table missing for tenant {TenantId} org {OrgId}",
+                _tenant.TenantId, _tenant.OrgId);
+            return Respons<EmployeeAggregateReadDto>.Fail(
+                "Employee identifications storage is not deployed on this database.",
+                statusCode: 503);
+        }
         catch (DbUpdateConcurrencyException ex)
         {
-            await RollbackCreateTransactionAsync(transaction, ct);
+            if (!committed)
+                await RollbackCreateTransactionAsync(transaction, ct);
             _logger.LogWarning(ex, "Employee create concurrency conflict for tenant {TenantId} org {OrgId}",
                 _tenant.TenantId, _tenant.OrgId);
             return Respons<EmployeeAggregateReadDto>.Fail(
@@ -275,17 +291,32 @@ public sealed class EmployeeAggregateService
         }
         catch (Exception ex)
         {
-            await RollbackCreateTransactionAsync(transaction, ct);
+            if (!committed)
+                await RollbackCreateTransactionAsync(transaction, ct);
             _logger.LogError(ex, "Employee create failed for tenant {TenantId} org {OrgId}", _tenant.TenantId, _tenant.OrgId);
             throw;
         }
+
+        await TryRecordEmployeeCreateAuditAsync(employeeId, isFinalised, ct);
+        return await GetAsync(employeeId, ct);
     }
 
     private async Task RollbackCreateTransactionAsync(
         Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction,
         CancellationToken ct)
     {
-        await transaction.RollbackAsync(ct);
+        if (_db.Database.CurrentTransaction is null)
+            return;
+
+        try
+        {
+            await transaction.RollbackAsync(ct);
+        }
+        catch (InvalidOperationException)
+        {
+            // Transaction already committed or disposed.
+        }
+
         _db.ChangeTracker.Clear();
     }
 
@@ -311,6 +342,8 @@ public sealed class EmployeeAggregateService
         var shouldFinalise = entityBeforeUpdate.IsDraft
             && !request.IsDraft
             && !string.IsNullOrWhiteSpace(request.Identity?.WorkEmail);
+
+        var committed = false;
 
         await using var transaction = await _db.Database.BeginTransactionAsync(ct);
         try
@@ -657,18 +690,19 @@ public sealed class EmployeeAggregateService
             }
 
             await transaction.CommitAsync(ct);
-            await TryRecordEmployeeUpdateAuditAsync(employeeId, request, ct);
-            return await GetAsync(employeeId, ct);
+            committed = true;
         }
         catch (PlatformUserConflictException ex)
         {
-            await transaction.RollbackAsync(ct);
+            if (!committed)
+                await transaction.RollbackAsync(ct);
             return Respons<EmployeeAggregateReadDto>.ValidationError(
                 new Dictionary<string, string> { [ex.FieldKey] = ex.Message });
         }
         catch (DbUpdateException ex) when (PostgresUniqueViolation.IsCpUserEmail(ex))
         {
-            await transaction.RollbackAsync(ct);
+            if (!committed)
+                await transaction.RollbackAsync(ct);
             return Respons<EmployeeAggregateReadDto>.ValidationError(
                 new Dictionary<string, string>
                 {
@@ -677,19 +711,33 @@ public sealed class EmployeeAggregateService
         }
         catch (DbUpdateException ex) when (PostgresUniqueViolation.IsCpUserContact(ex))
         {
-            await transaction.RollbackAsync(ct);
+            if (!committed)
+                await transaction.RollbackAsync(ct);
             return Respons<EmployeeAggregateReadDto>.ValidationError(
                 new Dictionary<string, string>
                 {
                     ["identity.phone"] = EmployeeErrorMessages.PhoneAlreadyRegistered,
                 });
         }
+        catch (DbUpdateException ex) when (PostgresSchemaErrors.ReferencesMissingTable(ex, "zhr_employee_identifications"))
+        {
+            if (!committed)
+                await transaction.RollbackAsync(ct);
+            _logger.LogError(ex, "Employee identifications table missing during update for {EmployeeId}", employeeId);
+            return Respons<EmployeeAggregateReadDto>.Fail(
+                "Employee identifications storage is not deployed on this database.",
+                statusCode: 503);
+        }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync(ct);
+            if (!committed)
+                await transaction.RollbackAsync(ct);
             _logger.LogError(ex, "Employee update failed for {EmployeeId}", employeeId);
             throw;
         }
+
+        await TryRecordEmployeeUpdateAuditAsync(employeeId, request, ct);
+        return await GetAsync(employeeId, ct);
     }
 
     public async Task<Respons<EmployeeAggregateReadDto>> GetAsync(Guid id, CancellationToken ct = default)
@@ -704,7 +752,9 @@ public sealed class EmployeeAggregateService
 
         var education = await _subResources.ListEducationAsync(id, ct);
         var certifications = await _subResources.ListCertificationsAsync(id, ct);
-        var identifications = await _subResources.ListIdentificationsAsync(id, ct);
+        var identifications = await ListIdentificationsForReadAsync(id, ct);
+        if (identifications.ErrorResponse is { } identificationError)
+            return identificationError;
 
         var fullName = EmployeeIdentityResolver.ResolveFullName(entity, cp);
         var workEmail = EmployeeIdentityResolver.ResolveWorkEmail(entity, cp);
@@ -715,7 +765,7 @@ public sealed class EmployeeAggregateService
         var certificationItems = certifications.Success && certifications.Data is { Count: > 0 } certData
             ? certData
             : null;
-        var identificationItems = identifications.Success && identifications.Data is { Count: > 0 } idData
+        var identificationItems = identifications.Data is { Count: > 0 } idData
             ? idData
             : null;
         var documentIds = entity.DocumentIds.Count > 0
@@ -785,6 +835,34 @@ public sealed class EmployeeAggregateService
 
         return Respons<EmployeeAggregateReadDto>.Ok(read);
     }
+
+    private async Task<IdentificationReadResult> ListIdentificationsForReadAsync(Guid employeeId, CancellationToken ct)
+    {
+        try
+        {
+            var result = await _subResources.ListIdentificationsAsync(employeeId, ct);
+            if (!result.Success)
+            {
+                return new IdentificationReadResult(
+                    null,
+                    MapNestedError<EmployeeAggregateReadDto>(
+                        result.StatusCode, result.Error, result.Detail, result.FieldErrors));
+            }
+
+            return new IdentificationReadResult(result.Data, null);
+        }
+        catch (Exception ex) when (PostgresSchemaErrors.ReferencesMissingTable(ex, "zhr_employee_identifications"))
+        {
+            _logger.LogWarning(ex,
+                "Employee identifications table missing for employee {EmployeeId}; returning empty list",
+                employeeId);
+            return new IdentificationReadResult(Array.Empty<EmployeeIdentificationDto>(), null);
+        }
+    }
+
+    private sealed record IdentificationReadResult(
+        IReadOnlyList<EmployeeIdentificationDto>? Data,
+        Respons<EmployeeAggregateReadDto>? ErrorResponse);
 
     public async Task<Respons<EmployeeListDto>> ListAsync(
         EmployeeListQuery query, CancellationToken ct = default)

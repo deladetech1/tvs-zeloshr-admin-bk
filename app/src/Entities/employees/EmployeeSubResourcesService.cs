@@ -210,9 +210,9 @@ public sealed class EmployeeSubResourcesService
             IdNumber = dto.IdNumber.Trim(),
             IdIssueDate = dto.IdIssueDate,
             IdExpiryDate = dto.IdExpiryDate,
-            IdCardType = idCardType,
         }, ct);
 
+        entity.IdCardType = idCardType;
         return Respons<EmployeeIdentificationDto>.Ok(ToIdentificationDto(entity));
     }
 
