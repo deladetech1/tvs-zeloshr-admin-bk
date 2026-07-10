@@ -105,9 +105,10 @@ See `tvs-sqlscript/README.md` for CI dispatch, rollback, and validate.
 6. Open a PR in **tvs-sqlscript** targeting **`dev`**; link from the ZelosHR PR (also targeting **`dev`**) if both repos change.
 7. **Merge tvs-sqlscript `dev` first** — that push auto-deploys schema to **`saas-dev`**. Then merge ZelosHR `dev`.
 8. **Update Swagger in the same PR** — every API/DTO/route/workflow change must touch the matching files under `app/src/Configs/Swagger*.cs` and controller XML docs (see [docs/SWAGGER.md](docs/SWAGGER.md)). No exceptions.
-9. Verify locally:
+9. Verify locally (Colima + Compose — no host .NET SDK required):
 
    ```bash
+   colima start && docker context use colima
    ./scripts/compose.sh migrate   # tvs-sqlscript deploy into compose Postgres
    ./scripts/compose.sh test
    ./scripts/compose.sh dev       # or reset for a clean DB

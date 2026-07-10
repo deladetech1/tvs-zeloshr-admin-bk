@@ -46,6 +46,7 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
     public DbSet<CustomFieldDefinitionEntity> CustomFieldDefinitions => Set<CustomFieldDefinitionEntity>();
     public DbSet<CustomFieldAuditLogEntity> CustomFieldAuditLogs => Set<CustomFieldAuditLogEntity>();
     public DbSet<HrDocumentPathEntity> HrDocumentPaths => Set<HrDocumentPathEntity>();
+    public DbSet<EmployeeChangeRequestEntity> EmployeeChangeRequests => Set<EmployeeChangeRequestEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -437,6 +438,22 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
             b.ToTable("hr_document_paths", "human_resource", t => t.ExcludeFromMigrations());
             b.HasKey(x => new { x.Id, x.TenantId });
             b.Property(x => x.DocumentPath).HasColumnName("document_path");
+        });
+
+        modelBuilder.Entity<EmployeeChangeRequestEntity>(b =>
+        {
+            b.ToTable("zhr_employee_change_requests", t => t.ExcludeFromMigrations());
+            b.HasKey(x => x.Id);
+            b.Property(x => x.FieldPath).HasMaxLength(256);
+            b.Property(x => x.OldValueJson).HasColumnType("jsonb");
+            b.Property(x => x.NewValueJson).HasColumnType("jsonb");
+            b.Property(x => x.Status).HasMaxLength(32);
+            b.Property(x => x.RequestedBy).HasColumnType("text");
+            b.Property(x => x.ReviewedBy).HasColumnType("text");
+            b.Property(x => x.ReviewNote).HasColumnType("text");
+            b.Property(x => x.CreatedBy).HasColumnType("text");
+            b.Property(x => x.UpdatedBy).HasColumnType("text");
+            b.HasOne<EmployeeEntity>().WithMany().HasForeignKey(x => x.EmployeeId);
         });
     }
 }

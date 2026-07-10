@@ -20,6 +20,7 @@ public class EmployeesController : ControllerBase
     private readonly EmployeeRegistrationService _registration;
     private readonly EmployeeSubResourcesService _subResources;
     private readonly EmployeeAggregateService _aggregate;
+    private readonly IEmployeeUpdateService _employeeUpdate;
     private readonly EmployeeBulkImportService _bulkImport;
     private readonly EmployeeExportService _export;
     private readonly ITenantContextAccessor _tenant;
@@ -30,6 +31,7 @@ public class EmployeesController : ControllerBase
         EmployeeRegistrationService registration,
         EmployeeSubResourcesService subResources,
         EmployeeAggregateService aggregate,
+        IEmployeeUpdateService employeeUpdate,
         EmployeeBulkImportService bulkImport,
         EmployeeExportService export,
         ITenantContextAccessor tenant)
@@ -39,6 +41,7 @@ public class EmployeesController : ControllerBase
         _registration = registration;
         _subResources = subResources;
         _aggregate = aggregate;
+        _employeeUpdate = employeeUpdate;
         _bulkImport = bulkImport;
         _export = export;
         _tenant = tenant;
@@ -91,7 +94,7 @@ public class EmployeesController : ControllerBase
                 employeeId, PlatformQueryParams.EmployeeId) is { } missingEmployeeId)
             return missingEmployeeId;
 
-        var result = await _aggregate.UpdateAsync(employeeId, body, ct);
+        var result = await _employeeUpdate.ApplyAsync(employeeId, body, ct);
         return StatusCode(result.StatusCode, result);
     }
 
