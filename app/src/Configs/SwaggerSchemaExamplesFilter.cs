@@ -88,7 +88,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             },
             nameof(EmployeeSelfUpdateResultDto) => new JsonObject
             {
-                ["employee"] = SwaggerExamples.EmployeeAggregateReadData(),
+                ["employee"] = SwaggerExamples.EmployeeAggregateReadData().DeepClone(),
                 ["applied"] = new JsonArray("identity.phone"),
                 ["pending"] = new JsonArray(),
                 ["rejected"] = new JsonArray("employment"),
