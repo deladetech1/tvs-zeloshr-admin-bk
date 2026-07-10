@@ -32,6 +32,10 @@ public sealed class EmployeeEntity
     public string? GhanaPostGps { get; set; }
     public string? State { get; set; }
     public string? ProfilePhotoUrl { get; set; }
+    public string? MaritalStatus { get; set; }
+    public string? NextOfKinName { get; set; }
+    public string? NextOfKinPhone { get; set; }
+    public string? RelationshipToNextOfKin { get; set; }
 
     public string LifecycleState { get; set; } = default!;
     public string LifecycleStatus { get; set; } = default!;
@@ -63,6 +67,7 @@ public sealed class EmployeeEntity
     public string? NoticePeriod { get; set; }
 
     public decimal? GrossSalary { get; set; }
+    public decimal? NetSalary { get; set; }
     public string? PayFrequency { get; set; }
     public decimal? AnnualizedCost { get; set; }
     public DateOnly? SalaryEffectiveFrom { get; set; }

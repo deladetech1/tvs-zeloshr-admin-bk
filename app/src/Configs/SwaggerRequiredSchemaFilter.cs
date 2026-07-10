@@ -62,8 +62,8 @@ public sealed class SwaggerRequiredSchemaFilter : ISchemaFilter
         if (type == typeof(EmployeeIdentificationUpsertDto)
             || type == typeof(EmployeeIdentificationWriteDto))
         {
-            required.Add("id_type_id");
-            required.Add("id_number");
+            required.Add("id_card_type_id");
+            required.Add("id_card_type_number");
         }
 
         if (type == typeof(CreateCustomFieldDefinitionDto))

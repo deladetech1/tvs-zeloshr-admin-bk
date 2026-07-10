@@ -189,11 +189,16 @@ public class EmployeeRegistrationTests
         };
         _employees.GetByIdScopedForUpdateAsync(id, TestDefaults.TenantId, TestDefaults.OrgId, Arg.Any<CancellationToken>())
             .Returns(entity);
-        _currencies.GetDefaultAsync(TestDefaults.TenantId, Arg.Any<CancellationToken>())
-            .Returns(new CpCurrencyDto("cur-ghs", "Ghana Cedi", "GHS", "₵", true));
+        _currencies.ExistsAsync("cur-ghs", TestDefaults.TenantId, Arg.Any<CancellationToken>())
+            .Returns(true);
 
         var result = await _sut.UpdateCompensationAsync(
-            id, new CreateEmployeeRequest { GrossSalary = 1000m, PayFrequency = "Monthly" });
+            id, new CreateEmployeeRequest
+            {
+                GrossSalary = 1000m,
+                PayFrequency = "Monthly",
+                CurrencyId = "cur-ghs",
+            });
 
         result.Data!.AnnualizedCost.Should().Be(12000m);
     }
@@ -233,17 +238,22 @@ public class EmployeeRegistrationTests
         };
         _employees.GetByIdScopedForUpdateAsync(id, TestDefaults.TenantId, TestDefaults.OrgId, Arg.Any<CancellationToken>())
             .Returns(entity);
-        _currencies.GetDefaultAsync(TestDefaults.TenantId, Arg.Any<CancellationToken>())
-            .Returns(new CpCurrencyDto("cur-ghs", "Ghana Cedi", "GHS", "₵", true));
+        _currencies.ExistsAsync("cur-ghs", TestDefaults.TenantId, Arg.Any<CancellationToken>())
+            .Returns(true);
 
         var result = await _sut.UpdateCompensationAsync(
-            id, new CreateEmployeeRequest { GrossSalary = 1000m, PayFrequency = "bi-weekly" });
+            id, new CreateEmployeeRequest
+            {
+                GrossSalary = 1000m,
+                PayFrequency = "bi-weekly",
+                CurrencyId = "cur-ghs",
+            });
 
         result.Data!.AnnualizedCost.Should().Be(26000m);
     }
 
     [Fact]
-    public async Task FinaliseEmployee_WithDraft_SetsIsDraftFalse_AndLifecycleToPreHire()
+    public async Task FinaliseEmployee_WithDraftStatus_PreservesDraftLifecycle()
     {
         var id = Guid.NewGuid();
         var entity = new EmployeeEntity
@@ -256,6 +266,7 @@ public class EmployeeRegistrationTests
             DepartmentId = Guid.NewGuid(),
             UserId = "u-existing",
             IsDraft = true,
+            EmploymentStatus = EmploymentStatusValues.Draft,
         };
         _employees.GetByIdScopedForUpdateAsync(id, TestDefaults.TenantId, TestDefaults.OrgId, Arg.Any<CancellationToken>())
             .Returns(entity);
@@ -272,9 +283,33 @@ public class EmployeeRegistrationTests
         var result = await _sut.FinaliseAsync(id);
 
         result.Data!.IsDraft.Should().BeFalse();
-        result.Data.LifecycleStatus.Should().Be("pre_hire");
+        result.Data.LifecycleStatus.Should().Be("draft");
         result.Data.UserId.Should().Be("u-existing");
         entity.IsDraft.Should().BeFalse();
+        entity.EmploymentStatus.Should().Be(EmploymentStatusValues.Draft);
+        entity.LifecycleState.Should().Be(EmployeeLifecycleStates.Draft);
+    }
+
+    [Fact]
+    public async Task FinaliseEmployee_WithoutEmploymentStatus_ReturnsValidationError()
+    {
+        var id = Guid.NewGuid();
+        var entity = new EmployeeEntity
+        {
+            Id = id,
+            TenantId = TestDefaults.TenantId,
+            OrgId = TestDefaults.OrgId,
+            FullName = "Ada",
+            UserId = "u-existing",
+            IsDraft = true,
+        };
+        _employees.GetByIdScopedForUpdateAsync(id, TestDefaults.TenantId, TestDefaults.OrgId, Arg.Any<CancellationToken>())
+            .Returns(entity);
+
+        var result = await _sut.FinaliseAsync(id);
+
+        result.Success.Should().BeFalse();
+        result.FieldErrors.Should().ContainKey("employment.employment_status");
     }
 
     [Fact]

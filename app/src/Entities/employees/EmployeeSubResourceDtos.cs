@@ -62,28 +62,28 @@ public sealed record EmployeeCertificationUpsertDto(
 /// <summary>Identification row on <c>GET /employees/get</c> (<c>identity.identifications[]</c>).</summary>
 public sealed record EmployeeIdentificationDto(
     Guid Id,
-    Guid IdTypeId,
-    string? IdTypeName,
-    string IdNumber,
-    DateOnly? IdIssueDate,
-    DateOnly? IdExpiryDate,
+    Guid IdCardTypeId,
+    string? IdCardTypeName,
+    string IdCardTypeNumber,
+    DateOnly? IdCardTypeIssueDate,
+    DateOnly? IdCardTypeExpiryDate,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);
 
-/// <summary>Government / company ID document. <c>id_type_id</c> from <c>GET /id-card-types/list</c>.</summary>
+/// <summary>Government / company ID document. <c>id_card_type_id</c> from <c>GET /id-card-types/list</c>.</summary>
 public sealed record EmployeeIdentificationWriteDto(
-    Guid IdTypeId,
-    string IdNumber,
-    DateOnly? IdIssueDate,
-    DateOnly? IdExpiryDate);
+    Guid IdCardTypeId,
+    string IdCardTypeNumber,
+    DateOnly? IdCardTypeIssueDate,
+    DateOnly? IdCardTypeExpiryDate);
 
 /// <summary>Include <c>id</c> from GET to update; omit to add. Use <c>sync_identifications: true</c> on PUT for full-array replace.</summary>
 public sealed record EmployeeIdentificationUpsertDto(
     Guid? Id,
-    Guid IdTypeId,
-    string IdNumber,
-    DateOnly? IdIssueDate,
-    DateOnly? IdExpiryDate);
+    Guid IdCardTypeId,
+    string IdCardTypeNumber,
+    DateOnly? IdCardTypeIssueDate,
+    DateOnly? IdCardTypeExpiryDate);
 
 public sealed record EmployeeWizardDocumentDto(
     Guid Id,
