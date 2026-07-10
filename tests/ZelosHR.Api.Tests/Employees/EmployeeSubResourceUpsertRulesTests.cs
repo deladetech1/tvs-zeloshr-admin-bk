@@ -90,7 +90,7 @@ public sealed class EmployeeSubResourceUpsertRulesTests
     }
 
     [Fact]
-    public void ValidateDuplicateIdTypeIds_identification_rejects_repeated_type()
+    public void ValidateDuplicateIdCardTypeIds_identification_rejects_repeated_type()
     {
         var typeId = Guid.Parse("753e2b9a-2322-4154-3456-98b8de5a4df5");
         var items = new[]
@@ -99,10 +99,10 @@ public sealed class EmployeeSubResourceUpsertRulesTests
             new EmployeeIdentificationUpsertDto(null, typeId, "GHA-2", null, null),
         };
 
-        var errors = EmployeeSubResourceUpsertRules.ValidateDuplicateIdTypeIds(items);
+        var errors = EmployeeSubResourceUpsertRules.ValidateDuplicateIdCardTypeIds(items);
 
         errors.Should().NotBeNull();
-        errors!.Should().ContainKey("identity.identifications[1].id_type_id");
+        errors!.Should().ContainKey("identity.identifications[1].id_card_type_id");
     }
 
     private static readonly Guid SampleIdCardTypeId1 = Guid.Parse("753e2b9a-2322-4154-3456-98b8de5a4df5");

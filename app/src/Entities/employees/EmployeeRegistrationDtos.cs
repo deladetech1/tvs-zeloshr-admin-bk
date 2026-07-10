@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace ZelosHR.Api.Entities.Employees;
 
 public sealed record CreateEmployeeRequest
@@ -5,7 +7,12 @@ public sealed record CreateEmployeeRequest
     public string FullName { get; init; } = string.Empty;
     public DateOnly? DateOfBirth { get; init; }
     public string? Gender { get; init; }
+    [JsonPropertyName("country")]
     public string? Country { get; init; }
+    public string? MaritalStatus { get; init; }
+    public string? NextOfKinName { get; init; }
+    public string? NextOfKinPhone { get; init; }
+    public string? RelationshipToNextOfKin { get; init; }
     public string? IdType { get; init; }
     public DateOnly? IdIssueDate { get; init; }
     public DateOnly? IdExpiryDate { get; init; }
@@ -31,6 +38,7 @@ public sealed record CreateEmployeeRequest
     public Guid? ReportsToId { get; init; }
     public Guid? DottedLineManagerId { get; init; }
     public decimal? GrossSalary { get; init; }
+    public decimal? NetSalary { get; init; }
     public string? PayFrequency { get; init; }
     public DateOnly? SalaryEffectiveFrom { get; init; }
     public string? CurrencyId { get; init; }

@@ -457,8 +457,11 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             case nameof(EmployeeAggregateIdentityDto.Phone):
                 schema.Example = JsonValue.Create("+233201234567");
                 return;
-            case "Country" when property.DeclaringType == typeof(EmployeeAggregateIdentityDto):
+            case "Country" when property.DeclaringType == typeof(EmployeeAggregateIdentityDto)
+                              || property.DeclaringType == typeof(EmployeeAggregateIdentityReadDto):
                 schema.Example = JsonValue.Create("Ghana");
+                schema.Description = AppendDescription(schema.Description,
+                    "Display name from GET /countries/list (e.g. Ghana). Wire: country — not country_id (catalog id is metadata only).");
                 return;
             case nameof(EmployeeAggregateIdentityDto.LinkedInUrl):
                 schema.Example = JsonValue.Create("https://linkedin.com/in/adalovelace");

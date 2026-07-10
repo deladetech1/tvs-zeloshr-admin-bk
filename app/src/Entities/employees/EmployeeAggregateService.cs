@@ -26,6 +26,7 @@ public sealed class EmployeeAggregateService
     private readonly ZelosHrDbContext _db;
     private readonly EmployeeRegistrationService _registration;
     private readonly EmployeeSubResourcesService _subResources;
+    private readonly EmployeeExtendedProfileService _extended;
     private readonly IEmployeeRepository _employees;
     private readonly ICpUserRepository _cpUsers;
     private readonly IDepartmentRepository _departments;
@@ -44,6 +45,7 @@ public sealed class EmployeeAggregateService
         ZelosHrDbContext db,
         EmployeeRegistrationService registration,
         EmployeeSubResourcesService subResources,
+        EmployeeExtendedProfileService extended,
         IEmployeeRepository employees,
         ICpUserRepository cpUsers,
         IDepartmentRepository departments,
@@ -61,6 +63,7 @@ public sealed class EmployeeAggregateService
         _db = db;
         _registration = registration;
         _subResources = subResources;
+        _extended = extended;
         _employees = employees;
         _cpUsers = cpUsers;
         _departments = departments;
@@ -212,6 +215,72 @@ public sealed class EmployeeAggregateService
                 }
             }
 
+            if (request.Identity.Emergency is { Count: > 0 })
+            {
+                var emergencyError = await EmployeeAggregateExtendedSync.ApplyEmergencyCreateAsync(
+                    _extended, employeeId, request.Identity.Emergency, ct);
+                if (emergencyError is not null)
+                {
+                    await RollbackCreateTransactionAsync(transaction, ct);
+                    return emergencyError;
+                }
+            }
+
+            if (request.Compensation?.Payment is { Count: > 0 })
+            {
+                var paymentError = await EmployeeAggregateExtendedSync.ApplyPaymentCreateAsync(
+                    _extended, employeeId, request.Compensation.Payment, ct);
+                if (paymentError is not null)
+                {
+                    await RollbackCreateTransactionAsync(transaction, ct);
+                    return paymentError;
+                }
+            }
+
+            if (request.Medical is not null)
+            {
+                var medicalError = await EmployeeAggregateExtendedSync.ApplyMedicalCreateAsync(
+                    _extended, employeeId, request.Medical, ct);
+                if (medicalError is not null)
+                {
+                    await RollbackCreateTransactionAsync(transaction, ct);
+                    return medicalError;
+                }
+            }
+
+            if (request.Skills.Count > 0)
+            {
+                var skillsError = await EmployeeAggregateExtendedSync.ApplySkillsCreateAsync(
+                    _extended, employeeId, request.Skills, ct);
+                if (skillsError is not null)
+                {
+                    await RollbackCreateTransactionAsync(transaction, ct);
+                    return skillsError;
+                }
+            }
+
+            if (request.Experiences.Count > 0)
+            {
+                var experiencesError = await EmployeeAggregateExtendedSync.ApplyExperiencesCreateAsync(
+                    _extended, employeeId, request.Experiences, ct);
+                if (experiencesError is not null)
+                {
+                    await RollbackCreateTransactionAsync(transaction, ct);
+                    return experiencesError;
+                }
+            }
+
+            if (request.Referrals.Count > 0)
+            {
+                var referralsError = await EmployeeAggregateExtendedSync.ApplyReferralsCreateAsync(
+                    _extended, employeeId, request.Referrals, ct);
+                if (referralsError is not null)
+                {
+                    await RollbackCreateTransactionAsync(transaction, ct);
+                    return referralsError;
+                }
+            }
+
             if (request.DocumentIds is { Count: > 0 })
             {
                 var entity = await _employees.GetByIdScopedForUpdateAsync(
@@ -237,6 +306,15 @@ public sealed class EmployeeAggregateService
                 {
                     await RollbackCreateTransactionAsync(transaction, ct);
                     return MapError<EmployeeAggregateReadDto>(finalised);
+                }
+            }
+            else if (request.IsDraft)
+            {
+                var draftError = await EnsureDraftFlagAsync(employeeId, ct);
+                if (draftError is not null)
+                {
+                    await RollbackCreateTransactionAsync(transaction, ct);
+                    return draftError;
                 }
             }
 
@@ -385,7 +463,7 @@ public sealed class EmployeeAggregateService
                 }
 
                 var identificationTypeDupErrors = request.Identity.Identifications.Count > 0
-                    ? EmployeeSubResourceUpsertRules.ValidateDuplicateIdTypeIds(request.Identity.Identifications)
+                    ? EmployeeSubResourceUpsertRules.ValidateDuplicateIdCardTypeIds(request.Identity.Identifications)
                     : null;
                 if (identificationTypeDupErrors is not null)
                 {
@@ -644,6 +722,48 @@ public sealed class EmployeeAggregateService
                 }
             }
 
+            var emergencyUpdateError = await SyncEmergencySectionAsync(employeeId, request, ct);
+            if (emergencyUpdateError is not null)
+            {
+                await transaction.RollbackAsync(ct);
+                return emergencyUpdateError;
+            }
+
+            var paymentUpdateError = await SyncPaymentSectionAsync(employeeId, request, ct);
+            if (paymentUpdateError is not null)
+            {
+                await transaction.RollbackAsync(ct);
+                return paymentUpdateError;
+            }
+
+            var medicalUpdateError = await SyncMedicalSectionAsync(employeeId, request, ct);
+            if (medicalUpdateError is not null)
+            {
+                await transaction.RollbackAsync(ct);
+                return medicalUpdateError;
+            }
+
+            var skillsUpdateError = await SyncSkillsSectionAsync(employeeId, request, ct);
+            if (skillsUpdateError is not null)
+            {
+                await transaction.RollbackAsync(ct);
+                return skillsUpdateError;
+            }
+
+            var experiencesUpdateError = await SyncExperiencesSectionAsync(employeeId, request, ct);
+            if (experiencesUpdateError is not null)
+            {
+                await transaction.RollbackAsync(ct);
+                return experiencesUpdateError;
+            }
+
+            var referralsUpdateError = await SyncReferralsSectionAsync(employeeId, request, ct);
+            if (referralsUpdateError is not null)
+            {
+                await transaction.RollbackAsync(ct);
+                return referralsUpdateError;
+            }
+
             if (request.DeleteDocumentIds is { Count: > 0 })
             {
                 var entity = await _employees.GetByIdScopedForUpdateAsync(
@@ -684,6 +804,15 @@ public sealed class EmployeeAggregateService
                 {
                     await transaction.RollbackAsync(ct);
                     return MapError<EmployeeAggregateReadDto>(finalised);
+                }
+            }
+            else if (request.IsDraft)
+            {
+                var draftError = await EnsureDraftFlagAsync(employeeId, ct);
+                if (draftError is not null)
+                {
+                    await transaction.RollbackAsync(ct);
+                    return draftError;
                 }
             }
 
@@ -752,6 +881,13 @@ public sealed class EmployeeAggregateService
         if (identifications.ErrorResponse is { } identificationError)
             return identificationError;
 
+        var emergency = await _extended.ListEmergencyAsync(id, ct);
+        var payment = await _extended.ListPaymentAsync(id, ct);
+        var medical = await _extended.GetMedicalAsync(id, ct);
+        var skills = await _extended.ListSkillsAsync(id, ct);
+        var experiences = await _extended.ListExperiencesAsync(id, ct);
+        var referrals = await _extended.ListReferralsAsync(id, ct);
+
         var fullName = EmployeeIdentityResolver.ResolveFullName(entity, cp);
         var workEmail = EmployeeIdentityResolver.ResolveWorkEmail(entity, cp);
         var storedProfileRef = EmployeeIdentityResolver.ResolveStoredProfileReference(entity, cp);
@@ -786,6 +922,7 @@ public sealed class EmployeeAggregateService
             ct);
 
         var reportsTo = await ResolveReportsToDisplayAsync(entity, ct);
+        var secondaryReportsTo = await ResolveSecondaryReportsToDisplayAsync(entity, ct);
         var employmentType = await ResolveEmploymentTypeDisplayAsync(entity, ct);
 
         var read = new EmployeeAggregateReadDto
@@ -800,11 +937,14 @@ public sealed class EmployeeAggregateService
                 workEmail,
                 profileUrl,
                 identificationItems,
+                emergency.Success && emergency.Data is { Count: > 0 } emergencyData ? emergencyData : null,
                 sections.Identity),
-            Employment = EmployeeAggregateReadMapper.BuildEmployment(entity, sections.Employment, reportsTo, employmentType),
+            Employment = EmployeeAggregateReadMapper.BuildEmployment(
+                entity, sections.Employment, reportsTo, secondaryReportsTo, employmentType),
             Compensation = EmployeeAggregateReadMapper.BuildCompensation(
                 entity,
                 sections.Compensation,
+                payment.Success && payment.Data is { Count: > 0 } paymentData ? paymentData : null,
                 currency?.Code,
                 currency?.Name,
                 currency?.Symbol),
@@ -820,6 +960,12 @@ public sealed class EmployeeAggregateService
                     CustomFields = EmployeeAggregateReadMapper.CustomFieldsOrNull(sections.Certification),
                 })
                 .ToList(),
+            Medical = medical.Success
+                ? EmployeeAggregateReadMapper.BuildMedical(medical.Data)
+                : null,
+            Skills = skills.Success && skills.Data is { Count: > 0 } skillData ? skillData : null,
+            Experiences = experiences.Success && experiences.Data is { Count: > 0 } experienceData ? experienceData : null,
+            Referrals = referrals.Success && referrals.Data is { Count: > 0 } referralData ? referralData : null,
             Documents = EmployeeAggregateReadMapper.DocumentsOrNull(documentIds),
             CreatedAt = entity.CreatedAt,
             UpdatedAt = entity.UpdatedAt,
@@ -938,11 +1084,33 @@ public sealed class EmployeeAggregateService
         || request.Compensation is not null
         || request.Education is not null
         || request.Certifications is not null
+        || request.Medical is not null
+        || request.Skills is not null
+        || request.Experiences is not null
+        || request.Referrals is not null
         || request.DeleteEducationIds is { Count: > 0 }
         || request.DeleteCertificationIds is { Count: > 0 }
         || request.DeleteIdentificationIds is { Count: > 0 }
+        || request.DeleteEmergencyIds is { Count: > 0 }
+        || request.DeletePaymentIds is { Count: > 0 }
+        || request.DeleteMedicalConditionIds is { Count: > 0 }
+        || request.DeleteAllergyIds is { Count: > 0 }
+        || request.DeleteMedicationIds is { Count: > 0 }
+        || request.DeleteSkillIds is { Count: > 0 }
+        || request.DeleteExperienceIds is { Count: > 0 }
+        || request.DeleteReferralIds is { Count: > 0 }
         || request.SyncIdentifications
+        || request.SyncEmergency
+        || request.SyncPayment
+        || request.SyncMedicalConditions
+        || request.SyncAllergies
+        || request.SyncMedications
+        || request.SyncSkills
+        || request.SyncExperiences
+        || request.SyncReferrals
         || request.Identity?.Identifications is not null
+        || request.Identity?.Emergency is not null
+        || request.Compensation?.Payment is not null
         || request.DeleteDocumentIds is { Count: > 0 }
         || request.DocumentIds is { Count: > 0 }
         || HasSectionCustomFields(request);
@@ -968,6 +1136,11 @@ public sealed class EmployeeAggregateService
         || identity.DateOfBirth is not null
         || !string.IsNullOrWhiteSpace(identity.Gender)
         || !string.IsNullOrWhiteSpace(identity.Country)
+        || !string.IsNullOrWhiteSpace(identity.MaritalStatus)
+        || !string.IsNullOrWhiteSpace(identity.NextOfKinName)
+        || !string.IsNullOrWhiteSpace(identity.NextOfKinPhone)
+        || !string.IsNullOrWhiteSpace(identity.RelationshipToNextOfKin)
+        || identity.Emergency is not null
         || !string.IsNullOrWhiteSpace(identity.PersonalEmail)
         || !string.IsNullOrWhiteSpace(identity.WorkEmail)
         || !string.IsNullOrWhiteSpace(identity.Phone)
@@ -1083,6 +1256,16 @@ public sealed class EmployeeAggregateService
             resolved.Type);
     }
 
+    private async Task<ReportsToDisplay?> ResolveSecondaryReportsToDisplayAsync(
+        EmployeeEntity entity,
+        CancellationToken ct)
+    {
+        if (!entity.DottedLineManagerId.HasValue)
+            return null;
+
+        return await ResolveManagerDisplayAsync(entity.DottedLineManagerId.Value, entity.DottedLineManager, ct);
+    }
+
     private async Task<ReportsToDisplay?> ResolveReportsToDisplayAsync(
         EmployeeEntity entity,
         CancellationToken ct)
@@ -1092,27 +1275,400 @@ public sealed class EmployeeAggregateService
 
         var reportsTo = entity.ReportsTo
             ?? (entity.ManagerId == entity.ReportsToId ? entity.Manager : null);
-        if (reportsTo is null)
-        {
-            reportsTo = await _employees.GetByIdScopedAsync(
-                entity.ReportsToId.Value, _tenant.TenantId, _tenant.OrgId, ct);
-        }
 
-        if (reportsTo is null)
+        return await ResolveManagerDisplayAsync(entity.ReportsToId.Value, reportsTo, ct);
+    }
+
+    private async Task<ReportsToDisplay?> ResolveManagerDisplayAsync(
+        Guid managerId,
+        EmployeeEntity? manager,
+        CancellationToken ct)
+    {
+        manager ??= await _employees.GetByIdScopedAsync(managerId, _tenant.TenantId, _tenant.OrgId, ct);
+        if (manager is null)
             return null;
 
-        CpUserDto? reportsToCp = null;
-        if (!string.IsNullOrWhiteSpace(reportsTo.UserId))
-            reportsToCp = await _cpUsers.GetByIdAsync(reportsTo.UserId, _tenant.TenantId, ct);
+        CpUserDto? managerCp = null;
+        if (!string.IsNullOrWhiteSpace(manager.UserId))
+            managerCp = await _cpUsers.GetByIdAsync(manager.UserId, _tenant.TenantId, ct);
 
-        var photoRef = EmployeeIdentityResolver.ResolveStoredProfileReference(reportsTo, reportsToCp);
+        var photoRef = EmployeeIdentityResolver.ResolveStoredProfileReference(manager, managerCp);
         var photoUrl = await _profileUrls.ResolveDocumentReadAsync(photoRef, ct);
 
         return new ReportsToDisplay(
-            entity.ReportsToId.Value,
-            EmployeeIdentityResolver.ResolveFullName(reportsTo, reportsToCp),
-            reportsTo.JobTitle,
+            managerId,
+            EmployeeIdentityResolver.ResolveFullName(manager, managerCp),
+            manager.JobTitle,
             photoUrl);
+    }
+
+    private async Task<Respons<EmployeeAggregateReadDto>?> SyncEmergencySectionAsync(
+        Guid employeeId,
+        UpdateEmployeeAggregateRequest request,
+        CancellationToken ct)
+    {
+        if (request.DeleteEmergencyIds is { Count: > 0 })
+        {
+            foreach (var rowId in request.DeleteEmergencyIds)
+            {
+                var deleted = await _extended.DeleteEmergencyAsync(employeeId, rowId, ct);
+                if (!deleted.Success)
+                    return FailSync<EmployeeAggregateReadDto>(deleted, "Could not delete emergency contact.");
+            }
+        }
+
+        if (request.Identity?.Emergency is null)
+            return null;
+
+        return await SyncSimpleArrayAsync(
+            request.Identity.Emergency,
+            request.SyncEmergency,
+            () => _extended.ListEmergencyAsync(employeeId, ct),
+            i => i.Id,
+            r => r.Id,
+            (write) => _extended.AddEmergencyAsync(employeeId, write, ct),
+            (id, write) => _extended.UpdateEmergencyAsync(employeeId, id, write, ct),
+            id => _extended.DeleteEmergencyAsync(employeeId, id, ct),
+            EmployeeExtendedProfileService.ToEmergencyWrite,
+            "identity.emergency",
+            ct);
+    }
+
+    private async Task<Respons<EmployeeAggregateReadDto>?> SyncPaymentSectionAsync(
+        Guid employeeId,
+        UpdateEmployeeAggregateRequest request,
+        CancellationToken ct)
+    {
+        if (request.DeletePaymentIds is { Count: > 0 })
+        {
+            foreach (var rowId in request.DeletePaymentIds)
+            {
+                var deleted = await _extended.DeletePaymentAsync(employeeId, rowId, ct);
+                if (!deleted.Success)
+                    return FailSync<EmployeeAggregateReadDto>(deleted, "Could not delete payment method.");
+            }
+        }
+
+        if (request.Compensation?.Payment is null)
+            return null;
+
+        return await SyncSimpleArrayAsync(
+            request.Compensation.Payment,
+            request.SyncPayment,
+            () => _extended.ListPaymentAsync(employeeId, ct),
+            i => i.Id,
+            r => r.Id,
+            (write) => _extended.AddPaymentAsync(employeeId, write, ct),
+            (id, write) => _extended.UpdatePaymentAsync(employeeId, id, write, ct),
+            id => _extended.DeletePaymentAsync(employeeId, id, ct),
+            EmployeeExtendedProfileService.ToPaymentWrite,
+            "compensation.payment",
+            ct);
+    }
+
+    private async Task<Respons<EmployeeAggregateReadDto>?> SyncMedicalSectionAsync(
+        Guid employeeId,
+        UpdateEmployeeAggregateRequest request,
+        CancellationToken ct)
+    {
+        if (request.Medical is not null && EmployeeAggregateExtendedSync.HasMedicalScalars(request.Medical))
+        {
+            var profile = await _extended.UpsertMedicalScalarsAsync(employeeId, request.Medical, ct);
+            if (!profile.Success)
+                return MapNestedError<EmployeeAggregateReadDto>(profile.StatusCode, profile.Error, profile.Detail, profile.FieldErrors);
+        }
+
+        if (request.DeleteMedicalConditionIds is { Count: > 0 })
+        {
+            foreach (var rowId in request.DeleteMedicalConditionIds)
+            {
+                var deleted = await _extended.DeleteMedicalConditionAsync(employeeId, rowId, ct);
+                if (!deleted.Success)
+                    return FailSync<EmployeeAggregateReadDto>(deleted, "Could not delete medical condition.");
+            }
+        }
+
+        if (request.Medical?.MedicalConditions is not null)
+        {
+            var error = await SyncSimpleArrayAsync(
+                request.Medical.MedicalConditions,
+                request.SyncMedicalConditions,
+                () => ListMedicalConditionsAsync(employeeId, ct),
+                i => i.Id,
+                r => r.Id,
+                write => _extended.AddMedicalConditionAsync(employeeId, write, ct),
+                (id, write) => _extended.UpdateMedicalConditionAsync(employeeId, id, write, ct),
+                id => _extended.DeleteMedicalConditionAsync(employeeId, id, ct),
+                EmployeeExtendedProfileService.ToMedicalConditionWrite,
+                "medical.medical_conditions",
+                ct);
+            if (error is not null)
+                return error;
+        }
+
+        if (request.DeleteAllergyIds is { Count: > 0 })
+        {
+            foreach (var rowId in request.DeleteAllergyIds)
+            {
+                var deleted = await _extended.DeleteAllergyAsync(employeeId, rowId, ct);
+                if (!deleted.Success)
+                    return FailSync<EmployeeAggregateReadDto>(deleted, "Could not delete allergy.");
+            }
+        }
+
+        if (request.Medical?.Allergies is not null)
+        {
+            var error = await SyncSimpleArrayAsync(
+                request.Medical.Allergies,
+                request.SyncAllergies,
+                () => ListMedicalAllergiesAsync(employeeId, ct),
+                i => i.Id,
+                r => r.Id,
+                write => _extended.AddAllergyAsync(employeeId, write, ct),
+                (id, write) => _extended.UpdateAllergyAsync(employeeId, id, write, ct),
+                id => _extended.DeleteAllergyAsync(employeeId, id, ct),
+                EmployeeExtendedProfileService.ToAllergyWrite,
+                "medical.allergies",
+                ct);
+            if (error is not null)
+                return error;
+        }
+
+        if (request.DeleteMedicationIds is { Count: > 0 })
+        {
+            foreach (var rowId in request.DeleteMedicationIds)
+            {
+                var deleted = await _extended.DeleteMedicationAsync(employeeId, rowId, ct);
+                if (!deleted.Success)
+                    return FailSync<EmployeeAggregateReadDto>(deleted, "Could not delete medication.");
+            }
+        }
+
+        if (request.Medical?.Medications is not null)
+        {
+            var error = await SyncSimpleArrayAsync(
+                request.Medical.Medications,
+                request.SyncMedications,
+                () => ListMedicalMedicationsAsync(employeeId, ct),
+                i => i.Id,
+                r => r.Id,
+                write => _extended.AddMedicationAsync(employeeId, write, ct),
+                (id, write) => _extended.UpdateMedicationAsync(employeeId, id, write, ct),
+                id => _extended.DeleteMedicationAsync(employeeId, id, ct),
+                EmployeeExtendedProfileService.ToMedicationWrite,
+                "medical.medications",
+                ct);
+            if (error is not null)
+                return error;
+        }
+
+        return null;
+    }
+
+    private async Task<Respons<IReadOnlyList<EmployeeMedicalConditionDto>>> ListMedicalConditionsAsync(
+        Guid employeeId, CancellationToken ct)
+    {
+        var medical = await _extended.GetMedicalAsync(employeeId, ct);
+        if (!medical.Success)
+            return Respons<IReadOnlyList<EmployeeMedicalConditionDto>>.Fail(medical.Error ?? medical.Detail ?? "Could not load medical.", statusCode: medical.StatusCode);
+        return Respons<IReadOnlyList<EmployeeMedicalConditionDto>>.Ok(medical.Data?.MedicalConditions ?? Array.Empty<EmployeeMedicalConditionDto>());
+    }
+
+    private async Task<Respons<IReadOnlyList<EmployeeAllergyDto>>> ListMedicalAllergiesAsync(
+        Guid employeeId, CancellationToken ct)
+    {
+        var medical = await _extended.GetMedicalAsync(employeeId, ct);
+        if (!medical.Success)
+            return Respons<IReadOnlyList<EmployeeAllergyDto>>.Fail(medical.Error ?? medical.Detail ?? "Could not load medical.", statusCode: medical.StatusCode);
+        return Respons<IReadOnlyList<EmployeeAllergyDto>>.Ok(medical.Data?.Allergies ?? Array.Empty<EmployeeAllergyDto>());
+    }
+
+    private async Task<Respons<IReadOnlyList<EmployeeMedicationDto>>> ListMedicalMedicationsAsync(
+        Guid employeeId, CancellationToken ct)
+    {
+        var medical = await _extended.GetMedicalAsync(employeeId, ct);
+        if (!medical.Success)
+            return Respons<IReadOnlyList<EmployeeMedicationDto>>.Fail(medical.Error ?? medical.Detail ?? "Could not load medical.", statusCode: medical.StatusCode);
+        return Respons<IReadOnlyList<EmployeeMedicationDto>>.Ok(medical.Data?.Medications ?? Array.Empty<EmployeeMedicationDto>());
+    }
+
+    private async Task<Respons<EmployeeAggregateReadDto>?> SyncSkillsSectionAsync(
+        Guid employeeId,
+        UpdateEmployeeAggregateRequest request,
+        CancellationToken ct)
+    {
+        if (request.DeleteSkillIds is { Count: > 0 })
+        {
+            foreach (var rowId in request.DeleteSkillIds)
+            {
+                var deleted = await _extended.DeleteSkillAsync(employeeId, rowId, ct);
+                if (!deleted.Success)
+                    return FailSync<EmployeeAggregateReadDto>(deleted, "Could not delete skill.");
+            }
+        }
+
+        if (request.Skills is null)
+            return null;
+
+        return await SyncSimpleArrayAsync(
+            request.Skills,
+            request.SyncSkills,
+            () => _extended.ListSkillsAsync(employeeId, ct),
+            i => i.Id,
+            r => r.Id,
+            write => _extended.AddSkillAsync(employeeId, write, ct),
+            (id, write) => _extended.UpdateSkillAsync(employeeId, id, write, ct),
+            id => _extended.DeleteSkillAsync(employeeId, id, ct),
+            EmployeeExtendedProfileService.ToSkillWrite,
+            "skills",
+            ct);
+    }
+
+    private async Task<Respons<EmployeeAggregateReadDto>?> SyncExperiencesSectionAsync(
+        Guid employeeId,
+        UpdateEmployeeAggregateRequest request,
+        CancellationToken ct)
+    {
+        if (request.DeleteExperienceIds is { Count: > 0 })
+        {
+            foreach (var rowId in request.DeleteExperienceIds)
+            {
+                var deleted = await _extended.DeleteExperienceAsync(employeeId, rowId, ct);
+                if (!deleted.Success)
+                    return FailSync<EmployeeAggregateReadDto>(deleted, "Could not delete experience.");
+            }
+        }
+
+        if (request.Experiences is null)
+            return null;
+
+        return await SyncSimpleArrayAsync(
+            request.Experiences,
+            request.SyncExperiences,
+            () => _extended.ListExperiencesAsync(employeeId, ct),
+            i => i.Id,
+            r => r.Id,
+            write => _extended.AddExperienceAsync(employeeId, write, ct),
+            (id, write) => _extended.UpdateExperienceAsync(employeeId, id, write, ct),
+            id => _extended.DeleteExperienceAsync(employeeId, id, ct),
+            EmployeeExtendedProfileService.ToExperienceWrite,
+            "experiences",
+            ct);
+    }
+
+    private async Task<Respons<EmployeeAggregateReadDto>?> SyncReferralsSectionAsync(
+        Guid employeeId,
+        UpdateEmployeeAggregateRequest request,
+        CancellationToken ct)
+    {
+        if (request.DeleteReferralIds is { Count: > 0 })
+        {
+            foreach (var rowId in request.DeleteReferralIds)
+            {
+                var deleted = await _extended.DeleteReferralAsync(employeeId, rowId, ct);
+                if (!deleted.Success)
+                    return FailSync<EmployeeAggregateReadDto>(deleted, "Could not delete referral.");
+            }
+        }
+
+        if (request.Referrals is null)
+            return null;
+
+        return await SyncSimpleArrayAsync(
+            request.Referrals,
+            request.SyncReferrals,
+            () => _extended.ListReferralsAsync(employeeId, ct),
+            i => i.Id,
+            r => r.Id,
+            write => _extended.AddReferralAsync(employeeId, write, ct),
+            (id, write) => _extended.UpdateReferralAsync(employeeId, id, write, ct),
+            id => _extended.DeleteReferralAsync(employeeId, id, ct),
+            EmployeeExtendedProfileService.ToReferralWrite,
+            "referrals",
+            ct);
+    }
+
+    private async Task<Respons<EmployeeAggregateReadDto>?> SyncSimpleArrayAsync<TUpsert, TDto, TWrite>(
+        IReadOnlyList<TUpsert> items,
+        bool sync,
+        Func<Task<Respons<IReadOnlyList<TDto>>>> listAsync,
+        Func<TUpsert, Guid?> getId,
+        Func<TDto, Guid> getDtoId,
+        Func<TWrite, Task<Respons<TDto>>> addAsync,
+        Func<Guid, TWrite, Task<Respons<TDto>>> updateAsync,
+        Func<Guid, Task<Respons<object>>> deleteAsync,
+        Func<TUpsert, TWrite> toWrite,
+        string fieldPrefix,
+        CancellationToken ct)
+    {
+        var dupErrors = items.Count > 0
+            ? EmployeeSubResourceUpsertRules.ValidateDuplicateIds(items, fieldPrefix, getId)
+            : null;
+        if (dupErrors is not null)
+            return Respons<EmployeeAggregateReadDto>.ValidationError(dupErrors);
+
+        var existing = await listAsync();
+        var existingRows = existing.Success && existing.Data is not null
+            ? existing.Data
+            : Array.Empty<TDto>();
+        var existingIds = existingRows.Select(getDtoId).ToHashSet();
+        var preservedIds = new HashSet<Guid>();
+
+        for (var i = 0; i < items.Count; i++)
+        {
+            var item = items[i];
+            var write = toWrite(item);
+            var id = getId(item);
+            var result = EmployeeSubResourceUpsertRules.ShouldUpdateExisting(id, existingIds)
+                ? await updateAsync(id!.Value, write)
+                : await addAsync(write);
+            if (!result.Success)
+                return MapIndexedRowError<EmployeeAggregateReadDto, TDto>(result, $"{fieldPrefix}[{i}]");
+
+            preservedIds.Add(getDtoId(result.Data!));
+        }
+
+        if (sync)
+        {
+            foreach (var row in existingRows)
+            {
+                var rowId = getDtoId(row);
+                if (preservedIds.Contains(rowId))
+                    continue;
+
+                var deleted = await deleteAsync(rowId);
+                if (!deleted.Success)
+                    return FailSync<EmployeeAggregateReadDto>(deleted, $"Could not remove {fieldPrefix} row during sync.");
+            }
+        }
+
+        return null;
+    }
+
+    private static Respons<T> FailSync<T>(Respons<object> source, string fallback) =>
+        Respons<T>.Fail(source.Error ?? source.Detail ?? fallback, statusCode: source.StatusCode);
+
+    private static Respons<T> MapIndexedRowError<T, TItem>(Respons<TItem> source, string prefix)
+    {
+        if (source.StatusCode == 404)
+        {
+            return Respons<T>.ValidationError(
+                new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    [$"{prefix}.id"] = "Row not found for this employee.",
+                },
+                source.Error ?? source.Detail);
+        }
+
+        if (source.FieldErrors is { Count: > 0 })
+        {
+            var remapped = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var (key, message) in source.FieldErrors)
+                remapped[$"{prefix}.{key}"] = message;
+            return Respons<T>.ValidationError(remapped, source.Error ?? source.Detail);
+        }
+
+        return Respons<T>.Fail(source.Error ?? source.Detail ?? "Request failed.", statusCode: source.StatusCode);
     }
 
     private static Dictionary<string, string>? ValidateUpdate(UpdateEmployeeAggregateRequest request)
@@ -1141,7 +1697,7 @@ public sealed class EmployeeAggregateService
         if (duplicateIdErrors is not null)
             return Respons<EmployeeAggregateReadDto>.ValidationError(duplicateIdErrors);
 
-        var duplicateTypeErrors = EmployeeSubResourceUpsertRules.ValidateDuplicateIdTypeIds(identifications);
+        var duplicateTypeErrors = EmployeeSubResourceUpsertRules.ValidateDuplicateIdCardTypeIds(identifications);
         if (duplicateTypeErrors is not null)
             return Respons<EmployeeAggregateReadDto>.ValidationError(duplicateTypeErrors);
 
@@ -1178,6 +1734,21 @@ public sealed class EmployeeAggregateService
         }
 
         return MapNestedError<T>(source.StatusCode, source.Error, source.Detail, source.FieldErrors);
+    }
+
+    private async Task<Respons<EmployeeAggregateReadDto>?> EnsureDraftFlagAsync(
+        Guid employeeId,
+        CancellationToken ct)
+    {
+        var entity = await _employees.GetByIdScopedForUpdateAsync(
+            employeeId, _tenant.TenantId, _tenant.OrgId, ct);
+        if (entity is null)
+            return Respons<EmployeeAggregateReadDto>.Fail("Employee not found.", statusCode: 404);
+
+        entity.IsDraft = true;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+        await _employees.UpdateAsync(entity, ct);
+        return null;
     }
 
     private async Task<Respons<EmployeeAggregateReadDto>?> ApplyEmploymentExtrasIfNeededAsync(

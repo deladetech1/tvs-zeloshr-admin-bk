@@ -188,33 +188,33 @@ public sealed class EmployeeSubResourcesService
     public async Task<Respons<EmployeeIdentificationDto>> AddIdentificationAsync(
         Guid employeeId, EmployeeIdentificationWriteDto dto, CancellationToken ct = default)
     {
-        if (dto.IdTypeId == Guid.Empty)
-            return ValidationIdentification("id_type_id", "id_type_id is required.");
+        if (dto.IdCardTypeId == Guid.Empty)
+            return ValidationIdentification("id_card_type_id", "id_card_type_id is required.");
 
-        if (string.IsNullOrWhiteSpace(dto.IdNumber))
-            return ValidationIdentification("id_number", "id_number is required.");
+        if (string.IsNullOrWhiteSpace(dto.IdCardTypeNumber))
+            return ValidationIdentification("id_card_type_number", "id_card_type_number is required.");
 
         if (!await _identifications.EmployeeExistsAsync(employeeId, _tenant.TenantId, _tenant.OrgId, ct))
             return Respons<EmployeeIdentificationDto>.Fail("Employee not found.", statusCode: 404);
 
         var idCardType = await _idCardTypes.GetEntityByIdScopedAsync(
-            dto.IdTypeId, _tenant.TenantId, _tenant.OrgId, ct);
+            dto.IdCardTypeId, _tenant.TenantId, _tenant.OrgId, ct);
         if (idCardType is null || !idCardType.IsActive)
-            return ValidationIdentification("id_type_id", "ID card type not found.");
+            return ValidationIdentification("id_card_type_id", "ID card type not found.");
 
         try
         {
-            if (await _identifications.ExistsForEmployeeAndTypeAsync(employeeId, dto.IdTypeId, excludeId: null, ct))
-                return ValidationIdentification("id_type_id", "This employee already has an identification for this id type.");
+            if (await _identifications.ExistsForEmployeeAndTypeAsync(employeeId, dto.IdCardTypeId, excludeId: null, ct))
+                return ValidationIdentification("id_card_type_id", "This employee already has an identification for this id type.");
 
             var entity = await _identifications.AddAsync(new EmployeeIdentificationEntity
             {
                 Id = Guid.NewGuid(),
                 EmployeeId = employeeId,
-                IdCardTypeId = dto.IdTypeId,
-                IdNumber = dto.IdNumber.Trim(),
-                IdIssueDate = dto.IdIssueDate,
-                IdExpiryDate = dto.IdExpiryDate,
+                IdCardTypeId = dto.IdCardTypeId,
+                IdNumber = dto.IdCardTypeNumber.Trim(),
+                IdIssueDate = dto.IdCardTypeIssueDate,
+                IdExpiryDate = dto.IdCardTypeExpiryDate,
             }, ct);
 
             entity.IdCardType = idCardType;
@@ -229,11 +229,11 @@ public sealed class EmployeeSubResourcesService
     public async Task<Respons<EmployeeIdentificationDto>> UpdateIdentificationAsync(
         Guid employeeId, Guid identificationId, EmployeeIdentificationWriteDto dto, CancellationToken ct = default)
     {
-        if (dto.IdTypeId == Guid.Empty)
-            return ValidationIdentification("id_type_id", "id_type_id is required.");
+        if (dto.IdCardTypeId == Guid.Empty)
+            return ValidationIdentification("id_card_type_id", "id_card_type_id is required.");
 
-        if (string.IsNullOrWhiteSpace(dto.IdNumber))
-            return ValidationIdentification("id_number", "id_number is required.");
+        if (string.IsNullOrWhiteSpace(dto.IdCardTypeNumber))
+            return ValidationIdentification("id_card_type_number", "id_card_type_number is required.");
 
         var existing = await _identifications.GetByIdAsync(
             identificationId, employeeId, _tenant.TenantId, _tenant.OrgId, ct);
@@ -241,20 +241,20 @@ public sealed class EmployeeSubResourcesService
             return Respons<EmployeeIdentificationDto>.Fail("Identification not found.", statusCode: 404);
 
         var idCardType = await _idCardTypes.GetEntityByIdScopedAsync(
-            dto.IdTypeId, _tenant.TenantId, _tenant.OrgId, ct);
+            dto.IdCardTypeId, _tenant.TenantId, _tenant.OrgId, ct);
         if (idCardType is null || !idCardType.IsActive)
-            return ValidationIdentification("id_type_id", "ID card type not found.");
+            return ValidationIdentification("id_card_type_id", "ID card type not found.");
 
         if (await _identifications.ExistsForEmployeeAndTypeAsync(
-                employeeId, dto.IdTypeId, excludeId: identificationId, ct))
+                employeeId, dto.IdCardTypeId, excludeId: identificationId, ct))
         {
-            return ValidationIdentification("id_type_id", "This employee already has an identification for this id type.");
+            return ValidationIdentification("id_card_type_id", "This employee already has an identification for this id type.");
         }
 
-        existing.IdCardTypeId = dto.IdTypeId;
-        existing.IdNumber = dto.IdNumber.Trim();
-        existing.IdIssueDate = dto.IdIssueDate;
-        existing.IdExpiryDate = dto.IdExpiryDate;
+        existing.IdCardTypeId = dto.IdCardTypeId;
+        existing.IdNumber = dto.IdCardTypeNumber.Trim();
+        existing.IdIssueDate = dto.IdCardTypeIssueDate;
+        existing.IdExpiryDate = dto.IdCardTypeExpiryDate;
 
         try
         {

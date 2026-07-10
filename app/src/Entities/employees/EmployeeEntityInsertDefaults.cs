@@ -24,15 +24,13 @@ internal static class EmployeeEntityInsertDefaults
             : entity.OrgId;
 
         entity.FullName ??= string.Empty;
-        entity.LifecycleState = string.IsNullOrWhiteSpace(entity.LifecycleState)
-            ? EmployeeLifecycleStates.Draft
-            : entity.LifecycleState;
-        entity.LifecycleStatus = string.IsNullOrWhiteSpace(entity.LifecycleStatus)
-            ? "draft"
-            : entity.LifecycleStatus;
-        entity.EmploymentStatus = string.IsNullOrWhiteSpace(entity.EmploymentStatus)
-            ? EmploymentStatusValues.Draft
-            : entity.EmploymentStatus;
+
+        if (string.IsNullOrWhiteSpace(entity.LifecycleState))
+            throw new InvalidOperationException("LifecycleState must be set before insert.");
+
+        if (string.IsNullOrWhiteSpace(entity.LifecycleStatus))
+            throw new InvalidOperationException("LifecycleStatus must be set before insert.");
+
         entity.CustomFieldsData = string.IsNullOrWhiteSpace(entity.CustomFieldsData)
             ? "{}"
             : entity.CustomFieldsData;
