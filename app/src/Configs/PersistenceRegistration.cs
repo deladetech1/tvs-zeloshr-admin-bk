@@ -63,6 +63,7 @@ public static class PersistenceRegistration
         services.AddScoped<IDocumentsRepository, DocumentsRepository>();
         services.AddScoped<ICustomFieldDefinitionsRepository, CustomFieldDefinitionsRepository>();
         services.AddScoped<IDashboardRepository, DashboardRepository>();
+        services.AddScoped<IEmployeeChangeRequestRepository, EmployeeChangeRequestRepository>();
         services.AddScoped<IHrDocumentPathRepository, HrDocumentPathRepository>();
         services.AddScoped<FileManagementStorage>();
         return services;

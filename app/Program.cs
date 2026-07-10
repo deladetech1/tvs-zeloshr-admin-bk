@@ -28,6 +28,7 @@ builder.Services.AddSharedInfrastructure();
 builder.Services.AddZelosHrPersistence(builder.Configuration);
 builder.Services.AddZelosHrStorage(builder.Configuration, builder.Environment);
 builder.Services.AddEntityServices();
+builder.Services.AddScoped<IEmployeeUpdateService, EmployeeUpdateService>();
 builder.Services.AddScoped<IEmployeesService>(sp => sp.GetRequiredService<EmployeesService>());
 builder.Services.AddScoped<IEmployeeLookup>(sp => sp.GetRequiredService<EmployeesService>());
 

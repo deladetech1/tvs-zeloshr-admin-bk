@@ -73,6 +73,30 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(CreateCustomFieldDefinitionDto) => SwaggerExamples.CreateCustomFieldAddBody(),
             nameof(ImportEmployeesRequest) => SwaggerExamples.ImportEmployeesRequestBody(),
             nameof(EmployeeAggregateReadDto) => SwaggerExamples.EmployeeAggregateReadData(),
+            nameof(ChangeRequestReadDto) => new JsonObject
+            {
+                ["id"] = "00000000-0000-0000-0000-000000000001",
+                ["employee_id"] = SwaggerExamples.SampleEmployeeId.ToString(),
+                ["field_path"] = "identity.full_name",
+                ["old_value"] = "Jane Doe",
+                ["new_value"] = "Jane Smith",
+                ["status"] = "pending",
+                ["requested_by_id"] = "usr_cp_demo",
+                ["created_at"] = "2026-07-10T09:00:00+00:00",
+                ["updated_at"] = "2026-07-10T09:00:00+00:00",
+            },
+            nameof(EmployeeSelfUpdateResultDto) => new JsonObject
+            {
+                ["employee"] = SwaggerExamples.EmployeeAggregateReadData(),
+                ["applied"] = new JsonArray("identity.phone"),
+                ["pending"] = new JsonArray(),
+                ["rejected"] = new JsonArray("employment"),
+            },
+            nameof(FieldPolicyEntryDto) => new JsonObject
+            {
+                ["path"] = "identity.phone",
+                ["access"] = "free",
+            },
             nameof(DocumentReadDto) => SwaggerExamples.EmployeeDocumentItem(),
             nameof(EmployeeDirectorySummaryDto) => SwaggerExamples.EmployeeDirectorySummaryData(),
             nameof(GetCurrencySimpleReadDto) => SwaggerExamples.CurrencyItem(),

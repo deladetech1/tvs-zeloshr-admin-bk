@@ -17,7 +17,26 @@ fi
 # shellcheck source=/dev/null
 source "${COMPOSE_ENV_FILES}" 2>/dev/null || true
 
+ensure_docker() {
+  if docker info >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if command -v colima >/dev/null 2>&1; then
+    echo "Docker is not reachable; starting Colima..." >&2
+    docker context use colima >/dev/null 2>&1 || true
+    colima start
+  fi
+
+  if ! docker info >/dev/null 2>&1; then
+    echo "Docker is not running. Start Colima: colima start" >&2
+    echo "Then ensure context: docker context use colima" >&2
+    exit 1
+  fi
+}
+
 compose() {
+  ensure_docker
   docker compose "$@"
 }
 
@@ -44,6 +63,7 @@ EOF
 }
 
 docker_build() {
+  ensure_docker
   docker build \
     --build-arg PACKAGES_TOKEN="${PACKAGES_TOKEN:-}" \
     -f app/Dockerfile \
