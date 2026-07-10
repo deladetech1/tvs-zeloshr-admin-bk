@@ -1,5 +1,6 @@
 using FluentAssertions;
 using System.Text.Json.Nodes;
+using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Employees.Authorization;
 
 namespace ZelosHR.Api.Tests.Employees;
