@@ -764,7 +764,7 @@ public sealed class EmployeeAggregateService
                 return referralsUpdateError;
             }
 
-            if (request.DeleteDocumentIds is { Count: > 0 }))
+            if (request.DeleteDocumentIds is { Count: > 0 })
             {
                 var entity = await _employees.GetByIdScopedForUpdateAsync(
                     employeeId, _tenant.TenantId, _tenant.OrgId, ct);
