@@ -16,7 +16,7 @@ internal static class EmployeeAggregateExtendedSync
             var added = await extended.AddEmergencyAsync(
                 employeeId, EmployeeExtendedProfileService.ToEmergencyWrite(items[i]), ct);
             if (!added.Success)
-                return MapArrayError<EmployeeAggregateReadDto>(added, $"identity.emergency[{i}]");
+                return MapArrayError<EmployeeAggregateReadDto, EmployeeEmergencyContactDto>(added, $"identity.emergency[{i}]");
         }
 
         return null;
@@ -33,7 +33,7 @@ internal static class EmployeeAggregateExtendedSync
             var added = await extended.AddPaymentAsync(
                 employeeId, EmployeeExtendedProfileService.ToPaymentWrite(items[i]), ct);
             if (!added.Success)
-                return MapArrayError<EmployeeAggregateReadDto>(added, $"compensation.payment[{i}]");
+                return MapArrayError<EmployeeAggregateReadDto, EmployeePaymentMethodDto>(added, $"compensation.payment[{i}]");
         }
 
         return null;
@@ -49,7 +49,7 @@ internal static class EmployeeAggregateExtendedSync
         {
             var profile = await extended.UpsertMedicalScalarsAsync(employeeId, medical, ct);
             if (!profile.Success)
-                return MapArrayError<EmployeeAggregateReadDto>(profile, "medical");
+                return MapArrayError<EmployeeAggregateReadDto, EmployeeMedicalProfileDto>(profile, "medical");
         }
 
         if (medical.MedicalConditions is not null)
@@ -59,7 +59,7 @@ internal static class EmployeeAggregateExtendedSync
                 var added = await extended.AddMedicalConditionAsync(
                     employeeId, EmployeeExtendedProfileService.ToMedicalConditionWrite(medical.MedicalConditions[i]), ct);
                 if (!added.Success)
-                    return MapArrayError<EmployeeAggregateReadDto>(added, $"medical.medical_conditions[{i}]");
+                    return MapArrayError<EmployeeAggregateReadDto, EmployeeMedicalConditionDto>(added, $"medical.medical_conditions[{i}]");
             }
         }
 
@@ -70,7 +70,7 @@ internal static class EmployeeAggregateExtendedSync
                 var added = await extended.AddAllergyAsync(
                     employeeId, EmployeeExtendedProfileService.ToAllergyWrite(medical.Allergies[i]), ct);
                 if (!added.Success)
-                    return MapArrayError<EmployeeAggregateReadDto>(added, $"medical.allergies[{i}]");
+                    return MapArrayError<EmployeeAggregateReadDto, EmployeeAllergyDto>(added, $"medical.allergies[{i}]");
             }
         }
 
@@ -81,7 +81,7 @@ internal static class EmployeeAggregateExtendedSync
                 var added = await extended.AddMedicationAsync(
                     employeeId, EmployeeExtendedProfileService.ToMedicationWrite(medical.Medications[i]), ct);
                 if (!added.Success)
-                    return MapArrayError<EmployeeAggregateReadDto>(added, $"medical.medications[{i}]");
+                    return MapArrayError<EmployeeAggregateReadDto, EmployeeMedicationDto>(added, $"medical.medications[{i}]");
             }
         }
 
@@ -107,7 +107,7 @@ internal static class EmployeeAggregateExtendedSync
         {
             var added = await extended.AddSkillAsync(employeeId, items[i], ct);
             if (!added.Success)
-                return MapArrayError<EmployeeAggregateReadDto>(added, $"skills[{i}]");
+                return MapArrayError<EmployeeAggregateReadDto, EmployeeSkillDto>(added, $"skills[{i}]");
         }
 
         return null;
@@ -123,7 +123,7 @@ internal static class EmployeeAggregateExtendedSync
         {
             var added = await extended.AddExperienceAsync(employeeId, items[i], ct);
             if (!added.Success)
-                return MapArrayError<EmployeeAggregateReadDto>(added, $"experiences[{i}]");
+                return MapArrayError<EmployeeAggregateReadDto, EmployeeExperienceDto>(added, $"experiences[{i}]");
         }
 
         return null;
@@ -139,7 +139,7 @@ internal static class EmployeeAggregateExtendedSync
         {
             var added = await extended.AddReferralAsync(employeeId, items[i], ct);
             if (!added.Success)
-                return MapArrayError<EmployeeAggregateReadDto>(added, $"referrals[{i}]");
+                return MapArrayError<EmployeeAggregateReadDto, EmployeeReferralDto>(added, $"referrals[{i}]");
         }
 
         return null;

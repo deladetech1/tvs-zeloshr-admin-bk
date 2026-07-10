@@ -1623,7 +1623,7 @@ public sealed class EmployeeAggregateService
                 ? await updateAsync(id!.Value, write)
                 : await addAsync(write);
             if (!result.Success)
-                return MapIndexedRowError<EmployeeAggregateReadDto>(result, $"{fieldPrefix}[{i}]");
+                return MapIndexedRowError<EmployeeAggregateReadDto, TDto>(result, $"{fieldPrefix}[{i}]");
 
             preservedIds.Add(getDtoId(result.Data!));
         }
