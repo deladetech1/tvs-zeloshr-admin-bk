@@ -363,6 +363,7 @@ public class EmployeeRegistrationTests
             JobTitle = "Engineer",
             DepartmentId = Guid.NewGuid(),
             WorkEmail = "ada@corp.com",
+            EmploymentStatus = EmploymentStatusValues.Active,
             IsDraft = true,
         };
         _employees.GetByIdScopedForUpdateAsync(id, TestDefaults.TenantId, TestDefaults.OrgId, Arg.Any<CancellationToken>())
@@ -404,6 +405,7 @@ public class EmployeeRegistrationTests
             DepartmentId = Guid.NewGuid(),
             WorkEmail = "new@corp.com",
             Phone = "+233201111111",
+            EmploymentStatus = EmploymentStatusValues.PreHire,
             IsDraft = true,
         };
         _employees.GetByIdScopedForUpdateAsync(id, TestDefaults.TenantId, TestDefaults.OrgId, Arg.Any<CancellationToken>())
@@ -440,6 +442,7 @@ public class EmployeeRegistrationTests
             FullName = "Ada",
             JobTitle = "Engineer",
             UserId = "u-existing",
+            EmploymentStatus = EmploymentStatusValues.Active,
             IsDraft = true,
         };
         _employees.GetByIdScopedForUpdateAsync(id, TestDefaults.TenantId, TestDefaults.OrgId, Arg.Any<CancellationToken>())
@@ -474,6 +477,7 @@ public class EmployeeRegistrationTests
             WorkArrangement = "on_site",
             WorkEmail = "ada@corp.com",
             UserId = "u-existing",
+            EmploymentStatus = EmploymentStatusValues.Active,
             IsDraft = true,
         };
         _employees.GetByIdScopedForUpdateAsync(id, TestDefaults.TenantId, TestDefaults.OrgId, Arg.Any<CancellationToken>())
