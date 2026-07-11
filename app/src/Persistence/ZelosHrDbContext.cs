@@ -10,6 +10,8 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
     public DbSet<CpMemberEntity> CpMembers => Set<CpMemberEntity>();
     public DbSet<CpLoginSettingsEntity> CpLoginSettings => Set<CpLoginSettingsEntity>();
     public DbSet<CpUserLocationEntity> CpUserLocations => Set<CpUserLocationEntity>();
+    public DbSet<CpUserGroupEntity> CpUserGroups => Set<CpUserGroupEntity>();
+    public DbSet<CpGroupLocationEntity> CpGroupLocations => Set<CpGroupLocationEntity>();
     public DbSet<CpBusinessAppLocationEntity> BusinessAppLocations => Set<CpBusinessAppLocationEntity>();
     public DbSet<HrEmployeeEntity> HrEmployees => Set<HrEmployeeEntity>();
     public DbSet<DepartmentEntity> Departments => Set<DepartmentEntity>();
@@ -85,6 +87,28 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
                 .WithMany()
                 .HasForeignKey(x => new { x.UserId, x.TenantId })
                 .HasPrincipalKey(x => new { x.Id, x.TenantId });
+        });
+
+        modelBuilder.Entity<CpUserGroupEntity>(b =>
+        {
+            b.ToTable("cp_user_groups", "core_platform", t => t.ExcludeFromMigrations());
+            b.HasKey(x => new { x.Id, x.TenantId });
+            b.Property(x => x.GroupId).HasColumnName("group_id");
+            b.HasOne<CpUserEntity>()
+                .WithMany()
+                .HasForeignKey(x => new { x.UserId, x.TenantId })
+                .HasPrincipalKey(x => new { x.Id, x.TenantId });
+        });
+
+        modelBuilder.Entity<CpGroupLocationEntity>(b =>
+        {
+            b.ToTable("cp_group_locations", "core_platform", t => t.ExcludeFromMigrations());
+            b.HasKey(x => new { x.Id, x.TenantId });
+            b.Property(x => x.GroupId).HasColumnName("group_id");
+            b.Property(x => x.BusAppLocId).HasColumnName("bus_app_loc_id");
+            b.Property(x => x.OrgId).HasColumnName("org_id");
+            b.Property(x => x.BusId).HasColumnName("bus_id");
+            b.Property(x => x.AppId).HasColumnName("app_id");
         });
 
         modelBuilder.Entity<CpBusinessAppLocationEntity>(b =>

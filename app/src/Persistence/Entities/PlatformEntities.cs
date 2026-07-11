@@ -76,6 +76,31 @@ public sealed class CpUserLocationEntity
     public bool IsActive { get; set; } = true;
 }
 
+/// <summary>core_platform.cp_user_groups — user's group memberships.</summary>
+public sealed class CpUserGroupEntity
+{
+    public string Id { get; set; } = default!;
+    public string TenantId { get; set; } = default!;
+    public string UserId { get; set; } = default!;
+    public string? GroupId { get; set; }
+    public string DeleteStatus { get; set; } = CorePlatformConstants.DeleteStatus.NotDeleted;
+    public bool IsActive { get; set; } = true;
+}
+
+/// <summary>core_platform.cp_group_locations — group-based grant to a business/app/location tuple.</summary>
+public sealed class CpGroupLocationEntity
+{
+    public string Id { get; set; } = default!;
+    public string TenantId { get; set; } = default!;
+    public string? GroupId { get; set; }
+    public string? BusAppLocId { get; set; }
+    public string? OrgId { get; set; }
+    public string? BusId { get; set; }
+    public string? AppId { get; set; }
+    public string DeleteStatus { get; set; } = CorePlatformConstants.DeleteStatus.NotDeleted;
+    public bool IsActive { get; set; } = true;
+}
+
 /// <summary>human_resource.hr_employees — platform HR membership (user_id only).</summary>
 public sealed class HrEmployeeEntity
 {
