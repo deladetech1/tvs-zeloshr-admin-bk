@@ -30,7 +30,11 @@ internal static class SwaggerExamples
     internal static readonly Guid SampleEmployeeId = Guid.Parse("3804deee-d6ee-4b05-9efc-6e8ccf3b5ae3");
     internal static readonly Guid SampleEducationRowId = Guid.Parse("55555555-5555-5555-5555-555555555501");
     internal static readonly Guid SampleCertificationRowId = Guid.Parse("66666666-6666-6666-6666-666666666601");
+    internal static readonly Guid SampleIdentificationRowId = Guid.Parse("77777777-7777-7777-7777-777777777701");
+    internal static readonly Guid SampleIdCardTypeId1 = Guid.Parse("753e2b9a-2322-4154-3456-98b8de5a4df5");
+    internal static readonly Guid SampleIdCardTypeId2 = Guid.Parse("345e2b9a-2322-4154-3456-98b8de5a4df5");
     internal static readonly Guid SampleReportsToId = Guid.Parse("33333333-3333-3333-3333-333333333301");
+    internal static readonly Guid SampleSecondaryReportsToId = Guid.Parse("33333333-3333-3333-3333-333333333302");
     internal static readonly Guid SampleAuditLogId = Guid.Parse("a1111111-1111-1111-1111-111111111101");
     internal static readonly Guid SampleLeaveRequestId = Guid.Parse("a2222222-2222-2222-2222-222222222201");
     internal static readonly Guid SampleLeaveBalanceId = Guid.Parse("a2222222-2222-2222-2222-222222222202");
@@ -937,13 +941,143 @@ internal static class SwaggerExamples
     internal static bool IsResponsType(Type type) =>
         type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Respons<>);
 
+    /// <summary>Canonical frontend contract for <c>POST /employees/add</c> and full-profile <c>PUT</c>.</summary>
     internal static JsonObject CreateEmployeeFinalised() => new()
     {
-        ["identity"] = IdentitySection(withCustomField: true, optionHints: true),
-        ["employment"] = EmploymentSection(optionHints: true),
-        ["compensation"] = CompensationSection(withCustomField: true),
-        ["education"] = new JsonArray(EducationEntry()),
-        ["certifications"] = new JsonArray(CertificationEntry()),
+        ["identity"] = new JsonObject
+        {
+            ["full_name"] = "Ada Lovelace",
+            ["date_of_birth"] = "1990-05-15",
+            ["gender"] = "female",
+            ["country"] = "Ghana",
+            ["personal_email"] = "ada.personal@example.com",
+            ["work_email"] = "ada.lovelace@company.com",
+            ["phone"] = "+233201234567",
+            ["linked_in_url"] = "https://linkedin.com/in/adalovelace",
+            ["residential_address"] = "12 Independence Ave, Accra",
+            ["profile_url"] = SampleDocumentId1,
+            ["marital_status"] = "Single",
+            ["next_of_kin_name"] = "Gary Ntori",
+            ["next_of_kin_phone"] = "+233240257669",
+            ["relationship_to_next_of_kin"] = "Brother",
+            ["emergency"] = new JsonArray(
+                new JsonObject
+                {
+                    ["emergency_contact_name"] = "Bright",
+                    ["emergency_contact_phone"] = "+233503448860",
+                    ["relationship"] = "Friend",
+                }),
+            ["identifications"] = new JsonArray(
+                new JsonObject
+                {
+                    ["id_card_type_id"] = SampleIdCardTypeId1.ToString(),
+                    ["id_card_type_number"] = "GHA-123456789-0",
+                    ["id_card_type_issue_date"] = "2020-01-10",
+                    ["id_card_type_expiry_date"] = "2030-01-10",
+                },
+                new JsonObject
+                {
+                    ["id_card_type_id"] = SampleIdCardTypeId2.ToString(),
+                    ["id_card_type_number"] = "GHA-23232-0",
+                    ["id_card_type_issue_date"] = "2020-01-10",
+                    ["id_card_type_expiry_date"] = "2030-01-10",
+                }),
+            ["custom_fields"] = new JsonObject { ["fathers_name"] = "Charles Babbage" },
+        },
+        ["employment"] = new JsonObject
+        {
+            ["job_title"] = "Software Engineer",
+            ["department_id"] = SampleDepartmentId.ToString(),
+            ["branch_id"] = SampleBranchId.ToString(),
+            ["employment_status"] = "Active",
+            ["contract_type"] = "Permanent",
+            ["work_arrangement"] = "Hybrid",
+            ["work_location"] = "Accra HQ",
+            ["pay_grade"] = "P4",
+            ["start_date"] = "2025-06-01",
+            ["probation_end_date"] = "2025-12-01",
+            ["working_hours"] = 40,
+            ["notice_period"] = "30 days",
+            ["employment_type_id"] = SampleEmploymentTypeId.ToString(),
+            ["reports_to_id"] = SampleReportsToId.ToString(),
+            ["secondary_reports_to_id"] = SampleSecondaryReportsToId.ToString(),
+        },
+        ["compensation"] = new JsonObject
+        {
+            ["gross_salary"] = 8500,
+            ["net_salary"] = 5000,
+            ["currency_id"] = SampleCurrencyId,
+            ["pay_frequency"] = "Monthly",
+            ["ssnit_insurance_number"] = "SSNIT123456789",
+            ["payment"] = new JsonArray(
+                new JsonObject
+                {
+                    ["payment_mode"] = "bank_transfer",
+                    ["bank_name"] = "GCB Bank",
+                    ["account_name"] = "Ada Lovelace",
+                    ["account_number"] = "0123456789",
+                    ["branch_name"] = "Accra Main Branch",
+                    ["is_primary"] = true,
+                }),
+        },
+        ["medical"] = MedicalWriteSection(),
+        ["education"] = new JsonArray(EducationEntry(includeCustomFields: false)),
+        ["certifications"] = new JsonArray(CertificationEntry(name: "Masters in React", includeCustomFields: false)),
+        ["skills"] = new JsonArray(
+            new JsonObject
+            {
+                ["name"] = "React",
+                ["proficiency"] = "Advanced",
+                ["years_of_experience"] = 5,
+            },
+            new JsonObject
+            {
+                ["name"] = "Node.js",
+                ["proficiency"] = "Intermediate",
+                ["years_of_experience"] = 3,
+            }),
+        ["experiences"] = new JsonArray(
+            new JsonObject
+            {
+                ["company"] = "TechCorp Ghana",
+                ["job_title"] = "Frontend Developer",
+                ["employment_type"] = "Full-time",
+                ["location"] = "Accra, Ghana",
+                ["start_date"] = "2018-03-01",
+                ["end_date"] = "2022-08-31",
+                ["is_current"] = false,
+                ["description"] = "Built and maintained customer-facing web applications using React and TypeScript.",
+            },
+            new JsonObject
+            {
+                ["company"] = "Fintech Solutions Ltd",
+                ["job_title"] = "Software Engineer",
+                ["employment_type"] = "Contract",
+                ["location"] = "Remote",
+                ["start_date"] = "2022-09-01",
+                ["end_date"] = null,
+                ["is_current"] = true,
+                ["description"] = "Developing payment integration services and internal dashboards.",
+            }),
+        ["referrals"] = new JsonArray(
+            new JsonObject
+            {
+                ["name"] = "Kwame Mensah",
+                ["job_title"] = "Engineering Manager",
+                ["company"] = "TechCorp Ghana",
+                ["relationship"] = "Former Manager",
+                ["email"] = "kwame.mensah@techcorp.com",
+                ["phone"] = "+233244123456",
+            },
+            new JsonObject
+            {
+                ["name"] = "Abena Osei",
+                ["job_title"] = "Senior Software Engineer",
+                ["company"] = "Fintech Solutions Ltd",
+                ["relationship"] = "Colleague",
+                ["email"] = "abena.osei@fintechsolutions.com",
+                ["phone"] = "+233209876543",
+            }),
         ["document_ids"] = new JsonArray(SampleDocumentId1, SampleDocumentId2),
     };
 
@@ -1077,6 +1211,26 @@ internal static class SwaggerExamples
             Guid.Parse("66666666-6666-6666-6666-666666666602").ToString()),
     };
 
+    /// <summary>sync_identifications true — keep only rows in identity.identifications; delete all others.</summary>
+    internal static JsonObject UpdateEmployeeSyncIdentificationsReplace() => new()
+    {
+        ["sync_identifications"] = true,
+        ["identity"] = new JsonObject
+        {
+            ["identifications"] = new JsonArray(
+                IdentificationEntry(withId: true)),
+        },
+    };
+
+    /// <summary>Add new identification rows under identity (omit id).</summary>
+    internal static JsonObject UpdateEmployeeAddIdentifications() => new()
+    {
+        ["identity"] = new JsonObject
+        {
+            ["identifications"] = new JsonArray(IdentificationEntry()),
+        },
+    };
+
     /// <inheritdoc cref="UpdateEmployeePartialIdentity"/>
     internal static JsonObject UpdateEmployeePartial() => UpdateEmployeePartialIdentity();
 
@@ -1133,7 +1287,7 @@ internal static class SwaggerExamples
                 ["id"] = SampleEmployeeId.ToString(),
                 ["employee_code"] = "EMP-000042",
                 ["user_id"] = "usr_cp_abc123",
-                ["identity"] = IdentitySection(withCustomField: true, forRead: true),
+                ["identity"] = IdentitySection(withCustomField: true, forRead: true, withExtendedIdentity: true),
                 ["employment"] = EmploymentSection(withNames: true),
                 ["compensation"] = CompensationReadSection(),
                 ["education"] = new JsonArray(
@@ -1150,6 +1304,10 @@ internal static class SwaggerExamples
                         id: Guid.Parse("66666666-6666-6666-6666-666666666602"),
                         name: "Masters in react fundamentals",
                         credentialUrl: "https://udemy.com/certificate/3424-3424")),
+                ["medical"] = MedicalReadSection(),
+                ["skills"] = new JsonArray(SkillEntry(withId: true)),
+                ["experiences"] = new JsonArray(ExperienceEntry(withId: true)),
+                ["referrals"] = new JsonArray(ReferralEntry(withId: true)),
                 ["documents"] = EmployeeDocumentsArray(),
             },
         };
@@ -1160,7 +1318,7 @@ internal static class SwaggerExamples
     internal static JsonObject CustomFieldsForSection(string section) => section switch
     {
         EmployeeCustomFieldSections.Compensation => new JsonObject { ["bonus_eligible"] = "yes" },
-        EmployeeCustomFieldSections.Identity => new JsonObject { ["emergency_contact_name"] = "Charles Babbage" },
+        EmployeeCustomFieldSections.Identity => new JsonObject { ["fathers_name"] = "Charles Babbage" },
         EmployeeCustomFieldSections.Employment => new JsonObject { ["desk_number"] = "B-204" },
         EmployeeCustomFieldSections.Education => new JsonObject { ["honors"] = "First Class" },
         EmployeeCustomFieldSections.Certification => new JsonObject { ["verified"] = "yes" },
@@ -1178,30 +1336,248 @@ internal static class SwaggerExamples
         Unknown keys are ignored. Use an empty object when there are no values.
         """;
 
-    private static JsonObject IdentitySection(bool withCustomField = false, bool optionHints = false, bool forRead = false) => new()
+    private static JsonObject IdentitySection(
+        bool withCustomField = false,
+        bool optionHints = false,
+        bool forRead = false,
+        bool withExtendedIdentity = false)
     {
-        ["full_name"] = "Ada Lovelace",
-        ["date_of_birth"] = "1990-05-15",
-        ["gender"] = optionHints ? SwaggerExampleHints.Gender : "female",
-        ["country"] = "Ghana",
-        ["id_type"] = optionHints ? SwaggerExampleHints.IdType : "ghana_card",
-        ["id_issue_date"] = "2020-01-10",
-        ["id_expiry_date"] = "2030-01-10",
-        ["id_number"] = "GHA-123456789-0",
-        ["personal_email"] = "ada.personal@example.com",
-        ["work_email"] = "ada.lovelace@company.com",
-        ["phone"] = "+233201234567",
-        ["linked_in_url"] = "https://linkedin.com/in/adalovelace",
-        ["residential_address"] = "12 Independence Ave, Accra",
-        ["profile_url"] = forRead
-            ? EmployeeDocumentItem(SampleDocumentId1, "Employee profile photo")
-            : SampleDocumentId1,
-        ["custom_fields"] = withCustomField
-            ? CustomFieldsForSection(EmployeeCustomFieldSections.Identity)
-            : EmptyCustomFields(EmployeeCustomFieldSections.Identity),
+        var obj = new JsonObject
+        {
+            ["full_name"] = "Ada Lovelace",
+            ["date_of_birth"] = "1990-05-15",
+            ["gender"] = optionHints ? SwaggerExampleHints.Gender : "female",
+            ["country"] = "Ghana",
+            ["personal_email"] = "ada.personal@example.com",
+            ["work_email"] = "ada.lovelace@company.com",
+            ["phone"] = "+233201234567",
+            ["linked_in_url"] = "https://linkedin.com/in/adalovelace",
+            ["residential_address"] = "12 Independence Ave, Accra",
+            ["profile_url"] = forRead
+                ? EmployeeDocumentItem(SampleDocumentId1, "Employee profile photo")
+                : SampleDocumentId1,
+            ["identifications"] = forRead
+                ? IdentificationsReadArray()
+                : IdentificationsWriteArray(),
+            ["custom_fields"] = withCustomField
+                ? CustomFieldsForSection(EmployeeCustomFieldSections.Identity)
+                : EmptyCustomFields(EmployeeCustomFieldSections.Identity),
+        };
+
+        if (withExtendedIdentity || forRead)
+        {
+            obj["marital_status"] = "Single";
+            obj["next_of_kin_name"] = "Gary Ntori";
+            obj["next_of_kin_phone"] = "+233240257669";
+            obj["relationship_to_next_of_kin"] = "Brother";
+            obj["emergency"] = forRead
+                ? EmergencyReadArray()
+                : EmergencyWriteArray();
+        }
+
+        return obj;
+    }
+
+    private static JsonArray IdentificationsWriteArray() => new(
+        IdentificationEntry(idTypeId: SampleIdCardTypeId1, idNumber: "GHA-123456789-0"),
+        IdentificationEntry(
+            idTypeId: SampleIdCardTypeId2,
+            idNumber: "G12345678",
+            idIssueDate: "2023-05-01",
+            idExpiryDate: "2033-05-01"));
+
+    private static JsonArray IdentificationsReadArray() => new(
+        IdentificationEntry(
+            withId: true,
+            idTypeId: SampleIdCardTypeId1,
+            idTypeName: "Ghana Card",
+            idNumber: "GHA-123456789-0",
+            forRead: true),
+        IdentificationEntry(
+            withId: true,
+            id: SampleIdentificationRowId,
+            idTypeId: SampleIdCardTypeId2,
+            idTypeName: "Passport",
+            idNumber: "G12345678",
+            idIssueDate: "2023-05-01",
+            idExpiryDate: "2033-05-01",
+            forRead: true));
+
+    internal static JsonObject IdentificationEntry(
+        bool withId = false,
+        Guid? id = null,
+        Guid? idTypeId = null,
+        string? idTypeName = null,
+        string? idNumber = null,
+        string? idIssueDate = "2020-01-10",
+        string? idExpiryDate = "2030-01-10",
+        bool forRead = false)
+    {
+        var obj = new JsonObject
+        {
+            ["id_card_type_id"] = (idTypeId ?? SampleIdCardTypeId1).ToString(),
+            ["id_card_type_number"] = idNumber ?? "GHA-123456789-0",
+            ["id_card_type_issue_date"] = idIssueDate,
+            ["id_card_type_expiry_date"] = idExpiryDate,
+        };
+
+        if (withId)
+            obj["id"] = (id ?? SampleIdentificationRowId).ToString();
+
+        if (forRead)
+        {
+            obj["id_card_type_name"] = idTypeName ?? "Ghana Card";
+            obj["created_at"] = "2025-06-01T10:00:00+00:00";
+            obj["updated_at"] = "2025-06-01T10:00:00+00:00";
+        }
+
+        return obj;
+    }
+
+    private static JsonArray EmergencyWriteArray() => new(EmergencyEntry());
+
+    private static JsonArray EmergencyReadArray() => new(EmergencyEntry(withId: true, forRead: true));
+
+    internal static JsonObject EmergencyEntry(
+        bool withId = false,
+        Guid? id = null,
+        bool forRead = false) =>
+        new JsonObject
+        {
+            ["id"] = withId ? (id ?? Guid.Parse("88888888-8888-8888-8888-888888888801")).ToString() : null,
+            ["emergency_contact_name"] = "Bright",
+            ["emergency_contact_phone"] = "+233503448860",
+            ["relationship"] = "Friend",
+            ["created_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
+            ["updated_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
+        };
+
+    private static JsonArray PaymentWriteArray() => new(PaymentEntry());
+
+    private static JsonArray PaymentReadArray() => new(PaymentEntry(withId: true, forRead: true));
+
+    internal static JsonObject PaymentEntry(
+        bool withId = false,
+        Guid? id = null,
+        bool forRead = false) =>
+        new JsonObject
+        {
+            ["id"] = withId ? (id ?? Guid.Parse("99999999-9999-9999-9999-999999999901")).ToString() : null,
+            ["payment_mode"] = "bank_transfer",
+            ["bank_name"] = "GCB Bank",
+            ["account_name"] = "Ada Lovelace",
+            ["account_number"] = "1234567890",
+            ["branch_name"] = "Accra Main",
+            ["is_primary"] = true,
+            ["created_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
+            ["updated_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
+        };
+
+    private static JsonObject MedicalWriteSection() => new()
+    {
+        ["blood_group"] = "O+",
+        ["has_medical_condition"] = true,
+        ["medical_conditions"] = new JsonArray(MedicalConditionEntry()),
+        ["allergies"] = new JsonArray(AllergyEntry()),
+        ["takes_regular_medication"] = false,
+        ["medications"] = new JsonArray(),
+        ["disability_status"] = "None",
+        ["requires_accommodation"] = false,
+        ["accommodation_details"] = null,
+        ["emergency_medical_notes"] = null,
     };
 
-    private static JsonObject EmploymentSection(bool withNames = false, bool optionHints = false)
+    private static JsonObject MedicalReadSection() => new()
+    {
+        ["id"] = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa01").ToString(),
+        ["blood_group"] = "O+",
+        ["has_medical_condition"] = true,
+        ["medical_conditions"] = new JsonArray(MedicalConditionEntry(withId: true, forRead: true)),
+        ["allergies"] = new JsonArray(AllergyEntry(withId: true, forRead: true)),
+        ["takes_regular_medication"] = false,
+        ["medications"] = new JsonArray(),
+        ["disability_status"] = "None",
+        ["requires_accommodation"] = false,
+        ["accommodation_details"] = null,
+        ["emergency_medical_notes"] = null,
+        ["created_at"] = "2025-06-01T10:00:00+00:00",
+        ["updated_at"] = "2025-06-01T10:00:00+00:00",
+    };
+
+    internal static JsonObject MedicalConditionEntry(bool withId = false, bool forRead = false) => new()
+    {
+        ["id"] = withId ? Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb01").ToString() : null,
+        ["condition"] = "Asthma",
+        ["severity"] = "Mild",
+        ["notes"] = "Carries inhaler; may need accommodation during high-exertion activities.",
+        ["diagnosed_date"] = "2015-03-01",
+        ["created_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
+        ["updated_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
+    };
+
+    internal static JsonObject AllergyEntry(bool withId = false, bool forRead = false) => new()
+    {
+        ["id"] = withId ? Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccc01").ToString() : null,
+        ["allergen"] = "Penicillin",
+        ["reaction"] = "Rash",
+        ["severity"] = "Moderate",
+        ["created_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
+        ["updated_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
+    };
+
+    internal static JsonObject MedicationEntry(bool withId = false, bool forRead = false) => new()
+    {
+        ["id"] = withId ? Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddd01").ToString() : null,
+        ["name"] = "Lisinopril",
+        ["dosage"] = "10mg",
+        ["frequency"] = "Daily",
+        ["notes"] = "Take in the morning",
+        ["created_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
+        ["updated_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
+    };
+
+    internal static JsonObject SkillEntry(bool withId = false, bool forRead = false) => new()
+    {
+        ["id"] = withId ? Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeee01").ToString() : null,
+        ["name"] = "React",
+        ["proficiency"] = "advanced",
+        ["years_of_experience"] = 5,
+        ["created_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
+        ["updated_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
+    };
+
+    internal static JsonObject ExperienceEntry(bool withId = false, bool forRead = false) => new()
+    {
+        ["id"] = withId ? Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffff01").ToString() : null,
+        ["company"] = "TechCorp Ghana",
+        ["job_title"] = "Junior Developer",
+        ["employment_type"] = "Full-time",
+        ["location"] = "Accra",
+        ["start_date"] = "2018-01-01",
+        ["end_date"] = "2020-12-31",
+        ["is_current"] = false,
+        ["description"] = "Built internal tools with React and Node.js.",
+        ["created_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
+        ["updated_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
+    };
+
+    internal static JsonObject ReferralEntry(bool withId = false, bool forRead = false) => new()
+    {
+        ["id"] = withId ? Guid.Parse("12121212-1212-1212-1212-121212121201").ToString() : null,
+        ["name"] = "Grace Hopper",
+        ["job_title"] = "Engineering Manager",
+        ["company"] = "Naval Labs",
+        ["relationship"] = "Former manager",
+        ["email"] = "grace.hopper@example.com",
+        ["phone"] = "+233201112233",
+        ["created_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
+        ["updated_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
+    };
+
+    private static JsonObject EmploymentSection(
+        bool withNames = false,
+        bool optionHints = false,
+        bool withSecondaryReportsTo = false)
     {
         var obj = new JsonObject
         {
@@ -1215,7 +1591,7 @@ internal static class SwaggerExamples
             ["pay_grade"] = "P4",
             ["start_date"] = "2025-06-01",
             ["probation_end_date"] = "2025-12-01",
-            ["working_hours"] = "40",
+            ["working_hours"] = 40,
             ["notice_period"] = "30 days",
             ["custom_fields"] = EmptyCustomFields(EmployeeCustomFieldSections.Employment),
         };
@@ -1224,6 +1600,8 @@ internal static class SwaggerExamples
         {
             obj["employment_type_id"] = SampleEmploymentTypeId.ToString();
             obj["reports_to_id"] = SampleReportsToId.ToString();
+            if (withSecondaryReportsTo)
+                obj["secondary_reports_to_id"] = SampleSecondaryReportsToId.ToString();
         }
 
         if (withNames)
@@ -1244,30 +1622,54 @@ internal static class SwaggerExamples
                 ["position"] = "Head of Engineering",
                 ["photo_url"] = EmployeeDocumentItem(SampleDocumentId2, "Manager profile photo"),
             };
+            obj["secondary_reports_to"] = new JsonObject
+            {
+                ["id"] = SampleSecondaryReportsToId.ToString(),
+                ["name"] = "Jane Smith",
+                ["position"] = "Engineering Lead",
+                ["photo_url"] = EmployeeDocumentItem(SampleDocumentId2, "Secondary manager profile photo"),
+            };
         }
 
         return obj;
     }
 
-    private static JsonObject CompensationSection(bool withCustomField = false) => new()
+    private static JsonObject CompensationSection(
+        bool withCustomField = false,
+        bool withExtendedCompensation = false)
     {
-        ["gross_salary"] = 8500.00m,
-        ["pay_frequency"] = SwaggerExampleHints.PayFrequency,
-        ["currency_id"] = SampleCurrencyId,
-        ["custom_fields"] = withCustomField
-            ? CustomFieldsForSection(EmployeeCustomFieldSections.Compensation)
-            : EmptyCustomFields(EmployeeCustomFieldSections.Compensation),
-    };
+        var obj = new JsonObject
+        {
+            ["gross_salary"] = 8500.00m,
+            ["pay_frequency"] = SwaggerExampleHints.PayFrequency,
+            ["currency_id"] = SampleCurrencyId,
+            ["custom_fields"] = withCustomField
+                ? CustomFieldsForSection(EmployeeCustomFieldSections.Compensation)
+                : EmptyCustomFields(EmployeeCustomFieldSections.Compensation),
+        };
+
+        if (withExtendedCompensation)
+        {
+            obj["net_salary"] = 7200.00m;
+            obj["ssnit_insurance_number"] = "C1234567890";
+            obj["payment"] = PaymentWriteArray();
+        }
+
+        return obj;
+    }
 
     private static JsonObject CompensationReadSection() => new()
     {
         ["gross_salary"] = 8500.00m,
+        ["net_salary"] = 7200.00m,
+        ["ssnit_insurance_number"] = "C1234567890",
         ["pay_frequency"] = "Monthly",
         ["currency_id"] = SampleCurrencyId,
         ["currency_code"] = "GHS",
         ["currency_name"] = "Ghana Cedi",
         ["currency_symbol"] = "₵",
         ["annualized_cost"] = 102000.00m,
+        ["payment"] = PaymentReadArray(),
         ["custom_fields"] = CustomFieldsForSection(EmployeeCustomFieldSections.Compensation),
     };
 
@@ -1275,7 +1677,8 @@ internal static class SwaggerExamples
         bool withId = false,
         Guid? id = null,
         string? degree = null,
-        string? fieldOfStudy = null)
+        string? fieldOfStudy = null,
+        bool includeCustomFields = true)
     {
         var obj = new JsonObject
         {
@@ -1285,8 +1688,10 @@ internal static class SwaggerExamples
             ["start_date"] = "2008-09-01",
             ["end_date"] = "2012-06-30",
             ["is_current"] = false,
-            ["custom_fields"] = EmptyCustomFields(EmployeeCustomFieldSections.Education),
         };
+
+        if (includeCustomFields)
+            obj["custom_fields"] = EmptyCustomFields(EmployeeCustomFieldSections.Education);
 
         if (withId)
             obj["id"] = (id ?? SampleEducationRowId).ToString();
@@ -1302,7 +1707,8 @@ internal static class SwaggerExamples
         string? issueDate = null,
         string? expiryDate = null,
         string? credentialUrl = null,
-        bool omitExpiryDate = true)
+        bool omitExpiryDate = true,
+        bool includeCustomFields = true)
     {
         var obj = new JsonObject
         {
@@ -1310,8 +1716,10 @@ internal static class SwaggerExamples
             ["issuing_body"] = issuingBody ?? "Udemy",
             ["issue_date"] = issueDate ?? "2026-05-31",
             ["credential_url"] = credentialUrl ?? "https://udemy.com/certificate/3424-3424",
-            ["custom_fields"] = EmptyCustomFields(EmployeeCustomFieldSections.Certification),
         };
+
+        if (includeCustomFields)
+            obj["custom_fields"] = EmptyCustomFields(EmployeeCustomFieldSections.Certification);
 
         if (expiryDate is not null)
             obj["expiry_date"] = expiryDate;

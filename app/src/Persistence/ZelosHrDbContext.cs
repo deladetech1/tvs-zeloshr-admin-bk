@@ -35,9 +35,20 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
     public DbSet<EmployeeDocumentEntity> EmployeeDocuments => Set<EmployeeDocumentEntity>();
     public DbSet<EmployeeEducationEntity> EmployeeEducations => Set<EmployeeEducationEntity>();
     public DbSet<EmployeeCertificationEntity> EmployeeCertifications => Set<EmployeeCertificationEntity>();
+    public DbSet<EmployeeIdentificationEntity> EmployeeIdentifications => Set<EmployeeIdentificationEntity>();
+    public DbSet<EmployeeEmergencyContactEntity> EmployeeEmergencyContacts => Set<EmployeeEmergencyContactEntity>();
+    public DbSet<EmployeePaymentMethodEntity> EmployeePaymentMethods => Set<EmployeePaymentMethodEntity>();
+    public DbSet<EmployeeMedicalProfileEntity> EmployeeMedicalProfiles => Set<EmployeeMedicalProfileEntity>();
+    public DbSet<EmployeeMedicalConditionEntity> EmployeeMedicalConditions => Set<EmployeeMedicalConditionEntity>();
+    public DbSet<EmployeeAllergyEntity> EmployeeAllergies => Set<EmployeeAllergyEntity>();
+    public DbSet<EmployeeMedicationEntity> EmployeeMedications => Set<EmployeeMedicationEntity>();
+    public DbSet<EmployeeSkillEntity> EmployeeSkills => Set<EmployeeSkillEntity>();
+    public DbSet<EmployeeExperienceEntity> EmployeeExperiences => Set<EmployeeExperienceEntity>();
+    public DbSet<EmployeeReferralEntity> EmployeeReferrals => Set<EmployeeReferralEntity>();
     public DbSet<CustomFieldDefinitionEntity> CustomFieldDefinitions => Set<CustomFieldDefinitionEntity>();
     public DbSet<CustomFieldAuditLogEntity> CustomFieldAuditLogs => Set<CustomFieldAuditLogEntity>();
     public DbSet<HrDocumentPathEntity> HrDocumentPaths => Set<HrDocumentPathEntity>();
+    public DbSet<EmployeeChangeRequestEntity> EmployeeChangeRequests => Set<EmployeeChangeRequestEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -160,6 +171,7 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
                 .IsUnique()
                 .HasFilter("user_id IS NOT NULL");
             b.Property(x => x.GrossSalary).HasPrecision(18, 4);
+            b.Property(x => x.NetSalary).HasPrecision(18, 4);
             b.Property(x => x.AnnualizedCost).HasPrecision(18, 4);
             b.Property(x => x.CurrencyId).HasColumnName("currency_id");
             b.Property(x => x.DocumentIds)
@@ -351,6 +363,83 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
             b.HasOne<EmployeeEntity>().WithMany().HasForeignKey(x => x.EmployeeId);
         });
 
+        modelBuilder.Entity<EmployeeIdentificationEntity>(b =>
+        {
+            b.ToTable("zhr_employee_identifications");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.IdCardTypeId).HasColumnName("id_card_type_id");
+            b.Property(x => x.IdNumber).HasColumnName("id_number");
+            b.Property(x => x.IdIssueDate).HasColumnName("id_issue_date");
+            b.Property(x => x.IdExpiryDate).HasColumnName("id_expiry_date");
+            b.HasOne<EmployeeEntity>().WithMany().HasForeignKey(x => x.EmployeeId);
+            b.HasOne(x => x.IdCardType).WithMany().HasForeignKey(x => x.IdCardTypeId);
+            b.HasIndex(x => new { x.EmployeeId, x.IdCardTypeId }).IsUnique();
+        });
+
+        modelBuilder.Entity<EmployeeEmergencyContactEntity>(b =>
+        {
+            b.ToTable("zhr_employee_emergency_contacts");
+            b.HasKey(x => x.Id);
+            b.HasOne<EmployeeEntity>().WithMany().HasForeignKey(x => x.EmployeeId);
+        });
+
+        modelBuilder.Entity<EmployeePaymentMethodEntity>(b =>
+        {
+            b.ToTable("zhr_employee_payment_methods");
+            b.HasKey(x => x.Id);
+            b.HasOne<EmployeeEntity>().WithMany().HasForeignKey(x => x.EmployeeId);
+        });
+
+        modelBuilder.Entity<EmployeeMedicalProfileEntity>(b =>
+        {
+            b.ToTable("zhr_employee_medical_profiles");
+            b.HasKey(x => x.Id);
+            b.HasOne<EmployeeEntity>().WithMany().HasForeignKey(x => x.EmployeeId);
+            b.HasIndex(x => x.EmployeeId).IsUnique();
+        });
+
+        modelBuilder.Entity<EmployeeMedicalConditionEntity>(b =>
+        {
+            b.ToTable("zhr_employee_medical_conditions");
+            b.HasKey(x => x.Id);
+            b.HasOne<EmployeeEntity>().WithMany().HasForeignKey(x => x.EmployeeId);
+        });
+
+        modelBuilder.Entity<EmployeeAllergyEntity>(b =>
+        {
+            b.ToTable("zhr_employee_allergies");
+            b.HasKey(x => x.Id);
+            b.HasOne<EmployeeEntity>().WithMany().HasForeignKey(x => x.EmployeeId);
+        });
+
+        modelBuilder.Entity<EmployeeMedicationEntity>(b =>
+        {
+            b.ToTable("zhr_employee_medications");
+            b.HasKey(x => x.Id);
+            b.HasOne<EmployeeEntity>().WithMany().HasForeignKey(x => x.EmployeeId);
+        });
+
+        modelBuilder.Entity<EmployeeSkillEntity>(b =>
+        {
+            b.ToTable("zhr_employee_skills");
+            b.HasKey(x => x.Id);
+            b.HasOne<EmployeeEntity>().WithMany().HasForeignKey(x => x.EmployeeId);
+        });
+
+        modelBuilder.Entity<EmployeeExperienceEntity>(b =>
+        {
+            b.ToTable("zhr_employee_experiences");
+            b.HasKey(x => x.Id);
+            b.HasOne<EmployeeEntity>().WithMany().HasForeignKey(x => x.EmployeeId);
+        });
+
+        modelBuilder.Entity<EmployeeReferralEntity>(b =>
+        {
+            b.ToTable("zhr_employee_referrals");
+            b.HasKey(x => x.Id);
+            b.HasOne<EmployeeEntity>().WithMany().HasForeignKey(x => x.EmployeeId);
+        });
+
         modelBuilder.Entity<CustomFieldDefinitionEntity>(b =>
         {
             b.ToTable("zhr_custom_field_definitions");
@@ -373,6 +462,22 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
             b.ToTable("hr_document_paths", "human_resource", t => t.ExcludeFromMigrations());
             b.HasKey(x => new { x.Id, x.TenantId });
             b.Property(x => x.DocumentPath).HasColumnName("document_path");
+        });
+
+        modelBuilder.Entity<EmployeeChangeRequestEntity>(b =>
+        {
+            b.ToTable("zhr_employee_change_requests", t => t.ExcludeFromMigrations());
+            b.HasKey(x => x.Id);
+            b.Property(x => x.FieldPath).HasMaxLength(256);
+            b.Property(x => x.OldValueJson).HasColumnType("jsonb");
+            b.Property(x => x.NewValueJson).HasColumnType("jsonb");
+            b.Property(x => x.Status).HasMaxLength(32);
+            b.Property(x => x.RequestedBy).HasColumnType("text");
+            b.Property(x => x.ReviewedBy).HasColumnType("text");
+            b.Property(x => x.ReviewNote).HasColumnType("text");
+            b.Property(x => x.CreatedBy).HasColumnType("text");
+            b.Property(x => x.UpdatedBy).HasColumnType("text");
+            b.HasOne<EmployeeEntity>().WithMany().HasForeignKey(x => x.EmployeeId);
         });
     }
 }

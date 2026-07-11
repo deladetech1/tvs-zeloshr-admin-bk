@@ -153,6 +153,52 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
             return;
         }
 
+        if (method.Equals("PUT", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/employees/me/update", StringComparison.OrdinalIgnoreCase))
+        {
+            operation.Description = AppendDescription(operation.Description,
+                """
+                Employee self-service partial update — same JSON shape as PUT /employees/update.
+                Fields are split by GET /employees/field-policy:
+                • free — applied immediately
+                • approval — queued in employee_change_requests for HR review
+                • omitted paths (employment, salary, work_email, document_ids, …) — rejected in response.rejected[]
+                """);
+            return;
+        }
+
+        if (method.Equals("GET", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/employees/field-policy", StringComparison.OrdinalIgnoreCase))
+        {
+            operation.Description = AppendDescription(operation.Description,
+                "Returns the employee self-service field policy matrix (path + access tier: free | approval).");
+            return;
+        }
+
+        if (method.Equals("GET", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/employees/me/change-requests", StringComparison.OrdinalIgnoreCase))
+        {
+            AppendParameterDescription(operation, "status",
+                "Optional filter: pending | approved | rejected | superseded.");
+            return;
+        }
+
+        if (path.StartsWith("api/v1/change-requests", StringComparison.OrdinalIgnoreCase))
+        {
+            if (method.Equals("GET", StringComparison.OrdinalIgnoreCase))
+            {
+                AppendParameterDescription(operation, "status",
+                    "Optional filter: pending | approved | rejected | superseded.");
+                AppendParameterDescription(operation, "employee_id",
+                    "Optional employee UUID to scope the review queue.");
+            }
+
+            if (method.Equals("POST", StringComparison.OrdinalIgnoreCase) && path.Contains("/approve", StringComparison.Ordinal))
+            {
+                operation.Description = AppendDescription(operation.Description,
+                    "Replays the stored new_value_json through the same employee update pipeline used by PUT /employees/update.");
+            }
+
+            return;
+        }
+
         if (method.Equals("POST", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/employees/bulk", StringComparison.OrdinalIgnoreCase))
         {
             SetJsonResponseExample(operation, 200, SwaggerExamples.BatchImportAllSucceededEnvelope());

@@ -7,11 +7,23 @@ namespace ZelosHR.Api.Tests.Employees;
 public class EmployeeLifecycleSyncTests
 {
     [Fact]
-    public void ApplyPostFinaliseDefaults_WhenDraftStatus_SetsPreHire()
+    public void SyncFromEmploymentStatus_WhenDraftStatus_PreservesDraft()
     {
         var entity = new EmployeeEntity { EmploymentStatus = EmploymentStatusValues.Draft };
 
-        EmployeeLifecycleSync.ApplyPostFinaliseDefaults(entity);
+        EmployeeLifecycleSync.SyncFromEmploymentStatus(entity, EmploymentStatusValues.Draft);
+
+        entity.EmploymentStatus.Should().Be(EmploymentStatusValues.Draft);
+        entity.LifecycleState.Should().Be(EmployeeLifecycleStates.Draft);
+        entity.LifecycleStatus.Should().Be("draft");
+    }
+
+    [Fact]
+    public void SyncFromEmploymentStatus_WhenPreHireStatus_PreservesPreHire()
+    {
+        var entity = new EmployeeEntity();
+
+        EmployeeLifecycleSync.SyncFromEmploymentStatus(entity, EmploymentStatusValues.PreHire);
 
         entity.EmploymentStatus.Should().Be(EmploymentStatusValues.PreHire);
         entity.LifecycleState.Should().Be(EmployeeLifecycleStates.PreHire);
@@ -19,11 +31,11 @@ public class EmployeeLifecycleSyncTests
     }
 
     [Fact]
-    public void ApplyPostFinaliseDefaults_WhenActiveStatus_PreservesActive()
+    public void SyncFromEmploymentStatus_WhenActiveStatus_PreservesActive()
     {
         var entity = new EmployeeEntity { EmploymentStatus = EmploymentStatusValues.Active };
 
-        EmployeeLifecycleSync.ApplyPostFinaliseDefaults(entity);
+        EmployeeLifecycleSync.SyncFromEmploymentStatus(entity, EmploymentStatusValues.Active);
 
         entity.EmploymentStatus.Should().Be(EmploymentStatusValues.Active);
         entity.LifecycleState.Should().Be(EmployeeLifecycleStates.Active);

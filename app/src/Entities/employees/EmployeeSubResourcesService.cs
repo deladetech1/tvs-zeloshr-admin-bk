@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Persistence.Entities;
+using ZelosHR.Api.Persistence.Repositories;
 using ZelosHR.Api.Shared.Abstractions;
 using ZelosHR.Api.Shared.Formatting;
 using ZelosHR.Api.Shared.Infrastructure;
@@ -17,8 +18,10 @@ public sealed class EmployeeSubResourcesService
 
     private readonly IEmployeeEducationRepository _education;
     private readonly IEmployeeCertificationRepository _certifications;
+    private readonly IEmployeeIdentificationRepository _identifications;
     private readonly IEmployeeWizardDocumentRepository _documents;
     private readonly IEmployeeRepository _employees;
+    private readonly IIdCardTypeRepository _idCardTypes;
     private readonly IFileStorageService _files;
     private readonly AzureStorageOptions _storage;
     private readonly ITenantContext _tenant;
@@ -27,8 +30,10 @@ public sealed class EmployeeSubResourcesService
     public EmployeeSubResourcesService(
         IEmployeeEducationRepository education,
         IEmployeeCertificationRepository certifications,
+        IEmployeeIdentificationRepository identifications,
         IEmployeeWizardDocumentRepository documents,
         IEmployeeRepository employees,
+        IIdCardTypeRepository idCardTypes,
         IFileStorageService files,
         IOptions<AzureStorageOptions> storage,
         ITenantContext tenant,
@@ -36,8 +41,10 @@ public sealed class EmployeeSubResourcesService
     {
         _education = education;
         _certifications = certifications;
+        _identifications = identifications;
         _documents = documents;
         _employees = employees;
+        _idCardTypes = idCardTypes;
         _files = files;
         _storage = storage.Value;
         _tenant = tenant;
@@ -161,6 +168,121 @@ public sealed class EmployeeSubResourcesService
         return Respons<object>.Ok(new { id = certId });
     }
 
+    public async Task<Respons<IReadOnlyList<EmployeeIdentificationDto>>> ListIdentificationsAsync(
+        Guid employeeId, CancellationToken ct = default)
+    {
+        if (!await _identifications.EmployeeExistsAsync(employeeId, _tenant.TenantId, _tenant.OrgId, ct))
+            return Respons<IReadOnlyList<EmployeeIdentificationDto>>.Fail("Employee not found.", statusCode: 404);
+
+        try
+        {
+            var rows = await _identifications.ListByEmployeeAsync(employeeId, _tenant.TenantId, _tenant.OrgId, ct);
+            return Respons<IReadOnlyList<EmployeeIdentificationDto>>.Ok(rows.Select(ToIdentificationDto).ToList());
+        }
+        catch (Exception ex) when (PostgresSchemaErrors.ReferencesIdentificationsStorage(ex))
+        {
+            return IdentificationsStorageUnavailable<IReadOnlyList<EmployeeIdentificationDto>>();
+        }
+    }
+
+    public async Task<Respons<EmployeeIdentificationDto>> AddIdentificationAsync(
+        Guid employeeId, EmployeeIdentificationWriteDto dto, CancellationToken ct = default)
+    {
+        if (dto.IdCardTypeId == Guid.Empty)
+            return ValidationIdentification("id_card_type_id", "id_card_type_id is required.");
+
+        if (string.IsNullOrWhiteSpace(dto.IdCardTypeNumber))
+            return ValidationIdentification("id_card_type_number", "id_card_type_number is required.");
+
+        if (!await _identifications.EmployeeExistsAsync(employeeId, _tenant.TenantId, _tenant.OrgId, ct))
+            return Respons<EmployeeIdentificationDto>.Fail("Employee not found.", statusCode: 404);
+
+        var idCardType = await _idCardTypes.GetEntityByIdScopedAsync(
+            dto.IdCardTypeId, _tenant.TenantId, _tenant.OrgId, ct);
+        if (idCardType is null || !idCardType.IsActive)
+            return ValidationIdentification("id_card_type_id", "ID card type not found.");
+
+        try
+        {
+            if (await _identifications.ExistsForEmployeeAndTypeAsync(employeeId, dto.IdCardTypeId, excludeId: null, ct))
+                return ValidationIdentification("id_card_type_id", "This employee already has an identification for this id type.");
+
+            var entity = await _identifications.AddAsync(new EmployeeIdentificationEntity
+            {
+                Id = Guid.NewGuid(),
+                EmployeeId = employeeId,
+                IdCardTypeId = dto.IdCardTypeId,
+                IdNumber = dto.IdCardTypeNumber.Trim(),
+                IdIssueDate = dto.IdCardTypeIssueDate,
+                IdExpiryDate = dto.IdCardTypeExpiryDate,
+            }, ct);
+
+            entity.IdCardType = idCardType;
+            return Respons<EmployeeIdentificationDto>.Ok(ToIdentificationDto(entity));
+        }
+        catch (Exception ex) when (PostgresSchemaErrors.ReferencesIdentificationsStorage(ex))
+        {
+            return IdentificationsStorageUnavailable<EmployeeIdentificationDto>();
+        }
+    }
+
+    public async Task<Respons<EmployeeIdentificationDto>> UpdateIdentificationAsync(
+        Guid employeeId, Guid identificationId, EmployeeIdentificationWriteDto dto, CancellationToken ct = default)
+    {
+        if (dto.IdCardTypeId == Guid.Empty)
+            return ValidationIdentification("id_card_type_id", "id_card_type_id is required.");
+
+        if (string.IsNullOrWhiteSpace(dto.IdCardTypeNumber))
+            return ValidationIdentification("id_card_type_number", "id_card_type_number is required.");
+
+        var existing = await _identifications.GetByIdAsync(
+            identificationId, employeeId, _tenant.TenantId, _tenant.OrgId, ct);
+        if (existing is null)
+            return Respons<EmployeeIdentificationDto>.Fail("Identification not found.", statusCode: 404);
+
+        var idCardType = await _idCardTypes.GetEntityByIdScopedAsync(
+            dto.IdCardTypeId, _tenant.TenantId, _tenant.OrgId, ct);
+        if (idCardType is null || !idCardType.IsActive)
+            return ValidationIdentification("id_card_type_id", "ID card type not found.");
+
+        if (await _identifications.ExistsForEmployeeAndTypeAsync(
+                employeeId, dto.IdCardTypeId, excludeId: identificationId, ct))
+        {
+            return ValidationIdentification("id_card_type_id", "This employee already has an identification for this id type.");
+        }
+
+        existing.IdCardTypeId = dto.IdCardTypeId;
+        existing.IdNumber = dto.IdCardTypeNumber.Trim();
+        existing.IdIssueDate = dto.IdCardTypeIssueDate;
+        existing.IdExpiryDate = dto.IdCardTypeExpiryDate;
+
+        try
+        {
+            await _identifications.UpdateAsync(existing, ct);
+            existing.IdCardType = idCardType;
+            return Respons<EmployeeIdentificationDto>.Ok(ToIdentificationDto(existing));
+        }
+        catch (Exception ex) when (PostgresSchemaErrors.ReferencesIdentificationsStorage(ex))
+        {
+            return IdentificationsStorageUnavailable<EmployeeIdentificationDto>();
+        }
+    }
+
+    public async Task<Respons<object>> DeleteIdentificationAsync(
+        Guid employeeId, Guid identificationId, CancellationToken ct = default)
+    {
+        try
+        {
+            if (!await _identifications.DeleteAsync(identificationId, employeeId, _tenant.TenantId, _tenant.OrgId, ct))
+                return Respons<object>.Fail("Identification not found.", statusCode: 404);
+            return Respons<object>.Ok(new { id = identificationId });
+        }
+        catch (Exception ex) when (PostgresSchemaErrors.ReferencesIdentificationsStorage(ex))
+        {
+            return IdentificationsStorageUnavailable<object>();
+        }
+    }
+
     public async Task<Respons<IReadOnlyList<EmployeeWizardDocumentDto>>> ListDocumentsAsync(
         Guid employeeId, string? category, CancellationToken ct = default)
     {
@@ -237,6 +359,16 @@ public sealed class EmployeeSubResourcesService
     private static EmployeeCertificationDto ToCertificationDto(EmployeeCertificationEntity c) => new(
         c.Id, c.Name, c.IssuingBody, c.IssueDate, c.ExpiryDate, c.CredentialUrl);
 
+    private static EmployeeIdentificationDto ToIdentificationDto(EmployeeIdentificationEntity row) => new(
+        row.Id,
+        row.IdCardTypeId,
+        row.IdCardType?.Name,
+        row.IdNumber,
+        row.IdIssueDate,
+        row.IdExpiryDate,
+        row.CreatedAt,
+        row.UpdatedAt);
+
     private static EmployeeWizardDocumentDto ToDocumentDto(EmployeeDocumentEntity d) => new(
         d.Id, d.EmployeeId, d.Category, d.FileName, d.FileSizeBytes, d.BlobUrl, d.ContentType, d.UploadedAt);
 
@@ -245,4 +377,12 @@ public sealed class EmployeeSubResourcesService
 
     private static Respons<EmployeeEducationDto> ValidationEducation(string key, string message) =>
         Respons<EmployeeEducationDto>.ValidationError(new Dictionary<string, string> { [key] = message });
+
+    private static Respons<EmployeeIdentificationDto> ValidationIdentification(string key, string message) =>
+        Respons<EmployeeIdentificationDto>.ValidationError(new Dictionary<string, string> { [key] = message });
+
+    private static Respons<T> IdentificationsStorageUnavailable<T>() =>
+        Respons<T>.Fail(
+            "Employee identifications storage is not deployed on this database.",
+            statusCode: 503);
 }

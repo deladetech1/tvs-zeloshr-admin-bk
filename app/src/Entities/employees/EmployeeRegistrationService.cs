@@ -318,10 +318,20 @@ public sealed class EmployeeRegistrationService
         if (userLink.Error is not null)
             return userLink.Error;
 
+        if (string.IsNullOrWhiteSpace(e.EmploymentStatus))
+        {
+            return Respons<EmployeeRegistrationReadDto>.ValidationError(
+                new Dictionary<string, string>
+                {
+                    ["employment.employment_status"] =
+                        "employment_status is required before finalising an employee.",
+                });
+        }
+
         e.UserId = userLink.UserId;
         ClearCpUserIdentityFromEmployee(e);
         e.IsDraft = false;
-        EmployeeLifecycleSync.ApplyPostFinaliseDefaults(e);
+        EmployeeLifecycleSync.SyncFromEmploymentStatus(e, e.EmploymentStatus);
         e.UpdatedAt = DateTimeOffset.UtcNow;
         e.UpdatedBy = _currentUser.UserId?.ToString();
         await _employees.UpdateAsync(e, ct);
@@ -556,6 +566,10 @@ public sealed class EmployeeRegistrationService
         e.IdIssueDate = dto.IdIssueDate ?? e.IdIssueDate;
         e.IdExpiryDate = dto.IdExpiryDate ?? e.IdExpiryDate;
         e.IdNumber = dto.IdNumber ?? e.IdNumber;
+        e.MaritalStatus = dto.MaritalStatus ?? e.MaritalStatus;
+        e.NextOfKinName = dto.NextOfKinName ?? e.NextOfKinName;
+        e.NextOfKinPhone = dto.NextOfKinPhone ?? e.NextOfKinPhone;
+        e.RelationshipToNextOfKin = dto.RelationshipToNextOfKin ?? e.RelationshipToNextOfKin;
         e.PersonalEmail = dto.PersonalEmail ?? e.PersonalEmail;
         e.LinkedInUrl = dto.LinkedInUrl ?? e.LinkedInUrl;
     }
@@ -707,7 +721,8 @@ public sealed class EmployeeRegistrationService
             return;
 
         if (!string.IsNullOrWhiteSpace(employment.EmploymentStatus))
-            e.EmploymentStatus = employment.EmploymentStatus.Trim();
+            EmployeeLifecycleSync.SyncFromEmploymentStatus(e, employment.EmploymentStatus);
+
         if (employment.ContractType is not null)
             e.ContractType = string.IsNullOrWhiteSpace(employment.ContractType)
                 ? null
@@ -717,6 +732,7 @@ public sealed class EmployeeRegistrationService
     private static void ApplyCompensation(EmployeeEntity e, CreateEmployeeRequest dto)
     {
         e.GrossSalary = dto.GrossSalary ?? e.GrossSalary;
+        e.NetSalary = dto.NetSalary ?? e.NetSalary;
         e.PayFrequency = dto.PayFrequency ?? e.PayFrequency;
         e.SalaryEffectiveFrom = dto.SalaryEffectiveFrom ?? e.SalaryEffectiveFrom;
         e.SsnitNumber = dto.SsnitNumber ?? e.SsnitNumber;
@@ -768,17 +784,10 @@ public sealed class EmployeeRegistrationService
         if (entity.CurrencyId is not null || dto.GrossSalary is null)
             return null;
 
-        var defaultCurrency = await _currencies.GetDefaultAsync(_tenant.TenantId, ct);
-        if (defaultCurrency is null)
+        return new Dictionary<string, string>
         {
-            return new Dictionary<string, string>
-            {
-                ["compensation.currency_id"] = "Currency is required when gross_salary is set.",
-            };
-        }
-
-        entity.CurrencyId = defaultCurrency.Id;
-        return null;
+            ["compensation.currency_id"] = "currency_id is required when gross_salary is set.",
+        };
     }
 
     private EmployeeEntity NewDraftEntity(string? userId, string draftDisplayName, DateTimeOffset now) =>

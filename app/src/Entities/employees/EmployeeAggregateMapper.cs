@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace ZelosHR.Api.Entities.Employees;
 
 internal static class EmployeeAggregateMapper
@@ -11,10 +9,10 @@ internal static class EmployeeAggregateMapper
             DateOfBirth = aggregate.Identity.DateOfBirth,
             Gender = aggregate.Identity.Gender,
             Country = aggregate.Identity.Country,
-            IdType = aggregate.Identity.IdType,
-            IdIssueDate = aggregate.Identity.IdIssueDate,
-            IdExpiryDate = aggregate.Identity.IdExpiryDate,
-            IdNumber = aggregate.Identity.IdNumber,
+            MaritalStatus = aggregate.Identity.MaritalStatus,
+            NextOfKinName = aggregate.Identity.NextOfKinName,
+            NextOfKinPhone = aggregate.Identity.NextOfKinPhone,
+            RelationshipToNextOfKin = aggregate.Identity.RelationshipToNextOfKin,
             PersonalEmail = aggregate.Identity.PersonalEmail,
             WorkEmail = aggregate.Identity.WorkEmail,
             Phone = aggregate.Identity.Phone,
@@ -31,11 +29,13 @@ internal static class EmployeeAggregateMapper
             PayGrade = aggregate.Employment?.PayGrade,
             StartDate = aggregate.Employment?.StartDate,
             ProbationEndDate = aggregate.Employment?.ProbationEndDate,
-            WorkingHours = aggregate.Employment?.WorkingHours,
+            WorkingHours = EmployeeWorkingHoursConverter.ToStorage(aggregate.Employment?.WorkingHours),
             NoticePeriod = aggregate.Employment?.NoticePeriod,
             ReportsToId = aggregate.Employment?.ReportsToId,
-            DottedLineManagerId = aggregate.Employment?.DottedLineManagerId,
+            DottedLineManagerId = aggregate.Employment?.SecondaryReportsToId,
             GrossSalary = aggregate.Compensation?.GrossSalary,
+            NetSalary = aggregate.Compensation?.NetSalary,
+            SsnitNumber = aggregate.Compensation?.SsnitInsuranceNumber,
             PayFrequency = aggregate.Compensation?.PayFrequency,
             CurrencyId = aggregate.Compensation?.CurrencyId,
             Finalise = !string.IsNullOrWhiteSpace(aggregate.Identity.WorkEmail),
@@ -48,10 +48,10 @@ internal static class EmployeeAggregateMapper
             DateOfBirth = update.Identity?.DateOfBirth,
             Gender = update.Identity?.Gender,
             Country = update.Identity?.Country,
-            IdType = update.Identity?.IdType,
-            IdIssueDate = update.Identity?.IdIssueDate,
-            IdExpiryDate = update.Identity?.IdExpiryDate,
-            IdNumber = update.Identity?.IdNumber,
+            MaritalStatus = update.Identity?.MaritalStatus,
+            NextOfKinName = update.Identity?.NextOfKinName,
+            NextOfKinPhone = update.Identity?.NextOfKinPhone,
+            RelationshipToNextOfKin = update.Identity?.RelationshipToNextOfKin,
             PersonalEmail = update.Identity?.PersonalEmail,
             WorkEmail = update.Identity?.WorkEmail,
             Phone = update.Identity?.Phone,
@@ -68,11 +68,13 @@ internal static class EmployeeAggregateMapper
             PayGrade = update.Employment?.PayGrade,
             StartDate = update.Employment?.StartDate,
             ProbationEndDate = update.Employment?.ProbationEndDate,
-            WorkingHours = update.Employment?.WorkingHours,
+            WorkingHours = EmployeeWorkingHoursConverter.ToStorage(update.Employment?.WorkingHours),
             NoticePeriod = update.Employment?.NoticePeriod,
             ReportsToId = update.Employment?.ReportsToId,
-            DottedLineManagerId = update.Employment?.DottedLineManagerId,
+            DottedLineManagerId = update.Employment?.SecondaryReportsToId,
             GrossSalary = update.Compensation?.GrossSalary,
+            NetSalary = update.Compensation?.NetSalary,
+            SsnitNumber = update.Compensation?.SsnitInsuranceNumber,
             PayFrequency = update.Compensation?.PayFrequency,
             CurrencyId = update.Compensation?.CurrencyId,
         };
@@ -83,10 +85,13 @@ internal static class EmployeeAggregateMapper
     public static EmployeeCertificationWriteDto ToCertificationWrite(EmployeeCertificationUpsertDto dto) =>
         new(dto.Name, dto.IssuingBody, dto.IssueDate, dto.ExpiryDate, dto.CredentialUrl, dto.CustomFields);
 
+    public static EmployeeIdentificationWriteDto ToIdentificationWrite(EmployeeIdentificationUpsertDto dto) =>
+        new(dto.IdCardTypeId, dto.IdCardTypeNumber, dto.IdCardTypeIssueDate, dto.IdCardTypeExpiryDate);
+
     public static string SerializeCustomFields(Dictionary<string, string?>? fields) =>
         fields is null || fields.Count == 0
             ? "{}"
-            : JsonSerializer.Serialize(fields);
+            : System.Text.Json.JsonSerializer.Serialize(fields);
 
     public static Dictionary<string, string?> DeserializeCustomFields(string? json)
     {
@@ -95,7 +100,8 @@ internal static class EmployeeAggregateMapper
 
         try
         {
-            return JsonSerializer.Deserialize<Dictionary<string, string?>>(json) ?? new Dictionary<string, string?>();
+            return System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string?>>(json)
+                ?? new Dictionary<string, string?>();
         }
         catch
         {

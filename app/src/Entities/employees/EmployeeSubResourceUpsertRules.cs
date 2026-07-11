@@ -10,36 +10,82 @@ internal static class EmployeeSubResourceUpsertRules
         HasPersistedId(id) && existingIds.Contains(id!.Value);
 
     internal static Dictionary<string, string>? ValidateDuplicateIds(
-        IReadOnlyList<EmployeeEducationUpsertDto> items)
+        IReadOnlyList<EmployeeEducationUpsertDto> items) =>
+        ValidateDuplicateIds(items, "education", i => i.Id);
+
+    internal static Dictionary<string, string>? ValidateDuplicateIds(
+        IReadOnlyList<EmployeeCertificationUpsertDto> items) =>
+        ValidateDuplicateIds(items, "certifications", i => i.Id);
+
+    internal static Dictionary<string, string>? ValidateDuplicateIds(
+        IReadOnlyList<EmployeeIdentificationUpsertDto> items) =>
+        ValidateDuplicateIds(items, "identity.identifications", i => i.Id);
+
+    internal static Dictionary<string, string>? ValidateDuplicateIds(
+        IReadOnlyList<EmployeeEmergencyContactUpsertDto> items) =>
+        ValidateDuplicateIds(items, "identity.emergency", i => i.Id);
+
+    internal static Dictionary<string, string>? ValidateDuplicateIds(
+        IReadOnlyList<EmployeePaymentMethodUpsertDto> items) =>
+        ValidateDuplicateIds(items, "compensation.payment", i => i.Id);
+
+    internal static Dictionary<string, string>? ValidateDuplicateIds(
+        IReadOnlyList<EmployeeMedicalConditionUpsertDto> items) =>
+        ValidateDuplicateIds(items, "medical.medical_conditions", i => i.Id);
+
+    internal static Dictionary<string, string>? ValidateDuplicateIds(
+        IReadOnlyList<EmployeeAllergyUpsertDto> items) =>
+        ValidateDuplicateIds(items, "medical.allergies", i => i.Id);
+
+    internal static Dictionary<string, string>? ValidateDuplicateIds(
+        IReadOnlyList<EmployeeMedicationUpsertDto> items) =>
+        ValidateDuplicateIds(items, "medical.medications", i => i.Id);
+
+    internal static Dictionary<string, string>? ValidateDuplicateIds(
+        IReadOnlyList<EmployeeSkillUpsertDto> items) =>
+        ValidateDuplicateIds(items, "skills", i => i.Id);
+
+    internal static Dictionary<string, string>? ValidateDuplicateIds(
+        IReadOnlyList<EmployeeExperienceUpsertDto> items) =>
+        ValidateDuplicateIds(items, "experiences", i => i.Id);
+
+    internal static Dictionary<string, string>? ValidateDuplicateIds(
+        IReadOnlyList<EmployeeReferralUpsertDto> items) =>
+        ValidateDuplicateIds(items, "referrals", i => i.Id);
+
+    internal static Dictionary<string, string>? ValidateDuplicateIds<T>(
+        IReadOnlyList<T> items,
+        string fieldPrefix,
+        Func<T, Guid?> getId)
     {
         var errors = new Dictionary<string, string>(StringComparer.Ordinal);
         var seen = new HashSet<Guid>();
         for (var i = 0; i < items.Count; i++)
         {
-            if (!HasPersistedId(items[i].Id))
+            if (!HasPersistedId(getId(items[i])))
                 continue;
 
-            var id = items[i].Id!.Value;
+            var id = getId(items[i])!.Value;
             if (!seen.Add(id))
-                errors[$"education[{i}].id"] = "Duplicate education id in the same request.";
+                errors[$"{fieldPrefix}[{i}].id"] = $"Duplicate id in the same request.";
         }
 
         return errors.Count > 0 ? errors : null;
     }
 
-    internal static Dictionary<string, string>? ValidateDuplicateIds(
-        IReadOnlyList<EmployeeCertificationUpsertDto> items)
+    internal static Dictionary<string, string>? ValidateDuplicateIdCardTypeIds(
+        IReadOnlyList<EmployeeIdentificationUpsertDto> items)
     {
         var errors = new Dictionary<string, string>(StringComparer.Ordinal);
         var seen = new HashSet<Guid>();
         for (var i = 0; i < items.Count; i++)
         {
-            if (!HasPersistedId(items[i].Id))
+            if (items[i].IdCardTypeId == Guid.Empty)
                 continue;
 
-            var id = items[i].Id!.Value;
-            if (!seen.Add(id))
-                errors[$"certifications[{i}].id"] = "Duplicate certification id in the same request.";
+            if (!seen.Add(items[i].IdCardTypeId))
+                errors[$"identity.identifications[{i}].id_card_type_id"] =
+                    "Duplicate id_card_type_id in the same request.";
         }
 
         return errors.Count > 0 ? errors : null;

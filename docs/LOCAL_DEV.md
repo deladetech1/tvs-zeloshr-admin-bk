@@ -4,7 +4,13 @@ All local testing and database setup go through **Docker Compose** and `./script
 
 ## Prerequisites
 
-1. **Docker** (Compose v2)
+1. **Colima** (recommended Docker runtime on macOS) + Docker CLI  
+   ```bash
+   brew install colima docker docker-compose
+   colima start
+   docker context use colima   # default for this project
+   ```  
+   `./scripts/compose.sh` auto-starts Colima when Docker is unreachable.
 2. **`app/.env`** — copy from `app/.env.example` and set `PACKAGES_TOKEN` (`read:packages`; same name as org secret)
 3. **`tvs-sqlscript`** cloned as a sibling repo:
 

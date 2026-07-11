@@ -99,6 +99,21 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
                     sync_education: true + full education[] replaces the education section.
                     delete_certification_ids removes specific certification rows without sending certifications[].
                     """),
+                ["sync_replace_identifications"] = Example(
+                    SwaggerExamples.UpdateEmployeeSyncIdentificationsReplace(),
+                    "sync_identifications — replace identity.identifications",
+                    """
+                    sync_identifications: true means identity.identifications[] IS the full desired set.
+                    Any existing identification not in the array is deleted after upsert.
+                    id_card_type_id values come from GET /id-card-types/list.
+                    """),
+                ["add_identifications"] = Example(
+                    SwaggerExamples.UpdateEmployeeAddIdentifications(),
+                    "Add identification rows",
+                    """
+                    New rows under identity.identifications: omit id on each item.
+                    id_card_type_id and id_card_type_number are required per row.
+                    """),
                 ["partial_employment_type"] = Example(
                     SwaggerExamples.UpdateEmployeePartialEmployment(),
                     "Partial — employment type only",

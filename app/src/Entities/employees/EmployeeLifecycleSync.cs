@@ -2,41 +2,25 @@ using ZelosHR.Api.Persistence.Entities;
 
 namespace ZelosHR.Api.Entities.Employees;
 
-/// <summary>Keeps lifecycle_state / lifecycle_status aligned with employment_status after finalise.</summary>
+/// <summary>Mirrors <c>employment_status</c> from the frontend into lifecycle columns — no server-side overrides.</summary>
 internal static class EmployeeLifecycleSync
 {
-    internal static void ApplyPostFinaliseDefaults(EmployeeEntity entity)
+    internal static void SyncFromEmploymentStatus(EmployeeEntity entity, string employmentStatus)
     {
-        if (ShouldDefaultToPreHire(entity.EmploymentStatus))
-        {
-            SetPreHire(entity);
+        if (string.IsNullOrWhiteSpace(employmentStatus))
             return;
-        }
 
-        ApplyFromEmploymentStatus(entity, entity.EmploymentStatus.Trim());
-    }
-
-    internal static bool ShouldDefaultToPreHire(string? employmentStatus) =>
-        string.IsNullOrWhiteSpace(employmentStatus)
-        || string.Equals(employmentStatus, EmploymentStatusValues.Draft, StringComparison.OrdinalIgnoreCase);
-
-    internal static void ApplyFromEmploymentStatus(EmployeeEntity entity, string employmentStatus)
-    {
         entity.EmploymentStatus = employmentStatus.Trim();
         var (lifecycleState, lifecycleStatus) = MapEmploymentStatus(entity.EmploymentStatus);
         entity.LifecycleState = lifecycleState;
         entity.LifecycleStatus = lifecycleStatus;
     }
 
-    private static void SetPreHire(EmployeeEntity entity)
+    internal static (string LifecycleState, string LifecycleStatus) MapEmploymentStatus(string status)
     {
-        entity.LifecycleStatus = "pre_hire";
-        entity.LifecycleState = EmployeeLifecycleStates.PreHire;
-        entity.EmploymentStatus = EmploymentStatusValues.PreHire;
-    }
+        if (string.Equals(status, EmploymentStatusValues.Draft, StringComparison.OrdinalIgnoreCase))
+            return (EmployeeLifecycleStates.Draft, "draft");
 
-    private static (string LifecycleState, string LifecycleStatus) MapEmploymentStatus(string status)
-    {
         if (string.Equals(status, EmploymentStatusValues.PreHire, StringComparison.OrdinalIgnoreCase))
             return (EmployeeLifecycleStates.PreHire, "pre_hire");
 
@@ -57,6 +41,10 @@ internal static class EmployeeLifecycleSync
         if (string.Equals(status, EmploymentStatusValues.Terminated, StringComparison.OrdinalIgnoreCase))
             return (EmployeeLifecycleStates.Terminated, "terminated");
 
-        return (EmployeeLifecycleStates.PreHire, "pre_hire");
+        var trimmed = status.Trim();
+        return (trimmed, ToLifecycleStatus(trimmed));
     }
+
+    private static string ToLifecycleStatus(string status) =>
+        status.Replace('-', '_').Replace(' ', '_').ToLowerInvariant();
 }

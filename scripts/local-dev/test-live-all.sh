@@ -175,6 +175,7 @@ read_paths=(
   "/api/v1/employees/directory/summary"
   "/api/v1/employees/list?page=1&size=5"
   "/api/v1/employees/import/search?query=a"
+  "/api/v1/id-card-types/list?page=1&size=20"
   "/api/v1/lifecycle-events/statistics"
   "/api/v1/lifecycle-events/list?page=1&size=5"
 )
@@ -360,6 +361,37 @@ PY
         record_skip PUT "/api/v1/employees/update (education+cert)" "Missing education or certification id on GET."
       fi
     fi
+  fi
+
+  echo "=== Employee identifications (id-card-types + identity.identifications[]) ==="
+  ID_TYPE_ID=""
+  if api_get "/api/v1/id-card-types/list?page=1&size=5"; then
+    ID_TYPE_ID="$(json_path "$LAST_JSON" "data.items.0.id_card_type_id" 2>/dev/null || true)"
+  fi
+  if [[ -n "$ID_TYPE_ID" && -n "$EMP_ID" ]]; then
+    ID_ADD="$(cat <<EOF
+{
+  "identity": {
+    "identifications": [{
+      "id_type_id": "${ID_TYPE_ID}",
+      "id_number": "GHA-${TS}",
+      "id_issue_date": "2020-01-10",
+      "id_expiry_date": "2030-01-10"
+    }]
+  }
+}
+EOF
+)"
+    api_put "/api/v1/employees/update?employee_id=${EMP_ID}" "$ID_ADD" || true
+    if api_get "/api/v1/employees/get?employee_id=${EMP_ID}"; then
+      ID_ROW="$(json_path "$LAST_JSON" "data.identity.identifications.0.id" 2>/dev/null || true)"
+      if [[ -n "$ID_ROW" ]]; then
+        api_put "/api/v1/employees/update?employee_id=${EMP_ID}" \
+          "$(printf '{"identity":{"identifications":[{"id":"%s","id_type_id":"%s","id_number":"GHA-%s-UPD","id_issue_date":"2020-01-10","id_expiry_date":"2030-01-10"}]}}' "$ID_ROW" "$ID_TYPE_ID" "$TS")" || true
+      fi
+    fi
+  else
+    record_skip PUT "/api/v1/employees/update (identifications)" "Missing id_card_type_id or employee_id."
   fi
 fi
 

@@ -12,6 +12,7 @@ using ZelosHR.Api.Entities.Currencies;
 using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Employees;
+using ZelosHR.Api.Entities.Employees.Authorization;
 using ZelosHR.Api.Entities.EmploymentTypes;
 using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Entities.Leave;
@@ -73,6 +74,30 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(CreateCustomFieldDefinitionDto) => SwaggerExamples.CreateCustomFieldAddBody(),
             nameof(ImportEmployeesRequest) => SwaggerExamples.ImportEmployeesRequestBody(),
             nameof(EmployeeAggregateReadDto) => SwaggerExamples.EmployeeAggregateReadData(),
+            nameof(ChangeRequestReadDto) => new JsonObject
+            {
+                ["id"] = "00000000-0000-0000-0000-000000000001",
+                ["employee_id"] = SwaggerExamples.SampleEmployeeId.ToString(),
+                ["field_path"] = "identity.full_name",
+                ["old_value"] = "Jane Doe",
+                ["new_value"] = "Jane Smith",
+                ["status"] = "pending",
+                ["requested_by_id"] = "usr_cp_demo",
+                ["created_at"] = "2026-07-10T09:00:00+00:00",
+                ["updated_at"] = "2026-07-10T09:00:00+00:00",
+            },
+            nameof(EmployeeSelfUpdateResultDto) => new JsonObject
+            {
+                ["employee"] = SwaggerExamples.EmployeeAggregateReadData().DeepClone(),
+                ["applied"] = new JsonArray("identity.phone"),
+                ["pending"] = new JsonArray(),
+                ["rejected"] = new JsonArray("employment"),
+            },
+            nameof(FieldPolicyEntryDto) => new JsonObject
+            {
+                ["path"] = "identity.phone",
+                ["access"] = "free",
+            },
             nameof(DocumentReadDto) => SwaggerExamples.EmployeeDocumentItem(),
             nameof(EmployeeDirectorySummaryDto) => SwaggerExamples.EmployeeDirectorySummaryData(),
             nameof(GetCurrencySimpleReadDto) => SwaggerExamples.CurrencyItem(),
@@ -457,11 +482,11 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             case nameof(EmployeeAggregateIdentityDto.Phone):
                 schema.Example = JsonValue.Create("+233201234567");
                 return;
-            case "Country" when property.DeclaringType == typeof(EmployeeAggregateIdentityDto):
+            case "Country" when property.DeclaringType == typeof(EmployeeAggregateIdentityDto)
+                              || property.DeclaringType == typeof(EmployeeAggregateIdentityReadDto):
                 schema.Example = JsonValue.Create("Ghana");
-                return;
-            case nameof(EmployeeAggregateIdentityDto.IdNumber):
-                schema.Example = JsonValue.Create("GHA-123456789-0");
+                schema.Description = AppendDescription(schema.Description,
+                    "Display name from GET /countries/list (e.g. Ghana). Wire: country — not country_id (catalog id is metadata only).");
                 return;
             case nameof(EmployeeAggregateIdentityDto.LinkedInUrl):
                 schema.Example = JsonValue.Create("https://linkedin.com/in/adalovelace");

@@ -47,8 +47,10 @@ internal static class EmployeeAggregateReadMapper
 
     internal static bool HasCompensation(EmployeeEntity entity, Dictionary<string, string?>? customFields) =>
         entity.GrossSalary is not null
+        || entity.NetSalary is not null
         || !string.IsNullOrWhiteSpace(entity.PayFrequency)
         || !string.IsNullOrWhiteSpace(entity.CurrencyId)
+        || !string.IsNullOrWhiteSpace(entity.SsnitNumber)
         || entity.AnnualizedCost is not null
         || customFields is { Count: > 0 };
 
@@ -58,6 +60,8 @@ internal static class EmployeeAggregateReadMapper
         CpUserDto? cp,
         string? workEmail,
         DocumentReadDto? profileUrl,
+        IReadOnlyList<EmployeeIdentificationDto>? identifications,
+        IReadOnlyList<EmployeeEmergencyContactDto>? emergency,
         Dictionary<string, string?>? customFields) =>
         new()
         {
@@ -65,16 +69,18 @@ internal static class EmployeeAggregateReadMapper
             DateOfBirth = entity.DateOfBirth ?? ParseCpDob(cp?.Dob),
             Gender = entity.Gender ?? cp?.Gender,
             Country = entity.Nationality,
-            IdType = entity.NationalityIdType,
-            IdIssueDate = entity.IdIssueDate,
-            IdExpiryDate = entity.IdExpiryDate,
-            IdNumber = entity.IdNumber,
+            MaritalStatus = entity.MaritalStatus,
+            NextOfKinName = entity.NextOfKinName,
+            NextOfKinPhone = entity.NextOfKinPhone,
+            RelationshipToNextOfKin = entity.RelationshipToNextOfKin,
             PersonalEmail = entity.PersonalEmail,
             WorkEmail = workEmail,
             Phone = entity.Phone ?? entity.PersonalPhone ?? cp?.Phone,
             LinkedInUrl = entity.LinkedInUrl,
             ResidentialAddress = entity.ResidentialAddress ?? cp?.Address,
             ProfileUrl = profileUrl,
+            Identifications = identifications is { Count: > 0 } ? identifications : null,
+            Emergency = emergency is { Count: > 0 } ? emergency : null,
             CustomFields = CustomFieldsOrNull(customFields),
         };
 
@@ -85,6 +91,7 @@ internal static class EmployeeAggregateReadMapper
         EmployeeEntity entity,
         Dictionary<string, string?>? customFields,
         ReportsToDisplay? reportsTo = null,
+        ReportsToDisplay? secondaryReportsTo = null,
         EmploymentTypeDisplay? employmentType = null)
     {
         if (!HasEmployment(entity, customFields))
@@ -113,9 +120,8 @@ internal static class EmployeeAggregateReadMapper
             PayGrade = entity.PayGrade,
             StartDate = entity.StartDate ?? entity.EmploymentStartDate,
             ProbationEndDate = entity.ProbationEndDate,
-            WorkingHours = entity.WorkingHours,
+            WorkingHours = EmployeeWorkingHoursConverter.FromStorage(entity.WorkingHours),
             NoticePeriod = entity.NoticePeriod,
-            DottedLineManagerId = entity.DottedLineManagerId,
             ReportsTo = reportsTo is null
                 ? null
                 : new EmployeeReportsToRefDto
@@ -125,6 +131,15 @@ internal static class EmployeeAggregateReadMapper
                     Position = reportsTo.Position,
                     PhotoUrl = reportsTo.PhotoUrl,
                 },
+            SecondaryReportsTo = secondaryReportsTo is null
+                ? null
+                : new EmployeeReportsToRefDto
+                {
+                    Id = secondaryReportsTo.Id.ToString(),
+                    Name = secondaryReportsTo.Name,
+                    Position = secondaryReportsTo.Position,
+                    PhotoUrl = secondaryReportsTo.PhotoUrl,
+                },
             CustomFields = CustomFieldsOrNull(customFields),
         };
     }
@@ -132,23 +147,48 @@ internal static class EmployeeAggregateReadMapper
     internal static EmployeeAggregateCompensationReadDto? BuildCompensation(
         EmployeeEntity entity,
         Dictionary<string, string?>? customFields,
+        IReadOnlyList<EmployeePaymentMethodDto>? payment,
         string? currencyCode,
         string? currencyName,
         string? currencySymbol)
     {
-        if (!HasCompensation(entity, customFields))
+        if (!HasCompensation(entity, customFields) && payment is not { Count: > 0 })
             return null;
 
         return new EmployeeAggregateCompensationReadDto
         {
             GrossSalary = entity.GrossSalary,
+            NetSalary = entity.NetSalary,
+            SsnitInsuranceNumber = entity.SsnitNumber,
             PayFrequency = entity.PayFrequency,
             CurrencyId = entity.CurrencyId,
             CurrencyCode = currencyCode,
             CurrencyName = currencyName,
             CurrencySymbol = currencySymbol,
             AnnualizedCost = entity.AnnualizedCost,
+            Payment = payment is { Count: > 0 } ? payment : null,
             CustomFields = CustomFieldsOrNull(customFields),
         };
+    }
+
+    internal static EmployeeMedicalReadDto? BuildMedical(EmployeeMedicalReadDto? medical)
+    {
+        if (medical is null)
+            return null;
+
+        if (medical.Id is null
+            && string.IsNullOrWhiteSpace(medical.BloodGroup)
+            && !medical.HasMedicalCondition
+            && !medical.TakesRegularMedication
+            && string.IsNullOrWhiteSpace(medical.DisabilityStatus)
+            && !medical.RequiresAccommodation
+            && string.IsNullOrWhiteSpace(medical.AccommodationDetails)
+            && string.IsNullOrWhiteSpace(medical.EmergencyMedicalNotes)
+            && medical.MedicalConditions is not { Count: > 0 }
+            && medical.Allergies is not { Count: > 0 }
+            && medical.Medications is not { Count: > 0 })
+            return null;
+
+        return medical;
     }
 }
