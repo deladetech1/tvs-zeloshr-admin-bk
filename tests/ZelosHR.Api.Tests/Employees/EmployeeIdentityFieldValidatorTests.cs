@@ -105,11 +105,7 @@ public class EmployeeIdentityFieldValidatorTests
     {
         var identity = ValidIdentity(emergency:
         [
-            new EmployeeEmergencyContactUpsertDto
-            {
-                EmergencyContactName = "",
-                EmergencyContactPhone = "+233503448860",
-            },
+            new EmployeeEmergencyContactUpsertDto(null, "", "+233503448860", null),
         ]);
 
         var errors = EmployeeIdentityFieldValidator.ValidateForCreate(identity);
