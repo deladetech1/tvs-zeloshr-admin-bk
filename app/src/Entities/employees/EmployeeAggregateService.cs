@@ -1689,7 +1689,14 @@ public sealed class EmployeeAggregateService
 
     private static Dictionary<string, string>? ValidateUpdate(UpdateEmployeeAggregateRequest request)
     {
-        var errors = new Dictionary<string, string>();
+        var errors = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        var identityErrors = EmployeeIdentityFieldValidator.ValidateForUpdate(request.Identity);
+        if (identityErrors is not null)
+        {
+            foreach (var (key, value) in identityErrors)
+                errors[key] = value;
+        }
 
         if (request.Education is { Count: > MaxEducation })
             errors["education"] = $"At most {MaxEducation} education records allowed per request.";

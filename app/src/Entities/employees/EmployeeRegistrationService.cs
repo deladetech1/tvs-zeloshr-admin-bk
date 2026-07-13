@@ -223,6 +223,10 @@ public sealed class EmployeeRegistrationService
         if (entity.Error is not null)
             return entity.Error;
 
+        var identityErrors = EmployeeIdentityFieldValidator.ValidateRegistrationPatch(dto);
+        if (identityErrors is not null)
+            return Respons<EmployeeRegistrationReadDto>.ValidationError(identityErrors);
+
         var e = entity.Value!;
         ApplyHrPersonalFields(e, dto);
 
