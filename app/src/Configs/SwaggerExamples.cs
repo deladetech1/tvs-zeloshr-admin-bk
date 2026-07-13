@@ -11,6 +11,7 @@ using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Employees.Authorization;
 using ZelosHR.Api.Entities.EmploymentTypes;
 using ZelosHR.Api.Entities.Files;
+using ZelosHR.Api.Entities.IdCardTypes;
 using ZelosHR.Api.Entities.Leave;
 using ZelosHR.Api.Entities.OrgStructure;
 using ZelosHR.Api.Entities.Shared;
@@ -428,7 +429,7 @@ internal static class SwaggerExamples
         ["deleted_definitions"] = 2,
     };
 
-    private static JsonObject CustomFieldDefinitionItem(string section, string fieldKey, string label) => new()
+    internal static JsonObject CustomFieldDefinitionItem(string section, string fieldKey, string label) => new()
     {
         ["id"] = $"cf_{fieldKey}_001",
         ["entity_type"] = CustomFieldEntityTypes.Employee,
@@ -1963,6 +1964,9 @@ internal static class SwaggerExamples
         target,
         "2026-01-15T08:00:00+00:00",
         "2026-06-01T12:00:00+00:00");
+
+    internal static void AppendResourceAuditFields(JsonObject target, string createdAt) =>
+        AppendResourceAuditFields(target, createdAt, createdAt);
 
     internal static void AppendResourceAuditFields(
         JsonObject target,
