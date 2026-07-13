@@ -1,10 +1,12 @@
 namespace ZelosHR.Api.Persistence.Entities;
 
-/// <summary>Maps to human_resource.hr_document_paths (Trovesuite file registry).</summary>
+/// <summary>Maps to core_platform.cp_document_paths (Trovesuite file registry).</summary>
 public sealed class HrDocumentPathEntity
 {
     public string Id { get; set; } = default!;
     public string TenantId { get; set; } = default!;
+    public string OrgId { get; set; } = default!;
+    public string? BusId { get; set; }
     public string DocumentPath { get; set; } = default!;
     public string? FileName { get; set; }
     public string? Description { get; set; }

@@ -459,8 +459,8 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
 
         modelBuilder.Entity<HrDocumentPathEntity>(b =>
         {
-            b.ToTable("hr_document_paths", "human_resource", t => t.ExcludeFromMigrations());
-            b.HasKey(x => new { x.Id, x.TenantId });
+            b.ToTable("cp_document_paths", "core_platform", t => t.ExcludeFromMigrations());
+            b.HasKey(x => new { x.TenantId, x.OrgId, x.Id });
             b.Property(x => x.DocumentPath).HasColumnName("document_path");
         });
 

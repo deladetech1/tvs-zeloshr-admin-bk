@@ -3,7 +3,7 @@ namespace ZelosHR.Api.Entities.Files;
 /// <summary>Registry ID returned after <c>POST /api/v1/file/post/multiple</c>. Pass to employee <c>document_ids</c>.</summary>
 public sealed class FileUploadMultipleReadDto
 {
-    /// <summary>Document registry ID (<c>human_resource.hr_document_paths.id</c>). String, not UUID.</summary>
+    /// <summary>Document registry ID (<c>core_platform.cp_document_paths.id</c>). String, not UUID.</summary>
     public required string Id { get; init; }
 }
 
@@ -12,7 +12,7 @@ public sealed class FileUploadMultipleReadDto
 /// </summary>
 public sealed class DocumentReadDto
 {
-    /// <summary>Document registry ID (<c>hr_document_paths.id</c>).</summary>
+    /// <summary>Document registry ID (<c>cp_document_paths.id</c>).</summary>
     public required string DocId { get; init; }
 
     /// <summary>Optional label from upload <c>descriptions</c> or file update.</summary>
@@ -28,7 +28,7 @@ public sealed class DocumentReadDto
 /// <summary>Document metadata + time-limited download URL from <c>GET /api/v1/file/list</c> or <c>PUT /file/put</c>.</summary>
 public sealed class FileResponseReadDto
 {
-    /// <summary>Registry ID (<c>hr_document_paths.id</c>).</summary>
+    /// <summary>Registry ID (<c>cp_document_paths.id</c>).</summary>
     public required string Id { get; init; }
 
     /// <summary>Azure Blob presigned URL (24h expiry). Open in browser or pass to download client.</summary>

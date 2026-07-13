@@ -647,6 +647,8 @@ public sealed class EmployeeRegistrationService
         {
             Id = documentId,
             TenantId = _tenant.TenantId,
+            OrgId = _tenant.OrgId,
+            BusId = _tenant.BusId,
             DocumentPath = blobPath,
             FileName = fileName,
             Description = "Employee profile photo",

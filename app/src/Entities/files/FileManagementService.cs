@@ -117,6 +117,8 @@ public sealed class FileManagementService
             {
                 Id = id,
                 TenantId = _tenant.TenantId,
+                OrgId = _tenant.OrgId,
+                BusId = _tenant.BusId,
                 DocumentPath = documentPath,
                 FileName = file.FileName,
                 Description = description,
@@ -173,7 +175,7 @@ public sealed class FileManagementService
                 new Dictionary<string, string> { ["file"] = "File is required." });
         }
 
-        var existing = await _documents.GetByIdAsync(documentId, _tenant.TenantId, ct);
+        var existing = await _documents.GetByIdAsync(documentId, _tenant.TenantId, _tenant.OrgId, ct);
         if (existing is null)
             return Respons<FileResponseReadDto>.NotFound("Document not found.");
 
@@ -222,7 +224,7 @@ public sealed class FileManagementService
 
     public async Task<Respons<FileDeleteReadDto>> DeleteFileAsync(string documentId, CancellationToken ct = default)
     {
-        var existing = await _documents.GetByIdAsync(documentId, _tenant.TenantId, ct);
+        var existing = await _documents.GetByIdAsync(documentId, _tenant.TenantId, _tenant.OrgId, ct);
         if (existing is null)
             return Respons<FileDeleteReadDto>.NotFound("Document not found.");
 

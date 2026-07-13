@@ -10,7 +10,7 @@ public readonly record struct ProfileUrlWriteResolution(
     Dictionary<string, string>? Error);
 
 /// <summary>
-/// Resolves <c>human_resource.hr_document_paths</c> IDs to Azure presigned URLs (MyStoreGuard file/list pattern).
+/// Resolves <c>core_platform.cp_document_paths</c> IDs to Azure presigned URLs (MyStoreGuard file/list pattern).
 /// </summary>
 public sealed class HrDocumentPresignedUrlService
 {
@@ -60,7 +60,7 @@ public sealed class HrDocumentPresignedUrlService
             };
         }
 
-        var row = await _documents.GetByIdAsync(trimmed, _tenant.TenantId, ct);
+        var row = await _documents.GetByIdAsync(trimmed, _tenant.TenantId, _tenant.OrgId, ct);
         if (row is null)
         {
             return new Dictionary<string, string>(StringComparer.Ordinal)
@@ -170,7 +170,7 @@ public sealed class HrDocumentPresignedUrlService
 
     public async Task<string?> ResolvePresignedUrlForDocumentIdAsync(string documentId, CancellationToken ct = default)
     {
-        var row = await _documents.GetByIdAsync(documentId, _tenant.TenantId, ct);
+        var row = await _documents.GetByIdAsync(documentId, _tenant.TenantId, _tenant.OrgId, ct);
         if (row is null)
             return null;
 
@@ -205,7 +205,7 @@ public sealed class HrDocumentPresignedUrlService
         if (ids.Count == 0)
             return [];
 
-        var rows = await _documents.GetByIdsAsync(ids, _tenant.TenantId, ct);
+        var rows = await _documents.GetByIdsAsync(ids, _tenant.TenantId, _tenant.OrgId, ct);
         var byId = rows.ToDictionary(x => x.Id, StringComparer.Ordinal);
 
         var items = new List<FileResponseReadDto>();
