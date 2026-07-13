@@ -325,7 +325,8 @@ public class EmployeesController : ControllerBase
     /// Status filtering: use <c>status</c> with simple commands (<c>active</c>, <c>probation</c>, <c>on_leave</c>, …)
     /// or <c>employment_status</c> for exact match on stored values (Active, Probation, On Leave, …). Do not combine both.
     /// Optional <c>start_date</c> / <c>end_date</c> filter by employment start. Same filters as <c>GET /employees/export</c>.
-    /// Each item returns <c>employment_status</c>, <c>engagement</c>, and <c>work_states[]</c>.
+    /// Role filters: <c>is_line_manager</c>, <c>is_head_of_department</c> (derived from direct reports and department head assignment).
+    /// Each item returns <c>employment_status</c>, <c>engagement</c>, <c>work_states[]</c>, <c>is_line_manager</c>, <c>is_head_of_department</c>.
     /// </remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("list")]

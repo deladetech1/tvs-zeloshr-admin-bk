@@ -924,6 +924,8 @@ public sealed class EmployeeAggregateService
         var reportsTo = await ResolveReportsToDisplayAsync(entity, ct);
         var secondaryReportsTo = await ResolveSecondaryReportsToDisplayAsync(entity, ct);
         var employmentType = await ResolveEmploymentTypeDisplayAsync(entity, ct);
+        var roleFlags = await _employees.ResolveRoleFlagsBatchAsync(
+            [id], _tenant.TenantId, _tenant.OrgId, ct);
 
         var read = new EmployeeAggregateReadDto
         {
@@ -940,7 +942,13 @@ public sealed class EmployeeAggregateService
                 emergency.Success && emergency.Data is { Count: > 0 } emergencyData ? emergencyData : null,
                 sections.Identity),
             Employment = EmployeeAggregateReadMapper.BuildEmployment(
-                entity, sections.Employment, reportsTo, secondaryReportsTo, employmentType),
+                entity,
+                sections.Employment,
+                reportsTo,
+                secondaryReportsTo,
+                employmentType,
+                roleFlags.IsLineManager(entity.Id),
+                roleFlags.IsHeadOfDepartment(entity.Id)),
             Compensation = EmployeeAggregateReadMapper.BuildCompensation(
                 entity,
                 sections.Compensation,
@@ -1021,6 +1029,12 @@ public sealed class EmployeeAggregateService
         var (rows, total) = await _employees.ListScopedAsync(
             query, _tenant.TenantId, _tenant.OrgId, paging.Page, paging.Size, ct);
 
+        var roleFlags = await _employees.ResolveRoleFlagsBatchAsync(
+            rows.Select(r => r.Id).ToList(),
+            _tenant.TenantId,
+            _tenant.OrgId,
+            ct);
+
         var userIds = rows
             .SelectMany(r => new[] { r.UserId, r.CreatedBy, r.UpdatedBy })
             .Where(id => !string.IsNullOrWhiteSpace(id))
@@ -1064,6 +1078,8 @@ public sealed class EmployeeAggregateService
                 UpdatedById = e.UpdatedBy,
                 CreatedBy = ResourceAuditMapper.ResolveDisplayName(e.CreatedBy, platformUsers),
                 UpdatedBy = ResourceAuditMapper.ResolveDisplayName(e.UpdatedBy, platformUsers),
+                IsLineManager = roleFlags.IsLineManager(e.Id),
+                IsHeadOfDepartment = roleFlags.IsHeadOfDepartment(e.Id),
             };
         }).ToList();
 

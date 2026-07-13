@@ -43,6 +43,8 @@ export interface EmployeeParams {
   work_location?: string;
   start_date?: string;
   end_date?: string;
+  is_line_manager?: boolean;
+  is_head_of_department?: boolean;
 }
 ```
 

@@ -254,6 +254,18 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
             return;
         }
 
+        if ((name.Equals("is_line_manager", StringComparison.OrdinalIgnoreCase)
+             || name.Equals("is_head_of_department", StringComparison.OrdinalIgnoreCase))
+            && context.ParameterInfo?.Member.DeclaringType?.FullName?.Contains(
+                "Employee", StringComparison.Ordinal) == true)
+        {
+            schema.Example = true;
+            parameter.Description = SwaggerOptionFormat.Append(
+                parameter.Description,
+                "Derived role flag filter. true = only employees matching the role; false = exclude them.");
+            return;
+        }
+
         if (name.Equals("search", StringComparison.OrdinalIgnoreCase)
             && context.ParameterInfo?.Member.DeclaringType?.FullName?.Contains(
                 "OrgStructure",

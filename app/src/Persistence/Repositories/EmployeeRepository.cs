@@ -155,6 +155,8 @@ public sealed class EmployeeRepository(ZelosHrDbContext db) : IEmployeeRepositor
             EndDate = listQuery.EndDate,
             SortBy = listQuery.SortBy,
             SortOrder = listQuery.SortOrder,
+            IsLineManager = listQuery.IsLineManager,
+            IsHeadOfDepartment = listQuery.IsHeadOfDepartment,
         };
 
         var query = db.Employees.AsNoTracking()
@@ -163,7 +165,7 @@ public sealed class EmployeeRepository(ZelosHrDbContext db) : IEmployeeRepositor
             .Where(e => e.TenantId == tenantId && e.OrgId == orgId && !e.IsDeleted);
 
         query = EmployeeDirectoryQueryBuilder.ApplyFilters(
-            query, directoryQuery, db.CpUsers, tenantId);
+            query, directoryQuery, db.CpUsers, tenantId, orgId, db.Employees, db.Departments);
 
         var total = await query.CountAsync(ct);
         var ordered = EmployeeDirectoryQueryBuilder.ApplySort(query, listQuery.SortBy, listQuery.SortOrder);
@@ -193,6 +195,8 @@ public sealed class EmployeeRepository(ZelosHrDbContext db) : IEmployeeRepositor
             IncludeInactive = exportQuery.IncludeInactive,
             StartDate = exportQuery.StartDate,
             EndDate = exportQuery.EndDate,
+            IsLineManager = exportQuery.IsLineManager,
+            IsHeadOfDepartment = exportQuery.IsHeadOfDepartment,
         };
 
         var query = db.Employees.AsNoTracking()
@@ -201,7 +205,7 @@ public sealed class EmployeeRepository(ZelosHrDbContext db) : IEmployeeRepositor
             .Where(e => e.TenantId == tenantId && e.OrgId == orgId && !e.IsDeleted);
 
         query = EmployeeDirectoryQueryBuilder.ApplyFilters(
-            query, directoryQuery, db.CpUsers, tenantId);
+            query, directoryQuery, db.CpUsers, tenantId, orgId, db.Employees, db.Departments);
 
         return await query
             .OrderBy(e => e.LastName)
@@ -306,5 +310,44 @@ public sealed class EmployeeRepository(ZelosHrDbContext db) : IEmployeeRepositor
                 e.Department?.HeadOfDepartmentId,
                 e.ProfilePhotoUrl))
             .ToList();
+    }
+
+    public async Task<EmployeeRoleFlagsBatch> ResolveRoleFlagsBatchAsync(
+        IReadOnlyCollection<Guid> employeeIds,
+        string tenantId,
+        string orgId,
+        CancellationToken ct = default)
+    {
+        if (employeeIds.Count == 0)
+            return EmployeeRoleFlagsBatch.Empty;
+
+        var ids = employeeIds.Distinct().ToList();
+
+        var lineManagerIds = await db.Employees.AsNoTracking()
+            .Where(r =>
+                r.TenantId == tenantId
+                && r.OrgId == orgId
+                && !r.IsDeleted
+                && !r.IsDraft
+                && r.ReportsToId != null
+                && ids.Contains(r.ReportsToId.Value))
+            .Select(r => r.ReportsToId!.Value)
+            .Distinct()
+            .ToListAsync(ct);
+
+        var headOfDepartmentIds = await db.Departments.AsNoTracking()
+            .Where(d =>
+                d.TenantId == tenantId
+                && d.OrgId == orgId
+                && !d.IsArchived
+                && d.HeadOfDepartmentId != null
+                && ids.Contains(d.HeadOfDepartmentId.Value))
+            .Select(d => d.HeadOfDepartmentId!.Value)
+            .Distinct()
+            .ToListAsync(ct);
+
+        return new EmployeeRoleFlagsBatch(
+            lineManagerIds.ToHashSet(),
+            headOfDepartmentIds.ToHashSet());
     }
 }

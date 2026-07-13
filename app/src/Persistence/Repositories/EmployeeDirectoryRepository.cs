@@ -31,7 +31,7 @@ public sealed class EmployeeDirectoryRepository(ZelosHrDbContext db) : IEmployee
         CancellationToken ct = default)
     {
         var baseQuery = EmployeeDirectoryQueryBuilder.ApplyFilters(
-            Scoped(tenantId, orgId), query, db.CpUsers, tenantId);
+            Scoped(tenantId, orgId), query, db.CpUsers, tenantId, orgId, db.Employees, db.Departments);
         var total = await baseQuery.CountAsync(ct);
 
         var sorted = EmployeeDirectoryQueryBuilder.ApplySort(baseQuery, query.SortBy, query.SortOrder);

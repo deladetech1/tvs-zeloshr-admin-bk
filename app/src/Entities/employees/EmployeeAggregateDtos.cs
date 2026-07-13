@@ -349,6 +349,12 @@ public sealed class EmployeeAggregateEmploymentReadDto : EmployeeAggregateEmploy
 
     /// <summary>Secondary reporting line reference.</summary>
     public EmployeeReportsToRefDto? SecondaryReportsTo { get; init; }
+
+    /// <summary>Derived — has at least one active non-draft direct report.</summary>
+    public bool IsLineManager { get; init; }
+
+    /// <summary>Derived — heads at least one non-archived department.</summary>
+    public bool IsHeadOfDepartment { get; init; }
 }
 
 public sealed class EmployeeAggregateCompensationReadDto : EmployeeAggregateCompensationDto
@@ -415,6 +421,14 @@ public sealed class EmployeeListQuery
 
     [FromQuery(Name = PlatformQueryParams.IncludeInactive)]
     public bool IncludeInactive { get; init; }
+
+    /// <summary>Filter line managers — employees with at least one active non-draft direct report.</summary>
+    [FromQuery(Name = PlatformQueryParams.IsLineManager)]
+    public bool? IsLineManager { get; init; }
+
+    /// <summary>Filter department heads — employees listed as head on a non-archived department.</summary>
+    [FromQuery(Name = PlatformQueryParams.IsHeadOfDepartment)]
+    public bool? IsHeadOfDepartment { get; init; }
 }
 
 public sealed class EmployeeListDto
@@ -449,4 +463,10 @@ public sealed class EmployeeListItemDto
     public string? UpdatedById { get; init; }
     public string? CreatedBy { get; init; }
     public string? UpdatedBy { get; init; }
+
+    /// <summary>True when at least one active non-draft employee reports to this person (<c>reports_to_id</c>).</summary>
+    public bool IsLineManager { get; init; }
+
+    /// <summary>True when this person is <c>head_of_department_id</c> on at least one non-archived department.</summary>
+    public bool IsHeadOfDepartment { get; init; }
 }

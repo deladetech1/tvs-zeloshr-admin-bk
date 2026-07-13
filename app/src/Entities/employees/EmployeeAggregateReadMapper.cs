@@ -25,8 +25,14 @@ internal static class EmployeeAggregateReadMapper
         IReadOnlyList<DocumentReadDto>? documents) =>
         documents is { Count: > 0 } ? documents : null;
 
-    internal static bool HasEmployment(EmployeeEntity entity, Dictionary<string, string?>? customFields) =>
-        !string.IsNullOrWhiteSpace(entity.JobTitle)
+    internal static bool HasEmployment(
+        EmployeeEntity entity,
+        Dictionary<string, string?>? customFields,
+        bool isLineManager = false,
+        bool isHeadOfDepartment = false) =>
+        isLineManager
+        || isHeadOfDepartment
+        || !string.IsNullOrWhiteSpace(entity.JobTitle)
         || entity.DepartmentId is not null
         || entity.BranchId is not null
         || entity.EmploymentTypeId is not null
@@ -92,9 +98,11 @@ internal static class EmployeeAggregateReadMapper
         Dictionary<string, string?>? customFields,
         ReportsToDisplay? reportsTo = null,
         ReportsToDisplay? secondaryReportsTo = null,
-        EmploymentTypeDisplay? employmentType = null)
+        EmploymentTypeDisplay? employmentType = null,
+        bool isLineManager = false,
+        bool isHeadOfDepartment = false)
     {
-        if (!HasEmployment(entity, customFields))
+        if (!HasEmployment(entity, customFields, isLineManager, isHeadOfDepartment))
             return null;
 
         return new EmployeeAggregateEmploymentReadDto
@@ -140,6 +148,8 @@ internal static class EmployeeAggregateReadMapper
                     Position = secondaryReportsTo.Position,
                     PhotoUrl = secondaryReportsTo.PhotoUrl,
                 },
+            IsLineManager = isLineManager,
+            IsHeadOfDepartment = isHeadOfDepartment,
             CustomFields = CustomFieldsOrNull(customFields),
         };
     }

@@ -65,4 +65,10 @@ public interface IEmployeeRepository : IRepository<EmployeeEntity, Guid>
         string tenantId,
         string orgId,
         CancellationToken ct = default);
+
+    Task<EmployeeRoleFlagsBatch> ResolveRoleFlagsBatchAsync(
+        IReadOnlyCollection<Guid> employeeIds,
+        string tenantId,
+        string orgId,
+        CancellationToken ct = default);
 }
