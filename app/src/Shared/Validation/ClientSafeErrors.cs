@@ -13,6 +13,7 @@ public static class ClientSafeErrors
         !string.IsNullOrWhiteSpace(message)
         && (message.Contains("could not be translated", StringComparison.OrdinalIgnoreCase)
             || message.Contains("LINQ expression", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("Nullable object must have a value", StringComparison.OrdinalIgnoreCase)
             || message.Contains("DbSet<", StringComparison.Ordinal));
 
     public static string SanitizeInvalidOperationMessage(string message)
