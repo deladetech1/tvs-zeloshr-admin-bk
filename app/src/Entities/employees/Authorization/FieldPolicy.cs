@@ -1,3 +1,5 @@
+using ZelosHR.Api.Configs;
+
 namespace ZelosHR.Api.Entities.Employees.Authorization;
 
 /// <summary>
@@ -67,6 +69,10 @@ public static class FieldPolicy
 
 public sealed class FieldPolicyEntryDto
 {
+    /// <summary>Dot path into the employee update JSON (matches PUT /employees/update sections).</summary>
     public required string Path { get; init; }
+
+    /// <summary>Self-service tier: <c>free</c> (immediate) or <c>approval</c> (queued for HR).</summary>
+    [SwaggerAllowedValues("free", "approval")]
     public required string Access { get; init; }
 }

@@ -1,6 +1,7 @@
 using ZelosHR.Api.Entities.AuditLogs;
 using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Employees;
+using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Leave;
 using ZelosHR.Api.Entities.OrgStructure;
 using ZelosHR.Api.Entities.EmploymentTypes;
@@ -51,4 +52,6 @@ internal static class SwaggerExampleHints
     internal static string LeaveCalendarView => SwaggerOptionFormat.JoinPipe(LeaveFieldOptions.CalendarViews);
     internal static string EmploymentTypeKind => SwaggerOptionFormat.JoinPipe(EmploymentTypeFieldOptions.Kind);
     internal static string EmploymentTypeSortBy => SwaggerOptionFormat.JoinPipe(EmploymentTypeFieldOptions.SortBy);
+    internal static string ChangeRequestStatus => SwaggerOptionFormat.JoinPipe(ChangeRequestFieldOptions.Statuses);
+    internal static string FieldPolicyAccess => "free|approval";
 }

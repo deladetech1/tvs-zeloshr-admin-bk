@@ -27,7 +27,32 @@ Enforced by `TroveRequestHeadersMiddleware` when `TrovesuiteIntegration:RequireS
 
 Tenant scope is taken from the JWT claim `tenant_id` (read without DB validation when `RequireAuthentication` is `false`).
 
-`/api/v1/health` is exempt.
+`/api/v1/health` is exempt from Trove header enforcement (no `org-id` / `bus-id` / `loc-id` required).
+
+### Dev admin UI (`zeloshr-admin.dev.trovesuite.com`)
+
+The Next.js host is **not** the API. Browser calls must target:
+
+| Surface | URL |
+|---------|-----|
+| **ZelosHR API** | `https://zhr-admin.dev.backend.trovesuite.com` |
+| **Core Platform** | `https://cp.dev.backend.trovesuite.com` |
+| **Admin UI** | `https://zeloshr-admin.dev.trovesuite.com` (static + RSC only) |
+
+**Do not** call `https://zeloshr-admin.dev.trovesuite.com/api/v1/...` — that returns the frontend 404 HTML page.
+
+Set `app-id` to `app-zeloshr` on every ZelosHR request. Copy `org-id`, `bus-id`, and `loc-id` from the **same** authenticated Network request that hits `zhr-admin.dev.backend.trovesuite.com`, or from `GET /api/v1/users/location-details/{user_id}` on Core Platform using the row where `app_id === "app-zeloshr"`. Headers from Loandrift / MyStoreGuard workspaces cause **403 Invalid platform context**.
+
+**403 troubleshooting**
+
+| Symptom | Likely cause |
+|---------|----------------|
+| `Invalid platform context: org-id, bus-id, loc-id...` | Wrong `org-id` / `bus-id` / `loc-id` for `app-zeloshr`, or user not linked in `cp_user_locations` |
+| `Could not validate credentials` on `/api/v1/health` | Expired JWT — log in again and copy a fresh Bearer token |
+| HTML 404 from `/api/v1/...` | Hitting the frontend host instead of `zhr-admin.dev.backend.trovesuite.com` |
+| DNS failure on `zeloshr.app.backend.dev.trovesuite.com` | Dead hostname — use `zhr-admin.dev.backend.trovesuite.com` |
+
+Local scripts: `cp scripts/local-dev/live-session.example.env scripts/local-dev/live-session.env`, paste token, then `./scripts/local-dev/refresh-live-session.sh 'eyJ...'` — see [scripts/local-dev/README.md](../scripts/local-dev/README.md).
 
 ## What Swagger includes
 
@@ -211,6 +236,38 @@ Entries are appended automatically when employees are created or updated (Phase 
 | `search`, `employment_status`, `department_id`, `branch_id`, … | Same filters as `GET /employees/list` |
 
 Returns `text/csv` with columns aligned to bulk import plus `employee_id`, `employee_code`, `department_name`, `branch_name`, `employment_status`, `start_date`.
+
+### Employee self-service & change requests
+
+| Action | Endpoint |
+|--------|----------|
+| Field policy | `GET /employees/field-policy` → `path` + `access` (`free` \| `approval`) |
+| Self update | `PUT /employees/me/update` — same JSON shape as admin update |
+| My queue | `GET /employees/me/change-requests?status=` |
+| HR review queue | `GET /change-requests?status=&employee_id=` |
+| Approve | `POST /change-requests/{change_request_id}/approve` |
+| Reject | `POST /change-requests/{change_request_id}/reject` — optional `{ "review_note": "…" }` |
+
+**Self-update result** (`PUT /employees/me/update`):
+
+| Field | Meaning |
+|-------|---------|
+| `employee` | Aggregate after free-tier fields applied |
+| `applied[]` | Field paths applied immediately (`access=free`) |
+| `pending[]` | Change-request rows created (`access=approval`, status `pending`) |
+| `rejected[]` | Admin-only paths omitted from field-policy |
+
+**Change-request row** (list/get/approve/reject responses):
+
+| Field | Meaning |
+|-------|---------|
+| `field_path` | Dot path into update JSON (e.g. `identity.full_name`) |
+| `old_value` / `new_value` | JSON snapshot; `new_value` replayed on approve |
+| `status` | `pending` · `approved` · `rejected` · `superseded` |
+| `requested_by` / `reviewed_by` | Display names from platform user lookup |
+| Audit | Standard six fields per [AUDIT_FIELDS.md](AUDIT_FIELDS.md) |
+
+Requires linked `zhr_employees.user_id` for `me/*` routes (404 for HR admin accounts without an employee profile).
 
 ## Required on every API change (MUST)
 

@@ -74,29 +74,18 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(CreateCustomFieldDefinitionDto) => SwaggerExamples.CreateCustomFieldAddBody(),
             nameof(ImportEmployeesRequest) => SwaggerExamples.ImportEmployeesRequestBody(),
             nameof(EmployeeAggregateReadDto) => SwaggerExamples.EmployeeAggregateReadData(),
-            nameof(ChangeRequestReadDto) => new JsonObject
-            {
-                ["id"] = "00000000-0000-0000-0000-000000000001",
-                ["employee_id"] = SwaggerExamples.SampleEmployeeId.ToString(),
-                ["field_path"] = "identity.full_name",
-                ["old_value"] = "Jane Doe",
-                ["new_value"] = "Jane Smith",
-                ["status"] = "pending",
-                ["requested_by_id"] = "usr_cp_demo",
-                ["created_at"] = "2026-07-10T09:00:00+00:00",
-                ["updated_at"] = "2026-07-10T09:00:00+00:00",
-            },
-            nameof(EmployeeSelfUpdateResultDto) => new JsonObject
-            {
-                ["employee"] = SwaggerExamples.EmployeeAggregateReadData().DeepClone(),
-                ["applied"] = new JsonArray("identity.phone"),
-                ["pending"] = new JsonArray(),
-                ["rejected"] = new JsonArray("employment"),
-            },
+            nameof(ChangeRequestReadDto) => SwaggerExamples.ChangeRequestReadDtoData(),
+            nameof(EmployeeSelfUpdateResultDto) => SwaggerExamples.EmployeeSelfUpdateResultData(),
+            nameof(RejectChangeRequestBody) => SwaggerExamples.RejectChangeRequestBody(),
             nameof(FieldPolicyEntryDto) => new JsonObject
             {
                 ["path"] = "identity.phone",
                 ["access"] = "free",
+            },
+            nameof(ChangeRequestListQuery) => new JsonObject
+            {
+                ["status"] = ChangeRequestStatuses.Pending,
+                ["employee_id"] = SwaggerExamples.SampleEmployeeId.ToString(),
             },
             nameof(DocumentReadDto) => SwaggerExamples.EmployeeDocumentItem(),
             nameof(EmployeeDirectorySummaryDto) => SwaggerExamples.EmployeeDirectorySummaryData(),
@@ -712,6 +701,69 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 schema.Description = AppendDescription(schema.Description,
                     $"Deactivate instead of delete when employees still reference the type. Allowed: {SwaggerExampleHints.BooleanPipe}.");
                 return;
+            case nameof(ChangeRequestReadDto.FieldPath):
+                schema.Example = JsonValue.Create("identity.full_name");
+                schema.Description = AppendDescription(schema.Description,
+                    "Dot path into PUT /employees/update JSON. Matches keys from GET /employees/field-policy where access=approval.");
+                return;
+            case nameof(ChangeRequestReadDto.OldValue):
+                schema.Example = JsonValue.Create("Ama Mensah");
+                schema.Description = AppendDescription(schema.Description,
+                    "Snapshot when the request was created; null when the field was previously unset.");
+                return;
+            case nameof(ChangeRequestReadDto.NewValue):
+                schema.Example = JsonValue.Create("Ama Mensah-Osei");
+                schema.Description = AppendDescription(schema.Description,
+                    "Replayed through PUT /employees/update when HR approves the request.");
+                return;
+            case nameof(ChangeRequestReadDto.Status):
+                schema.Example = JsonValue.Create(ChangeRequestStatuses.Pending);
+                schema.Description = AppendDescription(schema.Description,
+                    $"Allowed: {SwaggerExampleHints.ChangeRequestStatus}. superseded = replaced by a newer pending request on the same field.");
+                return;
+            case nameof(ChangeRequestReadDto.ReviewNote):
+                schema.Example = JsonValue.Create("Please submit an official name-change document.");
+                schema.Description = AppendDescription(schema.Description,
+                    "Set by HR on reject; null while pending or after approve.");
+                return;
+            case nameof(RejectChangeRequestBody.ReviewNote):
+                schema.Example = JsonValue.Create("Please submit an official name-change document before we update HR records.");
+                return;
+            case nameof(FieldPolicyEntryDto.Path):
+                schema.Example = JsonValue.Create("identity.full_name");
+                schema.Description = AppendDescription(schema.Description,
+                    "JSON path employees may edit via PUT /employees/me/update.");
+                return;
+            case nameof(FieldPolicyEntryDto.Access):
+                schema.Example = JsonValue.Create("approval");
+                schema.Description = AppendDescription(schema.Description,
+                    $"free = applied immediately. approval = creates a change request. Allowed: {SwaggerExampleHints.FieldPolicyAccess}.");
+                return;
+            case nameof(EmployeeSelfUpdateResultDto.Applied):
+                schema.Example = new JsonArray("identity.phone");
+                schema.Description = AppendDescription(schema.Description,
+                    "Field paths applied in this request (free tier).");
+                return;
+            case nameof(EmployeeSelfUpdateResultDto.Pending):
+                schema.Example = new JsonArray(SwaggerExamples.ChangeRequestReadDtoData());
+                schema.Description = AppendDescription(schema.Description,
+                    "New pending change requests created for approval-tier fields.");
+                return;
+            case nameof(EmployeeSelfUpdateResultDto.Rejected):
+                schema.Example = new JsonArray("employment");
+                schema.Description = AppendDescription(schema.Description,
+                    "Admin-only paths omitted from GET /employees/field-policy.");
+                return;
+            case nameof(ChangeRequestListQuery.Status):
+                schema.Example = JsonValue.Create(ChangeRequestStatuses.Pending);
+                schema.Description = AppendDescription(schema.Description,
+                    $"Optional filter. Allowed: {SwaggerExampleHints.ChangeRequestStatus}.");
+                return;
+            case nameof(ChangeRequestListQuery.EmployeeId):
+                schema.Example = JsonValue.Create(SwaggerExamples.SampleEmployeeId.ToString());
+                schema.Description = AppendDescription(schema.Description,
+                    "Optional employee UUID to scope the HR review queue.");
+                return;
         }
 
         if (IsDateOnly(type))
@@ -808,6 +860,9 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
 
             if (declaringType == typeof(EmployeeAggregateReadDto))
                 return SwaggerExamples.SampleEmployeeId.ToString();
+
+            if (declaringType == typeof(ChangeRequestReadDto))
+                return SwaggerExamples.SampleChangeRequestId.ToString();
         }
 
         return propertyName switch

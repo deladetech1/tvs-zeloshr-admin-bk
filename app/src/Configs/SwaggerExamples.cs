@@ -40,6 +40,8 @@ internal static class SwaggerExamples
     internal static readonly Guid SampleLeaveBalanceId = Guid.Parse("a2222222-2222-2222-2222-222222222202");
     internal static readonly Guid SampleLeaveTypeId = Guid.Parse("a2222222-2222-2222-2222-222222222203");
     internal static readonly Guid SampleHolidayId = Guid.Parse("a2222222-2222-2222-2222-222222222204");
+    internal static readonly Guid SampleChangeRequestId = Guid.Parse("b1111111-1111-1111-1111-111111111101");
+    internal static readonly Guid SampleChangeRequestId2 = Guid.Parse("b1111111-1111-1111-1111-111111111102");
     internal static readonly Guid SampleCompanyProfileId = Guid.Parse("8f14e45f-ceea-4a3e-8c7f-1d8f6b9e2b41");
     internal static readonly Guid SampleOfficeId = Guid.Parse("b1000001-0000-4000-8000-000000000001");
     internal static readonly Guid SampleOfficeId2 = Guid.Parse("b1000001-0000-4000-8000-000000000002");
@@ -233,6 +235,8 @@ internal static class SwaggerExamples
                 nameof(FileUploadMultipleReadDto) => FileUploadMultipleResponse(),
                 nameof(FileResponseReadDto) => FileListResponse(),
                 _ when elementType == typeof(string) => EnvelopeOk(new JsonArray("employee", "department")),
+                nameof(ChangeRequestReadDto) => ChangeRequestListResponse(),
+                nameof(FieldPolicyEntryDto) => FieldPolicyListResponse(),
                 _ => EnvelopeOk(BuildCollectionData(elementType)),
             };
         }
@@ -283,6 +287,8 @@ internal static class SwaggerExamples
             nameof(PublicHolidayListDto) => LeaveHolidayListResponse(),
             nameof(PublicHolidayListItemDto) => EnvelopeOk(PublicHolidayItemData()),
             nameof(GetCountrySimpleReadDto) => EnvelopeOk(CountryItem()),
+            nameof(ChangeRequestReadDto) => ChangeRequestGetResponse(),
+            nameof(EmployeeSelfUpdateResultDto) => EmployeeSelfUpdateResultResponse(),
             _ when dataType == typeof(string) => EnvelopeOk(JsonValue.Create("Operation completed successfully.")),
             _ when dataType == typeof(object) => EnvelopeOk(new JsonObject()),
             _ => EnvelopeOk(new JsonObject()),
@@ -333,6 +339,10 @@ internal static class SwaggerExamples
         nameof(CpUserDto) => new JsonArray(CpUserSearchItem()),
         nameof(GetCurrencySimpleReadDto) => new JsonArray(CurrencyItem()),
         nameof(GetCountrySimpleReadDto) => new JsonArray(CountryItem()),
+        nameof(ChangeRequestReadDto) => new JsonArray(
+            ChangeRequestReadDtoData(ChangeRequestStatuses.Pending),
+            ChangeRequestReadDtoData(ChangeRequestStatuses.Approved, includeReview: true)),
+        nameof(FieldPolicyEntryDto) => FieldPolicySampleEntries(),
         _ => new JsonArray(),
     };
 
@@ -2859,4 +2869,147 @@ internal static class SwaggerExamples
     };
 
     internal static JsonObject UpdatePublicHolidayBody() => CreatePublicHolidayBody();
+
+    internal static JsonObject ChangeRequestReadDtoData(
+        string status = ChangeRequestStatuses.Pending,
+        bool includeReview = false,
+        string fieldPath = "identity.full_name",
+        string? changeRequestId = null)
+    {
+        var data = new JsonObject
+        {
+            ["id"] = changeRequestId ?? SampleChangeRequestId.ToString(),
+            ["employee_id"] = SampleEmployeeId.ToString(),
+            ["field_path"] = fieldPath,
+            ["old_value"] = fieldPath switch
+            {
+                "identity.date_of_birth" => "1990-01-15",
+                "compensation.payment" => new JsonObject
+                {
+                    ["bank_name"] = "GCB Bank",
+                    ["account_number"] = "****4521",
+                },
+                _ => "Ama Mensah",
+            },
+            ["new_value"] = fieldPath switch
+            {
+                "identity.date_of_birth" => "1990-01-20",
+                "compensation.payment" => new JsonObject
+                {
+                    ["bank_name"] = "Ecobank Ghana",
+                    ["account_number"] = "****8890",
+                },
+                _ => "Ama Mensah-Osei",
+            },
+            ["status"] = status,
+            ["requested_by_id"] = "cp-user-employee-demo",
+            ["requested_by"] = "Ama Mensah",
+        };
+
+        if (includeReview)
+        {
+            data["reviewed_by_id"] = "cp-user-demo-admin";
+            data["reviewed_by"] = "Fiifi Boakye";
+            data["review_note"] = status == ChangeRequestStatuses.Rejected
+                ? "Please submit an official name-change document before we update HR records."
+                : null;
+        }
+        else
+        {
+            data["reviewed_by_id"] = null;
+            data["reviewed_by"] = null;
+            data["review_note"] = null;
+        }
+
+        AppendResourceAuditFields(
+            data,
+            "2026-07-10T09:00:00+00:00",
+            includeReview ? "2026-07-11T14:30:00+00:00" : "2026-07-10T09:00:00+00:00");
+        return data;
+    }
+
+    internal static JsonObject ChangeRequestGetResponse() =>
+        EnvelopeOk(ChangeRequestReadDtoData());
+
+    internal static JsonObject ChangeRequestListResponse() => EnvelopeOk(new JsonArray(
+        ChangeRequestReadDtoData(ChangeRequestStatuses.Pending, fieldPath: "identity.full_name"),
+        ChangeRequestReadDtoData(
+            ChangeRequestStatuses.Pending,
+            fieldPath: "identity.date_of_birth",
+            changeRequestId: SampleChangeRequestId2.ToString())));
+
+    internal static JsonObject ChangeRequestRejectedResponse() => EnvelopeOk(
+        ChangeRequestReadDtoData(ChangeRequestStatuses.Rejected, includeReview: true),
+        detail: "Change request rejected.");
+
+    internal static JsonObject ChangeRequestConflictResponse() => new()
+    {
+        ["success"] = false,
+        ["status_code"] = 409,
+        ["detail"] = "Only pending change requests can be approved.",
+        ["data"] = null,
+        ["field_errors"] = null,
+    };
+
+    internal static JsonObject ChangeRequestApproveEmployeeResponse() =>
+        EmployeeAggregateReadResponse();
+
+    internal static JsonObject RejectChangeRequestBody() => new()
+    {
+        ["review_note"] = "Please submit an official name-change document before we update HR records.",
+    };
+
+    internal static JsonObject EmployeeSelfUpdateFreeFieldBody() => new()
+    {
+        ["identity"] = new JsonObject
+        {
+            ["phone"] = "+233201234567",
+            ["personal_email"] = "ama.mensah@personal.example",
+        },
+    };
+
+    internal static JsonObject EmployeeSelfUpdateApprovalFieldBody() => new()
+    {
+        ["identity"] = new JsonObject
+        {
+            ["full_name"] = "Ama Mensah-Osei",
+        },
+    };
+
+    internal static JsonObject EmployeeSelfUpdateMixedBody() => new()
+    {
+        ["identity"] = new JsonObject
+        {
+            ["phone"] = "+233201234567",
+            ["full_name"] = "Ama Mensah-Osei",
+        },
+        ["employment"] = new JsonObject
+        {
+            ["job_title"] = "Senior Engineer",
+        },
+    };
+
+    internal static JsonObject EmployeeSelfUpdateResultResponse(bool withPending = true) =>
+        EnvelopeOk(EmployeeSelfUpdateResultData(withPending));
+
+    internal static JsonObject EmployeeSelfUpdateResultData(bool withPending = true) => new()
+    {
+        ["employee"] = EmployeeAggregateReadData().DeepClone(),
+        ["applied"] = new JsonArray("identity.phone"),
+        ["pending"] = withPending
+            ? new JsonArray(ChangeRequestReadDtoData(ChangeRequestStatuses.Pending))
+            : new JsonArray(),
+        ["rejected"] = withPending
+            ? new JsonArray("employment")
+            : new JsonArray(),
+    };
+
+    internal static JsonArray FieldPolicySampleEntries() => new(
+        new JsonObject { ["path"] = "identity.phone", ["access"] = "free" },
+        new JsonObject { ["path"] = "identity.full_name", ["access"] = "approval" },
+        new JsonObject { ["path"] = "identity.date_of_birth", ["access"] = "approval" },
+        new JsonObject { ["path"] = "education", ["access"] = "approval" },
+        new JsonObject { ["path"] = "medical.blood_group", ["access"] = "free" });
+
+    internal static JsonObject FieldPolicyListResponse() => EnvelopeOk(FieldPolicySampleEntries());
 }
