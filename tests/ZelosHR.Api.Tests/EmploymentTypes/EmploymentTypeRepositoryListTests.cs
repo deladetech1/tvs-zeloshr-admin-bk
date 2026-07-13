@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.EmploymentTypes;
 using ZelosHR.Api.Persistence;
 using ZelosHR.Api.Persistence.Entities;
@@ -57,6 +58,7 @@ public class EmploymentTypeRepositoryListTests
                 FullName = "Ama Mensah",
                 LifecycleState = "active",
                 LifecycleStatus = "active",
+                EmploymentStatus = EmploymentStatusValues.Active,
                 EmploymentTypeId = fullTimeId,
                 CreatedAt = now,
                 UpdatedAt = now,
@@ -70,6 +72,7 @@ public class EmploymentTypeRepositoryListTests
                 FullName = "Kofi Boateng",
                 LifecycleState = "active",
                 LifecycleStatus = "active",
+                EmploymentStatus = EmploymentStatusValues.Active,
                 EmploymentTypeId = fullTimeId,
                 CreatedAt = now,
                 UpdatedAt = now,
@@ -83,6 +86,7 @@ public class EmploymentTypeRepositoryListTests
                 FullName = "Yaw Asante",
                 LifecycleState = "active",
                 LifecycleStatus = "active",
+                EmploymentStatus = EmploymentStatusValues.Active,
                 EmploymentTypeId = null,
                 EmploymentType = "Legacy text only",
                 CreatedAt = now,
