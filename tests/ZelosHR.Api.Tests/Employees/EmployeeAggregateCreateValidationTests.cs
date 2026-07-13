@@ -32,6 +32,9 @@ public class EmployeeAggregateCreateValidationTests
             },
         };
 
+        EmployeeAggregateCreateValidator.Validate(request).Should().BeNull();
+    }
+
     [Fact]
     public void MinimalDraft_WithInvalidPhone_FailsValidation()
     {
