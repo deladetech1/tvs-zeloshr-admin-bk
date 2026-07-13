@@ -183,7 +183,8 @@ public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
         DateTimeOffset now,
         CancellationToken ct)
     {
-        // Platform FK order: cp_users before cp_login_settings / cp_user_locations / hr_employees.
+        // Platform FK order: cp_users before cp_login_settings / cp_user_locations.
+        // HR membership is zeloshr.zhr_employees.user_id (human_resource.hr_employees removed from schema).
         db.CpUsers.Add(new CpUserEntity
         {
             Id = userId,
@@ -230,15 +231,6 @@ public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
             BusAppLocId = busAppLocId,
             DeleteStatus = CorePlatformConstants.DeleteStatus.NotDeleted,
             IsActive = true,
-        });
-
-        db.HrEmployees.Add(new HrEmployeeEntity
-        {
-            Id = Guid.NewGuid().ToString(),
-            TenantId = request.TenantId,
-            UserId = userId,
-            CreatedBy = request.CreatedBy,
-            Cdatetime = now,
         });
 
         await db.SaveChangesAsync(ct);
@@ -293,23 +285,14 @@ public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
         await db.SaveChangesAsync(ct);
     }
 
-    public async Task EnsureHrMembershipAsync(
+    public Task EnsureHrMembershipAsync(
         string userId, string tenantId, string? createdBy, CancellationToken ct = default)
     {
-        var exists = await db.HrEmployees.AsNoTracking()
-            .AnyAsync(h => h.TenantId == tenantId && h.UserId == userId, ct);
-        if (exists)
-            return;
-
-        db.HrEmployees.Add(new HrEmployeeEntity
-        {
-            Id = Guid.NewGuid().ToString(),
-            TenantId = tenantId,
-            UserId = userId,
-            CreatedBy = createdBy,
-            Cdatetime = DateTimeOffset.UtcNow,
-        });
-        await db.SaveChangesAsync(ct);
+        // Legacy human_resource.hr_employees is no longer deployed; zhr_employees.user_id is the HR link.
+        _ = userId;
+        _ = tenantId;
+        _ = createdBy;
+        return Task.CompletedTask;
     }
 
     public async Task EnsureUserLocationAsync(

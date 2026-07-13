@@ -69,6 +69,22 @@ public static class SwaggerConfiguration
 
                     ---
 
+                    ### Employee self-service & change requests
+
+                    1. **Field policy** — `GET /api/v1/employees/field-policy` → `path` + `access` (`free` | `approval`). Paths not listed are admin-only.
+                    2. **Self update** — `PUT /api/v1/employees/me/update` (same JSON shape as admin update)
+                       · `free` fields → applied immediately (`data.applied[]`)
+                       · `approval` fields → pending queue (`data.pending[]` with full change-request rows)
+                       · admin-only fields → `data.rejected[]` (no mutation)
+                    3. **My requests** — `GET /api/v1/employees/me/change-requests?status=` (employee linked via `zhr_employees.user_id`)
+                    4. **HR review queue** — `GET /api/v1/change-requests?status=&employee_id=`
+                    5. **Approve** — `POST /api/v1/change-requests/change_request_id/approve` (path UUID) → replays `new_value` through employee update; returns updated employee aggregate
+                    6. **Reject** — `POST /api/v1/change-requests/change_request_id/reject` (path UUID; optional body field `review_note`)
+
+                    Each change-request item includes `field_path`, `old_value`, `new_value`, `status` (pending · approved · rejected · superseded), requester/reviewer names, and standard audit fields.
+
+                    ---
+
                     ### Organisation / org chart workflow
 
                     1. **Summary tabs** — `GET /api/v1/org-structure/statistics`

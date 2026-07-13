@@ -155,28 +155,51 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
 
         if (method.Equals("PUT", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/employees/me/update", StringComparison.OrdinalIgnoreCase))
         {
+            SetJsonResponseExample(operation, 200, SwaggerExamples.EmployeeSelfUpdateResultResponse());
+            SetJsonResponseExample(operation, 400, SwaggerExamples.ValidationErrorEnvelope(
+                new JsonObject { ["body"] = "Include at least one field to update." }));
+            SetJsonResponseExample(operation, 404, SwaggerExamples.NotFoundEnvelopeForEmployee());
             operation.Description = AppendDescription(operation.Description,
                 """
                 Employee self-service partial update — same JSON shape as PUT /employees/update.
                 Fields are split by GET /employees/field-policy:
-                • free — applied immediately
-                • approval — queued in employee_change_requests for HR review
+                • free — applied immediately (listed in response.applied[])
+                • approval — queued in zhr_employee_change_requests (listed in response.pending[])
                 • omitted paths (employment, salary, work_email, document_ids, …) — rejected in response.rejected[]
+
+                Requires the authenticated cp_users row to be linked to a zhr_employees.user_id.
                 """);
             return;
         }
 
         if (method.Equals("GET", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/employees/field-policy", StringComparison.OrdinalIgnoreCase))
         {
+            SetJsonResponseExample(operation, 200, SwaggerExamples.FieldPolicyListResponse());
             operation.Description = AppendDescription(operation.Description,
-                "Returns the employee self-service field policy matrix (path + access tier: free | approval).");
+                """
+                Returns the employee self-service field policy matrix (path + access tier).
+
+                | access | Behaviour on PUT /employees/me/update |
+                |--------|----------------------------------------|
+                | free | Applied immediately |
+                | approval | Creates a pending change request for HR review |
+
+                Paths not listed are admin-only and appear in response.rejected[].
+                """);
             return;
         }
 
         if (method.Equals("GET", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/employees/me/change-requests", StringComparison.OrdinalIgnoreCase))
         {
+            SetJsonResponseExample(operation, 200, SwaggerExamples.ChangeRequestListResponse());
+            SetJsonResponseExample(operation, 404, SwaggerExamples.NotFoundEnvelopeForEmployee());
             AppendParameterDescription(operation, "status",
-                "Optional filter: pending | approved | rejected | superseded.");
+                $"Optional filter. Allowed: {SwaggerExampleHints.ChangeRequestStatus}.");
+            operation.Description = AppendDescription(operation.Description,
+                """
+                Lists change requests for the employee linked to the current JWT user (zhr_employees.user_id).
+                Returns 404 when the logged-in user has no employee profile (typical for HR admin accounts).
+                """);
             return;
         }
 
@@ -184,16 +207,44 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
         {
             if (method.Equals("GET", StringComparison.OrdinalIgnoreCase))
             {
+                SetJsonResponseExample(operation, 200, SwaggerExamples.ChangeRequestListResponse());
                 AppendParameterDescription(operation, "status",
-                    "Optional filter: pending | approved | rejected | superseded.");
+                    $"Optional filter. Allowed: {SwaggerExampleHints.ChangeRequestStatus}.");
                 AppendParameterDescription(operation, "employee_id",
-                    "Optional employee UUID to scope the review queue.");
+                    "Optional employee UUID to scope the HR review queue.");
+                operation.Description = AppendDescription(operation.Description,
+                    """
+                    HR review queue for employee self-service changes.
+
+                    Each item includes field_path, old_value, new_value, status, requester/reviewer audit names,
+                    and standard resource audit fields (created_at, updated_at, created_by*, updated_by*).
+
+                    Filter examples:
+                    • GET /change-requests?status=pending
+                    • GET /change-requests?employee_id={uuid}&status=pending
+                    """);
             }
 
             if (method.Equals("POST", StringComparison.OrdinalIgnoreCase) && path.Contains("/approve", StringComparison.Ordinal))
             {
+                SetJsonResponseExample(operation, 200, SwaggerExamples.ChangeRequestApproveEmployeeResponse());
+                SetJsonResponseExample(operation, 404, SwaggerExamples.NotFoundEnvelopeForEmployee());
+                SetJsonResponseExample(operation, 409, SwaggerExamples.ChangeRequestConflictResponse());
                 operation.Description = AppendDescription(operation.Description,
-                    "Replays the stored new_value_json through the same employee update pipeline used by PUT /employees/update.");
+                    """
+                    Approves a pending change request and replays new_value through PUT /employees/update for the target employee.
+                    Returns the updated employee aggregate on success.
+                    409 when the request is no longer pending (already approved, rejected, or superseded).
+                    """);
+            }
+
+            if (method.Equals("POST", StringComparison.OrdinalIgnoreCase) && path.Contains("/reject", StringComparison.Ordinal))
+            {
+                SetJsonResponseExample(operation, 200, SwaggerExamples.ChangeRequestRejectedResponse());
+                SetJsonResponseExample(operation, 404, SwaggerExamples.NotFoundEnvelopeForEmployee());
+                SetJsonResponseExample(operation, 409, SwaggerExamples.ChangeRequestConflictResponse());
+                operation.Description = AppendDescription(operation.Description,
+                    "Rejects a pending change request. Optional review_note body is stored and returned on the change request row.");
             }
 
             return;

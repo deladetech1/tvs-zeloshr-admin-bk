@@ -371,6 +371,53 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
             };
         }
 
+        if (method.Equals("PUT", StringComparison.OrdinalIgnoreCase)
+            && path.Equals("api/v1/employees/me/update", StringComparison.OrdinalIgnoreCase))
+        {
+            return new Dictionary<string, IOpenApiExample>
+            {
+                ["free_field_phone"] = Example(
+                    SwaggerExamples.EmployeeSelfUpdateFreeFieldBody(),
+                    "Free tier — phone (applied immediately)",
+                    """
+                    identity.phone is access=free in GET /employees/field-policy.
+                    Response.applied[] includes identity.phone; employee is updated in the same request.
+                    """),
+                ["approval_full_name"] = Example(
+                    SwaggerExamples.EmployeeSelfUpdateApprovalFieldBody(),
+                    "Approval tier — legal name (queued for HR)",
+                    """
+                    identity.full_name is access=approval.
+                    Response.pending[] contains a change request row (status pending) for HR review via GET /change-requests.
+                    """),
+                ["mixed_free_and_approval"] = Example(
+                    SwaggerExamples.EmployeeSelfUpdateMixedBody(),
+                    "Mixed — free + approval + admin-only",
+                    """
+                    phone applies immediately (applied[]).
+                    full_name creates a pending change request (pending[]).
+                    employment.job_title is admin-only and appears in rejected[] without changing the employee.
+                    """),
+            };
+        }
+
+        if (method.Equals("POST", StringComparison.OrdinalIgnoreCase)
+            && path.Contains("change-requests", StringComparison.OrdinalIgnoreCase)
+            && path.Contains("/reject", StringComparison.Ordinal))
+        {
+            return new Dictionary<string, IOpenApiExample>
+            {
+                ["reject_with_note"] = Example(
+                    SwaggerExamples.RejectChangeRequestBody(),
+                    "Reject with review note",
+                    "Optional review_note is stored on the change request and visible to the employee on GET /employees/me/change-requests."),
+                ["reject_without_note"] = Example(
+                    new JsonObject(),
+                    "Reject without note",
+                    "Empty body is valid — status becomes rejected with null review_note."),
+            };
+        }
+
         return [];
     }
 

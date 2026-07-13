@@ -473,6 +473,46 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
                 return;
             }
 
+            if (name.Equals("status", StringComparison.OrdinalIgnoreCase)
+                && context.ParameterInfo?.Member.DeclaringType == typeof(ChangeRequestListQuery))
+            {
+                schema.Example = ChangeRequestStatuses.Pending;
+                parameter.Description = SwaggerOptionFormat.Append(
+                    parameter.Description,
+                    $"Filter by workflow status. Allowed: {SwaggerExampleHints.ChangeRequestStatus}. Omit for all.");
+                return;
+            }
+
+            if (name.Equals("status", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(context.ParameterInfo?.Member.Name, "ListMyChangeRequests", StringComparison.Ordinal))
+            {
+                schema.Example = ChangeRequestStatuses.Pending;
+                parameter.Description = SwaggerOptionFormat.Append(
+                    parameter.Description,
+                    $"Filter by workflow status. Allowed: {SwaggerExampleHints.ChangeRequestStatus}. Omit for all.");
+                return;
+            }
+
+            if (name.Equals("employee_id", StringComparison.OrdinalIgnoreCase)
+                && context.ParameterInfo?.Member.DeclaringType == typeof(ChangeRequestListQuery))
+            {
+                schema.Example = SwaggerExamples.SampleEmployeeId.ToString();
+                parameter.Description = SwaggerOptionFormat.Append(
+                    parameter.Description,
+                    "Optional employee UUID to scope the HR review queue.");
+                return;
+            }
+
+            if (name.Equals("changeRequestId", StringComparison.OrdinalIgnoreCase)
+                && context.ParameterInfo?.Member.DeclaringType == typeof(ChangeRequestsController))
+            {
+                schema.Example = SwaggerExamples.SampleChangeRequestId.ToString();
+                parameter.Description = SwaggerOptionFormat.Append(
+                    parameter.Description,
+                    "Change request UUID from GET /change-requests or GET /employees/me/change-requests.");
+                return;
+            }
+
             if (name.Equals("tab", StringComparison.OrdinalIgnoreCase))
             {
                 schema.Example = SwaggerExampleHints.LeaveApprovalListTab;
