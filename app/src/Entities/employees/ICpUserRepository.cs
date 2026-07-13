@@ -67,7 +67,7 @@ public interface ICpUserRepository
     Task<bool> IsLinkedToEmployeeAsync(string userId, string tenantId, CancellationToken ct = default);
 
     /// <summary>
-    /// Creates cp_users + login_settings + user_locations + hr_employees in one transaction.
+    /// Creates cp_users + login_settings + user_locations in one transaction.
     /// </summary>
     Task<CpUserDto> ProvisionEmployeeUserAsync(ProvisionCpUserRequest request, CancellationToken ct = default);
 
@@ -78,7 +78,7 @@ public interface ICpUserRepository
     Task UpdateProfilePicAsync(
         string userId, string tenantId, string profilePicUrl, CancellationToken ct = default);
 
-    /// <summary>Ensures human_resource.hr_employees exists for an existing platform user.</summary>
+    /// <summary>No-op; HR link is zeloshr.zhr_employees.user_id (legacy hr_employees table removed).</summary>
     Task EnsureHrMembershipAsync(
         string userId, string tenantId, string? createdBy, CancellationToken ct = default);
 
