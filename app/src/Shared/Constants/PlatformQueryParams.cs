@@ -23,6 +23,8 @@ public static class PlatformQueryParams
     public const string ActiveOnly = "active_only";
     public const string IncludeArchived = "include_archived";
     public const string IncludeInactive = "include_inactive";
+    public const string IsLineManager = "is_line_manager";
+    public const string IsHeadOfDepartment = "is_head_of_department";
     public const string IncludeDeleted = "include_deleted";
     public const string Year = "year";
     public const string View = "view";

@@ -43,4 +43,10 @@ public sealed class EmployeeExportQuery
 
     [FromQuery(Name = PlatformQueryParams.IncludeInactive)]
     public bool IncludeInactive { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.IsLineManager)]
+    public bool? IsLineManager { get; init; }
+
+    [FromQuery(Name = PlatformQueryParams.IsHeadOfDepartment)]
+    public bool? IsHeadOfDepartment { get; init; }
 }

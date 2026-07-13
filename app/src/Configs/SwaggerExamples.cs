@@ -394,6 +394,8 @@ internal static class SwaggerExamples
             ["work_states"] = new JsonArray("probation"),
             ["employment_type"] = "Full-time",
             ["profile_url"] = EmployeeDocumentItem(SampleDocumentId1, "Employee profile photo"),
+            ["is_line_manager"] = true,
+            ["is_head_of_department"] = false,
         };
         AppendResourceAuditFields(item);
         return new JsonObject { ["items"] = new JsonArray(item) };
@@ -1728,6 +1730,8 @@ internal static class SwaggerExamples
                 ["position"] = "Engineering Lead",
                 ["photo_url"] = EmployeeDocumentItem(SampleDocumentId2, "Secondary manager profile photo"),
             };
+            obj["is_line_manager"] = false;
+            obj["is_head_of_department"] = false;
         }
 
         return obj;

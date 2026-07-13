@@ -154,4 +154,30 @@ public class EmployeeDirectoryQueryBuilderTests
         Assert.Contains(expectedColumn, orderBy);
         Assert.Contains(sortOrder.Equals("desc", StringComparison.OrdinalIgnoreCase) ? "DESC" : "ASC", orderBy);
     }
+
+    [Fact]
+    public void Build_includes_line_manager_filter_when_true()
+    {
+        var (where, _) = EmployeeDirectoryQueryBuilder.Build(
+            new EmployeeDirectoryQuery { IsLineManager = true },
+            Table,
+            TestDefaults.TenantId,
+            TestDefaults.OrgId);
+
+        Assert.Contains("r.reports_to_id = e.id", where);
+        Assert.Contains("r.is_draft = FALSE", where);
+    }
+
+    [Fact]
+    public void Build_includes_head_of_department_filter_when_true()
+    {
+        var (where, _) = EmployeeDirectoryQueryBuilder.Build(
+            new EmployeeDirectoryQuery { IsHeadOfDepartment = true },
+            Table,
+            TestDefaults.TenantId,
+            TestDefaults.OrgId);
+
+        Assert.Contains("d.head_of_department_id = e.id", where);
+        Assert.Contains("d.is_archived = FALSE", where);
+    }
 }

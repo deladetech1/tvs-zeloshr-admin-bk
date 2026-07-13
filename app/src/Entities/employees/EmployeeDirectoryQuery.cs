@@ -70,6 +70,14 @@ public sealed class EmployeeDirectoryQuery
     /// <summary>Employment start on or before this date (uses start_date or employment_start_date).</summary>
     [FromQuery(Name = PlatformQueryParams.EndDate)]
     public DateOnly? EndDate { get; init; }
+
+    /// <summary>When true, only employees with at least one active non-draft direct report (<c>reports_to_id</c>).</summary>
+    [FromQuery(Name = PlatformQueryParams.IsLineManager)]
+    public bool? IsLineManager { get; init; }
+
+    /// <summary>When true, only employees who head at least one non-archived department.</summary>
+    [FromQuery(Name = PlatformQueryParams.IsHeadOfDepartment)]
+    public bool? IsHeadOfDepartment { get; init; }
 }
 
 public static class EmployeeDirectoryQueryBuilder
@@ -166,6 +174,13 @@ public static class EmployeeDirectoryQueryBuilder
 
         AppendCompositeStatusSql(conditions, parameters, statusFilters);
 
+        EmployeeRoleFlags.AppendSqlFilters(
+            conditions,
+            query.IsLineManager,
+            query.IsHeadOfDepartment,
+            employeesTable,
+            "zeloshr.zhr_departments");
+
         var whereClause = string.Join(" AND ", conditions);
         return (whereClause, parameters);
     }
@@ -199,7 +214,10 @@ public static class EmployeeDirectoryQueryBuilder
         IQueryable<EmployeeEntity> query,
         EmployeeDirectoryQuery directoryQuery,
         IQueryable<CpUserEntity>? platformUsers = null,
-        string? tenantId = null)
+        string? tenantId = null,
+        string? orgId = null,
+        IQueryable<EmployeeEntity>? roleLookupEmployees = null,
+        IQueryable<DepartmentEntity>? roleLookupDepartments = null)
     {
         if (HasActiveSearch(directoryQuery))
         {
@@ -260,6 +278,22 @@ public static class EmployeeDirectoryQueryBuilder
             query = query.Where(e =>
                 (e.StartDate ?? e.EmploymentStartDate) != null
                 && (e.StartDate ?? e.EmploymentStartDate)! <= to);
+        }
+
+        if (roleLookupEmployees is not null
+            && roleLookupDepartments is not null
+            && !string.IsNullOrWhiteSpace(tenantId)
+            && !string.IsNullOrWhiteSpace(orgId)
+            && (directoryQuery.IsLineManager is not null || directoryQuery.IsHeadOfDepartment is not null))
+        {
+            query = EmployeeRoleFlags.ApplyFilters(
+                query,
+                directoryQuery.IsLineManager,
+                directoryQuery.IsHeadOfDepartment,
+                roleLookupEmployees,
+                roleLookupDepartments,
+                tenantId,
+                orgId);
         }
 
         return query;
