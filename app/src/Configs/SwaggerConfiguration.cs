@@ -78,8 +78,8 @@ public static class SwaggerConfiguration
                        · admin-only fields → `data.rejected[]` (no mutation)
                     3. **My requests** — `GET /api/v1/employees/me/change-requests?status=` (employee linked via `zhr_employees.user_id`)
                     4. **HR review queue** — `GET /api/v1/change-requests?status=&employee_id=`
-                    5. **Approve** — `POST /api/v1/change-requests/{{change_request_id}}/approve` → replays `new_value` through employee update; returns updated employee aggregate
-                    6. **Reject** — `POST /api/v1/change-requests/{{change_request_id}}/reject` (optional body: `review_note` string)
+                    5. **Approve** — `POST /api/v1/change-requests/change_request_id/approve` (path UUID) → replays `new_value` through employee update; returns updated employee aggregate
+                    6. **Reject** — `POST /api/v1/change-requests/change_request_id/reject` (path UUID; optional body field `review_note`)
 
                     Each change-request item includes `field_path`, `old_value`, `new_value`, `status` (pending · approved · rejected · superseded), requester/reviewer names, and standard audit fields.
 
