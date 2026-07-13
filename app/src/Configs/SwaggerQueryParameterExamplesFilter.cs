@@ -484,7 +484,7 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
             }
 
             if (name.Equals("status", StringComparison.OrdinalIgnoreCase)
-                && context.ApiDescription.RelativePath?.Contains("me/change-requests", StringComparison.OrdinalIgnoreCase) == true)
+                && string.Equals(context.ParameterInfo?.Member.Name, "ListMyChangeRequests", StringComparison.Ordinal))
             {
                 schema.Example = ChangeRequestStatuses.Pending;
                 parameter.Description = SwaggerOptionFormat.Append(
@@ -504,7 +504,7 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
             }
 
             if (name.Equals("changeRequestId", StringComparison.OrdinalIgnoreCase)
-                && context.ApiDescription.RelativePath?.Contains("change-requests", StringComparison.OrdinalIgnoreCase) == true)
+                && context.ParameterInfo?.Member.DeclaringType == typeof(ChangeRequestsController))
             {
                 schema.Example = SwaggerExamples.SampleChangeRequestId.ToString();
                 parameter.Description = SwaggerOptionFormat.Append(

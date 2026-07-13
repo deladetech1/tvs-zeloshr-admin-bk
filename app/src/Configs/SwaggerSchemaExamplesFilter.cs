@@ -13,7 +13,6 @@ using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Employees.Authorization;
-using ZelosHR.Api.Entities.EmploymentTypes;
 using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Entities.Leave;
 using ZelosHR.Api.Entities.OrgStructure;
@@ -716,17 +715,20 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 schema.Description = AppendDescription(schema.Description,
                     "Replayed through PUT /employees/update when HR approves the request.");
                 return;
-            case nameof(ChangeRequestReadDto.Status):
+            case nameof(ChangeRequestReadDto.Status)
+                when property.DeclaringType == typeof(ChangeRequestReadDto):
                 schema.Example = JsonValue.Create(ChangeRequestStatuses.Pending);
                 schema.Description = AppendDescription(schema.Description,
                     $"Allowed: {SwaggerExampleHints.ChangeRequestStatus}. superseded = replaced by a newer pending request on the same field.");
                 return;
-            case nameof(ChangeRequestReadDto.ReviewNote):
+            case nameof(ChangeRequestReadDto.ReviewNote)
+                when property.DeclaringType == typeof(ChangeRequestReadDto):
                 schema.Example = JsonValue.Create("Please submit an official name-change document.");
                 schema.Description = AppendDescription(schema.Description,
                     "Set by HR on reject; null while pending or after approve.");
                 return;
-            case nameof(RejectChangeRequestBody.ReviewNote):
+            case nameof(RejectChangeRequestBody.ReviewNote)
+                when property.DeclaringType == typeof(RejectChangeRequestBody):
                 schema.Example = JsonValue.Create("Please submit an official name-change document before we update HR records.");
                 return;
             case nameof(FieldPolicyEntryDto.Path):
@@ -754,12 +756,14 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 schema.Description = AppendDescription(schema.Description,
                     "Admin-only paths omitted from GET /employees/field-policy.");
                 return;
-            case nameof(ChangeRequestListQuery.Status):
+            case nameof(ChangeRequestListQuery.Status)
+                when property.DeclaringType == typeof(ChangeRequestListQuery):
                 schema.Example = JsonValue.Create(ChangeRequestStatuses.Pending);
                 schema.Description = AppendDescription(schema.Description,
                     $"Optional filter. Allowed: {SwaggerExampleHints.ChangeRequestStatus}.");
                 return;
-            case nameof(ChangeRequestListQuery.EmployeeId):
+            case nameof(ChangeRequestListQuery.EmployeeId)
+                when property.DeclaringType == typeof(ChangeRequestListQuery):
                 schema.Example = JsonValue.Create(SwaggerExamples.SampleEmployeeId.ToString());
                 schema.Description = AppendDescription(schema.Description,
                     "Optional employee UUID to scope the HR review queue.");

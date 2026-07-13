@@ -8,6 +8,7 @@ using ZelosHR.Api.Entities.Countries;
 using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Employees;
+using ZelosHR.Api.Entities.Employees.Authorization;
 using ZelosHR.Api.Entities.EmploymentTypes;
 using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Entities.Leave;
