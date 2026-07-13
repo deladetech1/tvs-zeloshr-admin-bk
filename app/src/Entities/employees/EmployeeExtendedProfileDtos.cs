@@ -8,7 +8,11 @@ public sealed record EmployeeEmergencyContactDto(
     string? EmergencyContactPhone,
     string? Relationship,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    string? CreatedById = null,
+    string? UpdatedById = null,
+    string? CreatedBy = null,
+    string? UpdatedBy = null);
 
 public sealed record EmployeeEmergencyContactWriteDto(
     string EmergencyContactName,
@@ -32,7 +36,11 @@ public sealed record EmployeePaymentMethodDto(
     string? BranchName,
     bool IsPrimary,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    string? CreatedById = null,
+    string? UpdatedById = null,
+    string? CreatedBy = null,
+    string? UpdatedBy = null);
 
 public sealed record EmployeePaymentMethodWriteDto(
     string PaymentMode,
@@ -65,6 +73,10 @@ public sealed class EmployeeMedicalProfileDto
     public string? EmergencyMedicalNotes { get; init; }
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
+    public string? CreatedById { get; init; }
+    public string? UpdatedById { get; init; }
+    public string? CreatedBy { get; init; }
+    public string? UpdatedBy { get; init; }
 }
 
 public sealed class EmployeeMedicalProfileWriteDto
@@ -85,7 +97,11 @@ public sealed record EmployeeMedicalConditionDto(
     string? Notes,
     DateOnly? DiagnosedDate,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    string? CreatedById = null,
+    string? UpdatedById = null,
+    string? CreatedBy = null,
+    string? UpdatedBy = null);
 
 public sealed record EmployeeMedicalConditionWriteDto(
     string Condition,
@@ -106,7 +122,11 @@ public sealed record EmployeeAllergyDto(
     string? Reaction,
     string? Severity,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    string? CreatedById = null,
+    string? UpdatedById = null,
+    string? CreatedBy = null,
+    string? UpdatedBy = null);
 
 public sealed record EmployeeAllergyWriteDto(
     string Allergen,
@@ -126,7 +146,11 @@ public sealed record EmployeeMedicationDto(
     string? Frequency,
     string? Notes,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    string? CreatedById = null,
+    string? UpdatedById = null,
+    string? CreatedBy = null,
+    string? UpdatedBy = null);
 
 public sealed record EmployeeMedicationWriteDto(
     string Name,
@@ -154,6 +178,10 @@ public sealed class EmployeeMedicalReadDto
     public string? EmergencyMedicalNotes { get; init; }
     public DateTimeOffset? CreatedAt { get; init; }
     public DateTimeOffset? UpdatedAt { get; init; }
+    public string? CreatedById { get; init; }
+    public string? UpdatedById { get; init; }
+    public string? CreatedBy { get; init; }
+    public string? UpdatedBy { get; init; }
     public IReadOnlyList<EmployeeMedicalConditionDto>? MedicalConditions { get; init; }
     public IReadOnlyList<EmployeeAllergyDto>? Allergies { get; init; }
     public IReadOnlyList<EmployeeMedicationDto>? Medications { get; init; }
@@ -182,7 +210,11 @@ public sealed record EmployeeSkillDto(
     string? Proficiency,
     int? YearsOfExperience,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    string? CreatedById = null,
+    string? UpdatedById = null,
+    string? CreatedBy = null,
+    string? UpdatedBy = null);
 
 public sealed record EmployeeSkillWriteDto(
     string Name,
@@ -208,7 +240,11 @@ public sealed record EmployeeExperienceDto(
     bool IsCurrent,
     string? Description,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    string? CreatedById = null,
+    string? UpdatedById = null,
+    string? CreatedBy = null,
+    string? UpdatedBy = null);
 
 public sealed record EmployeeExperienceWriteDto(
     string Company,
@@ -242,7 +278,11 @@ public sealed record EmployeeReferralDto(
     string? Email,
     string? Phone,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    string? CreatedById = null,
+    string? UpdatedById = null,
+    string? CreatedBy = null,
+    string? UpdatedBy = null);
 
 public sealed record EmployeeReferralWriteDto(
     string Name,

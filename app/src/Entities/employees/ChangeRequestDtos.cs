@@ -1,5 +1,7 @@
 using System.Text.Json.Nodes;
+using Microsoft.AspNetCore.Mvc;
 using ZelosHR.Api.Configs;
+using ZelosHR.Api.Shared.Constants;
 
 namespace ZelosHR.Api.Entities.Employees;
 
@@ -91,6 +93,14 @@ public sealed class ChangeRequestListQuery
     public string? Status { get; init; }
 
     /// <summary>Scope the queue to one employee UUID.</summary>
-    [Microsoft.AspNetCore.Mvc.FromQuery(Name = "employee_id")]
+    [FromQuery(Name = "employee_id")]
     public Guid? EmployeeId { get; init; }
+
+    /// <summary>1-based page index (default 1).</summary>
+    [FromQuery(Name = PlatformQueryParams.Page)]
+    public int Page { get; init; } = 1;
+
+    /// <summary>Page size (default 20, max 100).</summary>
+    [FromQuery(Name = PlatformQueryParams.Size)]
+    public int Size { get; init; } = 20;
 }

@@ -212,6 +212,8 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
                     $"Optional filter. Allowed: {SwaggerExampleHints.ChangeRequestStatus}.");
                 AppendParameterDescription(operation, "employee_id",
                     "Optional employee UUID to scope the HR review queue.");
+                AppendParameterDescription(operation, "page", "Page number (default 1).");
+                AppendParameterDescription(operation, "size", "Page size (default 20, max 100).");
                 operation.Description = AppendDescription(operation.Description,
                     """
                     HR review queue for employee self-service changes.
@@ -221,7 +223,7 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
 
                     Filter examples:
                     • GET /change-requests?status=pending
-                    • GET /change-requests?employee_id={uuid}&status=pending
+                    • GET /change-requests?employee_id={uuid}&status=pending&page=1&size=20
                     """);
             }
 

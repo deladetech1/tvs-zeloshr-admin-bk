@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Persistence.Entities;
+using ZelosHR.Api.Shared.Pagination;
 using ZelosHR.Api.Shared.Tenant;
 
 namespace ZelosHR.Api.Entities.Employees;
@@ -148,14 +149,25 @@ public sealed class ChangeRequestService
         CancellationToken ct = default)
     {
         var tenant = _tenant.Current;
-        var rows = await _changeRequests.ListScopedAsync(
+        var paging = PagedQuery.From(query.Page, query.Size);
+        var (rows, total) = await _changeRequests.ListScopedAsync(
             tenant.TenantId,
             tenant.OrgId,
             query.EmployeeId,
             query.Status,
+            paging.Page,
+            paging.Size,
             ct);
         var mapped = await MapManyAsync(rows, ct);
-        return Respons<IReadOnlyList<ChangeRequestReadDto>>.Ok(mapped);
+        return Respons<IReadOnlyList<ChangeRequestReadDto>>.Ok(
+            mapped,
+            pagination: new PaginationMeta
+            {
+                Page = paging.Page,
+                Size = paging.Size,
+                Total = total,
+                HasNext = paging.Offset + mapped.Count < total,
+            });
     }
 
     public async Task<Respons<IReadOnlyList<ChangeRequestReadDto>>> ListForEmployeeAsync(
@@ -164,11 +176,13 @@ public sealed class ChangeRequestService
         CancellationToken ct = default)
     {
         var tenant = _tenant.Current;
-        var rows = await _changeRequests.ListScopedAsync(
+        var (rows, _) = await _changeRequests.ListScopedAsync(
             tenant.TenantId,
             tenant.OrgId,
             employeeId,
             status,
+            page: 1,
+            size: PagedQuery.MaxSize,
             ct);
         var mapped = await MapManyAsync(rows, ct);
         return Respons<IReadOnlyList<ChangeRequestReadDto>>.Ok(mapped);

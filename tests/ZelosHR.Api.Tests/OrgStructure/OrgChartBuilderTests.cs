@@ -16,9 +16,9 @@ public class OrgChartBuilderTests
 
         var employees = new List<OrgChartEmployeeRow>
         {
-            new(ceoId, "Kwame Asante", "Kwame", null, "Asante", "Chief Executive Officer", null, null, null),
-            new(engHeadId, "Kwame Boateng", "Kwame", null, "Boateng", "Chief Technology Officer", ceoId, null, null),
-            new(icId, "Kofi Asante", "Kofi", null, "Asante", "Software Engineer", engHeadId, null, null),
+            new(ceoId, "Kwame Asante", "Kwame", null, "Asante", "Chief Executive Officer", null, null, null, null),
+            new(engHeadId, "Kwame Boateng", "Kwame", null, "Boateng", "Chief Technology Officer", ceoId, null, null, null),
+            new(icId, "Kofi Asante", "Kofi", null, "Asante", "Software Engineer", engHeadId, ceoId, null, null),
         };
 
         var departmentByHead = new Dictionary<Guid, OrgChartDepartmentHeadRow>
@@ -52,6 +52,7 @@ public class OrgChartBuilderTests
         var ic = engHead.Children[0];
         ic.FullName.Should().Be("Kofi Asante");
         ic.ParentId.Should().Be(engHeadId.ToString());
+        ic.SecondaryReportsToId.Should().Be(ceoId.ToString());
         ic.Department.Should().BeNull();
         ic.Children.Should().BeEmpty();
     }
@@ -68,6 +69,7 @@ public class OrgChartBuilderTests
             null,
             "",
             "Frontend developer",
+            null,
             null,
             userId,
             "doc-profile");

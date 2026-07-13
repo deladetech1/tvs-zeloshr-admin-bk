@@ -354,10 +354,14 @@ public sealed class EmployeeSubResourcesService
     }
 
     private static EmployeeEducationDto ToEducationDto(EmployeeEducationEntity e) => new(
-        e.Id, e.Institution, e.Degree, e.FieldOfStudy, e.StartDate, e.EndDate, e.IsCurrent);
+        e.Id, e.Institution, e.Degree, e.FieldOfStudy, e.StartDate, e.EndDate, e.IsCurrent,
+        CreatedAt: e.CreatedAt,
+        UpdatedAt: e.UpdatedAt);
 
     private static EmployeeCertificationDto ToCertificationDto(EmployeeCertificationEntity c) => new(
-        c.Id, c.Name, c.IssuingBody, c.IssueDate, c.ExpiryDate, c.CredentialUrl);
+        c.Id, c.Name, c.IssuingBody, c.IssueDate, c.ExpiryDate, c.CredentialUrl,
+        CreatedAt: c.CreatedAt,
+        UpdatedAt: c.UpdatedAt);
 
     private static EmployeeIdentificationDto ToIdentificationDto(EmployeeIdentificationEntity row) => new(
         row.Id,

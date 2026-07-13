@@ -282,6 +282,9 @@ internal static class SwaggerExamples
             nameof(LeaveTypeListItemDto) => EnvelopeOk(LeaveTypeItemData()),
             nameof(EmploymentTypeListDto) => EnvelopeOk(EmploymentTypeListData()),
             nameof(EmploymentTypeListItemDto) => EnvelopeOk(EmploymentTypeItemData()),
+            nameof(IdCardTypeListItemDto) => EnvelopeOk(IdCardTypeItemData()),
+            nameof(CustomFieldDefinitionDto) => EnvelopeOk(CustomFieldDefinitionItem(
+                EmployeeCustomFieldSections.Identity, "emergency_contact_name", "Emergency contact name")),
             nameof(CompanyInfoReadDto) => EnvelopeOk(CompanyInfoData()),
             nameof(CompanyOfficeReadDto) => EnvelopeOk(CompanyOfficeItemData()),
             nameof(CompanyLocalizationReadDto) => EnvelopeOk(CompanyLocalizationData()),
@@ -343,6 +346,7 @@ internal static class SwaggerExamples
         nameof(ChangeRequestReadDto) => new JsonArray(
             ChangeRequestReadDtoData(ChangeRequestStatuses.Pending),
             ChangeRequestReadDtoData(ChangeRequestStatuses.Approved, includeReview: true)),
+        nameof(IdCardTypeListItemDto) => new JsonArray(IdCardTypeItemData()),
         nameof(FieldPolicyEntryDto) => FieldPolicySampleEntries(),
         _ => new JsonArray(),
     };
@@ -373,9 +377,9 @@ internal static class SwaggerExamples
         ["last_name"] = "Lovelace",
     };
 
-    private static JsonObject EmployeeListData() => new()
+    private static JsonObject EmployeeListData()
     {
-        ["items"] = new JsonArray(new JsonObject
+        var item = new JsonObject
         {
             ["employee_id"] = SampleEmployeeId.ToString(),
             ["employee_code"] = "EMP-000042",
@@ -389,8 +393,10 @@ internal static class SwaggerExamples
             ["work_states"] = new JsonArray("probation"),
             ["employment_type"] = "Full-time",
             ["profile_url"] = EmployeeDocumentItem(SampleDocumentId1, "Employee profile photo"),
-        }),
-    };
+        };
+        AppendResourceAuditFields(item);
+        return new JsonObject { ["items"] = new JsonArray(item) };
+    }
 
     private static JsonObject CustomFieldSchemaData() => new()
     {
@@ -673,6 +679,7 @@ internal static class SwaggerExamples
         ["profile_url"] = OrgChartProfileUrlExample(),
         ["node_type"] = "employee",
         ["parent_id"] = null,
+        ["secondary_reports_to_id"] = null,
         ["department"] = null,
         ["children"] = new JsonArray(
             OrgChartManagerNode(
@@ -686,7 +693,7 @@ internal static class SwaggerExamples
                 8,
                 10,
                 new JsonArray(
-                    OrgChartEmployeeNode("11111111-1111-1111-1111-111111111105", "11111111-1111-1111-1111-111111111102", "Kofi Asante", "Software Engineer", null),
+                    OrgChartEmployeeNode("11111111-1111-1111-1111-111111111105", "11111111-1111-1111-1111-111111111102", "Kofi Asante", "Software Engineer", null, "11111111-1111-1111-1111-111111111101"),
                     OrgChartEmployeeNode("11111111-1111-1111-1111-111111111106", "11111111-1111-1111-1111-111111111102", "Abena Mensah", "Senior product designer", null))),
             OrgChartManagerNode(
                 "11111111-1111-1111-1111-111111111103",
@@ -734,6 +741,7 @@ internal static class SwaggerExamples
         ["profile_url"] = profileUrl,
         ["node_type"] = "employee",
         ["parent_id"] = parentId,
+        ["secondary_reports_to_id"] = null,
         ["department"] = new JsonObject
         {
             ["department_id"] = departmentId.ToString(),
@@ -749,7 +757,8 @@ internal static class SwaggerExamples
         string parentId,
         string fullName,
         string jobTitle,
-        JsonNode? profileUrl) => new()
+        JsonNode? profileUrl,
+        string? secondaryReportsToId = null) => new()
     {
         ["id"] = id,
         ["full_name"] = fullName,
@@ -757,6 +766,7 @@ internal static class SwaggerExamples
         ["profile_url"] = profileUrl,
         ["node_type"] = "employee",
         ["parent_id"] = parentId,
+        ["secondary_reports_to_id"] = secondaryReportsToId,
         ["department"] = null,
         ["children"] = new JsonArray(),
     };
@@ -802,20 +812,31 @@ internal static class SwaggerExamples
                 ["employee_count"] = 12,
                 ["is_archived"] = SwaggerExampleHints.BooleanPipe,
                 ["hierarchy_level"] = 1,
+                ["created_at"] = "2025-01-15T10:30:00+00:00",
+                ["updated_at"] = "2025-06-01T14:00:00+00:00",
+                ["created_by_id"] = "uid_sample_user",
+                ["updated_by_id"] = "uid_sample_user",
+                ["created_by"] = "Larry Ntori",
+                ["updated_by"] = "Larry Ntori",
             }),
         ["showing_label"] = "Showing 2 of 8 departments",
     };
 
-    internal static JsonObject BranchListItemExample() => new()
+    internal static JsonObject BranchListItemExample()
     {
-        ["branch_id"] = SampleBranchId.ToString(),
-        ["name"] = "Accra HQ",
-        ["address"] = "Greater Accra, 4th Avenue 128B Greda Estate, Teshie-Nungua",
-        ["country"] = "Ghana",
-        ["description"] = null,
-        ["employee_count"] = 24,
-        ["is_archived"] = false,
-    };
+        var item = new JsonObject
+        {
+            ["branch_id"] = SampleBranchId.ToString(),
+            ["name"] = "Accra HQ",
+            ["address"] = "Greater Accra, 4th Avenue 128B Greda Estate, Teshie-Nungua",
+            ["country"] = "Ghana",
+            ["description"] = null,
+            ["employee_count"] = 24,
+            ["is_archived"] = false,
+        };
+        AppendResourceAuditFields(item);
+        return item;
+    }
 
     internal static JsonObject DepartmentListItemExample() => new()
     {
@@ -866,6 +887,12 @@ internal static class SwaggerExamples
                 ["description"] = null,
                 ["employee_count"] = 18,
                 ["is_archived"] = false,
+                ["created_at"] = "2025-01-15T10:30:00+00:00",
+                ["updated_at"] = "2025-06-01T14:00:00+00:00",
+                ["created_by_id"] = "uid_sample_user",
+                ["updated_by_id"] = "uid_sample_user",
+                ["created_by"] = "Larry Ntori",
+                ["updated_by"] = "Larry Ntori",
             },
             new JsonObject
             {
@@ -876,6 +903,12 @@ internal static class SwaggerExamples
                 ["description"] = null,
                 ["employee_count"] = 9,
                 ["is_archived"] = false,
+                ["created_at"] = "2025-01-15T10:30:00+00:00",
+                ["updated_at"] = "2025-06-01T14:00:00+00:00",
+                ["created_by_id"] = "uid_sample_user",
+                ["updated_by_id"] = "uid_sample_user",
+                ["created_by"] = "Larry Ntori",
+                ["updated_by"] = "Larry Ntori",
             }),
     };
 
@@ -893,14 +926,19 @@ internal static class SwaggerExamples
         ["updated_by"] = "Larry Ntori",
     };
 
-    private static JsonObject BranchMutationResponseData() => new()
+    private static JsonObject BranchMutationResponseData()
     {
-        ["branch_id"] = SampleBranchId.ToString(),
-        ["name"] = "Accra HQ",
-        ["address"] = "Greater Accra, 4th Avenue 128B Greda Estate, Teshie-Nungua",
-        ["country"] = "Ghana",
-        ["description"] = null,
-    };
+        var data = new JsonObject
+        {
+            ["branch_id"] = SampleBranchId.ToString(),
+            ["name"] = "Accra HQ",
+            ["address"] = "Greater Accra, 4th Avenue 128B Greda Estate, Teshie-Nungua",
+            ["country"] = "Ghana",
+            ["description"] = null,
+        };
+        AppendResourceAuditFields(data);
+        return data;
+    }
 
     internal static JsonObject CreateDepartmentRoot() => new()
     {
@@ -1322,6 +1360,7 @@ internal static class SwaggerExamples
                 ["documents"] = EmployeeDocumentsArray(),
             },
         };
+        AppendResourceAuditFields((JsonObject)response["data"]!);
         ApplyResponseEnvelopeHints(response);
         return response;
     }
@@ -1438,8 +1477,7 @@ internal static class SwaggerExamples
         if (forRead)
         {
             obj["id_card_type_name"] = idTypeName ?? "Ghana Card";
-            obj["created_at"] = "2025-06-01T10:00:00+00:00";
-            obj["updated_at"] = "2025-06-01T10:00:00+00:00";
+            AppendResourceAuditFields(obj, "2025-06-01T10:00:00+00:00");
         }
 
         return obj;
@@ -1452,16 +1490,21 @@ internal static class SwaggerExamples
     internal static JsonObject EmergencyEntry(
         bool withId = false,
         Guid? id = null,
-        bool forRead = false) =>
-        new JsonObject
+        bool forRead = false)
+    {
+        var obj = new JsonObject
         {
             ["id"] = withId ? (id ?? Guid.Parse("88888888-8888-8888-8888-888888888801")).ToString() : null,
             ["emergency_contact_name"] = "Bright",
             ["emergency_contact_phone"] = "+233503448860",
             ["relationship"] = "Friend",
-            ["created_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
-            ["updated_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
         };
+
+        if (forRead)
+            AppendResourceAuditFields(obj, "2025-06-01T10:00:00+00:00");
+
+        return obj;
+    }
 
     private static JsonArray PaymentWriteArray() => new(PaymentEntry());
 
@@ -1470,8 +1513,9 @@ internal static class SwaggerExamples
     internal static JsonObject PaymentEntry(
         bool withId = false,
         Guid? id = null,
-        bool forRead = false) =>
-        new JsonObject
+        bool forRead = false)
+    {
+        var obj = new JsonObject
         {
             ["id"] = withId ? (id ?? Guid.Parse("99999999-9999-9999-9999-999999999901")).ToString() : null,
             ["payment_mode"] = "bank_transfer",
@@ -1480,9 +1524,13 @@ internal static class SwaggerExamples
             ["account_number"] = "1234567890",
             ["branch_name"] = "Accra Main",
             ["is_primary"] = true,
-            ["created_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
-            ["updated_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
         };
+
+        if (forRead)
+            AppendResourceAuditFields(obj, "2025-06-01T10:00:00+00:00");
+
+        return obj;
+    }
 
     private static JsonObject MedicalWriteSection() => new()
     {
@@ -1498,92 +1546,131 @@ internal static class SwaggerExamples
         ["emergency_medical_notes"] = null,
     };
 
-    private static JsonObject MedicalReadSection() => new()
+    private static JsonObject MedicalReadSection()
     {
-        ["id"] = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa01").ToString(),
-        ["blood_group"] = "O+",
-        ["has_medical_condition"] = true,
-        ["medical_conditions"] = new JsonArray(MedicalConditionEntry(withId: true, forRead: true)),
-        ["allergies"] = new JsonArray(AllergyEntry(withId: true, forRead: true)),
-        ["takes_regular_medication"] = false,
-        ["medications"] = new JsonArray(),
-        ["disability_status"] = "None",
-        ["requires_accommodation"] = false,
-        ["accommodation_details"] = null,
-        ["emergency_medical_notes"] = null,
-        ["created_at"] = "2025-06-01T10:00:00+00:00",
-        ["updated_at"] = "2025-06-01T10:00:00+00:00",
-    };
+        var section = new JsonObject
+        {
+            ["id"] = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa01").ToString(),
+            ["blood_group"] = "O+",
+            ["has_medical_condition"] = true,
+            ["medical_conditions"] = new JsonArray(MedicalConditionEntry(withId: true, forRead: true)),
+            ["allergies"] = new JsonArray(AllergyEntry(withId: true, forRead: true)),
+            ["takes_regular_medication"] = false,
+            ["medications"] = new JsonArray(),
+            ["disability_status"] = "None",
+            ["requires_accommodation"] = false,
+            ["accommodation_details"] = null,
+            ["emergency_medical_notes"] = null,
+        };
+        AppendResourceAuditFields(section, "2025-06-01T10:00:00+00:00");
+        return section;
+    }
 
-    internal static JsonObject MedicalConditionEntry(bool withId = false, bool forRead = false) => new()
+    internal static JsonObject MedicalConditionEntry(bool withId = false, bool forRead = false)
     {
-        ["id"] = withId ? Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb01").ToString() : null,
-        ["condition"] = "Asthma",
-        ["severity"] = "Mild",
-        ["notes"] = "Carries inhaler; may need accommodation during high-exertion activities.",
-        ["diagnosed_date"] = "2015-03-01",
-        ["created_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
-        ["updated_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
-    };
+        var obj = new JsonObject
+        {
+            ["id"] = withId ? Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb01").ToString() : null,
+            ["condition"] = "Asthma",
+            ["severity"] = "Mild",
+            ["notes"] = "Carries inhaler; may need accommodation during high-exertion activities.",
+            ["diagnosed_date"] = "2015-03-01",
+        };
 
-    internal static JsonObject AllergyEntry(bool withId = false, bool forRead = false) => new()
-    {
-        ["id"] = withId ? Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccc01").ToString() : null,
-        ["allergen"] = "Penicillin",
-        ["reaction"] = "Rash",
-        ["severity"] = "Moderate",
-        ["created_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
-        ["updated_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
-    };
+        if (forRead)
+            AppendResourceAuditFields(obj, "2025-06-01T10:00:00+00:00");
 
-    internal static JsonObject MedicationEntry(bool withId = false, bool forRead = false) => new()
-    {
-        ["id"] = withId ? Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddd01").ToString() : null,
-        ["name"] = "Lisinopril",
-        ["dosage"] = "10mg",
-        ["frequency"] = "Daily",
-        ["notes"] = "Take in the morning",
-        ["created_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
-        ["updated_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
-    };
+        return obj;
+    }
 
-    internal static JsonObject SkillEntry(bool withId = false, bool forRead = false) => new()
+    internal static JsonObject AllergyEntry(bool withId = false, bool forRead = false)
     {
-        ["id"] = withId ? Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeee01").ToString() : null,
-        ["name"] = "React",
-        ["proficiency"] = "advanced",
-        ["years_of_experience"] = 5,
-        ["created_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
-        ["updated_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
-    };
+        var obj = new JsonObject
+        {
+            ["id"] = withId ? Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccc01").ToString() : null,
+            ["allergen"] = "Penicillin",
+            ["reaction"] = "Rash",
+            ["severity"] = "Moderate",
+        };
 
-    internal static JsonObject ExperienceEntry(bool withId = false, bool forRead = false) => new()
-    {
-        ["id"] = withId ? Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffff01").ToString() : null,
-        ["company"] = "TechCorp Ghana",
-        ["job_title"] = "Junior Developer",
-        ["employment_type"] = "Full-time",
-        ["location"] = "Accra",
-        ["start_date"] = "2018-01-01",
-        ["end_date"] = "2020-12-31",
-        ["is_current"] = false,
-        ["description"] = "Built internal tools with React and Node.js.",
-        ["created_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
-        ["updated_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
-    };
+        if (forRead)
+            AppendResourceAuditFields(obj, "2025-06-01T10:00:00+00:00");
 
-    internal static JsonObject ReferralEntry(bool withId = false, bool forRead = false) => new()
+        return obj;
+    }
+
+    internal static JsonObject MedicationEntry(bool withId = false, bool forRead = false)
     {
-        ["id"] = withId ? Guid.Parse("12121212-1212-1212-1212-121212121201").ToString() : null,
-        ["name"] = "Grace Hopper",
-        ["job_title"] = "Engineering Manager",
-        ["company"] = "Naval Labs",
-        ["relationship"] = "Former manager",
-        ["email"] = "grace.hopper@example.com",
-        ["phone"] = "+233201112233",
-        ["created_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
-        ["updated_at"] = forRead ? "2025-06-01T10:00:00+00:00" : null,
-    };
+        var obj = new JsonObject
+        {
+            ["id"] = withId ? Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddd01").ToString() : null,
+            ["name"] = "Lisinopril",
+            ["dosage"] = "10mg",
+            ["frequency"] = "Daily",
+            ["notes"] = "Take in the morning",
+        };
+
+        if (forRead)
+            AppendResourceAuditFields(obj, "2025-06-01T10:00:00+00:00");
+
+        return obj;
+    }
+
+    internal static JsonObject SkillEntry(bool withId = false, bool forRead = false)
+    {
+        var obj = new JsonObject
+        {
+            ["id"] = withId ? Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeee01").ToString() : null,
+            ["name"] = "React",
+            ["proficiency"] = "advanced",
+            ["years_of_experience"] = 5,
+        };
+
+        if (forRead)
+            AppendResourceAuditFields(obj, "2025-06-01T10:00:00+00:00");
+
+        return obj;
+    }
+
+    internal static JsonObject ExperienceEntry(bool withId = false, bool forRead = false)
+    {
+        var obj = new JsonObject
+        {
+            ["id"] = withId ? Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffff01").ToString() : null,
+            ["company"] = "TechCorp Ghana",
+            ["job_title"] = "Junior Developer",
+            ["employment_type"] = "Full-time",
+            ["location"] = "Accra",
+            ["start_date"] = "2018-01-01",
+            ["end_date"] = "2020-12-31",
+            ["is_current"] = false,
+            ["description"] = "Built internal tools with React and Node.js.",
+        };
+
+        if (forRead)
+            AppendResourceAuditFields(obj, "2025-06-01T10:00:00+00:00");
+
+        return obj;
+    }
+
+    internal static JsonObject ReferralEntry(bool withId = false, bool forRead = false)
+    {
+        var obj = new JsonObject
+        {
+            ["id"] = withId ? Guid.Parse("12121212-1212-1212-1212-121212121201").ToString() : null,
+            ["name"] = "Grace Hopper",
+            ["job_title"] = "Engineering Manager",
+            ["company"] = "Naval Labs",
+            ["relationship"] = "Former manager",
+            ["email"] = "grace.hopper@example.com",
+            ["phone"] = "+233201112233",
+        };
+
+        if (forRead)
+            AppendResourceAuditFields(obj, "2025-06-01T10:00:00+00:00");
+
+        return obj;
+    }
 
     private static JsonObject EmploymentSection(
         bool withNames = false,
@@ -1707,6 +1794,9 @@ internal static class SwaggerExamples
         if (withId)
             obj["id"] = (id ?? SampleEducationRowId).ToString();
 
+        if (withId)
+            AppendResourceAuditFields(obj, "2025-06-01T10:00:00+00:00");
+
         return obj;
     }
 
@@ -1739,6 +1829,9 @@ internal static class SwaggerExamples
 
         if (withId)
             obj["id"] = (id ?? SampleCertificationRowId).ToString();
+
+        if (withId)
+            AppendResourceAuditFields(obj, "2025-06-01T10:00:00+00:00");
 
         return obj;
     }
@@ -2527,6 +2620,21 @@ internal static class SwaggerExamples
         return data;
     }
 
+    internal static JsonObject IdCardTypeItemData(bool optionHints = false)
+    {
+        var data = new JsonObject
+        {
+            ["id_card_type_id"] = SampleIdCardTypeId1.ToString(),
+            ["name"] = optionHints ? "National ID|Voter's ID|Driver's License" : "National ID",
+            ["description"] = "Ghana Card national identity document",
+            ["type"] = optionHints ? "default|custom" : "default",
+            ["is_system_default"] = true,
+            ["is_active"] = true,
+        };
+        AppendResourceAuditFields(data);
+        return data;
+    }
+
     internal static JsonObject EmploymentTypeListData()
     {
         var custom = new JsonObject
@@ -2937,7 +3045,8 @@ internal static class SwaggerExamples
         ChangeRequestReadDtoData(
             ChangeRequestStatuses.Pending,
             fieldPath: "identity.date_of_birth",
-            changeRequestId: SampleChangeRequestId2.ToString())));
+            changeRequestId: SampleChangeRequestId2.ToString())),
+        SamplePagination());
 
     internal static JsonObject ChangeRequestRejectedResponse() => EnvelopeOk(
         ChangeRequestReadDtoData(ChangeRequestStatuses.Rejected, includeReview: true),

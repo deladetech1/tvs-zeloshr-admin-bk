@@ -21,11 +21,13 @@ public sealed class EmployeeChangeRequestRepository(ZelosHrDbContext db) : IEmpl
                 r => r.Id == id && r.TenantId == tenantId && r.OrgId == orgId,
                 ct);
 
-    public async Task<IReadOnlyList<EmployeeChangeRequestEntity>> ListScopedAsync(
+    public async Task<(IReadOnlyList<EmployeeChangeRequestEntity> Items, int Total)> ListScopedAsync(
         string tenantId,
         string orgId,
         Guid? employeeId,
         string? status,
+        int page,
+        int size,
         CancellationToken ct = default)
     {
         var query = db.EmployeeChangeRequests.AsNoTracking()
@@ -37,9 +39,14 @@ public sealed class EmployeeChangeRequestRepository(ZelosHrDbContext db) : IEmpl
         if (!string.IsNullOrWhiteSpace(status))
             query = query.Where(r => r.Status == status);
 
-        return await query
+        var total = await query.CountAsync(ct);
+        var items = await query
             .OrderByDescending(r => r.CreatedAt)
+            .Skip((page - 1) * size)
+            .Take(size)
             .ToListAsync(ct);
+
+        return (items, total);
     }
 
     public async Task<IReadOnlyList<EmployeeChangeRequestEntity>> ListPendingByFieldPathsAsync(

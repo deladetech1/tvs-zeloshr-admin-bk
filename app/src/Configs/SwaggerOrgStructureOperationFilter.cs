@@ -37,12 +37,12 @@ public sealed class SwaggerOrgStructureOperationFilter : IOperationFilter
                 ["with_tree"] = new OpenApiExample
                 {
                     Summary = "CEO → dept heads → direct reports",
-                    Description = "Reporting tree from employees.reports_to_id; dept heads include department badge with headcount bar.",
+                    Description = "Reporting tree from employees.reports_to_id; parent_id is primary manager; secondary_reports_to_id is dotted-line manager (dotted_line_manager_id). Dept heads include department badge with headcount bar.",
                     Value = SwaggerExamples.OrgChartResponse(),
                 },
             });
             operation.Summary ??= "Org chart";
-            operation.Description = "Returns `{ success, status_code, detail, data: { roots: [...] } }`. Each node is an employee: `id` · `full_name` · `job_title` · `profile_url` (null | DocumentReadDto with presigned_url) · `node_type` (`employee`) · `parent_id` (manager employee UUID, null on roots) · `department` (null | badge on dept heads) · `children` (direct reports).";
+            operation.Description = "Returns `{ success, status_code, detail, data: { roots: [...] } }`. Each node is an employee: `id` · `full_name` · `job_title` · `profile_url` (null | DocumentReadDto with presigned_url) · `node_type` (`employee`) · `parent_id` (primary manager / reports_to_id, null on roots) · `secondary_reports_to_id` (dotted-line manager, null when unset) · `department` (null | badge on dept heads) · `children` (direct reports).";
             return;
         }
 

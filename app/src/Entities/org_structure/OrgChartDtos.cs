@@ -25,7 +25,10 @@ public sealed class OrgChartNodeDto
     public DocumentReadDto? ProfileUrl { get; init; }
     [SwaggerAllowedValues(typeof(OrgStructureFieldOptions), nameof(OrgStructureFieldOptions.NodeTypes))]
     public required string NodeType { get; init; }
+    /// <summary>Primary manager employee UUID (<c>employment.reports_to_id</c>).</summary>
     public string? ParentId { get; init; }
+    /// <summary>Secondary/dotted-line manager UUID (<c>employment.secondary_reports_to_id</c>).</summary>
+    public string? SecondaryReportsToId { get; init; }
     public OrgChartDepartmentBadgeDto? Department { get; init; }
     public IReadOnlyList<OrgChartNodeDto> Children { get; init; } = [];
 }
@@ -43,6 +46,7 @@ public sealed record OrgChartEmployeeRow(
     string? LastName,
     string? JobTitle,
     Guid? ReportsToId,
+    Guid? SecondaryReportsToId,
     string? UserId,
     string? ProfilePhotoUrl);
 
