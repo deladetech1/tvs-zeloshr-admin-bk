@@ -27,6 +27,7 @@ public class ChangeRequestsController : ControllerBase
     /// <summary>Lists change requests for HR review.</summary>
     /// <remarks>
     /// Filter by <c>status</c> (pending · approved · rejected · superseded) and/or <c>employee_id</c>.
+    /// Paginate with <c>page</c> (default 1) and <c>size</c> (default 20, max 100).
     /// Returns <c>data[]</c> of change-request rows with standard audit fields on each item.
     /// </remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]

@@ -10,11 +10,13 @@ public interface IEmployeeChangeRequestRepository
     Task<EmployeeChangeRequestEntity?> GetTrackedByIdScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default);
 
-    Task<IReadOnlyList<EmployeeChangeRequestEntity>> ListScopedAsync(
+    Task<(IReadOnlyList<EmployeeChangeRequestEntity> Items, int Total)> ListScopedAsync(
         string tenantId,
         string orgId,
         Guid? employeeId,
         string? status,
+        int page,
+        int size,
         CancellationToken ct = default);
 
     Task<IReadOnlyList<EmployeeChangeRequestEntity>> ListPendingByFieldPathsAsync(

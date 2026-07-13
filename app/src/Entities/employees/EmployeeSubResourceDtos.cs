@@ -9,7 +9,13 @@ public sealed record EmployeeEducationDto(
     DateOnly? StartDate,
     DateOnly? EndDate,
     bool IsCurrent,
-    Dictionary<string, string?>? CustomFields = null);
+    Dictionary<string, string?>? CustomFields = null,
+    DateTimeOffset CreatedAt = default,
+    DateTimeOffset UpdatedAt = default,
+    string? CreatedById = null,
+    string? UpdatedById = null,
+    string? CreatedBy = null,
+    string? UpdatedBy = null);
 
 public sealed record EmployeeEducationWriteDto(
     string Institution,
@@ -39,7 +45,13 @@ public sealed record EmployeeCertificationDto(
     DateOnly? IssueDate,
     DateOnly? ExpiryDate,
     string? CredentialUrl,
-    Dictionary<string, string?>? CustomFields = null);
+    Dictionary<string, string?>? CustomFields = null,
+    DateTimeOffset CreatedAt = default,
+    DateTimeOffset UpdatedAt = default,
+    string? CreatedById = null,
+    string? UpdatedById = null,
+    string? CreatedBy = null,
+    string? UpdatedBy = null);
 
 public sealed record EmployeeCertificationWriteDto(
     string Name,
@@ -68,7 +80,11 @@ public sealed record EmployeeIdentificationDto(
     DateOnly? IdCardTypeIssueDate,
     DateOnly? IdCardTypeExpiryDate,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    string? CreatedById = null,
+    string? UpdatedById = null,
+    string? CreatedBy = null,
+    string? UpdatedBy = null);
 
 /// <summary>Government / company ID document. <c>id_card_type_id</c> from <c>GET /id-card-types/list</c>.</summary>
 public sealed record EmployeeIdentificationWriteDto(

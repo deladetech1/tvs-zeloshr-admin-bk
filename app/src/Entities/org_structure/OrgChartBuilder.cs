@@ -27,6 +27,7 @@ internal static class OrgChartBuilder
                     JobTitle = e.JobTitle,
                     ProfileUrl = profileUrlsByEmployeeId.GetValueOrDefault(e.Id),
                     ReportsToId = e.ReportsToId?.ToString(),
+                    SecondaryReportsToId = e.SecondaryReportsToId?.ToString(),
                     Department = departmentByHeadId.TryGetValue(e.Id, out var dept)
                         ? new OrgChartDepartmentBadgeDto
                         {
@@ -80,6 +81,7 @@ internal static class OrgChartBuilder
         public string? JobTitle { get; init; }
         public DocumentReadDto? ProfileUrl { get; init; }
         public string? ReportsToId { get; init; }
+        public string? SecondaryReportsToId { get; init; }
         public OrgChartDepartmentBadgeDto? Department { get; init; }
         public List<MutableNode> Children { get; } = [];
 
@@ -91,6 +93,7 @@ internal static class OrgChartBuilder
             ProfileUrl = ProfileUrl,
             NodeType = "employee",
             ParentId = ReportsToId,
+            SecondaryReportsToId = SecondaryReportsToId,
             Department = Department,
             Children = Children
                 .Select(c => c.ToDto())

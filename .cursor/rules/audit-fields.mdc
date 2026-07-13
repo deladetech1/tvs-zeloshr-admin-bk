@@ -1,0 +1,23 @@
+---
+description: Mandatory audit fields on every CRUD resource GET/list response item and Swagger examples
+alwaysApply: true
+---
+
+# Standard audit fields (GET responses)
+
+See `docs/AUDIT_FIELDS.md`. Every resource row in `data` or `data.items[]` from GET/list endpoints must include **all six** properties (snake_case JSON):
+
+- `created_at`, `updated_at` — ISO-8601 from DB
+- `created_by_id`, `updated_by_id` — platform user ids from DB (nullable)
+- `created_by`, `updated_by` — resolved from `cp_users` at read time (nullable)
+
+## When changing APIs
+
+1. DTO — all six properties on every ReadDto / ListItemDto / nested resource row on GET.
+2. Mapper — map timestamps from entity; batch-resolve display names via `ResourceAuditMapper` + `ICpUserRepository.GetByIdsAsync`.
+3. Mutations — stamp `created_by` / `updated_by` ids from `ITenantContext.UserId`.
+4. Swagger — same PR must update `SwaggerExamples.cs` / `SwaggerSchemaExamplesFilter.cs` so examples include all six fields (`AppendResourceAuditFields` helper).
+
+Null is valid for legacy rows or missing actor columns; never omit keys or fabricate names.
+
+Exceptions (document in PR if needed): health, navigation, statistics-only aggregates, export/binary, field-policy config, audit-log domain shape (`occurred_at` / `actor_*`).

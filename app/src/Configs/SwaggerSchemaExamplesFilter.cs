@@ -15,6 +15,7 @@ using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Employees.Authorization;
 using ZelosHR.Api.Entities.EmploymentTypes;
 using ZelosHR.Api.Entities.Files;
+using ZelosHR.Api.Entities.IdCardTypes;
 using ZelosHR.Api.Entities.Leave;
 using ZelosHR.Api.Entities.OrgStructure;
 using ZelosHR.Api.Entities.Shared;
@@ -75,6 +76,9 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(ImportEmployeesRequest) => SwaggerExamples.ImportEmployeesRequestBody(),
             nameof(EmployeeAggregateReadDto) => SwaggerExamples.EmployeeAggregateReadData(),
             nameof(ChangeRequestReadDto) => SwaggerExamples.ChangeRequestReadDtoData(),
+            nameof(IdCardTypeListItemDto) => SwaggerExamples.IdCardTypeItemData(),
+            nameof(CustomFieldDefinitionDto) => SwaggerExamples.CustomFieldDefinitionItem(
+                EmployeeCustomFieldSections.Identity, "emergency_contact_name", "Emergency contact name"),
             nameof(EmployeeSelfUpdateResultDto) => SwaggerExamples.EmployeeSelfUpdateResultData(),
             nameof(RejectChangeRequestBody) => SwaggerExamples.RejectChangeRequestBody(),
             nameof(FieldPolicyEntryDto) => new JsonObject
@@ -86,6 +90,8 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             {
                 ["status"] = ChangeRequestStatuses.Pending,
                 ["employee_id"] = SwaggerExamples.SampleEmployeeId.ToString(),
+                ["page"] = 1,
+                ["size"] = 20,
             },
             nameof(DocumentReadDto) => SwaggerExamples.EmployeeDocumentItem(),
             nameof(EmployeeDirectorySummaryDto) => SwaggerExamples.EmployeeDirectorySummaryData(),
@@ -258,13 +264,13 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(UpdateBranchRequestDto) => AppendDescription(schema.Description,
                 "Partial branch update — include only fields to change."),
             nameof(OrgChartDto) => AppendDescription(schema.Description,
-                "Reporting-line tree from employees.reports_to_id. Roots have no manager; dept heads include department badge with employee_count/headcount_capacity."),
+                "Reporting-line tree from employees.reports_to_id. parent_id = primary manager; secondary_reports_to_id = dotted-line manager (dotted_line_manager_id). Roots have no manager; dept heads include department badge with employee_count/headcount_capacity."),
             nameof(BranchListItemDto) => AppendDescription(schema.Description,
                 "branch_id (UUID) · name · address · country · description · employee_count · is_archived."),
             nameof(DepartmentListItemDto) => AppendDescription(schema.Description,
                 $"department_id (UUID) · name · parent_department_id · head_of_department · employee_count · headcount_capacity · is_archived ({SwaggerExampleHints.OrgIncludeArchived}) · hierarchy_level."),
             nameof(OrgChartNodeDto) => AppendDescription(schema.Description,
-                $"Person node. node_type: {SwaggerExampleHints.OrgNodeType}. profile_url: DocumentReadDto (presigned_url ~24h) or null. department badge on dept heads; children are direct reports."),
+                $"Person node. node_type: {SwaggerExampleHints.OrgNodeType}. parent_id = reports_to_id; secondary_reports_to_id = dotted-line manager. profile_url: DocumentReadDto (presigned_url ~24h) or null. department badge on dept heads; children are direct reports."),
             nameof(OrgChartDepartmentBadgeDto) => AppendDescription(schema.Description,
                 "Shown on department-head nodes only. employee_count / headcount_capacity drive the headcount bar (e.g. 8/10)."),
             nameof(AuditLogSummaryDto) => AppendDescription(schema.Description,
@@ -768,6 +774,16 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 schema.Example = JsonValue.Create(SwaggerExamples.SampleEmployeeId.ToString());
                 schema.Description = AppendDescription(schema.Description,
                     "Optional employee UUID to scope the HR review queue.");
+                return;
+            case nameof(ChangeRequestListQuery.Page)
+                when property.DeclaringType == typeof(ChangeRequestListQuery):
+                schema.Example = JsonValue.Create(1);
+                schema.Description = AppendDescription(schema.Description, "1-based page index (default 1).");
+                return;
+            case nameof(ChangeRequestListQuery.Size)
+                when property.DeclaringType == typeof(ChangeRequestListQuery):
+                schema.Example = JsonValue.Create(20);
+                schema.Description = AppendDescription(schema.Description, "Page size (default 20, max 100).");
                 return;
         }
 

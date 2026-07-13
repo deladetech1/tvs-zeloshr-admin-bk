@@ -79,7 +79,7 @@ Response is a **reporting-line tree** (`data.roots[]`), not a department hierarc
 | `department` | Badge on department heads only: `name`, `employee_count`, `headcount_capacity` (headcount bar e.g. 8/10) |
 | `children` | Direct reports (nested sub-levels) |
 
-Tree shape comes from employee `reports_to_id`. Department badge requires `head_of_department_id` on the department row.
+Tree shape comes from employee `reports_to_id` (`parent_id` on each node). Secondary/dotted-line manager is `secondary_reports_to_id` (DB column `dotted_line_manager_id`). Department badge requires `head_of_department_id` on the department row.
 
 ### Leave Management (`/api/v1/leave/*`)
 
@@ -244,7 +244,7 @@ Returns `text/csv` with columns aligned to bulk import plus `employee_id`, `empl
 | Field policy | `GET /employees/field-policy` → `path` + `access` (`free` \| `approval`) |
 | Self update | `PUT /employees/me/update` — same JSON shape as admin update |
 | My queue | `GET /employees/me/change-requests?status=` |
-| HR review queue | `GET /change-requests?status=&employee_id=` |
+| HR review queue | `GET /change-requests?status=&employee_id=&page=&size=` |
 | Approve | `POST /change-requests/{change_request_id}/approve` |
 | Reject | `POST /change-requests/{change_request_id}/reject` — optional `{ "review_note": "…" }` |
 

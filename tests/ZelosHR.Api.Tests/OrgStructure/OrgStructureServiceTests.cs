@@ -62,8 +62,8 @@ public class OrgStructureServiceTests
             .Returns((
                 new List<OrgChartEmployeeRow>
                 {
-                    new(ceoId, "Kwame Asante", "Kwame", null, "Asante", "Chief Executive Officer", null, null, null),
-                    new(headId, "Kwame Boateng", "Kwame", null, "Boateng", "Chief Technology Officer", ceoId, null, null),
+                    new(ceoId, "Kwame Asante", "Kwame", null, "Asante", "Chief Executive Officer", null, null, null, null),
+                    new(headId, "Kwame Boateng", "Kwame", null, "Boateng", "Chief Technology Officer", ceoId, null, null, null),
                 },
                 new List<OrgChartDepartmentHeadRow>
                 {

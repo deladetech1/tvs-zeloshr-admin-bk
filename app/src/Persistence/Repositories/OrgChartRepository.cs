@@ -19,6 +19,7 @@ public sealed class OrgChartRepository(ZelosHrDbContext db) : IOrgChartRepositor
                 e.LastName,
                 e.JobTitle,
                 e.ReportsToId,
+                e.DottedLineManagerId,
                 e.UserId,
                 e.ProfilePhotoUrl))
             .ToListAsync(ct);
