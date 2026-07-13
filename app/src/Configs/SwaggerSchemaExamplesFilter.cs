@@ -470,12 +470,18 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 return;
             case nameof(EmployeeAggregateIdentityDto.WorkEmail):
                 schema.Example = JsonValue.Create("ada.lovelace@company.com");
+                schema.Description = AppendDescription(schema.Description,
+                    "Valid email address (max 255 chars). Required to finalise a non-draft employee.");
                 return;
             case nameof(EmployeeAggregateIdentityDto.PersonalEmail):
                 schema.Example = JsonValue.Create("ada.personal@example.com");
+                schema.Description = AppendDescription(schema.Description,
+                    "Valid email address (max 255 chars) when provided.");
                 return;
             case nameof(EmployeeAggregateIdentityDto.Phone):
                 schema.Example = JsonValue.Create("+233201234567");
+                schema.Description = AppendDescription(schema.Description,
+                    "E.164 international format: leading +, country code, 8–15 digits total (spaces/dashes stripped on validate). Required on create.");
                 return;
             case "Country" when property.DeclaringType == typeof(EmployeeAggregateIdentityDto)
                               || property.DeclaringType == typeof(EmployeeAggregateIdentityReadDto):
@@ -485,6 +491,8 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 return;
             case nameof(EmployeeAggregateIdentityDto.LinkedInUrl):
                 schema.Example = JsonValue.Create("https://linkedin.com/in/adalovelace");
+                schema.Description = AppendDescription(schema.Description,
+                    "Absolute http or https URL when provided (max 500 chars).");
                 return;
             case nameof(EmployeeAggregateIdentityDto.ResidentialAddress):
                 schema.Example = JsonValue.Create("12 Independence Ave, Accra");

@@ -167,8 +167,10 @@ public sealed class EmployeeAggregateIdentityDto
     public string? PersonalEmail { get; init; }
     public string? WorkEmail { get; init; }
 
-    /// <summary>Contact number. Required on create (<c>POST /add</c>).</summary>
+    /// <summary>Contact number in E.164 format (e.g. <c>+233201234567</c>). Required on create (<c>POST /add</c>).</summary>
     public string? Phone { get; init; }
+
+    /// <summary>Public profile URL. Must be <c>http</c> or <c>https</c> when provided.</summary>
     public string? LinkedInUrl { get; init; }
     public string? ResidentialAddress { get; init; }
 

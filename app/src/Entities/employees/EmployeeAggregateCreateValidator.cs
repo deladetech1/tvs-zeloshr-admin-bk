@@ -1,3 +1,5 @@
+using ZelosHR.Api.Shared.Validation;
+
 namespace ZelosHR.Api.Entities.Employees;
 
 internal static class EmployeeAggregateCreateValidator
@@ -18,11 +20,12 @@ internal static class EmployeeAggregateCreateValidator
     {
         var errors = new Dictionary<string, string>();
 
-        if (string.IsNullOrWhiteSpace(request.Identity.FullName))
-            errors["identity.full_name"] = "Full name is required.";
-
-        if (string.IsNullOrWhiteSpace(request.Identity.Phone))
-            errors["identity.phone"] = "Phone is required.";
+        var identityErrors = EmployeeIdentityFieldValidator.ValidateForCreate(request.Identity);
+        if (identityErrors is not null)
+        {
+            foreach (var (key, value) in identityErrors)
+                errors[key] = value;
+        }
 
         var willFinalise = !request.IsDraft && !string.IsNullOrWhiteSpace(request.Identity.WorkEmail);
         if (willFinalise && string.IsNullOrWhiteSpace(request.Employment?.EmploymentStatus))
