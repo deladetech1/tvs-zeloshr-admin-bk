@@ -21,4 +21,11 @@ public class ClientSafeErrorsTests
         ClientSafeErrors.SanitizeInvalidOperationMessage("EmployeeCode must be set before insert")
             .Should().Be("EmployeeCode must be set before insert.");
     }
+
+    [Fact]
+    public void SanitizeInvalidOperationMessage_ReplacesEfNullableRuntimeError()
+    {
+        ClientSafeErrors.SanitizeInvalidOperationMessage("Nullable object must have a value.")
+            .Should().Be(ClientSafeErrors.QueryFilterFailed);
+    }
 }

@@ -101,46 +101,68 @@ public sealed class EmploymentTypeRepository(ZelosHrDbContext db) : IEmploymentT
 
         var total = await baseQuery.CountAsync(ct);
 
-        var employeeCounts = db.Employees.AsNoTracking()
-            .Where(e => e.TenantId == tenantId && e.OrgId == orgId && !e.IsDeleted && e.EmploymentTypeId != null)
-            .GroupBy(e => e.EmploymentTypeId)
-            .Select(g => new { TypeId = g.Key, Count = g.Count() });
-
-        var joined = from t in baseQuery
-                     join c in employeeCounts on (Guid?)t.Id equals c.TypeId into counts
-                     from c in counts.DefaultIfEmpty()
-                     select new { Type = t, EmployeeCount = c == null ? 0 : c.Count };
+        // Load counts separately — joining GroupBy(Guid?) to types triggers EF/Npgsql
+        // "Nullable object must have a value" when legacy rows have employment_type_id null.
+        var employeeCountByTypeId = await db.Employees.AsNoTracking()
+            .Where(e => e.TenantId == tenantId
+                        && e.OrgId == orgId
+                        && !e.IsDeleted
+                        && e.EmploymentTypeId != null)
+            .GroupBy(e => e.EmploymentTypeId!.Value)
+            .Select(g => new { TypeId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.TypeId, x => x.Count, ct);
 
         var sortBy = query.SortBy.Trim().ToLowerInvariant();
         var desc = string.Equals(query.SortOrder, "desc", StringComparison.OrdinalIgnoreCase);
 
-        joined = sortBy switch
+        IReadOnlyList<EmploymentTypeListItemDto> items;
+        if (sortBy is "employees" or "employee_count")
         {
-            "type" => desc
-                ? joined.OrderByDescending(x => x.Type.IsSystemDefault).ThenBy(x => x.Type.Name)
-                : joined.OrderBy(x => x.Type.IsSystemDefault).ThenBy(x => x.Type.Name),
-            "employees" or "employee_count" => desc
-                ? joined.OrderByDescending(x => x.EmployeeCount).ThenBy(x => x.Type.Name)
-                : joined.OrderBy(x => x.EmployeeCount).ThenBy(x => x.Type.Name),
-            "status" or "is_active" => desc
-                ? joined.OrderByDescending(x => x.Type.IsActive).ThenBy(x => x.Type.Name)
-                : joined.OrderBy(x => x.Type.IsActive).ThenBy(x => x.Type.Name),
-            "created_at" => desc
-                ? joined.OrderByDescending(x => x.Type.CreatedAt)
-                : joined.OrderBy(x => x.Type.CreatedAt),
-            _ => desc
-                ? joined.OrderByDescending(x => x.Type.Name)
-                : joined.OrderBy(x => x.Type.Name),
-        };
+            var allTypes = await baseQuery.ToListAsync(ct);
+            var ordered = desc
+                ? allTypes.OrderByDescending(t => employeeCountByTypeId.GetValueOrDefault(t.Id, 0)).ThenBy(t => t.Name)
+                : allTypes.OrderBy(t => employeeCountByTypeId.GetValueOrDefault(t.Id, 0)).ThenBy(t => t.Name);
 
-        var rows = await joined
-            .Skip((page - 1) * size)
-            .Take(size)
-            .ToListAsync(ct);
+            items = ordered
+                .Skip((page - 1) * size)
+                .Take(size)
+                .Select(t => ToDto(t, employeeCountByTypeId.GetValueOrDefault(t.Id, 0)))
+                .ToList();
+        }
+        else
+        {
+            var pageTypes = await ApplyTypeSort(baseQuery, sortBy, desc)
+                .Skip((page - 1) * size)
+                .Take(size)
+                .ToListAsync(ct);
 
-        var items = rows.Select(r => ToDto(r.Type, r.EmployeeCount)).ToList();
+            items = pageTypes
+                .Select(t => ToDto(t, employeeCountByTypeId.GetValueOrDefault(t.Id, 0)))
+                .ToList();
+        }
+
         return (items, total);
     }
+
+    private static IQueryable<EmploymentTypeEntity> ApplyTypeSort(
+        IQueryable<EmploymentTypeEntity> query,
+        string sortBy,
+        bool desc) =>
+        sortBy switch
+        {
+            "type" => desc
+                ? query.OrderByDescending(t => t.IsSystemDefault).ThenBy(t => t.Name)
+                : query.OrderBy(t => t.IsSystemDefault).ThenBy(t => t.Name),
+            "status" or "is_active" => desc
+                ? query.OrderByDescending(t => t.IsActive).ThenBy(t => t.Name)
+                : query.OrderBy(t => t.IsActive).ThenBy(t => t.Name),
+            "created_at" => desc
+                ? query.OrderByDescending(t => t.CreatedAt)
+                : query.OrderBy(t => t.CreatedAt),
+            _ => desc
+                ? query.OrderByDescending(t => t.Name)
+                : query.OrderBy(t => t.Name),
+        };
 
     public async Task<EmploymentTypeListItemDto?> GetByIdScopedAsync(
         Guid id, string tenantId, string orgId, CancellationToken ct = default)
