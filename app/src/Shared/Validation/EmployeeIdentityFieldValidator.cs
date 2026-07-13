@@ -162,9 +162,9 @@ public static partial class EmployeeIdentityFieldValidator
         {
             var address = new MailAddress(trimmed);
             return address.Address.Equals(trimmed, StringComparison.OrdinalIgnoreCase)
-                && trimmed.Contains('@', StringComparison.Ordinal)
-                && trimmed.Contains('.', StringComparison.Ordinal)
-                && trimmed.IndexOf('@', StringComparison.Ordinal) < trimmed.LastIndexOf('.', StringComparison.Ordinal);
+                && trimmed.Contains('@')
+                && trimmed.Contains('.')
+                && trimmed.IndexOf('@') < trimmed.LastIndexOf('.');
         }
         catch (FormatException)
         {
