@@ -1191,7 +1191,7 @@ public sealed class EmployeeAggregateService
                 continue;
             }
 
-            var doc = await _hrDocuments.GetByIdAsync(documentId, _tenant.TenantId, ct);
+            var doc = await _hrDocuments.GetByIdAsync(documentId, _tenant.TenantId, _tenant.OrgId, ct);
             if (doc is null)
                 errors[$"document_ids[{i}]"] = "Document not found in file registry.";
         }
