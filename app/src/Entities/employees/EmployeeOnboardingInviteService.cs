@@ -2,7 +2,7 @@ using Microsoft.Extensions.Options;
 using Trovesuite.Package.Configuration;
 using Trovesuite.Package.Utils;
 using ZelosHR.Api.Configs;
-using ZelosHR.Api.Shared.Tenant;
+using ZelosHR.Api.Shared.Abstractions;
 
 namespace ZelosHR.Api.Entities.Employees;
 

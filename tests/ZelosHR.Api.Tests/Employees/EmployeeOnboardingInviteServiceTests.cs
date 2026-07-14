@@ -7,7 +7,7 @@ using Trovesuite.Package.Utils;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Persistence.Entities;
-using ZelosHR.Api.Shared.Tenant;
+using ZelosHR.Api.Shared.Abstractions;
 
 namespace ZelosHR.Api.Tests.Employees;
 
