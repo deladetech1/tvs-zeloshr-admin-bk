@@ -38,6 +38,7 @@ public sealed class EmployeeAggregateService
     private readonly HrDocumentPresignedUrlService _profileUrls;
     private readonly EmploymentTypesService _employmentTypes;
     private readonly IAuditLogWriter _auditLogs;
+    private readonly EmployeeOnboardingInviteService _onboardingInvites;
     private readonly ITenantContext _tenant;
     private readonly ILogger<EmployeeAggregateService> _logger;
 
@@ -57,6 +58,7 @@ public sealed class EmployeeAggregateService
         HrDocumentPresignedUrlService profileUrls,
         EmploymentTypesService employmentTypes,
         IAuditLogWriter auditLogs,
+        EmployeeOnboardingInviteService onboardingInvites,
         ITenantContext tenant,
         ILogger<EmployeeAggregateService> logger)
     {
@@ -75,6 +77,7 @@ public sealed class EmployeeAggregateService
         _profileUrls = profileUrls;
         _employmentTypes = employmentTypes;
         _auditLogs = auditLogs;
+        _onboardingInvites = onboardingInvites;
         _tenant = tenant;
         _logger = logger;
     }
@@ -374,6 +377,9 @@ public sealed class EmployeeAggregateService
         }
 
         await TryRecordEmployeeCreateAuditAsync(employeeId, isFinalised, ct);
+        if (isFinalised)
+            await _onboardingInvites.TrySendAfterFinaliseAsync(employeeId, ct);
+
         return await GetAsync(employeeId, ct);
     }
 
@@ -862,6 +868,9 @@ public sealed class EmployeeAggregateService
         }
 
         await TryRecordEmployeeUpdateAuditAsync(employeeId, request, ct);
+        if (shouldFinalise)
+            await _onboardingInvites.TrySendAfterFinaliseAsync(employeeId, ct);
+
         return await GetAsync(employeeId, ct);
     }
 
