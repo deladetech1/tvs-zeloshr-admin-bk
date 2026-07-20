@@ -19,7 +19,7 @@ public sealed class SwaggerCompanyInfoOperationFilter : IOperationFilter
         switch (path)
         {
             case "api/v1/company/info/get" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
-                SetJsonResponseExample(operation, 200, SwaggerExamples.EnvelopeOk(SwaggerExamples.CompanyInfoStubData()));
+                SetJsonResponseExample(operation, 200, SwaggerExamples.CompanyInfoGetStubResponse());
                 operation.Summary ??= "Get company profile";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
                     """

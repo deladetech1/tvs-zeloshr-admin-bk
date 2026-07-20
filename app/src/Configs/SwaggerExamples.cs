@@ -2736,6 +2736,8 @@ internal static class SwaggerExamples
         return data;
     }
 
+    internal static JsonObject CompanyInfoGetStubResponse() => EnvelopeOk(CompanyInfoStubData());
+
     internal static JsonObject CreateCompanyInfoBody() => new()
     {
         ["legal_name"] = "Marvel Industries",
