@@ -24,7 +24,7 @@ public sealed class SwaggerCompanyInfoOperationFilter : IOperationFilter
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
                     """
                     Always 200 for a valid org. If no profile exists, creates an empty stub on this GET (side effect — see docs/COMPANY_INFO_GET_AUTO_INIT.md).
-                    Response includes configured: false until legal_name is saved via PUT /update. offices[] is empty on a fresh stub.
+                    Stub rows return null business fields and empty offices[] until PUT /update; use null legal_name for onboarding UI.
                     """);
                 return;
 

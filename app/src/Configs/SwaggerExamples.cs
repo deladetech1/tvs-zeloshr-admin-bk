@@ -2698,7 +2698,6 @@ internal static class SwaggerExamples
         {
             ["id"] = SampleCompanyProfileId.ToString(),
             ["legal_name"] = "Marvel Industries",
-            ["configured"] = true,
             ["trading_name"] = "Marvel",
             ["industry"] = "Technology",
             ["company_size"] = "201-500 employees",
@@ -2721,7 +2720,6 @@ internal static class SwaggerExamples
         {
             ["id"] = SampleCompanyProfileId.ToString(),
             ["legal_name"] = null,
-            ["configured"] = false,
             ["trading_name"] = null,
             ["industry"] = null,
             ["company_size"] = null,

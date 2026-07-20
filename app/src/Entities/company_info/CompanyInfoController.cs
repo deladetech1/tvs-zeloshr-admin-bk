@@ -25,8 +25,8 @@ public class CompanyInfoController : ControllerBase
     /// <summary>Get the company profile, with offices embedded.</summary>
     /// <remarks>
     /// Always returns 200 for a valid org context. When no profile exists yet, the API creates an
-    /// empty stub (all business fields null, <c>configured: false</c>, empty <c>offices[]</c>) on
-    /// this GET — save real values with PUT /update. Check <c>configured</c> for onboarding UI.
+    /// empty stub (all business fields null, empty <c>offices[]</c>) on this GET — save real values
+    /// with PUT /update. Treat null <c>legal_name</c> as not yet configured.
     /// </remarks>
     [HttpGet("get")]
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]

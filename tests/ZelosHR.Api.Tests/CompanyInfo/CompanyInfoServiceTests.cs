@@ -72,7 +72,6 @@ public class CompanyInfoServiceTests
         result.StatusCode.Should().Be(200);
         result.Data!.Id.Should().Be(stubId.ToString());
         result.Data.LegalName.Should().BeNull();
-        result.Data.Configured.Should().BeFalse();
         result.Data.Offices.Should().BeEmpty();
     }
 
@@ -118,7 +117,7 @@ public class CompanyInfoServiceTests
 
         result.Success.Should().BeTrue();
         result.StatusCode.Should().Be(200);
-        result.Data!.Configured.Should().BeTrue();
+        result.Data!.LegalName.Should().Be("Marvel Industries");
         await profiles.Received(1).UpdateAsync("t1", "o1", Arg.Any<UpdateCompanyInfoDto>(), "user-1", Arg.Any<CancellationToken>());
     }
 

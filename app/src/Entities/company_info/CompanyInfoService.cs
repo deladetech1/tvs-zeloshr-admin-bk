@@ -183,7 +183,6 @@ public class CompanyInfoService
         {
             Id = profile.Id.ToString(),
             LegalName = profile.LegalName,
-            Configured = CompanyProfileState.IsConfigured(profile),
             TradingName = profile.TradingName,
             Industry = profile.Industry,
             CompanySize = profile.CompanySize,

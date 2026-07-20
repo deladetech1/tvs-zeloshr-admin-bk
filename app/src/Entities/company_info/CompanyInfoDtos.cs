@@ -40,8 +40,6 @@ public sealed record CompanyInfoReadDto
 {
     public required string Id { get; init; }
     public string? LegalName { get; init; }
-    /// <summary>False when the profile row was auto-initialized on GET and <see cref="LegalName"/> is still unset.</summary>
-    public bool Configured { get; init; }
     public string? TradingName { get; init; }
     public string? Industry { get; init; }
     public string? CompanySize { get; init; }
