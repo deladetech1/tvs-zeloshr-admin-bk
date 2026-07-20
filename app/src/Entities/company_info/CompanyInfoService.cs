@@ -30,12 +30,9 @@ public class CompanyInfoService
     }
 
     public async Task<Respons<CompanyInfoReadDto>> GetAsync(
-        string tenantId, string orgId, CancellationToken ct = default)
+        string tenantId, string orgId, string? actorUserId, CancellationToken ct = default)
     {
-        var profile = await _profiles.GetEntityAsync(tenantId, orgId, ct);
-        if (profile is null)
-            return Respons<CompanyInfoReadDto>.Fail("Company profile not found.", statusCode: 404);
-
+        var profile = await _profiles.EnsureStubAsync(tenantId, orgId, actorUserId, ct);
         return await BuildReadResponseAsync(profile, tenantId, ct);
     }
 
@@ -53,11 +50,36 @@ public class CompanyInfoService
         var existing = await _profiles.GetEntityAsync(tenantId, orgId, ct);
         if (existing is not null)
         {
-            return Respons<CompanyInfoReadDto>.ValidationError(new Dictionary<string, string>
+            if (CompanyProfileState.IsConfigured(existing))
             {
-                ["legal_name"] =
-                    "A company profile already exists for this organisation. Use PUT /company/info/update instead.",
-            });
+                return Respons<CompanyInfoReadDto>.ValidationError(new Dictionary<string, string>
+                {
+                    ["legal_name"] =
+                        "A company profile already exists for this organisation. Use PUT /company/info/update instead.",
+                });
+            }
+
+            return await UpdateAsync(
+                new UpdateCompanyInfoDto
+                {
+                    Id = existing.Id.ToString(),
+                    LegalName = body.LegalName,
+                    TradingName = body.TradingName,
+                    Industry = body.Industry,
+                    CompanySize = body.CompanySize,
+                    BusinessRegistrationNumber = body.BusinessRegistrationNumber,
+                    Tin = body.Tin,
+                    PrimaryWorkCountry = body.PrimaryWorkCountry,
+                    CompanyEmail = body.CompanyEmail,
+                    Website = body.Website,
+                    LogoUrl = body.LogoUrl,
+                    BannerUrl = body.BannerUrl,
+                    Offices = body.Offices,
+                },
+                tenantId,
+                orgId,
+                actorUserId,
+                ct);
         }
 
         var documentError = await ValidateLogoAndBannerAsync(body.LogoUrl, body.BannerUrl, ct);
@@ -161,6 +183,7 @@ public class CompanyInfoService
         {
             Id = profile.Id.ToString(),
             LegalName = profile.LegalName,
+            Configured = CompanyProfileState.IsConfigured(profile),
             TradingName = profile.TradingName,
             Industry = profile.Industry,
             CompanySize = profile.CompanySize,

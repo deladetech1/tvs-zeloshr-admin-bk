@@ -2698,6 +2698,7 @@ internal static class SwaggerExamples
         {
             ["id"] = SampleCompanyProfileId.ToString(),
             ["legal_name"] = "Marvel Industries",
+            ["configured"] = true,
             ["trading_name"] = "Marvel",
             ["industry"] = "Technology",
             ["company_size"] = "201-500 employees",
@@ -2709,6 +2710,29 @@ internal static class SwaggerExamples
             ["logo_url"] = EmployeeDocumentItem(SampleDocumentId1, "Company logo", "marvel-logo.png"),
             ["banner_url"] = null,
             ["offices"] = new JsonArray(CompanyOfficeItemData(), CompanyOfficeItemData2()),
+        };
+        AppendResourceAuditFields(data);
+        return data;
+    }
+
+    internal static JsonObject CompanyInfoStubData()
+    {
+        var data = new JsonObject
+        {
+            ["id"] = SampleCompanyProfileId.ToString(),
+            ["legal_name"] = null,
+            ["configured"] = false,
+            ["trading_name"] = null,
+            ["industry"] = null,
+            ["company_size"] = null,
+            ["business_registration_number"] = null,
+            ["tin"] = null,
+            ["primary_work_country"] = null,
+            ["company_email"] = null,
+            ["website"] = null,
+            ["logo_url"] = null,
+            ["banner_url"] = null,
+            ["offices"] = new JsonArray(),
         };
         AppendResourceAuditFields(data);
         return data;

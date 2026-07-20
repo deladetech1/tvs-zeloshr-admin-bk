@@ -44,7 +44,40 @@ public class CompanyInfoServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_rejects_when_profile_already_exists()
+    public async Task GetAsync_creates_stub_when_profile_missing()
+    {
+        var stubId = Guid.NewGuid();
+        var profiles = Substitute.For<ICompanyProfileRepository>();
+        profiles.EnsureStubAsync("t1", "o1", "user-1", Arg.Any<CancellationToken>())
+            .Returns(new CompanyProfileEntity
+            {
+                Id = stubId,
+                TenantId = "t1",
+                OrgId = "o1",
+                LegalName = null,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow,
+                CreatedBy = "user-1",
+                UpdatedBy = "user-1",
+            });
+
+        var offices = Substitute.For<ICompanyOfficeRepository>();
+        offices.ListAsync("t1", "o1", Arg.Any<CancellationToken>())
+            .Returns(Array.Empty<CompanyOfficeEntity>());
+
+        var service = CreateService(profiles: profiles, offices: offices);
+        var result = await service.GetAsync("t1", "o1", "user-1");
+
+        result.Success.Should().BeTrue();
+        result.StatusCode.Should().Be(200);
+        result.Data!.Id.Should().Be(stubId.ToString());
+        result.Data.LegalName.Should().BeNull();
+        result.Data.Configured.Should().BeFalse();
+        result.Data.Offices.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task CreateAsync_rejects_when_configured_profile_already_exists()
     {
         var profiles = Substitute.For<ICompanyProfileRepository>();
         profiles.GetEntityAsync("t1", "o1", Arg.Any<CancellationToken>())
@@ -57,6 +90,36 @@ public class CompanyInfoServiceTests
         result.Success.Should().BeFalse();
         result.StatusCode.Should().Be(400);
         result.FieldErrors!["legal_name"].Should().Contain("already exists");
+    }
+
+    [Fact]
+    public async Task CreateAsync_completes_unconfigured_stub()
+    {
+        var stubId = Guid.NewGuid();
+        var profiles = Substitute.For<ICompanyProfileRepository>();
+        profiles.GetEntityAsync("t1", "o1", Arg.Any<CancellationToken>())
+            .Returns(new CompanyProfileEntity { Id = stubId, TenantId = "t1", OrgId = "o1", LegalName = null });
+        profiles.UpdateAsync("t1", "o1", Arg.Any<UpdateCompanyInfoDto>(), "user-1", Arg.Any<CancellationToken>())
+            .Returns(new CompanyProfileEntity
+            {
+                Id = stubId,
+                TenantId = "t1",
+                OrgId = "o1",
+                LegalName = "Marvel Industries",
+            });
+
+        var offices = Substitute.For<ICompanyOfficeRepository>();
+        offices.ListAsync("t1", "o1", Arg.Any<CancellationToken>())
+            .Returns(Array.Empty<CompanyOfficeEntity>());
+
+        var service = CreateService(profiles: profiles, offices: offices);
+        var result = await service.CreateAsync(
+            new CreateCompanyInfoDto { LegalName = "Marvel Industries" }, "t1", "o1", "user-1");
+
+        result.Success.Should().BeTrue();
+        result.StatusCode.Should().Be(200);
+        result.Data!.Configured.Should().BeTrue();
+        await profiles.Received(1).UpdateAsync("t1", "o1", Arg.Any<UpdateCompanyInfoDto>(), "user-1", Arg.Any<CancellationToken>());
     }
 
     [Fact]

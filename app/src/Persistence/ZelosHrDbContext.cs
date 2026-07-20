@@ -222,7 +222,7 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
             b.HasKey(x => x.Id);
             b.Property(x => x.TenantId).HasMaxLength(128).IsRequired();
             b.Property(x => x.OrgId).HasMaxLength(128).IsRequired();
-            b.Property(x => x.LegalName).HasMaxLength(200).IsRequired();
+            b.Property(x => x.LegalName).HasMaxLength(200);
             b.Property(x => x.TradingName).HasMaxLength(200);
             b.Property(x => x.Industry).HasMaxLength(150);
             b.Property(x => x.CompanySize).HasMaxLength(50);

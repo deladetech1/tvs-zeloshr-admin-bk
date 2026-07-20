@@ -23,15 +23,18 @@ public class CompanyInfoController : ControllerBase
     }
 
     /// <summary>Get the company profile, with offices embedded.</summary>
-    /// <remarks>Returns every office for the org in <c>offices[]</c> — no pagination, no separate list call.</remarks>
+    /// <remarks>
+    /// Always returns 200 for a valid org context. When no profile exists yet, the API creates an
+    /// empty stub (all business fields null, <c>configured: false</c>, empty <c>offices[]</c>) on
+    /// this GET — save real values with PUT /update. Check <c>configured</c> for onboarding UI.
+    /// </remarks>
     [HttpGet("get")]
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [ProducesResponseType(typeof(Respons<CompanyInfoReadDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(Respons<CompanyInfoReadDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<CompanyInfoReadDto>>> Get(CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.GetAsync(ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.GetAsync(ctx.TenantId, ctx.OrgId, ctx.UserId, ct);
         return StatusCode(result.StatusCode, result);
     }
 

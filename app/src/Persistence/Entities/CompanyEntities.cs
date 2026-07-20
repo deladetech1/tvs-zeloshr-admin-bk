@@ -6,7 +6,7 @@ public sealed class CompanyProfileEntity
     public Guid Id { get; set; }
     public string TenantId { get; set; } = default!;
     public string OrgId { get; set; } = default!;
-    public string LegalName { get; set; } = default!;
+    public string? LegalName { get; set; }
     public string? TradingName { get; set; }
     public string? Industry { get; set; }
     public string? CompanySize { get; set; }
