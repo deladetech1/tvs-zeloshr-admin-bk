@@ -2,6 +2,8 @@ using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using NSubstitute;
+using System.Text.Json;
+using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.CompanyInfo;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Files;
@@ -221,5 +223,26 @@ public class CompanyInfoServiceTests
         result.Success.Should().BeFalse();
         result.StatusCode.Should().Be(400);
         result.FieldErrors!["offices"].Should().Contain(unknownId.ToString());
+    }
+
+    [Fact]
+    public void CompanyInfoReadDto_serializes_null_business_fields_explicitly()
+    {
+        var dto = new CompanyInfoReadDto
+        {
+            Id = Guid.NewGuid().ToString(),
+            Offices = [],
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        };
+
+        var json = JsonSerializer.Serialize(dto, PlatformJson.SerializerOptions);
+        using var doc = JsonDocument.Parse(json);
+
+        doc.RootElement.GetProperty("legal_name").ValueKind.Should().Be(JsonValueKind.Null);
+        doc.RootElement.GetProperty("trading_name").ValueKind.Should().Be(JsonValueKind.Null);
+        doc.RootElement.GetProperty("website").ValueKind.Should().Be(JsonValueKind.Null);
+        doc.RootElement.GetProperty("logo_url").ValueKind.Should().Be(JsonValueKind.Null);
+        doc.RootElement.GetProperty("banner_url").ValueKind.Should().Be(JsonValueKind.Null);
     }
 }

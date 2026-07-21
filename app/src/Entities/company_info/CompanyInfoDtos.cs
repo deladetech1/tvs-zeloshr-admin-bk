@@ -39,17 +39,40 @@ public sealed class CompanyOfficeWriteDto
 public sealed record CompanyInfoReadDto
 {
     public required string Id { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public string? LegalName { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public string? TradingName { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public string? Industry { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public string? CompanySize { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public string? BusinessRegistrationNumber { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public string? Tin { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public string? PrimaryWorkCountry { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public string? CompanyEmail { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public string? Website { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public DocumentReadDto? LogoUrl { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public DocumentReadDto? BannerUrl { get; init; }
+
     public IReadOnlyList<CompanyOfficeReadDto> Offices { get; init; } = [];
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }

@@ -8,7 +8,7 @@
 
 If no `zhr_company_profile` row exists for that org, the API **creates a stub row on that GET**:
 
-- All business fields are **`null`** (`legal_name`, `trading_name`, …, `logo_url`, `banner_url`)
+- All business fields are **`null`** in JSON (`legal_name`, `trading_name`, …, `logo_url`, `banner_url`) — explicit null keys, not omitted
 - **`offices: []`**
 - **`id`** is a real UUID — use it on **`PUT /company/info/update`**
 
@@ -20,7 +20,7 @@ After the user saves real data via **PUT** (or **POST /add** if the stub is stil
 
 ```text
 GET /api/v1/company/info/get
-  → 200, !data.legal_name  → show setup form (empty)
+  → 200, data.legal_name === null  → show setup form (empty)
   → 200, data.legal_name   → show/edit populated profile
 
 PUT /api/v1/company/info/update
