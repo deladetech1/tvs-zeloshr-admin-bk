@@ -2714,6 +2714,30 @@ internal static class SwaggerExamples
         return data;
     }
 
+    internal static JsonObject CompanyInfoStubData()
+    {
+        var data = new JsonObject
+        {
+            ["id"] = SampleCompanyProfileId.ToString(),
+            ["legal_name"] = null,
+            ["trading_name"] = null,
+            ["industry"] = null,
+            ["company_size"] = null,
+            ["business_registration_number"] = null,
+            ["tin"] = null,
+            ["primary_work_country"] = null,
+            ["company_email"] = null,
+            ["website"] = null,
+            ["logo_url"] = null,
+            ["banner_url"] = null,
+            ["offices"] = new JsonArray(),
+        };
+        AppendResourceAuditFields(data);
+        return data;
+    }
+
+    internal static JsonObject CompanyInfoGetStubResponse() => EnvelopeOk(CompanyInfoStubData());
+
     internal static JsonObject CreateCompanyInfoBody() => new()
     {
         ["legal_name"] = "Marvel Industries",

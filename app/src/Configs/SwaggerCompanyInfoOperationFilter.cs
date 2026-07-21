@@ -19,10 +19,13 @@ public sealed class SwaggerCompanyInfoOperationFilter : IOperationFilter
         switch (path)
         {
             case "api/v1/company/info/get" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
-                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<CompanyInfoReadDto>), 404));
+                SetJsonResponseExample(operation, 200, SwaggerExamples.CompanyInfoGetStubResponse());
                 operation.Summary ??= "Get company profile";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
-                    "One profile per org. Every office for the org is embedded in offices[] — no pagination, no separate list call.");
+                    """
+                    Always 200 for a valid org. If no profile exists, creates an empty stub on this GET (side effect — see docs/COMPANY_INFO_GET_AUTO_INIT.md).
+                    Stub rows return null business fields and empty offices[] until PUT /update; use null legal_name for onboarding UI.
+                    """);
                 return;
 
             case "api/v1/company/info/add" when method.Equals("POST", StringComparison.OrdinalIgnoreCase):

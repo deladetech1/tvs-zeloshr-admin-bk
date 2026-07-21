@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using ZelosHR.Api.Entities.CompanyInfo;
 using ZelosHR.Api.Persistence.Entities;
 
@@ -10,6 +11,42 @@ public sealed class CompanyProfileRepository(ZelosHrDbContext db) : ICompanyProf
         string tenantId, string orgId, CancellationToken ct = default) =>
         db.CompanyProfiles.AsNoTracking()
             .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.OrgId == orgId, ct);
+
+    public async Task<CompanyProfileEntity> EnsureStubAsync(
+        string tenantId,
+        string orgId,
+        string? actorUserId,
+        CancellationToken ct = default)
+    {
+        var existing = await GetEntityAsync(tenantId, orgId, ct);
+        if (existing is not null)
+            return existing;
+
+        var now = DateTimeOffset.UtcNow;
+        var entity = new CompanyProfileEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            OrgId = orgId,
+            LegalName = null,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = actorUserId,
+            UpdatedBy = actorUserId,
+        };
+
+        db.CompanyProfiles.Add(entity);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+            return entity;
+        }
+        catch (DbUpdateException ex) when (IsCompanyProfileTenantOrgUnique(ex))
+        {
+            db.Entry(entity).State = EntityState.Detached;
+            return (await GetEntityAsync(tenantId, orgId, ct))!;
+        }
+    }
 
     public async Task<CompanyProfileEntity> CreateAsync(
         string tenantId,
@@ -58,7 +95,7 @@ public sealed class CompanyProfileRepository(ZelosHrDbContext db) : ICompanyProf
             return null;
 
         // Full replacement (same shape as create) — omitted optional fields are cleared, not left untouched.
-        entity.LegalName = data.LegalName!.Trim();
+        entity.LegalName = string.IsNullOrWhiteSpace(data.LegalName) ? null : data.LegalName.Trim();
         entity.TradingName = Norm(data.TradingName);
         entity.Industry = Norm(data.Industry);
         entity.CompanySize = Norm(data.CompanySize);
@@ -89,4 +126,9 @@ public sealed class CompanyProfileRepository(ZelosHrDbContext db) : ICompanyProf
     }
 
     private static string? Norm(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static bool IsCompanyProfileTenantOrgUnique(DbUpdateException ex) =>
+        ex.InnerException is PostgresException pg
+        && pg.SqlState == PostgresErrorCodes.UniqueViolation
+        && pg.ConstraintName?.Contains("zhr_company_profile", StringComparison.OrdinalIgnoreCase) == true;
 }

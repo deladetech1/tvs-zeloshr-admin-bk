@@ -7,6 +7,12 @@ public interface ICompanyProfileRepository
 {
     Task<CompanyProfileEntity?> GetEntityAsync(string tenantId, string orgId, CancellationToken ct = default);
 
+    Task<CompanyProfileEntity> EnsureStubAsync(
+        string tenantId,
+        string orgId,
+        string? actorUserId,
+        CancellationToken ct = default);
+
     Task<CompanyProfileEntity> CreateAsync(
         string tenantId,
         string orgId,
