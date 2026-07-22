@@ -26,14 +26,23 @@ public class CompanyInfoServiceTests
     private static CompanyInfoService CreateService(
         ICompanyProfileRepository? profiles = null,
         ICompanyOfficeRepository? offices = null,
-        ICpBusinessRepository? businesses = null) =>
-        new(
+        ICpBusinessRepository? businesses = null)
+    {
+        var businessRepo = businesses ?? Substitute.For<ICpBusinessRepository>();
+        if (businesses is null)
+        {
+            businessRepo.GetBusNameAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+                .Returns((string?)null);
+        }
+
+        return new(
             profiles ?? Substitute.For<ICompanyProfileRepository>(),
             offices ?? Substitute.For<ICompanyOfficeRepository>(),
             Substitute.For<ICpUserRepository>(),
-            businesses ?? Substitute.For<ICpBusinessRepository>(),
+            businessRepo,
             DocumentUrls(),
             db: null!);
+    }
 
     [Fact]
     public async Task GetAsync_seeds_legal_name_from_business_on_stub()
@@ -84,6 +93,10 @@ public class CompanyInfoServiceTests
     public async Task GetAsync_creates_stub_when_profile_missing()
     {
         var stubId = Guid.NewGuid();
+        var businesses = Substitute.For<ICpBusinessRepository>();
+        businesses.GetBusNameAsync("t1", "bus-1", Arg.Any<CancellationToken>())
+            .Returns((string?)null);
+
         var profiles = Substitute.For<ICompanyProfileRepository>();
         profiles.EnsureStubAsync("t1", "o1", "user-1", null, Arg.Any<CancellationToken>())
             .Returns(new CompanyProfileEntity
@@ -102,7 +115,7 @@ public class CompanyInfoServiceTests
         offices.ListAsync("t1", "o1", Arg.Any<CancellationToken>())
             .Returns(Array.Empty<CompanyOfficeEntity>());
 
-        var service = CreateService(profiles: profiles, offices: offices);
+        var service = CreateService(profiles: profiles, offices: offices, businesses: businesses);
         var result = await service.GetAsync("t1", "o1", "bus-1", "user-1");
 
         result.Success.Should().BeTrue();
@@ -110,6 +123,8 @@ public class CompanyInfoServiceTests
         result.Data!.Id.Should().Be(stubId.ToString());
         result.Data.LegalName.Should().BeNull();
         result.Data.Offices.Should().BeEmpty();
+        await businesses.Received(1).GetBusNameAsync("t1", "bus-1", Arg.Any<CancellationToken>());
+        await profiles.Received(1).EnsureStubAsync("t1", "o1", "user-1", null, Arg.Any<CancellationToken>());
     }
 
     [Fact]
