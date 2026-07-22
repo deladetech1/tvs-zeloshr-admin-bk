@@ -25,8 +25,9 @@ public class CompanyInfoController : ControllerBase
     /// <summary>Get the company profile, with offices embedded.</summary>
     /// <remarks>
     /// Always returns 200 for a valid org context. When no profile exists yet, the API creates an
-    /// empty stub (all business fields null, empty <c>offices[]</c>) on this GET — save real values
-    /// with PUT /update. Treat null <c>legal_name</c> as not yet configured.
+    /// empty stub on this GET — <c>legal_name</c> defaults to the Trovesuite business name
+    /// (<c>bus-id</c> → <c>core_platform.cp_businesses.bus_name</c>); other fields null.
+    /// Save edits with PUT /update.
     /// </remarks>
     [HttpGet("get")]
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
@@ -34,7 +35,7 @@ public class CompanyInfoController : ControllerBase
     public async Task<ActionResult<Respons<CompanyInfoReadDto>>> Get(CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.GetAsync(ctx.TenantId, ctx.OrgId, ctx.UserId, ct);
+        var result = await _service.GetAsync(ctx.TenantId, ctx.OrgId, ctx.BusId, ctx.UserId, ct);
         return StatusCode(result.StatusCode, result);
     }
 

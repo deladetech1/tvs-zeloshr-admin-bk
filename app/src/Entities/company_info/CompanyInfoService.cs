@@ -12,6 +12,7 @@ public class CompanyInfoService
     private readonly ICompanyProfileRepository _profiles;
     private readonly ICompanyOfficeRepository _offices;
     private readonly ICpUserRepository _cpUsers;
+    private readonly ICpBusinessRepository _businesses;
     private readonly HrDocumentPresignedUrlService _documentUrls;
     private readonly ZelosHrDbContext _db;
 
@@ -19,20 +20,27 @@ public class CompanyInfoService
         ICompanyProfileRepository profiles,
         ICompanyOfficeRepository offices,
         ICpUserRepository cpUsers,
+        ICpBusinessRepository businesses,
         HrDocumentPresignedUrlService documentUrls,
         ZelosHrDbContext db)
     {
         _profiles = profiles;
         _offices = offices;
         _cpUsers = cpUsers;
+        _businesses = businesses;
         _documentUrls = documentUrls;
         _db = db;
     }
 
     public async Task<Respons<CompanyInfoReadDto>> GetAsync(
-        string tenantId, string orgId, string? actorUserId, CancellationToken ct = default)
+        string tenantId,
+        string orgId,
+        string busId,
+        string? actorUserId,
+        CancellationToken ct = default)
     {
-        var profile = await _profiles.EnsureStubAsync(tenantId, orgId, actorUserId, ct);
+        var defaultLegalName = await _businesses.GetBusNameAsync(tenantId, busId, ct);
+        var profile = await _profiles.EnsureStubAsync(tenantId, orgId, actorUserId, defaultLegalName, ct);
         return await BuildReadResponseAsync(profile, tenantId, ct);
     }
 

@@ -145,7 +145,7 @@ public static class SwaggerConfiguration
 
                     One profile per org; offices are embedded — not an independent list/get/add/delete resource.
 
-                    1. **Get** — `GET /api/v1/company/info/get` (always 200; auto-creates an empty stub when missing — fields null, `offices: []`; null `legal_name` means not yet configured)
+                    1. **Get** — `GET /api/v1/company/info/get` (always 200; auto-creates stub when missing — `legal_name` seeded from Trovesuite `bus-id` / `cp_businesses.bus_name`; other fields null, `offices: []`)
                     2. **Create** — `POST /api/v1/company/info/add` (legal_name required; optional initial `offices[]`; 400 if legal_name is already set — use PUT /update; completes an empty stub if GET ran first)
                     3. **Update** — `PUT /api/v1/company/info/update` (same shape as create, plus `id` — full replacement, not a partial patch; optional `offices[]` replaces the org's entire office list — diffed server-side: no `office_id` creates, a matching `office_id` replaces that office's fields in full, an office missing from the array is deleted)
                     4. **Delete** — `DELETE /api/v1/company/info/delete` (also deletes every office for the org, in one transaction)

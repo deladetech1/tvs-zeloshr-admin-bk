@@ -25,13 +25,48 @@ public class CompanyInfoServiceTests
 
     private static CompanyInfoService CreateService(
         ICompanyProfileRepository? profiles = null,
-        ICompanyOfficeRepository? offices = null) =>
+        ICompanyOfficeRepository? offices = null,
+        ICpBusinessRepository? businesses = null) =>
         new(
             profiles ?? Substitute.For<ICompanyProfileRepository>(),
             offices ?? Substitute.For<ICompanyOfficeRepository>(),
             Substitute.For<ICpUserRepository>(),
+            businesses ?? Substitute.For<ICpBusinessRepository>(),
             DocumentUrls(),
             db: null!);
+
+    [Fact]
+    public async Task GetAsync_seeds_legal_name_from_business_on_stub()
+    {
+        var stubId = Guid.NewGuid();
+        var businesses = Substitute.For<ICpBusinessRepository>();
+        businesses.GetBusNameAsync("t1", "bus-1", Arg.Any<CancellationToken>())
+            .Returns("Acme Holdings");
+
+        var profiles = Substitute.For<ICompanyProfileRepository>();
+        profiles.EnsureStubAsync("t1", "o1", "user-1", "Acme Holdings", Arg.Any<CancellationToken>())
+            .Returns(new CompanyProfileEntity
+            {
+                Id = stubId,
+                TenantId = "t1",
+                OrgId = "o1",
+                LegalName = "Acme Holdings",
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow,
+            });
+
+        var offices = Substitute.For<ICompanyOfficeRepository>();
+        offices.ListAsync("t1", "o1", Arg.Any<CancellationToken>())
+            .Returns(Array.Empty<CompanyOfficeEntity>());
+
+        var service = CreateService(profiles: profiles, offices: offices, businesses: businesses);
+        var result = await service.GetAsync("t1", "o1", "bus-1", "user-1");
+
+        result.Success.Should().BeTrue();
+        result.Data!.LegalName.Should().Be("Acme Holdings");
+        await businesses.Received(1).GetBusNameAsync("t1", "bus-1", Arg.Any<CancellationToken>());
+        await profiles.Received(1).EnsureStubAsync("t1", "o1", "user-1", "Acme Holdings", Arg.Any<CancellationToken>());
+    }
 
     [Fact]
     public async Task CreateAsync_rejects_missing_legal_name()
@@ -50,7 +85,7 @@ public class CompanyInfoServiceTests
     {
         var stubId = Guid.NewGuid();
         var profiles = Substitute.For<ICompanyProfileRepository>();
-        profiles.EnsureStubAsync("t1", "o1", "user-1", Arg.Any<CancellationToken>())
+        profiles.EnsureStubAsync("t1", "o1", "user-1", null, Arg.Any<CancellationToken>())
             .Returns(new CompanyProfileEntity
             {
                 Id = stubId,
@@ -68,7 +103,7 @@ public class CompanyInfoServiceTests
             .Returns(Array.Empty<CompanyOfficeEntity>());
 
         var service = CreateService(profiles: profiles, offices: offices);
-        var result = await service.GetAsync("t1", "o1", "user-1");
+        var result = await service.GetAsync("t1", "o1", "bus-1", "user-1");
 
         result.Success.Should().BeTrue();
         result.StatusCode.Should().Be(200);
