@@ -11,6 +11,7 @@ public interface ICompanyProfileRepository
         string tenantId,
         string orgId,
         string? actorUserId,
+        string? defaultLegalName,
         CancellationToken ct = default);
 
     Task<CompanyProfileEntity> CreateAsync(

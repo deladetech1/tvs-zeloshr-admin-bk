@@ -49,6 +49,17 @@ public sealed class CpLoginSettingsEntity
     public bool IsActive { get; set; } = true;
 }
 
+/// <summary>core_platform.cp_businesses — tenant business (name from bus-id header).</summary>
+public sealed class CpBusinessEntity
+{
+    public string Id { get; set; } = default!;
+    public string TenantId { get; set; } = default!;
+    public string BusName { get; set; } = default!;
+    public string? OrgId { get; set; }
+    public string DeleteStatus { get; set; } = CorePlatformConstants.DeleteStatus.NotDeleted;
+    public bool IsActive { get; set; } = true;
+}
+
 /// <summary>core_platform.cp_business_app_locations — org + business + app + location tuple.</summary>
 public sealed class CpBusinessAppLocationEntity
 {

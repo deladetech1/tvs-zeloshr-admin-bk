@@ -2719,7 +2719,7 @@ internal static class SwaggerExamples
         var data = new JsonObject
         {
             ["id"] = SampleCompanyProfileId.ToString(),
-            ["legal_name"] = null,
+            ["legal_name"] = "Marvel Industries",
             ["trading_name"] = null,
             ["industry"] = null,
             ["company_size"] = null,

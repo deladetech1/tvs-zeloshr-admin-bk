@@ -16,11 +16,13 @@ public sealed class CompanyProfileRepository(ZelosHrDbContext db) : ICompanyProf
         string tenantId,
         string orgId,
         string? actorUserId,
+        string? defaultLegalName,
         CancellationToken ct = default)
     {
+        var legalName = NormalizeLegalName(defaultLegalName);
         var existing = await GetEntityAsync(tenantId, orgId, ct);
         if (existing is not null)
-            return existing;
+            return await BackfillDefaultLegalNameIfEmptyAsync(existing, legalName, actorUserId, ct);
 
         var now = DateTimeOffset.UtcNow;
         var entity = new CompanyProfileEntity
@@ -28,7 +30,7 @@ public sealed class CompanyProfileRepository(ZelosHrDbContext db) : ICompanyProf
             Id = Guid.NewGuid(),
             TenantId = tenantId,
             OrgId = orgId,
-            LegalName = null,
+            LegalName = legalName,
             CreatedAt = now,
             UpdatedAt = now,
             CreatedBy = actorUserId,
@@ -44,8 +46,41 @@ public sealed class CompanyProfileRepository(ZelosHrDbContext db) : ICompanyProf
         catch (DbUpdateException ex) when (IsCompanyProfileTenantOrgUnique(ex))
         {
             db.Entry(entity).State = EntityState.Detached;
-            return (await GetEntityAsync(tenantId, orgId, ct))!;
+            var raced = await GetEntityAsync(tenantId, orgId, ct);
+            return raced is null
+                ? throw new InvalidOperationException("Company profile stub insert raced but row is missing.")
+                : await BackfillDefaultLegalNameIfEmptyAsync(raced, legalName, actorUserId, ct);
         }
+    }
+
+    private async Task<CompanyProfileEntity> BackfillDefaultLegalNameIfEmptyAsync(
+        CompanyProfileEntity existing,
+        string? defaultLegalName,
+        string? actorUserId,
+        CancellationToken ct)
+    {
+        if (CompanyProfileState.IsConfigured(existing) || string.IsNullOrWhiteSpace(defaultLegalName))
+            return existing;
+
+        var tracked = await db.CompanyProfiles
+            .FirstOrDefaultAsync(p => p.TenantId == existing.TenantId && p.OrgId == existing.OrgId, ct);
+        if (tracked is null || CompanyProfileState.IsConfigured(tracked))
+            return existing;
+
+        tracked.LegalName = defaultLegalName;
+        tracked.UpdatedAt = DateTimeOffset.UtcNow;
+        tracked.UpdatedBy = actorUserId;
+        await db.SaveChangesAsync(ct);
+        return tracked;
+    }
+
+    private static string? NormalizeLegalName(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        var trimmed = value.Trim();
+        return trimmed.Length <= 200 ? trimmed : trimmed[..200];
     }
 
     public async Task<CompanyProfileEntity> CreateAsync(

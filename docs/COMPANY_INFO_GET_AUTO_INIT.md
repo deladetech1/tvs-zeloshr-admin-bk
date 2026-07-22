@@ -1,6 +1,6 @@
 # Company info GET auto-init
 
-**Status:** Shipped behind `feat/company-info-get-auto-init` (ZelosHR) + nullable `legal_name` migration (tvs-sqlscript).
+**Status:** Shipped on `dev`.
 
 ## Behaviour
 
@@ -8,11 +8,12 @@
 
 If no `zhr_company_profile` row exists for that org, the API **creates a stub row on that GET**:
 
-- All business fields are **`null`** in JSON (`legal_name`, `trading_name`, …, `logo_url`, `banner_url`) — explicit null keys, not omitted
+- **`legal_name`** defaults to the Trovesuite **business name** (`bus-id` header → `core_platform.cp_businesses.bus_name`)
+- Other business fields are **`null`** in JSON (`trading_name`, …, `logo_url`, `banner_url`)
 - **`offices: []`**
 - **`id`** is a real UUID — use it on **`PUT /company/info/update`**
 
-After the user saves real data via **PUT** (or **POST /add** if the stub is still empty), fields are populated; **`legal_name` non-null** means configured.
+Existing stubs with empty `legal_name` are **backfilled** on GET when a business name is available.
 
 **Localization** — same pattern: `GET /api/v1/company/localization/get` auto-creates settings with tenant default currency and standard formats (see below).
 
@@ -20,19 +21,14 @@ After the user saves real data via **PUT** (or **POST /add** if the stub is stil
 
 ```text
 GET /api/v1/company/info/get
-  → 200, data.legal_name === null  → show setup form (empty)
-  → 200, data.legal_name   → show/edit populated profile
+  → 200, data.legal_name from business name (editable)
+  → 200, other fields null until user saves
 
 PUT /api/v1/company/info/update
   → body includes id from GET; legal_name required; full replacement
 ```
 
 Do **not** rely on 404 for company info anymore.
-
-## Why we did this (team request)
-
-- Avoid a 404 branch on first load of Company Settings.
-- Always have a stable `id` for PUT without a separate bootstrap call.
 
 ## Known downsides (share with the team)
 
@@ -41,9 +37,9 @@ Do **not** rely on 404 for company info anymore.
 | **HTTP semantics** | GET is no longer a pure read — it can insert a DB row (side effect). |
 | **Permissions** | Stub creation runs on **GET** (`EmployeeGet`), not **`EmployeeUpdate`**. Any user who can read HR can trigger row creation for that org. |
 | **Retries / parallel tabs** | Duplicate GETs are handled via unique `(tenant_id, org_id)` + re-fetch, but first load is a write path (slower, more pool pressure). |
-| **Ambiguous state** | “Org opened settings once” ≠ “admin configured company”. Use **null `legal_name`**, not row existence, for gating/onboarding. |
+| **Business name as legal name** | May not match registered legal entity — user should review/edit on first load. |
 | **Analytics** | Count of profile rows overstates “configured companies”. Filter on non-null `legal_name`. |
-| **Emails / branding** | Until `legal_name` is set, invite/activation emails still fall back to app name **ZelosHR**. |
+| **Emails / branding** | Until user confirms profile, invite/activation emails may use business name or fall back to app name **ZelosHR**. |
 | **Caching** | GET responses must not be cached by proxies/clients (they were already authenticated; document for integrators). |
 | **Localization** | GET also auto-creates rows (prefilled defaults). POST still 400 if row exists — use PUT /update. |
 
@@ -51,7 +47,6 @@ Do **not** rely on 404 for company info anymore.
 
 - **`POST /company/info/bootstrap`** — explicit write, clearer permissions (preferred long-term if we revisit).
 - **200 without insert** — no DB side effect; frontend handles empty state via 404 or null payload only.
-- **Seed `legal_name` from Trovesuite org metadata** — better defaults than null; not implemented in v1.
 
 ## Localization GET auto-init
 
@@ -74,13 +69,12 @@ Frontend: load GET on settings page; user edits and saves via **`PUT /company/lo
 
 ## Dependencies
 
-- **tvs-sqlscript:** `legal_name` on `zeloshr.zhr_company_profile` must be **nullable** (`20260720140000_MakeZhrCompanyProfileLegalNameNullable`). Merge and deploy **before** ZelosHR API that auto-inits stubs.
+- `core_platform.cp_businesses` must exist for the session's `bus-id` (already required for Trove context validation).
 
 ## Ops / support
 
-- **Stub row exists but fields empty** — expected after first GET; not a failed migration.
-- **DELETE** removes stub and configured profiles alike.
-- **POST /add** after GET stub — allowed if `legal_name` is still null (completes via update path); **400** if `legal_name` is already set.
+- **Stub with only legal_name set** — expected after first GET when business name resolves.
+- **legal_name still null** — business row missing or inactive; check `bus-id` header matches `cp_businesses.id`.
 
 ---
 
