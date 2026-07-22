@@ -22,12 +22,20 @@ public class CompanyLocalizationService
     }
 
     public async Task<Respons<CompanyLocalizationReadDto>> GetAsync(
-        string tenantId, string orgId, CancellationToken ct = default)
+        string tenantId,
+        string orgId,
+        string? actorUserId,
+        CancellationToken ct = default)
     {
-        var entity = await _localization.GetEntityAsync(tenantId, orgId, ct);
-        if (entity is null)
-            return Respons<CompanyLocalizationReadDto>.Fail("Localization settings not found.", statusCode: 404);
+        var currencyId = await ResolveDefaultCurrencyIdAsync(tenantId, ct);
+        if (currencyId is null)
+        {
+            return Respons<CompanyLocalizationReadDto>.Fail(
+                "No active currency is configured for this tenant. Configure currencies in Trovesuite before loading localization settings.",
+                statusCode: 503);
+        }
 
+        var entity = await _localization.EnsureStubAsync(tenantId, orgId, currencyId, actorUserId, ct);
         return await BuildReadResponseAsync(entity, tenantId, ct);
     }
 
@@ -112,6 +120,16 @@ public class CompanyLocalizationService
             return Respons<object>.Fail("Localization settings not found.", statusCode: 404);
 
         return Respons<object>.Ok(new { }, detail: "Localization settings deleted.");
+    }
+
+    private async Task<string?> ResolveDefaultCurrencyIdAsync(string tenantId, CancellationToken ct)
+    {
+        var defaultCurrency = await _currencies.GetDefaultAsync(tenantId, ct);
+        if (defaultCurrency is not null)
+            return defaultCurrency.Id;
+
+        var active = await _currencies.ListAsync(tenantId, isActive: true, ct);
+        return active.Count > 0 ? active[0].Id : null;
     }
 
     private async Task<Respons<CompanyLocalizationReadDto>> BuildReadResponseAsync(

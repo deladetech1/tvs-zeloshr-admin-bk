@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using ZelosHR.Api.Entities.CompanyLocalization;
 using ZelosHR.Api.Persistence.Entities;
 
@@ -10,6 +11,51 @@ public sealed class CompanyLocalizationRepository(ZelosHrDbContext db) : ICompan
         string tenantId, string orgId, CancellationToken ct = default) =>
         db.CompanyLocalizations.AsNoTracking()
             .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.OrgId == orgId, ct);
+
+    public async Task<CompanyLocalizationEntity> EnsureStubAsync(
+        string tenantId,
+        string orgId,
+        string currencyId,
+        string? actorUserId,
+        CancellationToken ct = default)
+    {
+        var existing = await GetEntityAsync(tenantId, orgId, ct);
+        if (existing is not null)
+            return existing;
+
+        var now = DateTimeOffset.UtcNow;
+        var entity = new CompanyLocalizationEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            OrgId = orgId,
+            TimeZone = CompanyLocalizationDefaults.TimeZone,
+            CurrencyId = currencyId.Trim(),
+            DateFormat = CompanyLocalizationDefaults.DateFormat,
+            NumberFormat = CompanyLocalizationDefaults.NumberFormat,
+            FirstDayOfWeek = CompanyLocalizationDefaults.FirstDayOfWeek,
+            YearStartMonth = CompanyLocalizationDefaults.YearStartMonth,
+            YearStartDay = CompanyLocalizationDefaults.YearStartDay,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = actorUserId,
+            UpdatedBy = actorUserId,
+        };
+
+        db.CompanyLocalizations.Add(entity);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+            return entity;
+        }
+        catch (DbUpdateException ex) when (IsCompanyLocalizationTenantOrgUnique(ex))
+        {
+            db.Entry(entity).State = EntityState.Detached;
+            var raced = await GetEntityAsync(tenantId, orgId, ct);
+            return raced ?? throw new InvalidOperationException(
+                "Localization settings stub insert raced but row is missing.");
+        }
+    }
 
     public async Task<CompanyLocalizationEntity> CreateAsync(
         string tenantId,
@@ -79,4 +125,9 @@ public sealed class CompanyLocalizationRepository(ZelosHrDbContext db) : ICompan
         await db.SaveChangesAsync(ct);
         return true;
     }
+
+    private static bool IsCompanyLocalizationTenantOrgUnique(DbUpdateException ex) =>
+        ex.InnerException is PostgresException pg
+        && pg.SqlState == PostgresErrorCodes.UniqueViolation
+        && pg.ConstraintName?.Contains("zhr_company_localization", StringComparison.OrdinalIgnoreCase) == true;
 }
