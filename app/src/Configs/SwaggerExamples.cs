@@ -2794,6 +2794,8 @@ internal static class SwaggerExamples
             }),
     };
 
+    internal static JsonObject CompanyLocalizationGetStubResponse() => EnvelopeOk(CompanyLocalizationData());
+
     internal static JsonObject CompanyLocalizationData()
     {
         var data = new JsonObject

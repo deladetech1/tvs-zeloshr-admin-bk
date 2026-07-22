@@ -8,6 +8,13 @@ public interface ICompanyLocalizationRepository
     Task<CompanyLocalizationEntity?> GetEntityAsync(
         string tenantId, string orgId, CancellationToken ct = default);
 
+    Task<CompanyLocalizationEntity> EnsureStubAsync(
+        string tenantId,
+        string orgId,
+        string currencyId,
+        string? actorUserId,
+        CancellationToken ct = default);
+
     Task<CompanyLocalizationEntity> CreateAsync(
         string tenantId,
         string orgId,

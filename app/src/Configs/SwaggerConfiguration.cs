@@ -157,7 +157,7 @@ public static class SwaggerConfiguration
 
                     One row per org — regional formats and the leave/financial year start date. Same CRUD shape as company info.
 
-                    1. **Get** — `GET /api/v1/company/localization/get` (404 if not created yet)
+                    1. **Get** — `GET /api/v1/company/localization/get` (always 200 when tenant has active currency; auto-creates stub when missing — tenant default `currency_id`, `Africa/Accra` time zone, standard formats; 503 if no active currency)
                     2. **Create** — `POST /api/v1/company/localization/add` (all fields required: `time_zone` IANA id, `currency_id` from `GET /currencies/list`, `date_format`, `number_format`, `first_day_of_week`, `year_start_month`, `year_start_day`; 400 if settings already exist)
                     3. **Update** — `PUT /api/v1/company/localization/update` (same shape as create, plus `id` — full replacement, not a partial patch)
                     4. **Delete** — `DELETE /api/v1/company/localization/delete?id=` (`id` must match the settings' current id from `GET /get`)
