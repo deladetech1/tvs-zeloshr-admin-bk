@@ -14,7 +14,7 @@ If no `zhr_company_profile` row exists for that org, the API **creates a stub ro
 
 After the user saves real data via **PUT** (or **POST /add** if the stub is still empty), fields are populated; **`legal_name` non-null** means configured.
 
-**Localization is unchanged** — still explicit POST; still 404 until created.
+**Localization** — same pattern: `GET /api/v1/company/localization/get` auto-creates settings with tenant default currency and standard formats (see below).
 
 ## Frontend contract
 
@@ -45,13 +45,32 @@ Do **not** rely on 404 for company info anymore.
 | **Analytics** | Count of profile rows overstates “configured companies”. Filter on non-null `legal_name`. |
 | **Emails / branding** | Until `legal_name` is set, invite/activation emails still fall back to app name **ZelosHR**. |
 | **Caching** | GET responses must not be cached by proxies/clients (they were already authenticated; document for integrators). |
-| **Localization** | Still 404 until POST — two different patterns for Company Settings sub-modules. |
+| **Localization** | GET also auto-creates rows (prefilled defaults). POST still 400 if row exists — use PUT /update. |
 
 ## Alternatives we rejected (for future reconsideration)
 
 - **`POST /company/info/bootstrap`** — explicit write, clearer permissions (preferred long-term if we revisit).
 - **200 without insert** — no DB side effect; frontend handles empty state via 404 or null payload only.
 - **Seed `legal_name` from Trovesuite org metadata** — better defaults than null; not implemented in v1.
+
+## Localization GET auto-init
+
+`GET /api/v1/company/localization/get` **returns 200** when the tenant has at least one active currency.
+
+If no `zhr_company_localization` row exists, the API **creates a stub on that GET**:
+
+- **`currency_id`** — tenant default currency (`cp_currencies.is_default`), else first active currency
+- **`time_zone`** — `Africa/Accra`
+- **`date_format`** — `DD/MM/YYYY`
+- **`number_format`** — `1,234.56`
+- **`first_day_of_week`** — `Monday`
+- **`year_start_month`** / **`year_start_day`** — `January` / `1`
+
+**503** when no active currency exists for the tenant.
+
+Frontend: load GET on settings page; user edits and saves via **`PUT /company/localization/update`**. Do not rely on 404 for localization anymore.
+
+---
 
 ## Dependencies
 

@@ -25,14 +25,20 @@ public class CompanyLocalizationController : ControllerBase
     }
 
     /// <summary>Get the org's localization settings.</summary>
+    /// <remarks>
+    /// Always returns 200 for a valid org context when the tenant has at least one active currency.
+    /// When no settings exist yet, the API creates a stub on this GET — defaults: tenant default
+    /// currency (from GET /currencies/list), Africa/Accra time zone, and standard regional formats.
+    /// Save edits with PUT /update.
+    /// </remarks>
     [HttpGet("get")]
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [ProducesResponseType(typeof(Respons<CompanyLocalizationReadDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(Respons<CompanyLocalizationReadDto>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(Respons<CompanyLocalizationReadDto>), StatusCodes.Status503ServiceUnavailable)]
     public async Task<ActionResult<Respons<CompanyLocalizationReadDto>>> Get(CancellationToken ct)
     {
         var ctx = _tenant.Current;
-        var result = await _service.GetAsync(ctx.TenantId, ctx.OrgId, ct);
+        var result = await _service.GetAsync(ctx.TenantId, ctx.OrgId, ctx.UserId, ct);
         return StatusCode(result.StatusCode, result);
     }
 

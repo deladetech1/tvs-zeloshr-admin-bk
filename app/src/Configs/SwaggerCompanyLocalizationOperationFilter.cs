@@ -19,10 +19,13 @@ public sealed class SwaggerCompanyLocalizationOperationFilter : IOperationFilter
         switch (path)
         {
             case "api/v1/company/localization/get" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
-                SetJsonResponseExample(operation, 404, SwaggerExamples.EnvelopeFor(typeof(Respons<CompanyLocalizationReadDto>), 404));
+                SetJsonResponseExample(operation, 200, SwaggerExamples.CompanyLocalizationGetStubResponse());
                 operation.Summary ??= "Get localization settings";
                 operation.Description = SwaggerOptionFormat.Append(operation.Description,
-                    "One row per org — time zone, currency, regional formats, and the leave/financial year start date.");
+                    """
+                    Always returns 200 when the tenant has at least one active currency. Auto-creates settings on first GET when missing — tenant default currency, Africa/Accra time zone, and standard regional formats. Save edits with PUT /update.
+                    503 when no active currency exists for the tenant.
+                    """);
                 return;
 
             case "api/v1/company/localization/add" when method.Equals("POST", StringComparison.OrdinalIgnoreCase):
