@@ -46,6 +46,12 @@ public class EmployeeIdFormatRulesTests
         next.Should().Be(100);
     }
 
+    [Fact]
+    public void Format_zero_pads_to_digit_count()
+    {
+        EmployeeIdFormatRules.Format(DefaultFormat(), 7).Should().Be("ZEL-0007");
+    }
+
     [Theory]
     [InlineData("none", "ZEL0103")]
     [InlineData("underscore", "ZEL_0103")]
