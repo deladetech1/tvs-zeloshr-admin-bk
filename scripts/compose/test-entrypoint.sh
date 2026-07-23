@@ -11,7 +11,7 @@ if [[ -z "$PKG" ]]; then
 fi
 
 dotnet nuget update source github-deladetech1 \
-  --username deladetech1 \
+  --username x-access-token \
   --password "${PKG}" \
   --store-password-in-clear-text \
   --configfile nuget.config

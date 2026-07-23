@@ -35,15 +35,21 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Require GitHub Packages token
+      - name: Configure GitHub Packages auth
         env:
-          PKG: ${{ secrets.PACKAGES_TOKEN }}
+          PAT: ${{ secrets.PACKAGES_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [[ -z "$PKG" ]]; then
-            echo "::error::Repository secret PACKAGES_TOKEN is required (PAT with read:packages for Trovesuite.Package). See docs/CICD.md"
+          if [[ -n "$PAT" ]]; then
+            echo "Using PACKAGES_TOKEN for Trovesuite.Package restore."
+            printf 'PACKAGES_TOKEN=%s\n' "$PAT" >> app/.env
+          elif [[ -n "$GITHUB_TOKEN" ]]; then
+            echo "PACKAGES_TOKEN unset — using GITHUB_TOKEN (packages: read)."
+            printf 'PACKAGES_TOKEN=%s\n' "$GITHUB_TOKEN" >> app/.env
+          else
+            echo "::error::No GitHub Packages credential — set PACKAGES_TOKEN (PAT with read:packages) or ensure packages: read on GITHUB_TOKEN. See docs/CICD.md"
             exit 1
           fi
-          printf 'PACKAGES_TOKEN=%s\n' "$PKG" >> app/.env
 
       - name: Unit tests (Docker Compose)
         run: |
@@ -52,9 +58,11 @@ jobs:
 
       - name: Docker build (API)
         env:
-          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+          PAT: ${{ secrets.PACKAGES_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          TOKEN="${PAT:-$GITHUB_TOKEN}"
           docker build \
-            --build-arg PACKAGES_TOKEN="$PACKAGES_TOKEN" \
+            --build-arg PACKAGES_TOKEN="$TOKEN" \
             -f app/Dockerfile \
             .

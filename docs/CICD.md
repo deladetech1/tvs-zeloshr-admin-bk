@@ -33,7 +33,7 @@ If a resource is missing, the workflow **still builds and pushes the image to AC
 | `AZURE_TENANT_ID` | Azure AD tenant |
 | `TROVESUITE_DEV_AZURE_SUBSCRIPTION_ID` | `dev` branch deploys |
 | `TROVESUITE_PROD_AZURE_SUBSCRIPTION_ID` | `main` branch deploys |
-| `PACKAGES_TOKEN` | Docker build / CI — restore **Trovesuite.Package** (`read:packages` PAT). Required for PR workflow (`ci.yml`) and deploy build. |
+| `PACKAGES_TOKEN` | Docker build / CI — restore **Trovesuite.Package** (`read:packages` PAT). Optional when CI uses **`GITHUB_TOKEN`** fallback (`packages: read` on the workflow). |
 | `TROVESUITE_SECRET_KEY` | Optional — same HS256 value as Core Platform `SECRET_KEY` (≥ 32 chars). When set, deploy workflow syncs **`SECRET_KEY`** on the ZelosHR Container App. Also used to **mint JWTs** for Leave E2E in CI. |
 
 ### Leave E2E (Hurl)
