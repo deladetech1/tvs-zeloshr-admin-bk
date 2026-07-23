@@ -40,14 +40,14 @@ jobs:
           PAT: ${{ secrets.PACKAGES_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [[ -n "$PAT" ]]; then
+          if [[ -n "$GITHUB_TOKEN" ]]; then
+            echo "Using GITHUB_TOKEN for Trovesuite.Package restore (packages: read)."
+            printf 'PACKAGES_TOKEN=%s\n' "$GITHUB_TOKEN" >> app/.env
+          elif [[ -n "$PAT" ]]; then
             echo "Using PACKAGES_TOKEN for Trovesuite.Package restore."
             printf 'PACKAGES_TOKEN=%s\n' "$PAT" >> app/.env
-          elif [[ -n "$GITHUB_TOKEN" ]]; then
-            echo "PACKAGES_TOKEN unset — using GITHUB_TOKEN (packages: read)."
-            printf 'PACKAGES_TOKEN=%s\n' "$GITHUB_TOKEN" >> app/.env
           else
-            echo "::error::No GitHub Packages credential — set PACKAGES_TOKEN (PAT with read:packages) or ensure packages: read on GITHUB_TOKEN. See docs/CICD.md"
+            echo "::error::No GitHub Packages credential — ensure packages: read on GITHUB_TOKEN or set PACKAGES_TOKEN. See docs/CICD.md"
             exit 1
           fi
 
@@ -61,7 +61,7 @@ jobs:
           PAT: ${{ secrets.PACKAGES_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TOKEN="${PAT:-$GITHUB_TOKEN}"
+          TOKEN="${GITHUB_TOKEN:-$PAT}"
           docker build \
             --build-arg PACKAGES_TOKEN="$TOKEN" \
             -f app/Dockerfile \
