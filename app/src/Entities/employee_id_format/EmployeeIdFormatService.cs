@@ -21,14 +21,32 @@ public sealed class EmployeeIdFormatService
         _codeGen = codeGen;
     }
 
+    public async Task<Respons<EmployeeIdFormatListDto>> ListAsync(
+        string tenantId,
+        string orgId,
+        string? actorUserId,
+        CancellationToken ct = default)
+    {
+        var entity = await _formats.GetEntityAsync(tenantId, orgId, ct);
+        if (entity is null)
+            return Respons<EmployeeIdFormatListDto>.Ok(new EmployeeIdFormatListDto { Items = Array.Empty<EmployeeIdFormatReadDto>() });
+
+        var dto = await MapToReadDtoAsync(entity, tenantId, orgId, actorUserId, ct);
+        return Respons<EmployeeIdFormatListDto>.Ok(new EmployeeIdFormatListDto { Items = new[] { dto } });
+    }
+
     public async Task<Respons<EmployeeIdFormatReadDto>> GetAsync(
         string tenantId,
         string orgId,
         string? actorUserId,
         CancellationToken ct = default)
     {
-        var entity = await _formats.EnsureStubAsync(tenantId, orgId, actorUserId, ct);
-        return await BuildReadResponseAsync(entity, tenantId, orgId, actorUserId, ct);
+        var entity = await _formats.GetEntityAsync(tenantId, orgId, ct);
+        if (entity is null)
+            return Respons<EmployeeIdFormatReadDto>.Fail("Employee ID format settings not found.", statusCode: 404);
+
+        var dto = await MapToReadDtoAsync(entity, tenantId, orgId, actorUserId, ct);
+        return Respons<EmployeeIdFormatReadDto>.Ok(dto);
     }
 
     public async Task<Respons<EmployeeIdFormatReadDto>> CreateAsync(
@@ -48,12 +66,13 @@ public sealed class EmployeeIdFormatService
             return Respons<EmployeeIdFormatReadDto>.ValidationError(new Dictionary<string, string>
             {
                 ["prefix"] =
-                    "Employee ID format settings already exist for this organisation. Use PUT /employee-settings/id-format/update instead.",
+                    "Employee ID format settings already exist for this organisation. Use PUT /company/id-format/update instead.",
             });
         }
 
         var entity = await _formats.CreateAsync(tenantId, orgId, body, actorUserId, ct);
-        return await BuildReadResponseAsync(entity, tenantId, orgId, actorUserId, ct);
+        var dto = await MapToReadDtoAsync(entity, tenantId, orgId, actorUserId, ct);
+        return Respons<EmployeeIdFormatReadDto>.Ok(dto);
     }
 
     public async Task<Respons<EmployeeIdFormatReadDto>> UpdateAsync(
@@ -85,10 +104,33 @@ public sealed class EmployeeIdFormatService
         if (updated is null)
             return Respons<EmployeeIdFormatReadDto>.Fail("Employee ID format settings not found.", statusCode: 404);
 
-        return await BuildReadResponseAsync(updated, tenantId, orgId, actorUserId, ct);
+        var dto = await MapToReadDtoAsync(updated, tenantId, orgId, actorUserId, ct);
+        return Respons<EmployeeIdFormatReadDto>.Ok(dto);
     }
 
-    private async Task<Respons<EmployeeIdFormatReadDto>> BuildReadResponseAsync(
+    public async Task<Respons<object>> DeleteAsync(
+        string tenantId, string orgId, Guid id, CancellationToken ct = default)
+    {
+        var existing = await _formats.GetEntityAsync(tenantId, orgId, ct);
+        if (existing is null)
+            return Respons<object>.Fail("Employee ID format settings not found.", statusCode: 404);
+
+        if (id != existing.Id)
+        {
+            return Respons<object>.ValidationError(new Dictionary<string, string>
+            {
+                ["id"] = "id does not match the current employee ID format settings.",
+            });
+        }
+
+        var deleted = await _formats.DeleteAsync(tenantId, orgId, ct);
+        if (!deleted)
+            return Respons<object>.Fail("Employee ID format settings not found.", statusCode: 404);
+
+        return Respons<object>.Ok(new { }, detail: "Employee ID format settings deleted.");
+    }
+
+    private async Task<EmployeeIdFormatReadDto> MapToReadDtoAsync(
         EmployeeIdFormatEntity entity,
         string tenantId,
         string orgId,
@@ -99,9 +141,9 @@ public sealed class EmployeeIdFormatService
             ResourceAuditMapper.CollectUserIds(new[] { new[] { entity.CreatedBy, entity.UpdatedBy } }),
             tenantId, ct);
 
-        var preview = await _codeGen.PreviewNextCodeAsync(tenantId, orgId, actorUserId, ct);
+        var preview = await _codeGen.PreviewNextCodeAsync(entity, tenantId, ct);
 
-        var dto = new EmployeeIdFormatReadDto
+        return new EmployeeIdFormatReadDto
         {
             Id = entity.Id.ToString(),
             Prefix = entity.Prefix,
@@ -117,8 +159,6 @@ public sealed class EmployeeIdFormatService
             CreatedBy = ResourceAuditMapper.ResolveDisplayName(entity.CreatedBy, users),
             UpdatedBy = ResourceAuditMapper.ResolveDisplayName(entity.UpdatedBy, users),
         };
-
-        return Respons<EmployeeIdFormatReadDto>.Ok(dto);
     }
 
     private static Dictionary<string, string>? ValidateFields(

@@ -41,7 +41,7 @@ public partial class EmployeesService
         entity.GhanaCardNumber = normalized;
 
         var planned = await _codeGen.PlanAllocationAsync(
-            _tenant.TenantId, _tenant.OrgId, requestedCode: null, actorUserId: null, ct);
+            _tenant.TenantId, _tenant.OrgId, requestedCode: null, ct);
         if (!planned.Success)
             return Respons<EmployeeReadDto>.ValidationError(planned.Errors!);
 

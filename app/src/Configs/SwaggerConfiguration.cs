@@ -166,13 +166,15 @@ public static class SwaggerConfiguration
 
                     ---
 
-                    ### Employee Settings — ID format
+                    ### Company Settings — ID format
 
-                    One row per org — prefix, digit width, starting number, separator, and whether IDs are auto-generated on employee create.
+                    One row per org — prefix, digit width, starting number, separator, and whether IDs are auto-generated on employee create. Same CRUD shape as localization (no auto-create on GET).
 
-                    1. **Get** — `GET /api/v1/employee-settings/id-format/get` (always 200; auto-creates defaults on first GET; includes `next_id_preview`)
-                    2. **Create** — `POST /api/v1/employee-settings/id-format/add` (400 if settings already exist)
-                    3. **Update** — `PUT /api/v1/employee-settings/id-format/update` (full replacement; same fields as create plus `id`)
+                    1. **List** — `GET /api/v1/company/id-format/list` (zero or one row for the org)
+                    2. **Get** — `GET /api/v1/company/id-format/get` (404 when not configured; includes `next_id_preview`)
+                    3. **Create** — `POST /api/v1/company/id-format/add` (400 if settings already exist)
+                    4. **Update** — `PUT /api/v1/company/id-format/update` (full replacement; same fields as create plus `id`)
+                    5. **Delete** — `DELETE /api/v1/company/id-format/delete?id=` (`id` must match GET /get)
 
                     `separator`: `hyphen` · `none` · `underscore` · `slash`. When `auto_generate` is false, create flows require `employee_code`.
 

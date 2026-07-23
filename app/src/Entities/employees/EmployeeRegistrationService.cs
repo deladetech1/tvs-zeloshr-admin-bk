@@ -114,9 +114,8 @@ public sealed class EmployeeRegistrationService
         var now = DateTimeOffset.UtcNow;
         var entity = NewDraftEntity(userId, draftDisplayName, now);
 
-        var actorUserId = _currentUser.UserId?.ToString();
         var planned = await _codeGen.PlanAllocationAsync(
-            _tenant.TenantId, _tenant.OrgId, employeeCode, actorUserId, ct);
+            _tenant.TenantId, _tenant.OrgId, employeeCode, ct);
         if (!planned.Success)
             return Respons<EmployeeRegistrationReadDto>.ValidationError(planned.Errors!);
 

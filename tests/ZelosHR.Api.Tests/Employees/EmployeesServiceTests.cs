@@ -31,7 +31,7 @@ public class EmployeesServiceTests
             .Returns(new Dictionary<string, CpUserDto>());
 
         var formats = Substitute.For<IEmployeeIdFormatRepository>();
-        formats.EnsureStubAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+        formats.GetEntityAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new EmployeeIdFormatEntity
             {
                 Id = Guid.NewGuid(),

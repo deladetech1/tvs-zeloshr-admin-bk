@@ -191,6 +191,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(CreateCompanyLocalizationDto) => SwaggerExamples.CreateCompanyLocalizationBody(),
             nameof(UpdateCompanyLocalizationDto) => SwaggerExamples.UpdateCompanyLocalizationBody(),
             nameof(EmployeeIdFormatReadDto) => SwaggerExamples.EmployeeIdFormatData(),
+            nameof(EmployeeIdFormatListDto) => SwaggerExamples.EmployeeIdFormatListResponse()["data"]!,
             nameof(CreateEmployeeIdFormatDto) => SwaggerExamples.CreateEmployeeIdFormatBody(),
             nameof(UpdateEmployeeIdFormatDto) => SwaggerExamples.UpdateEmployeeIdFormatBody(),
             nameof(EmploymentTypeListQuery) => new JsonObject

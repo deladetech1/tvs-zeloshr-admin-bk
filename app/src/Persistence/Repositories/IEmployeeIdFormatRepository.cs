@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using ZelosHR.Api.Entities.EmployeeIdFormat;
 using ZelosHR.Api.Persistence.Entities;
 
@@ -7,12 +8,6 @@ public interface IEmployeeIdFormatRepository
 {
     Task<EmployeeIdFormatEntity?> GetEntityAsync(
         string tenantId, string orgId, CancellationToken ct = default);
-
-    Task<EmployeeIdFormatEntity> EnsureStubAsync(
-        string tenantId,
-        string orgId,
-        string? actorUserId,
-        CancellationToken ct = default);
 
     Task<EmployeeIdFormatEntity> CreateAsync(
         string tenantId,
@@ -27,4 +22,6 @@ public interface IEmployeeIdFormatRepository
         UpdateEmployeeIdFormatDto data,
         string? actorUserId,
         CancellationToken ct = default);
+
+    Task<bool> DeleteAsync(string tenantId, string orgId, CancellationToken ct = default);
 }

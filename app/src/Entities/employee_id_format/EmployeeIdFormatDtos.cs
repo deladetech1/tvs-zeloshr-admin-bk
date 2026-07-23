@@ -1,5 +1,10 @@
 namespace ZelosHR.Api.Entities.EmployeeIdFormat;
 
+public sealed record EmployeeIdFormatListDto
+{
+    public required IReadOnlyList<EmployeeIdFormatReadDto> Items { get; init; }
+}
+
 public sealed record EmployeeIdFormatReadDto
 {
     public required string Id { get; init; }

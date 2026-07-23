@@ -47,8 +47,8 @@ public class EmployeeRegistrationTests
     {
         var formatRepo = formats ?? Substitute.For<IEmployeeIdFormatRepository>();
         var employeeRepo = employees ?? Substitute.For<IEmployeeRepository>();
-        formatRepo.EnsureStubAsync(
-                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+        formatRepo.GetEntityAsync(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(DefaultIdFormat());
         employeeRepo.ListEmployeeCodesAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(Array.Empty<string>());

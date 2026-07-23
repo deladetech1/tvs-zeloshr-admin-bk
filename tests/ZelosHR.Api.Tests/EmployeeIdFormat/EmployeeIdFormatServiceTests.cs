@@ -32,7 +32,7 @@ public class EmployeeIdFormatServiceTests
 
         if (formats is null)
         {
-            formatRepo.EnsureStubAsync("t1", "o1", "user-1", Arg.Any<CancellationToken>())
+            formatRepo.GetEntityAsync("t1", "o1", Arg.Any<CancellationToken>())
                 .Returns(DefaultEntity());
         }
 
@@ -41,6 +41,34 @@ public class EmployeeIdFormatServiceTests
 
         var codeGen = new EmployeeCodeGenerationService(formatRepo, employeeRepo);
         return new EmployeeIdFormatService(formatRepo, Substitute.For<ICpUserRepository>(), codeGen);
+    }
+
+    [Fact]
+    public async Task ListAsync_returns_empty_when_not_configured()
+    {
+        var formats = Substitute.For<IEmployeeIdFormatRepository>();
+        formats.GetEntityAsync("t1", "o1", Arg.Any<CancellationToken>())
+            .Returns((EmployeeIdFormatEntity?)null);
+
+        var service = CreateService(formats: formats);
+        var result = await service.ListAsync("t1", "o1", "user-1");
+
+        result.Success.Should().BeTrue();
+        result.Data!.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetAsync_returns_404_when_not_configured()
+    {
+        var formats = Substitute.For<IEmployeeIdFormatRepository>();
+        formats.GetEntityAsync("t1", "o1", Arg.Any<CancellationToken>())
+            .Returns((EmployeeIdFormatEntity?)null);
+
+        var service = CreateService(formats: formats);
+        var result = await service.GetAsync("t1", "o1", "user-1");
+
+        result.Success.Should().BeFalse();
+        result.StatusCode.Should().Be(404);
     }
 
     [Fact]

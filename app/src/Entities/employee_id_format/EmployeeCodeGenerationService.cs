@@ -17,20 +17,25 @@ public sealed class EmployeeCodeGenerationService
         _employees = employees;
     }
 
-    public async Task<EmployeeIdFormatEntity> GetFormatAsync(
-        string tenantId,
-        string orgId,
-        string? actorUserId,
-        CancellationToken ct = default) =>
-        await _formats.EnsureStubAsync(tenantId, orgId, actorUserId, ct);
+    public async Task<(bool Success, EmployeeIdFormatEntity? Format, Dictionary<string, string>? Errors)>
+        TryGetFormatAsync(string tenantId, string orgId, CancellationToken ct = default)
+    {
+        var format = await _formats.GetEntityAsync(tenantId, orgId, ct);
+        if (format is not null)
+            return (true, format, null);
+
+        return (false, null, new Dictionary<string, string>
+        {
+            ["employee_id_format"] =
+                "Employee ID format is not configured for this organisation. Create settings via POST /company/id-format/add.",
+        });
+    }
 
     public async Task<string> PreviewNextCodeAsync(
+        EmployeeIdFormatEntity format,
         string tenantId,
-        string orgId,
-        string? actorUserId,
         CancellationToken ct = default)
     {
-        var format = await GetFormatAsync(tenantId, orgId, actorUserId, ct);
         var next = await ComputeNextSequenceAsync(tenantId, format, ct);
         return EmployeeIdFormatRules.Format(format, next);
     }
@@ -51,10 +56,13 @@ public sealed class EmployeeCodeGenerationService
         string tenantId,
         string orgId,
         string? requestedCode,
-        string? actorUserId,
         CancellationToken ct = default)
     {
-        var format = await GetFormatAsync(tenantId, orgId, actorUserId, ct);
+        var resolved = await TryGetFormatAsync(tenantId, orgId, ct);
+        if (!resolved.Success)
+            return (false, null, resolved.Errors);
+
+        var format = resolved.Format!;
         if (format.AutoGenerate)
         {
             var next = await ComputeNextSequenceAsync(tenantId, format, ct);
@@ -94,18 +102,19 @@ public sealed class EmployeeCodeGenerationService
             string tenantId,
             string orgId,
             string? requestedCode,
-            string? actorUserId,
             CancellationToken ct = default)
     {
-        var resolved = await ResolveForCreateAsync(tenantId, orgId, requestedCode, actorUserId, ct);
+        var resolved = await ResolveForCreateAsync(tenantId, orgId, requestedCode, ct);
         if (!resolved.Success)
             return (false, null, resolved.Errors);
 
-        var format = await GetFormatAsync(tenantId, orgId, actorUserId, ct);
+        var formatResult = await TryGetFormatAsync(tenantId, orgId, ct);
+        if (!formatResult.Success)
+            return (false, null, formatResult.Errors);
+
+        var format = formatResult.Format!;
         if (!format.AutoGenerate)
-        {
             return (true, new CodeAllocationPlan(format, 0, resolved.Code!, UseRetry: false), null);
-        }
 
         var startSeq = await ComputeNextSequenceAsync(tenantId, format, ct);
         return (true, new CodeAllocationPlan(format, startSeq, FormatCode(format, startSeq), UseRetry: true), null);

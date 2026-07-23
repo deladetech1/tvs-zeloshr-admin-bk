@@ -291,6 +291,7 @@ internal static class SwaggerExamples
             nameof(CompanyOfficeReadDto) => EnvelopeOk(CompanyOfficeItemData()),
             nameof(CompanyLocalizationReadDto) => EnvelopeOk(CompanyLocalizationData()),
             nameof(EmployeeIdFormatReadDto) => EnvelopeOk(EmployeeIdFormatData()),
+            nameof(EmployeeIdFormatListDto) => EmployeeIdFormatListResponse(),
             nameof(PublicHolidayListDto) => LeaveHolidayListResponse(),
             nameof(PublicHolidayListItemDto) => EnvelopeOk(PublicHolidayItemData()),
             nameof(GetCountrySimpleReadDto) => EnvelopeOk(CountryItem()),
@@ -2827,6 +2828,11 @@ internal static class SwaggerExamples
     };
 
     internal static JsonObject EmployeeIdFormatGetResponse() => EnvelopeOk(EmployeeIdFormatData());
+
+    internal static JsonObject EmployeeIdFormatListResponse() => EnvelopeOk(new JsonObject
+    {
+        ["items"] = new JsonArray(EmployeeIdFormatData()),
+    });
 
     internal static JsonObject EmployeeIdFormatData()
     {

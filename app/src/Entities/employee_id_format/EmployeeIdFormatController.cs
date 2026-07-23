@@ -2,14 +2,16 @@ using Microsoft.AspNetCore.Mvc;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Shared.Authorization;
+using ZelosHR.Api.Shared.Constants;
 using ZelosHR.Api.Shared.Tenant;
+using ZelosHR.Api.Shared.Validation;
 
 namespace ZelosHR.Api.Entities.EmployeeIdFormat;
 
-/// <summary>Employee settings — org-wide employee ID / code generation format.</summary>
+/// <summary>Company settings — org-wide employee ID / code generation format.</summary>
 [ApiController]
-[ApiExplorerSettings(GroupName = SwaggerGroups.EmployeeSettings)]
-[Route("api/v1/employee-settings/id-format")]
+[ApiExplorerSettings(GroupName = SwaggerGroups.CompanySettings)]
+[Route("api/v1/company/id-format")]
 [Produces("application/json")]
 public sealed class EmployeeIdFormatController : ControllerBase
 {
@@ -22,15 +24,24 @@ public sealed class EmployeeIdFormatController : ControllerBase
         _tenant = tenant;
     }
 
+    /// <summary>List the org's employee ID format settings.</summary>
+    /// <remarks>Returns zero or one row for the current org. Does not auto-create defaults.</remarks>
+    [HttpGet("list")]
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
+    [ProducesResponseType(typeof(Respons<EmployeeIdFormatListDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<Respons<EmployeeIdFormatListDto>>> List(CancellationToken ct)
+    {
+        var ctx = _tenant.Current;
+        var result = await _service.ListAsync(ctx.TenantId, ctx.OrgId, ctx.UserId, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
     /// <summary>Get the org's employee ID format settings.</summary>
-    /// <remarks>
-    /// Always returns 200 for a valid org context. Auto-creates default settings on first GET
-    /// (prefix ZEL, 4 digits, starting number 1, hyphen separator, auto-generate on).
-    /// Includes <c>next_id_preview</c> for the settings UI.
-    /// </remarks>
+    /// <remarks>404 when not configured — use POST /add to create. Includes <c>next_id_preview</c>.</remarks>
     [HttpGet("get")]
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [ProducesResponseType(typeof(Respons<EmployeeIdFormatReadDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<EmployeeIdFormatReadDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Respons<EmployeeIdFormatReadDto>>> Get(CancellationToken ct)
     {
         var ctx = _tenant.Current;
@@ -39,6 +50,7 @@ public sealed class EmployeeIdFormatController : ControllerBase
     }
 
     /// <summary>Create the org's employee ID format settings.</summary>
+    /// <remarks>One row per org. 400 if settings already exist — use PUT /update instead.</remarks>
     [HttpPost("add")]
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [ProducesResponseType(typeof(Respons<EmployeeIdFormatReadDto>), StatusCodes.Status200OK)]
@@ -52,6 +64,7 @@ public sealed class EmployeeIdFormatController : ControllerBase
     }
 
     /// <summary>Update the org's employee ID format settings.</summary>
+    /// <remarks>Same shape as POST /add, plus <c>id</c> from GET /get. Full replacement.</remarks>
     [HttpPut("update")]
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [ProducesResponseType(typeof(Respons<EmployeeIdFormatReadDto>), StatusCodes.Status200OK)]
@@ -62,6 +75,24 @@ public sealed class EmployeeIdFormatController : ControllerBase
     {
         var ctx = _tenant.Current;
         var result = await _service.UpdateAsync(body, ctx.TenantId, ctx.OrgId, ctx.UserId, ct);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    /// <summary>Delete the org's employee ID format settings.</summary>
+    /// <remarks><c>id</c> must match the settings' current id from GET /get.</remarks>
+    [HttpDelete("delete")]
+    [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
+    [ProducesResponseType(typeof(Respons<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Respons<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(Respons<object>), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<Respons<object>>> Delete(
+        [FromQuery(Name = PlatformQueryParams.Id)] Guid id, CancellationToken ct)
+    {
+        if (QueryParamValidation.BadRequestIfEmptyGuid<object>(id, PlatformQueryParams.Id) is { } missingId)
+            return missingId;
+
+        var ctx = _tenant.Current;
+        var result = await _service.DeleteAsync(ctx.TenantId, ctx.OrgId, id, ct);
         return StatusCode(result.StatusCode, result);
     }
 }

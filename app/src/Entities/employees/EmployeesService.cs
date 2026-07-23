@@ -59,7 +59,7 @@ public partial class EmployeesService : IEmployeesService, IEmployeeLookup
 
         var entity = data.ToEntity(tenantId, orgId, employeeCode: string.Empty);
 
-        var planned = await _codeGen.PlanAllocationAsync(tenantId, orgId, requestedCode: null, actorUserId: null, ct);
+        var planned = await _codeGen.PlanAllocationAsync(tenantId, orgId, requestedCode: null, ct);
         if (!planned.Success)
             return Respons<CreateEmployeeServiceReadDto>.ValidationError(planned.Errors!);
 
