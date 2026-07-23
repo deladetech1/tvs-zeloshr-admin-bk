@@ -7,6 +7,7 @@ using ZelosHR.Api.Entities.Users;
 using ZelosHR.Api.Entities.Branches;
 using ZelosHR.Api.Entities.CompanyInfo;
 using ZelosHR.Api.Entities.CompanyLocalization;
+using ZelosHR.Api.Entities.EmployeeIdFormat;
 using ZelosHR.Api.Entities.Countries;
 using ZelosHR.Api.Entities.Currencies;
 using ZelosHR.Api.Entities.CustomFields;
@@ -189,6 +190,9 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(CompanyLocalizationReadDto) => SwaggerExamples.CompanyLocalizationData(),
             nameof(CreateCompanyLocalizationDto) => SwaggerExamples.CreateCompanyLocalizationBody(),
             nameof(UpdateCompanyLocalizationDto) => SwaggerExamples.UpdateCompanyLocalizationBody(),
+            nameof(EmployeeIdFormatReadDto) => SwaggerExamples.EmployeeIdFormatData(),
+            nameof(CreateEmployeeIdFormatDto) => SwaggerExamples.CreateEmployeeIdFormatBody(),
+            nameof(UpdateEmployeeIdFormatDto) => SwaggerExamples.UpdateEmployeeIdFormatBody(),
             nameof(EmploymentTypeListQuery) => new JsonObject
             {
                 ["search"] = "",

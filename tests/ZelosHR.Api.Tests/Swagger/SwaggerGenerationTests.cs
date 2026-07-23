@@ -9,6 +9,7 @@ using Xunit;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.CompanyInfo;
 using ZelosHR.Api.Entities.CompanyLocalization;
+using ZelosHR.Api.Entities.EmployeeIdFormat;
 using ZelosHR.Api.Entities.Currencies;
 using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Employees;
@@ -33,7 +34,8 @@ public sealed class SwaggerGenerationTests
             .AddApplicationPart(typeof(LeaveController).Assembly)
             .AddApplicationPart(typeof(IdCardTypesController).Assembly)
             .AddApplicationPart(typeof(CompanyInfoController).Assembly)
-            .AddApplicationPart(typeof(CompanyLocalizationController).Assembly);
+            .AddApplicationPart(typeof(CompanyLocalizationController).Assembly)
+            .AddApplicationPart(typeof(EmployeeIdFormatController).Assembly);
         services.AddEndpointsApiExplorer();
 
         var configuration = new ConfigurationBuilder()
@@ -72,6 +74,9 @@ public sealed class SwaggerGenerationTests
         document.Paths.Should().ContainKey("/api/v1/company/localization/add");
         document.Paths.Should().ContainKey("/api/v1/company/localization/update");
         document.Paths.Should().ContainKey("/api/v1/company/localization/delete");
+        document.Paths.Should().ContainKey("/api/v1/employee-settings/id-format/get");
+        document.Paths.Should().ContainKey("/api/v1/employee-settings/id-format/add");
+        document.Paths.Should().ContainKey("/api/v1/employee-settings/id-format/update");
     }
 
     private sealed class TestWebHostEnvironment : IWebHostEnvironment

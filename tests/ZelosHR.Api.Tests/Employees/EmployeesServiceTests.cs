@@ -3,8 +3,10 @@ using Microsoft.Extensions.Logging;
 using NSubstitute;
 using ZelosHR.Api.Entities.Branches;
 using ZelosHR.Api.Entities.Departments;
+using ZelosHR.Api.Entities.EmployeeIdFormat;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Persistence.Entities;
+using ZelosHR.Api.Persistence.Repositories;
 using ZelosHR.Api.Shared.Abstractions;
 
 namespace ZelosHR.Api.Tests.Employees;
@@ -28,13 +30,30 @@ public class EmployeesServiceTests
         _cpUsers.GetByIdsAsync(Arg.Any<IEnumerable<string>>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new Dictionary<string, CpUserDto>());
 
+        var formats = Substitute.For<IEmployeeIdFormatRepository>();
+        formats.EnsureStubAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(new EmployeeIdFormatEntity
+            {
+                Id = Guid.NewGuid(),
+                TenantId = TestDefaults.TenantId,
+                OrgId = TestDefaults.OrgId,
+                Prefix = "ZEL",
+                DigitCount = 4,
+                StartingNumber = 1,
+                Separator = EmployeeIdFormatSeparator.Hyphen,
+                AutoGenerate = true,
+            });
+        _repo.ListEmployeeCodesAsync(TestDefaults.TenantId, Arg.Any<CancellationToken>())
+            .Returns(Array.Empty<string>());
+
         _sut = new EmployeesService(
             Substitute.For<ILogger<EmployeesService>>(),
             _repo,
             _cpUsers,
             _departments,
             _branches,
-            _tenant);
+            _tenant,
+            new EmployeeCodeGenerationService(formats, _repo));
     }
 
     private static EmployeeEntity SampleEmployee() => new()
@@ -105,8 +124,8 @@ public class EmployeesServiceTests
     {
         _repo.ExistsByGhanaCardAsync(Arg.Any<string>(), TestDefaults.TenantId, null, Arg.Any<CancellationToken>())
             .Returns(false);
-        _repo.GetNextEmployeeSequenceAsync(TestDefaults.TenantId, TestDefaults.OrgId, Arg.Any<CancellationToken>())
-            .Returns(1L);
+        _repo.ListEmployeeCodesAsync(TestDefaults.TenantId, Arg.Any<CancellationToken>())
+            .Returns(Array.Empty<string>());
         _repo.AddAsync(Arg.Any<EmployeeEntity>(), Arg.Any<CancellationToken>())
             .Returns(ci => ci.Arg<EmployeeEntity>());
 

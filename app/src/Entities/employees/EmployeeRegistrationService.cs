@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using ZelosHR.Api.Entities.EmployeeIdFormat;
 using ZelosHR.Api.Entities.EmploymentTypes;
 using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Entities.Shared;
@@ -24,6 +25,7 @@ public sealed class EmployeeRegistrationService
     private readonly FileManagementStorage _storageConfig;
     private readonly HrDocumentPresignedUrlService _profileUrls;
     private readonly EmploymentTypesService _employmentTypes;
+    private readonly EmployeeCodeGenerationService _codeGen;
     private readonly ITenantContext _tenant;
     private readonly ICurrentUserService _currentUser;
 
@@ -37,6 +39,7 @@ public sealed class EmployeeRegistrationService
         FileManagementStorage storageConfig,
         HrDocumentPresignedUrlService profileUrls,
         EmploymentTypesService employmentTypes,
+        EmployeeCodeGenerationService codeGen,
         ITenantContext tenant,
         ICurrentUserService currentUser)
     {
@@ -49,6 +52,7 @@ public sealed class EmployeeRegistrationService
         _storageConfig = storageConfig;
         _profileUrls = profileUrls;
         _employmentTypes = employmentTypes;
+        _codeGen = codeGen;
         _tenant = tenant;
         _currentUser = currentUser;
     }
@@ -77,7 +81,7 @@ public sealed class EmployeeRegistrationService
     }
 
     public async Task<Respons<EmployeeRegistrationReadDto>> CreateDraftAsync(
-        string fullName, string? existingUserId, CancellationToken ct = default)
+        string fullName, string? existingUserId, string? employeeCode = null, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(fullName) && string.IsNullOrWhiteSpace(existingUserId))
             return Respons<EmployeeRegistrationReadDto>.ValidationError(
@@ -110,11 +114,19 @@ public sealed class EmployeeRegistrationService
         var now = DateTimeOffset.UtcNow;
         var entity = NewDraftEntity(userId, draftDisplayName, now);
 
-        const int maxAttempts = EmployeeCodeAllocation.MaxAttempts;
-        var startSeq = await _employees.GetNextEmployeeSequenceAsync(_tenant.TenantId, _tenant.OrgId, ct);
+        var actorUserId = _currentUser.UserId?.ToString();
+        var planned = await _codeGen.PlanAllocationAsync(
+            _tenant.TenantId, _tenant.OrgId, employeeCode, actorUserId, ct);
+        if (!planned.Success)
+            return Respons<EmployeeRegistrationReadDto>.ValidationError(planned.Errors!);
+
+        var plan = planned.Plan!;
+        var maxAttempts = plan.UseRetry ? EmployeeIdFormatRules.MaxAttempts : 1;
         for (var attempt = 0; attempt < maxAttempts; attempt++)
         {
-            entity.EmployeeCode = EmployeeCodeAllocation.Format(startSeq, attempt);
+            entity.EmployeeCode = plan.UseRetry
+                ? _codeGen.FormatCode(plan.Format, plan.StartSequence + attempt)
+                : plan.InitialCode;
             var savepoint = $"draft_code_{attempt}";
             var transaction = _db.Database.CurrentTransaction;
             if (transaction is not null)

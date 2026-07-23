@@ -48,6 +48,7 @@ internal static class SwaggerExamples
     internal static readonly Guid SampleOfficeId = Guid.Parse("b1000001-0000-4000-8000-000000000001");
     internal static readonly Guid SampleOfficeId2 = Guid.Parse("b1000001-0000-4000-8000-000000000002");
     internal static readonly Guid SampleCompanyLocalizationId = Guid.Parse("c1000001-0000-4000-8000-000000000001");
+    internal static readonly Guid SampleEmployeeIdFormatId = Guid.Parse("d1000001-0000-4000-8000-000000000001");
 
     internal const string SampleCurrencyId = "cur_ghs_default";
     internal const string SampleCountryId = "ctr_gh";
@@ -289,6 +290,7 @@ internal static class SwaggerExamples
             nameof(CompanyInfoReadDto) => EnvelopeOk(CompanyInfoData()),
             nameof(CompanyOfficeReadDto) => EnvelopeOk(CompanyOfficeItemData()),
             nameof(CompanyLocalizationReadDto) => EnvelopeOk(CompanyLocalizationData()),
+            nameof(EmployeeIdFormatReadDto) => EnvelopeOk(EmployeeIdFormatData()),
             nameof(PublicHolidayListDto) => LeaveHolidayListResponse(),
             nameof(PublicHolidayListItemDto) => EnvelopeOk(PublicHolidayItemData()),
             nameof(GetCountrySimpleReadDto) => EnvelopeOk(CountryItem()),
@@ -2822,6 +2824,43 @@ internal static class SwaggerExamples
         ["first_day_of_week"] = "Monday",
         ["year_start_month"] = "January",
         ["year_start_day"] = 1,
+    };
+
+    internal static JsonObject EmployeeIdFormatGetResponse() => EnvelopeOk(EmployeeIdFormatData());
+
+    internal static JsonObject EmployeeIdFormatData()
+    {
+        var data = new JsonObject
+        {
+            ["id"] = SampleEmployeeIdFormatId.ToString(),
+            ["prefix"] = "ZEL",
+            ["digit_count"] = 4,
+            ["starting_number"] = 1,
+            ["separator"] = "hyphen",
+            ["auto_generate"] = true,
+            ["next_id_preview"] = "ZEL-0103",
+        };
+        AppendResourceAuditFields(data);
+        return data;
+    }
+
+    internal static JsonObject CreateEmployeeIdFormatBody() => new()
+    {
+        ["prefix"] = "ZEL",
+        ["digit_count"] = 4,
+        ["starting_number"] = 1,
+        ["separator"] = "hyphen",
+        ["auto_generate"] = true,
+    };
+
+    internal static JsonObject UpdateEmployeeIdFormatBody() => new()
+    {
+        ["id"] = SampleEmployeeIdFormatId.ToString(),
+        ["prefix"] = "ZEL",
+        ["digit_count"] = 4,
+        ["starting_number"] = 1,
+        ["separator"] = "hyphen",
+        ["auto_generate"] = true,
     };
 
     internal static JsonObject UpdateCompanyLocalizationBody() => new()

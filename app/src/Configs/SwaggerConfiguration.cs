@@ -164,6 +164,18 @@ public static class SwaggerConfiguration
 
                     `currency_id` is validated against the tenant's currencies (`GET /currencies/list`); `time_zone` is validated as a real IANA time zone id. `date_format` / `number_format` / `first_day_of_week` / `year_start_month` are free text for now (no fixed allowed-values list yet).
 
+                    ---
+
+                    ### Employee Settings — ID format
+
+                    One row per org — prefix, digit width, starting number, separator, and whether IDs are auto-generated on employee create.
+
+                    1. **Get** — `GET /api/v1/employee-settings/id-format/get` (always 200; auto-creates defaults on first GET; includes `next_id_preview`)
+                    2. **Create** — `POST /api/v1/employee-settings/id-format/add` (400 if settings already exist)
+                    3. **Update** — `PUT /api/v1/employee-settings/id-format/update` (full replacement; same fields as create plus `id`)
+
+                    `separator`: `hyphen` · `none` · `underscore` · `slash`. When `auto_generate` is false, create flows require `employee_code`.
+
                     Conformance: `docs/MYSTOREGUARD_API_CONFORMANCE.md` · Navigation: `GET /api/v1/navigation`
                     """,
                 Contact = new OpenApiContact { Name = "Deladetech — ZelosHR" },
@@ -206,6 +218,7 @@ public static class SwaggerConfiguration
             options.OperationFilter<SwaggerIdCardTypesOperationFilter>();
             options.OperationFilter<SwaggerCompanyInfoOperationFilter>();
             options.OperationFilter<SwaggerCompanyLocalizationOperationFilter>();
+            options.OperationFilter<SwaggerEmployeeIdFormatOperationFilter>();
             options.OperationFilter<SwaggerCountriesOperationFilter>();
             options.OperationFilter<SwaggerAuditLogsOperationFilter>();
             options.OperationFilter<SwaggerUsersOperationFilter>();

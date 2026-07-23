@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Npgsql;
 using NSubstitute;
+using ZelosHR.Api.Entities.EmployeeIdFormat;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.EmploymentTypes;
 using ZelosHR.Api.Entities.Files;
@@ -27,6 +28,32 @@ public class EmployeeRegistrationTests
     private readonly ITenantContext _tenant = Substitute.For<ITenantContext>();
     private readonly ICurrentUserService _currentUser = Substitute.For<ICurrentUserService>();
     private readonly EmployeeRegistrationService _sut;
+
+    private static EmployeeIdFormatEntity DefaultIdFormat() => new()
+    {
+        Id = Guid.NewGuid(),
+        TenantId = TestDefaults.TenantId,
+        OrgId = TestDefaults.OrgId,
+        Prefix = "ZEL",
+        DigitCount = 4,
+        StartingNumber = 1,
+        Separator = EmployeeIdFormatSeparator.Hyphen,
+        AutoGenerate = true,
+    };
+
+    private static EmployeeCodeGenerationService CreateCodeGen(
+        IEmployeeIdFormatRepository? formats = null,
+        IEmployeeRepository? employees = null)
+    {
+        var formatRepo = formats ?? Substitute.For<IEmployeeIdFormatRepository>();
+        var employeeRepo = employees ?? Substitute.For<IEmployeeRepository>();
+        formatRepo.EnsureStubAsync(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(DefaultIdFormat());
+        employeeRepo.ListEmployeeCodesAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Array.Empty<string>());
+        return new EmployeeCodeGenerationService(formatRepo, employeeRepo);
+    }
 
     public EmployeeRegistrationTests()
     {
@@ -58,6 +85,7 @@ public class EmployeeRegistrationTests
             storageConfig,
             profileUrls,
             employmentTypes,
+            CreateCodeGen(formats: null, employees: _employees),
             _tenant,
             _currentUser);
     }
@@ -99,8 +127,8 @@ public class EmployeeRegistrationTests
     [Fact]
     public async Task CreateDraft_WithFullNameOnly_SavesWithIsDraftTrue()
     {
-        _employees.GetNextEmployeeSequenceAsync(TestDefaults.TenantId, TestDefaults.OrgId, Arg.Any<CancellationToken>())
-            .Returns(7L);
+        _employees.ListEmployeeCodesAsync(TestDefaults.TenantId, Arg.Any<CancellationToken>())
+            .Returns(Array.Empty<string>());
         EmployeeEntity? saved = null;
         _employees.AddAsync(Arg.Any<EmployeeEntity>(), Arg.Any<CancellationToken>())
             .Returns(ci =>
@@ -121,8 +149,8 @@ public class EmployeeRegistrationTests
     [Fact]
     public async Task CreateDraft_GeneratesEmployeeCode_InZelFormat()
     {
-        _employees.GetNextEmployeeSequenceAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(289L);
+        _employees.ListEmployeeCodesAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Enumerable.Range(1, 288).Select(i => $"ZEL-{i:D4}").ToList());
         EmployeeEntity? saved = null;
         _employees.AddAsync(Arg.Any<EmployeeEntity>(), Arg.Any<CancellationToken>())
             .Returns(ci =>
@@ -140,8 +168,8 @@ public class EmployeeRegistrationTests
     [Fact]
     public async Task CreateDraft_WhenEmployeeCodeCollides_RetriesWithNextSequence()
     {
-        _employees.GetNextEmployeeSequenceAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(2L, 3L);
+        _employees.ListEmployeeCodesAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new[] { "ZEL-0001" });
         var collision = new DbUpdateException(
             "duplicate",
             new PostgresException(
