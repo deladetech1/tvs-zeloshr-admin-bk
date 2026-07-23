@@ -39,6 +39,8 @@ public static class PersistenceRegistration
         services.AddScoped<ICompanyProfileRepository, CompanyProfileRepository>();
         services.AddScoped<ICompanyOfficeRepository, CompanyOfficeRepository>();
         services.AddScoped<ICompanyLocalizationRepository, CompanyLocalizationRepository>();
+        services.AddScoped<IEmployeeIdFormatRepository, EmployeeIdFormatRepository>();
+        services.AddScoped<EmployeeCodeGenerationService>();
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
         services.AddScoped<ICpUserRepository, CpUserRepository>();
         services.AddScoped<ICpCurrencyRepository, CpCurrencyRepository>();

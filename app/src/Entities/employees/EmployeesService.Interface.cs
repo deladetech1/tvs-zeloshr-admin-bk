@@ -1,3 +1,4 @@
+using ZelosHR.Api.Entities.EmployeeIdFormat;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Shared.Infrastructure;
 using ZelosHR.Api.Shared.Validation;
@@ -39,11 +40,18 @@ public partial class EmployeesService
         var entity = dto.ToEntity(_tenant.TenantId, _tenant.OrgId, employeeCode: string.Empty);
         entity.GhanaCardNumber = normalized;
 
-        const int maxAttempts = EmployeeCodeAllocation.MaxAttempts;
-        var startSeq = await _employees.GetNextEmployeeSequenceAsync(_tenant.TenantId, _tenant.OrgId, ct);
+        var planned = await _codeGen.PlanAllocationAsync(
+            _tenant.TenantId, _tenant.OrgId, requestedCode: null, actorUserId: null, ct);
+        if (!planned.Success)
+            return Respons<EmployeeReadDto>.ValidationError(planned.Errors!);
+
+        var plan = planned.Plan!;
+        var maxAttempts = plan.UseRetry ? EmployeeIdFormatRules.MaxAttempts : 1;
         for (var attempt = 0; attempt < maxAttempts; attempt++)
         {
-            entity.EmployeeCode = EmployeeCodeAllocation.Format(startSeq, attempt);
+            entity.EmployeeCode = plan.UseRetry
+                ? _codeGen.FormatCode(plan.Format, plan.StartSequence + attempt)
+                : plan.InitialCode;
 
             try
             {

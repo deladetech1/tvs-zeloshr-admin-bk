@@ -260,6 +260,13 @@ public sealed class EmployeeRepository(ZelosHrDbContext db) : IEmployeeRepositor
         return affected > 0;
     }
 
+    public Task<IReadOnlyList<string>> ListEmployeeCodesAsync(
+        string tenantId, CancellationToken ct = default) =>
+        db.Employees.AsNoTracking()
+            .Where(e => e.TenantId == tenantId)
+            .Select(e => e.EmployeeCode)
+            .ToListAsync(ct);
+
     public async Task<long> GetNextEmployeeSequenceAsync(
         string tenantId, string orgId, CancellationToken ct = default)
     {

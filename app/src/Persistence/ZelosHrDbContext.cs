@@ -22,6 +22,7 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
     public DbSet<CompanyProfileEntity> CompanyProfiles => Set<CompanyProfileEntity>();
     public DbSet<CompanyOfficeEntity> CompanyOffices => Set<CompanyOfficeEntity>();
     public DbSet<CompanyLocalizationEntity> CompanyLocalizations => Set<CompanyLocalizationEntity>();
+    public DbSet<EmployeeIdFormatEntity> EmployeeIdFormats => Set<EmployeeIdFormatEntity>();
     public DbSet<AuditLogEntity> AuditLogs => Set<AuditLogEntity>();
     public DbSet<LifecycleEventEntity> LifecycleEvents => Set<LifecycleEventEntity>();
     public DbSet<AttendanceRecordEntity> AttendanceRecords => Set<AttendanceRecordEntity>();
@@ -271,6 +272,18 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
             b.Property(x => x.NumberFormat).HasMaxLength(50).IsRequired();
             b.Property(x => x.FirstDayOfWeek).HasMaxLength(20).IsRequired();
             b.Property(x => x.YearStartMonth).HasMaxLength(20).IsRequired();
+            b.HasIndex(x => new { x.TenantId, x.OrgId }).IsUnique();
+        });
+
+        modelBuilder.Entity<EmployeeIdFormatEntity>(b =>
+        {
+            b.ToTable("zhr_employee_id_format");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.TenantId).HasMaxLength(128).IsRequired();
+            b.Property(x => x.OrgId).HasMaxLength(128).IsRequired();
+            b.Property(x => x.Prefix).HasMaxLength(20).IsRequired();
+            b.Property(x => x.Separator).HasMaxLength(20).IsRequired();
+            b.Property(x => x.AutoGenerate).HasDefaultValue(true);
             b.HasIndex(x => new { x.TenantId, x.OrgId }).IsUnique();
         });
 

@@ -51,6 +51,9 @@ public interface IEmployeeRepository : IRepository<EmployeeEntity, Guid>
         int pageSize,
         CancellationToken ct = default);
 
+    Task<IReadOnlyList<string>> ListEmployeeCodesAsync(
+        string tenantId, CancellationToken ct = default);
+
     Task<long> GetNextEmployeeSequenceAsync(
         string tenantId, string orgId, CancellationToken ct = default);
 

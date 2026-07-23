@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using ZelosHR.Api.Entities.Branches;
 using ZelosHR.Api.Entities.Departments;
+using ZelosHR.Api.Entities.EmployeeIdFormat;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Persistence.Entities;
 using ZelosHR.Api.Shared.Abstractions;
@@ -22,6 +23,7 @@ public partial class EmployeesService : IEmployeesService, IEmployeeLookup
     private readonly IDepartmentRepository _departments;
     private readonly IBranchRepository _branches;
     private readonly ITenantContext _tenant;
+    private readonly EmployeeCodeGenerationService _codeGen;
 
     public EmployeesService(
         ILogger<EmployeesService> logger,
@@ -29,7 +31,8 @@ public partial class EmployeesService : IEmployeesService, IEmployeeLookup
         ICpUserRepository cpUsers,
         IDepartmentRepository departments,
         IBranchRepository branches,
-        ITenantContext tenant)
+        ITenantContext tenant,
+        EmployeeCodeGenerationService codeGen)
     {
         _logger = logger;
         _employees = employees;
@@ -37,6 +40,7 @@ public partial class EmployeesService : IEmployeesService, IEmployeeLookup
         _departments = departments;
         _branches = branches;
         _tenant = tenant;
+        _codeGen = codeGen;
     }
 
     public async Task<Respons<CreateEmployeeServiceReadDto>> CreateEmployeeAsync(
@@ -55,11 +59,17 @@ public partial class EmployeesService : IEmployeesService, IEmployeeLookup
 
         var entity = data.ToEntity(tenantId, orgId, employeeCode: string.Empty);
 
-        const int maxAttempts = EmployeeCodeAllocation.MaxAttempts;
-        var startSeq = await _employees.GetNextEmployeeSequenceAsync(tenantId, orgId, ct);
+        var planned = await _codeGen.PlanAllocationAsync(tenantId, orgId, requestedCode: null, actorUserId: null, ct);
+        if (!planned.Success)
+            return Respons<CreateEmployeeServiceReadDto>.ValidationError(planned.Errors!);
+
+        var plan = planned.Plan!;
+        var maxAttempts = plan.UseRetry ? EmployeeIdFormatRules.MaxAttempts : 1;
         for (var attempt = 0; attempt < maxAttempts; attempt++)
         {
-            var employeeCode = EmployeeCodeAllocation.Format(startSeq, attempt);
+            var employeeCode = plan.UseRetry
+                ? _codeGen.FormatCode(plan.Format, plan.StartSequence + attempt)
+                : plan.InitialCode;
             entity.EmployeeCode = employeeCode;
 
             try
