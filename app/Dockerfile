@@ -8,7 +8,7 @@ COPY app/ZelosHR.Api.csproj app/
 
 RUN if [ -n "$PACKAGES_TOKEN" ]; then \
       dotnet nuget update source github-deladetech1 \
-        --username x-access-token \
+        --username deladetech1 \
         --password "$PACKAGES_TOKEN" \
         --store-password-in-clear-text \
         --configfile nuget.config; \
