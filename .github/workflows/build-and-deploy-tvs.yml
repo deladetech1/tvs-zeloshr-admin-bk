@@ -111,14 +111,14 @@ jobs:
           [[ -z "$CID" ]] && echo "::error::client-id is empty (TROVESUITE_AZURE_CLIENT_ID)" && exit 1
           [[ -z "$TID" ]] && echo "::error::tenant-id is empty (AZURE_TENANT_ID)" && exit 1
           [[ -z "$SID" ]] && echo "::error::subscription-id is empty (TROVESUITE_*_AZURE_SUBSCRIPTION_ID)" && exit 1
-          if [[ -n "$GITHUB_TOKEN" ]]; then
-            echo "Using GITHUB_TOKEN for Trovesuite.Package restore (packages: read)."
-            echo "PACKAGES_TOKEN=$GITHUB_TOKEN" >> "$GITHUB_ENV"
-          elif [[ -n "$PAT" ]]; then
+          if [[ -n "$PAT" ]]; then
             echo "Using PACKAGES_TOKEN for Trovesuite.Package restore."
             echo "PACKAGES_TOKEN=$PAT" >> "$GITHUB_ENV"
+          elif [[ -n "$GITHUB_TOKEN" ]]; then
+            echo "PACKAGES_TOKEN unset — using GITHUB_TOKEN (packages: read)."
+            echo "PACKAGES_TOKEN=$GITHUB_TOKEN" >> "$GITHUB_ENV"
           else
-            echo "::error::No GitHub Packages credential — ensure packages: read on GITHUB_TOKEN or set PACKAGES_TOKEN" && exit 1
+            echo "::error::No GitHub Packages credential — set PACKAGES_TOKEN or ensure packages: read on GITHUB_TOKEN" && exit 1
           fi
           echo "All required deploy inputs are present."
 
@@ -199,7 +199,7 @@ jobs:
         env:
           PAT: ${{ secrets.PACKAGES_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN || secrets.PACKAGES_TOKEN }}
+          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           chmod +x scripts/ci/regression-test.sh scripts/compose.sh scripts/compose/*.sh
           ./scripts/ci/regression-test.sh
