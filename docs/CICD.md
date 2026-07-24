@@ -33,16 +33,7 @@ If a resource is missing, the workflow **still builds and pushes the image to AC
 | `AZURE_TENANT_ID` | Azure AD tenant |
 | `TROVESUITE_DEV_AZURE_SUBSCRIPTION_ID` | `dev` branch deploys |
 | `TROVESUITE_PROD_AZURE_SUBSCRIPTION_ID` | `main` branch deploys |
-| `PACKAGES_TOKEN` | Docker build / CI — restore **Trovesuite.Package** (`read:packages` PAT). CI **prefers `GITHUB_TOKEN`** when `packages: read` is set on the workflow; if restore returns **403**, link this repo to the package (see below) or rotate `PACKAGES_TOKEN`. |
-
-### GitHub Packages — `Trovesuite.Package` access
-
-CI restores `Trovesuite.Package` from `nuget.pkg.github.com/deladetech1`. Workflows use **`GITHUB_TOKEN`** first (`packages: read`). If restore fails with **403 Forbidden**:
-
-1. Org admin → **GitHub Packages** → **Trovesuite.Package** → **Package settings** → **Manage Actions access** → add **`tvs-zeloshr-admin-bk`** (read).
-2. Or set/rotate repo secret **`PACKAGES_TOKEN`** — classic PAT with **`read:packages`** (used when `GITHUB_TOKEN` is unavailable, e.g. some local Docker builds).
-
-Do **not** commit credentials in `nuget.config` — use `nuget.config.example` and inject via `PACKAGES_TOKEN` / CI.
+| `PACKAGES_TOKEN` | Docker build / CI — restore **Trovesuite.Package** (`read:packages` PAT). Required for PR workflow (`ci.yml`) and deploy build. |
 | `TROVESUITE_SECRET_KEY` | Optional — same HS256 value as Core Platform `SECRET_KEY` (≥ 32 chars). When set, deploy workflow syncs **`SECRET_KEY`** on the ZelosHR Container App. Also used to **mint JWTs** for Leave E2E in CI. |
 
 ### Leave E2E (Hurl)

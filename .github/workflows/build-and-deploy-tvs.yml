@@ -97,8 +97,7 @@ jobs:
           CID: ${{ vars.TVS_AZURE_CLIENT_ID }}
           TID: ${{ vars.TVS_TENANT_ID }}
           SID: ${{ steps.env.outputs.subscription_id }}
-          PAT: ${{ secrets.PACKAGES_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PKG: ${{ secrets.PACKAGES_TOKEN }}
         run: |
           echo "branch          = ${{ github.ref_name }}"
           echo "env             = ${{ steps.env.outputs.env }}"
@@ -106,20 +105,12 @@ jobs:
           echo "client-id       length=${#CID}"
           echo "tenant-id       length=${#TID}"
           echo "subscription-id length=${#SID}"
-          echo "packages-pat    length=${#PAT}"
-          echo "github-token    length=${#GITHUB_TOKEN}"
+          echo "packages-token  length=${#PKG}"
           [[ -z "$CID" ]] && echo "::error::client-id is empty (TROVESUITE_AZURE_CLIENT_ID)" && exit 1
           [[ -z "$TID" ]] && echo "::error::tenant-id is empty (AZURE_TENANT_ID)" && exit 1
           [[ -z "$SID" ]] && echo "::error::subscription-id is empty (TROVESUITE_*_AZURE_SUBSCRIPTION_ID)" && exit 1
-          if [[ -n "$PAT" ]]; then
-            echo "Using PACKAGES_TOKEN for Trovesuite.Package restore."
-            echo "PACKAGES_TOKEN=$PAT" >> "$GITHUB_ENV"
-          elif [[ -n "$GITHUB_TOKEN" ]]; then
-            echo "PACKAGES_TOKEN unset — using GITHUB_TOKEN (packages: read)."
-            echo "PACKAGES_TOKEN=$GITHUB_TOKEN" >> "$GITHUB_ENV"
-          else
-            echo "::error::No GitHub Packages credential — set PACKAGES_TOKEN or ensure packages: read on GITHUB_TOKEN" && exit 1
-          fi
+          [[ -z "$PKG" ]] && echo "::error::PACKAGES_TOKEN is empty (org secret — PAT with read:packages for Trovesuite.Package)" && exit 1
+          echo "PACKAGES_TOKEN=$PKG" >> "$GITHUB_ENV"
           echo "All required deploy inputs are present."
 
       - name: OIDC subject (must exist in Azure App Registration)
@@ -197,9 +188,7 @@ jobs:
 
       - name: Run regression suite (Docker Compose)
         env:
-          PAT: ${{ secrets.PACKAGES_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN || secrets.GITHUB_TOKEN }}
+          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
         run: |
           chmod +x scripts/ci/regression-test.sh scripts/compose.sh scripts/compose/*.sh
           ./scripts/ci/regression-test.sh
