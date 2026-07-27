@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using NSubstitute;
 using ZelosHR.Api.Configs;
 using ZelosHR.Api.Entities.EmployeePortal;
+using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Persistence.Entities;
 using ZelosHR.Api.Persistence.Repositories;
 
