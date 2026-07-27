@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Options;
 using ZelosHR.Api.Configs;
+using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Persistence.Entities;
-using ZelosHR.Api.Persistence.Repositories;
 using ZelosHR.Api.Persistence.Repositories;
 
 namespace ZelosHR.Api.Entities.EmployeePortal;
