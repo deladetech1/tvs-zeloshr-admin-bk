@@ -9,6 +9,7 @@ using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Disciplinary;
 using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Documents;
+using ZelosHR.Api.Entities.EmployeeIdFormat;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Leave;
 using ZelosHR.Api.Entities.LifecycleEvents;
