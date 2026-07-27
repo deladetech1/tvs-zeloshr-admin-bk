@@ -1,3 +1,4 @@
+using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Persistence.Entities;
 using ZelosHR.Api.Persistence.Repositories;
 
@@ -91,7 +92,7 @@ public sealed class EmployeeCodeGenerationService
         return (true, trimmed, null);
     }
 
-    internal sealed record CodeAllocationPlan(
+    public sealed record CodeAllocationPlan(
         EmployeeIdFormatEntity Format,
         long StartSequence,
         string InitialCode,
