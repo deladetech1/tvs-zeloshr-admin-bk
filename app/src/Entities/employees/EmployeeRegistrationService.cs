@@ -164,7 +164,7 @@ public sealed class EmployeeRegistrationService
     }
 
     public Task<Respons<EmployeeRegistrationReadDto>> ImportAsync(string userId, CancellationToken ct = default) =>
-        CreateDraftAsync(string.Empty, userId, ct);
+        CreateDraftAsync(string.Empty, userId, employeeCode: null, ct);
 
     public async Task<Respons<ImportEmployeesResult>> ImportManyAsync(
         IReadOnlyList<string> userIds,

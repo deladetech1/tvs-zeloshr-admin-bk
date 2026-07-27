@@ -103,7 +103,7 @@ public sealed class EmployeeAggregateService
             var draft = await _registration.CreateDraftAsync(
                 request.Identity.FullName,
                 existingUserId: null,
-                ct);
+                ct: ct);
             if (!draft.Success || draft.Data is null)
             {
                 await RollbackCreateTransactionAsync(transaction, ct);
