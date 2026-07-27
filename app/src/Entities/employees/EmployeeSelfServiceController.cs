@@ -38,7 +38,7 @@ public class EmployeeSelfServiceController : ControllerBase
     /// Requires a linked <c>zhr_employees.user_id</c> for the authenticated platform user.
     /// </remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
-    [HttpPut("me/update")]
+    [HttpPut("user/update")]
     [ProducesResponseType(typeof(Respons<EmployeeSelfUpdateResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Respons<EmployeeSelfUpdateResultDto>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(Respons<EmployeeSelfUpdateResultDto>), StatusCodes.Status403Forbidden)]
@@ -58,7 +58,7 @@ public class EmployeeSelfServiceController : ControllerBase
     /// Optional <c>status</c> filter: pending · approved · rejected · superseded.
     /// </remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
-    [HttpGet("me/change-requests")]
+    [HttpGet("user/change-requests")]
     [ProducesResponseType(typeof(Respons<IReadOnlyList<ChangeRequestReadDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Respons<IReadOnlyList<ChangeRequestReadDto>>), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(Respons<IReadOnlyList<ChangeRequestReadDto>>), StatusCodes.Status404NotFound)]
@@ -82,7 +82,7 @@ public class EmployeeSelfServiceController : ControllerBase
     /// <summary>Employee-visible field edit policy matrix.</summary>
     /// <remarks>
     /// Each entry is a JSON path (<c>path</c>) and self-service tier (<c>access</c>: free | approval).
-    /// Paths not returned are admin-only and rejected on <c>PUT /employees/me/update</c>.
+    /// Paths not returned are admin-only and rejected on <c>PUT /employees/user/update</c>.
     /// </remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeGet)]
     [HttpGet("field-policy")]

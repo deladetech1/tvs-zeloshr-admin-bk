@@ -153,7 +153,7 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
             return;
         }
 
-        if (method.Equals("PUT", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/employees/me/update", StringComparison.OrdinalIgnoreCase))
+        if (method.Equals("PUT", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/employees/user/update", StringComparison.OrdinalIgnoreCase))
         {
             SetJsonResponseExample(operation, 200, SwaggerExamples.EmployeeSelfUpdateResultResponse());
             SetJsonResponseExample(operation, 400, SwaggerExamples.ValidationErrorEnvelope(
@@ -179,7 +179,7 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
                 """
                 Returns the employee self-service field policy matrix (path + access tier).
 
-                | access | Behaviour on PUT /employees/me/update |
+                | access | Behaviour on PUT /employees/user/update |
                 |--------|----------------------------------------|
                 | free | Applied immediately |
                 | approval | Creates a pending change request for HR review |
@@ -189,7 +189,7 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
             return;
         }
 
-        if (method.Equals("GET", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/employees/me/change-requests", StringComparison.OrdinalIgnoreCase))
+        if (method.Equals("GET", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/employees/user/change-requests", StringComparison.OrdinalIgnoreCase))
         {
             SetJsonResponseExample(operation, 200, SwaggerExamples.ChangeRequestListResponse());
             SetJsonResponseExample(operation, 404, SwaggerExamples.NotFoundEnvelopeForEmployee());

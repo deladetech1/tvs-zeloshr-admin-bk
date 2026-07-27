@@ -521,7 +521,7 @@ public sealed class SwaggerQueryParameterExamplesFilter : IParameterFilter
                 schema.Example = SwaggerExamples.SampleChangeRequestId.ToString();
                 parameter.Description = SwaggerOptionFormat.Append(
                     parameter.Description,
-                    "Change request UUID from GET /change-requests or GET /employees/me/change-requests.");
+                    "Change request UUID from GET /change-requests or GET /employees/user/change-requests.");
                 return;
             }
 

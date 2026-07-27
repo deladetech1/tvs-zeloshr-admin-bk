@@ -72,11 +72,11 @@ public static class SwaggerConfiguration
                     ### Employee self-service & change requests
 
                     1. **Field policy** — `GET /api/v1/employees/field-policy` → `path` + `access` (`free` | `approval`). Paths not listed are admin-only.
-                    2. **Self update** — `PUT /api/v1/employees/me/update` (same JSON shape as admin update)
+                    2. **Self update** — `PUT /api/v1/employees/user/update` (same JSON shape as admin update)
                        · `free` fields → applied immediately (`data.applied[]`)
                        · `approval` fields → pending queue (`data.pending[]` with full change-request rows)
                        · admin-only fields → `data.rejected[]` (no mutation)
-                    3. **My requests** — `GET /api/v1/employees/me/change-requests?status=` (employee linked via `zhr_employees.user_id`)
+                    3. **My requests** — `GET /api/v1/employees/user/change-requests?status=` (employee linked via `zhr_employees.user_id`)
                     4. **HR review queue** — `GET /api/v1/change-requests?status=&employee_id=&page=&size=`
                     5. **Approve** — `POST /api/v1/change-requests/change_request_id/approve` (path UUID) → replays `new_value` through employee update; returns updated employee aggregate
                     6. **Reject** — `POST /api/v1/change-requests/change_request_id/reject` (path UUID; optional body field `review_note`)
@@ -178,6 +178,22 @@ public static class SwaggerConfiguration
 
                     `separator`: `hyphen` · `none` · `underscore` · `slash`. When `auto_generate` is false, create flows require `employee_code`.
 
+                    ---
+
+                    ### Company Settings — Employee portal subdomain
+
+                    One row per org — DNS label for the employee portal (e.g. `btl` → `btl.zeloshr.com`). Stores `tenant_id`, `org_id`, `bus_id`, and `loc_id` for portal bootstrap. No invitation URLs — employees sign in at their company subdomain.
+
+                    1. **List** — `GET /api/v1/company/portal-subdomain/list` (zero or one row)
+                    2. **Get** — `GET /api/v1/company/portal-subdomain/get` (404 when not configured)
+                    3. **Create** — `POST /api/v1/company/portal-subdomain/add` (`subdomain` required; globally unique; 400 if exists)
+                    4. **Update** — `PUT /api/v1/company/portal-subdomain/update` (full replacement; refreshes `bus_id` / `loc_id` from session)
+                    5. **Delete** — `DELETE /api/v1/company/portal-subdomain/delete?id=`
+
+                    **Public bootstrap (no auth):** `GET /api/v1/public/employee-portal/resolve?subdomain=` — returns Trove context for the portal login page.
+
+                    Employee self-service routes use `/employees/user/*` (scoped to the logged-in employee via `zhr_employees.user_id`).
+
                     Conformance: `docs/MYSTOREGUARD_API_CONFORMANCE.md` · Navigation: `GET /api/v1/navigation`
                     """,
                 Contact = new OpenApiContact { Name = "Deladetech — ZelosHR" },
@@ -221,6 +237,7 @@ public static class SwaggerConfiguration
             options.OperationFilter<SwaggerCompanyInfoOperationFilter>();
             options.OperationFilter<SwaggerCompanyLocalizationOperationFilter>();
             options.OperationFilter<SwaggerEmployeeIdFormatOperationFilter>();
+            options.OperationFilter<SwaggerEmployeePortalSubdomainOperationFilter>();
             options.OperationFilter<SwaggerCountriesOperationFilter>();
             options.OperationFilter<SwaggerAuditLogsOperationFilter>();
             options.OperationFilter<SwaggerUsersOperationFilter>();

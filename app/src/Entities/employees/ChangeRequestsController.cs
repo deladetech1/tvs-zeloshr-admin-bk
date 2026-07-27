@@ -10,7 +10,7 @@ namespace ZelosHR.Api.Entities.Employees;
 /// </summary>
 /// <remarks>
 /// Change requests are created when an employee submits an <c>approval</c>-tier field via
-/// <c>PUT /api/v1/employees/me/update</c>. Each row stores <c>field_path</c>, <c>old_value</c>,
+/// <c>PUT /api/v1/employees/user/update</c>. Each row stores <c>field_path</c>, <c>old_value</c>,
 /// and <c>new_value</c> for replay on approve.
 /// </remarks>
 [ApiController]
@@ -62,7 +62,7 @@ public class ChangeRequestsController : ControllerBase
     /// <summary>Rejects a pending change request.</summary>
     /// <remarks>
     /// Sets status to <c>rejected</c>. Optional <c>review_note</c> in the body is stored on the row
-    /// and returned to the employee on <c>GET /employees/me/change-requests</c>.
+    /// and returned to the employee on <c>GET /employees/user/change-requests</c>.
     /// </remarks>
     [RequiresZelosHrPermission(ZelosHrPermissions.EmployeeUpdate)]
     [HttpPost("{changeRequestId:guid}/reject")]

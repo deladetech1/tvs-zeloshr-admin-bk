@@ -160,7 +160,8 @@ public sealed class TroveRequestHeadersMiddleware
 
     private static bool RequiresStandardHeaders(PathString path) =>
         path.StartsWithSegments("/api/v1")
-        && !path.StartsWithSegments("/api/v1/health");
+        && !path.StartsWithSegments("/api/v1/health")
+        && !path.StartsWithSegments("/api/v1/public");
 
     private static void PopulateFromHeaders(HttpContext context)
     {

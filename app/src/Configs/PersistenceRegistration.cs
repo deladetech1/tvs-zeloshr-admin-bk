@@ -10,6 +10,7 @@ using ZelosHR.Api.Entities.Disciplinary;
 using ZelosHR.Api.Entities.CustomFields;
 using ZelosHR.Api.Entities.Documents;
 using ZelosHR.Api.Entities.EmployeeIdFormat;
+using ZelosHR.Api.Entities.EmployeePortal;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Leave;
 using ZelosHR.Api.Entities.LifecycleEvents;
@@ -41,6 +42,7 @@ public static class PersistenceRegistration
         services.AddScoped<ICompanyOfficeRepository, CompanyOfficeRepository>();
         services.AddScoped<ICompanyLocalizationRepository, CompanyLocalizationRepository>();
         services.AddScoped<IEmployeeIdFormatRepository, EmployeeIdFormatRepository>();
+        services.AddScoped<IEmployeePortalSubdomainRepository, EmployeePortalSubdomainRepository>();
         services.AddScoped<EmployeeCodeGenerationService>();
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
         services.AddScoped<ICpUserRepository, CpUserRepository>();

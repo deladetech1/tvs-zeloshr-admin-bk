@@ -10,6 +10,7 @@ using ZelosHR.Api.Entities.Departments;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Employees.Authorization;
 using ZelosHR.Api.Entities.EmployeeIdFormat;
+using ZelosHR.Api.Entities.EmployeePortal;
 using ZelosHR.Api.Entities.EmploymentTypes;
 using ZelosHR.Api.Entities.Files;
 using ZelosHR.Api.Entities.IdCardTypes;
@@ -50,6 +51,7 @@ internal static class SwaggerExamples
     internal static readonly Guid SampleOfficeId2 = Guid.Parse("b1000001-0000-4000-8000-000000000002");
     internal static readonly Guid SampleCompanyLocalizationId = Guid.Parse("c1000001-0000-4000-8000-000000000001");
     internal static readonly Guid SampleEmployeeIdFormatId = Guid.Parse("d1000001-0000-4000-8000-000000000001");
+    internal static readonly Guid SampleEmployeePortalSubdomainId = Guid.Parse("d1000002-0000-4000-8000-000000000002");
 
     internal const string SampleCurrencyId = "cur_ghs_default";
     internal const string SampleCountryId = "ctr_gh";
@@ -293,6 +295,11 @@ internal static class SwaggerExamples
             nameof(CompanyLocalizationReadDto) => EnvelopeOk(CompanyLocalizationData()),
             nameof(EmployeeIdFormatReadDto) => EnvelopeOk(EmployeeIdFormatData()),
             nameof(EmployeeIdFormatListDto) => EmployeeIdFormatListResponse(),
+            nameof(EmployeePortalSubdomainReadDto) => EnvelopeOk(EmployeePortalSubdomainData()),
+            nameof(EmployeePortalSubdomainListDto) => EmployeePortalSubdomainListResponse(),
+            nameof(EmployeePortalResolveDto) => EnvelopeOk(EmployeePortalResolveData()),
+            nameof(CreateEmployeePortalSubdomainDto) => CreateEmployeePortalSubdomainBody(),
+            nameof(UpdateEmployeePortalSubdomainDto) => UpdateEmployeePortalSubdomainBody(),
             nameof(PublicHolidayListDto) => LeaveHolidayListResponse(),
             nameof(PublicHolidayListItemDto) => EnvelopeOk(PublicHolidayItemData()),
             nameof(GetCountrySimpleReadDto) => EnvelopeOk(CountryItem()),
@@ -2868,6 +2875,53 @@ internal static class SwaggerExamples
         ["starting_number"] = 1,
         ["separator"] = "hyphen",
         ["auto_generate"] = true,
+    };
+
+    internal static JsonObject EmployeePortalSubdomainGetResponse() => EnvelopeOk(EmployeePortalSubdomainData());
+
+    internal static JsonObject EmployeePortalSubdomainListResponse() => EnvelopeOk(new JsonObject
+    {
+        ["items"] = new JsonArray(EmployeePortalSubdomainData()),
+    });
+
+    internal static JsonObject EmployeePortalResolveResponse() => EnvelopeOk(EmployeePortalResolveData());
+
+    internal static JsonObject EmployeePortalSubdomainData()
+    {
+        var data = new JsonObject
+        {
+            ["id"] = SampleEmployeePortalSubdomainId.ToString(),
+            ["subdomain"] = "btl",
+            ["portal_url"] = "btl.zeloshr.com",
+            ["tenant_id"] = "tenant_demo",
+            ["org_id"] = "org_demo",
+            ["bus_id"] = "bus_demo",
+            ["loc_id"] = "loc_demo",
+        };
+        AppendResourceAuditFields(data);
+        return data;
+    }
+
+    internal static JsonObject EmployeePortalResolveData() => new()
+    {
+        ["subdomain"] = "btl",
+        ["portal_url"] = "btl.zeloshr.com",
+        ["tenant_id"] = "tenant_demo",
+        ["org_id"] = "org_demo",
+        ["bus_id"] = "bus_demo",
+        ["loc_id"] = "loc_demo",
+        ["app_id"] = "app-zeloshr",
+    };
+
+    internal static JsonObject CreateEmployeePortalSubdomainBody() => new()
+    {
+        ["subdomain"] = "btl",
+    };
+
+    internal static JsonObject UpdateEmployeePortalSubdomainBody() => new()
+    {
+        ["id"] = SampleEmployeePortalSubdomainId.ToString(),
+        ["subdomain"] = "btl",
     };
 
     internal static JsonObject UpdateCompanyLocalizationBody() => new()
