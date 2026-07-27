@@ -372,7 +372,7 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
         }
 
         if (method.Equals("PUT", StringComparison.OrdinalIgnoreCase)
-            && path.Equals("api/v1/employees/me/update", StringComparison.OrdinalIgnoreCase))
+            && path.Equals("api/v1/employees/user/update", StringComparison.OrdinalIgnoreCase))
         {
             return new Dictionary<string, IOpenApiExample>
             {
@@ -410,7 +410,7 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
                 ["reject_with_note"] = Example(
                     SwaggerExamples.RejectChangeRequestBody(),
                     "Reject with review note",
-                    "Optional review_note is stored on the change request and visible to the employee on GET /employees/me/change-requests."),
+                    "Optional review_note is stored on the change request and visible to the employee on GET /employees/user/change-requests."),
                 ["reject_without_note"] = Example(
                     new JsonObject(),
                     "Reject without note",

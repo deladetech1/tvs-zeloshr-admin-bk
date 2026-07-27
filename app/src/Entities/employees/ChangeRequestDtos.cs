@@ -61,7 +61,7 @@ public sealed class ChangeRequestReadDto
     public string? UpdatedBy { get; init; }
 }
 
-/// <summary>Result of PUT /employees/me/update — immediate applies plus queued approvals.</summary>
+/// <summary>Result of PUT /employees/user/update — immediate applies plus queued approvals.</summary>
 public sealed class EmployeeSelfUpdateResultDto
 {
     /// <summary>Employee aggregate after free-tier fields were applied (unchanged when only approval fields were sent).</summary>

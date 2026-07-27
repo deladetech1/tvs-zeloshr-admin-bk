@@ -8,6 +8,7 @@ using ZelosHR.Api.Entities.Branches;
 using ZelosHR.Api.Entities.CompanyInfo;
 using ZelosHR.Api.Entities.CompanyLocalization;
 using ZelosHR.Api.Entities.EmployeeIdFormat;
+using ZelosHR.Api.Entities.EmployeePortal;
 using ZelosHR.Api.Entities.Countries;
 using ZelosHR.Api.Entities.Currencies;
 using ZelosHR.Api.Entities.CustomFields;
@@ -194,6 +195,11 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(EmployeeIdFormatListDto) => SwaggerExamples.EmployeeIdFormatListResponse()["data"]!,
             nameof(CreateEmployeeIdFormatDto) => SwaggerExamples.CreateEmployeeIdFormatBody(),
             nameof(UpdateEmployeeIdFormatDto) => SwaggerExamples.UpdateEmployeeIdFormatBody(),
+            nameof(EmployeePortalSubdomainReadDto) => SwaggerExamples.EmployeePortalSubdomainData(),
+            nameof(EmployeePortalSubdomainListDto) => SwaggerExamples.EmployeePortalSubdomainListResponse()["data"]!,
+            nameof(EmployeePortalResolveDto) => SwaggerExamples.EmployeePortalResolveData(),
+            nameof(CreateEmployeePortalSubdomainDto) => SwaggerExamples.CreateEmployeePortalSubdomainBody(),
+            nameof(UpdateEmployeePortalSubdomainDto) => SwaggerExamples.UpdateEmployeePortalSubdomainBody(),
             nameof(EmploymentTypeListQuery) => new JsonObject
             {
                 ["search"] = "",
@@ -754,7 +760,7 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             case nameof(FieldPolicyEntryDto.Path):
                 schema.Example = JsonValue.Create("identity.full_name");
                 schema.Description = AppendDescription(schema.Description,
-                    "JSON path employees may edit via PUT /employees/me/update.");
+                    "JSON path employees may edit via PUT /employees/user/update.");
                 return;
             case nameof(FieldPolicyEntryDto.Access):
                 schema.Example = JsonValue.Create("approval");

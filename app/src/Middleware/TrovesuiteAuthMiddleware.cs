@@ -19,6 +19,7 @@ public class TrovesuiteAuthMiddleware
     [
         new("/health"),
         new("/swagger"),
+        new("/api/v1/public"),
         new("/"),
     ];
 

@@ -242,13 +242,13 @@ Returns `text/csv` with columns aligned to bulk import plus `employee_id`, `empl
 | Action | Endpoint |
 |--------|----------|
 | Field policy | `GET /employees/field-policy` → `path` + `access` (`free` \| `approval`) |
-| Self update | `PUT /employees/me/update` — same JSON shape as admin update |
-| My queue | `GET /employees/me/change-requests?status=` |
+| Self update | `PUT /employees/user/update` — same JSON shape as admin update |
+| My queue | `GET /employees/user/change-requests?status=` |
 | HR review queue | `GET /change-requests?status=&employee_id=&page=&size=` |
 | Approve | `POST /change-requests/{change_request_id}/approve` |
 | Reject | `POST /change-requests/{change_request_id}/reject` — optional `{ "review_note": "…" }` |
 
-**Self-update result** (`PUT /employees/me/update`):
+**Self-update result** (`PUT /employees/user/update`):
 
 | Field | Meaning |
 |-------|---------|

@@ -17,6 +17,7 @@ public static class SwaggerGroups
         Leave,
         Countries,
         CompanySettings,
+        EmployeePortal,
     };
 
     public static bool IsVisibleInSwagger(string? groupName) =>
@@ -36,6 +37,7 @@ public static class SwaggerGroups
     public const string Leave = "Leave";
     public const string Countries = "Countries";
     public const string CompanySettings = "Company Settings";
+    public const string EmployeePortal = "Employee Portal";
     public const string Recruitment = "Recruitment";
     public const string Onboarding = "Onboarding";
     public const string Performance = "Performance";
