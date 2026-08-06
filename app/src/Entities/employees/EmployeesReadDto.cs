@@ -25,6 +25,8 @@ public sealed class CreateEmployeeServiceReadDto
 {
     public required Guid Id { get; init; }
     public required string EmployeeCode { get; init; }
+    public required string EmployeeCodeSystem { get; init; }
+    public string? EmployeeCodeCustom { get; init; }
     public required string FirstName { get; init; }
     public string? MiddleName { get; init; }
     public required string LastName { get; init; }

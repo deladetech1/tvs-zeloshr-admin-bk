@@ -43,7 +43,7 @@ public sealed class EmployeeDirectoryRepository(ZelosHrDbContext db) : IEmployee
             .Take(size)
             .Select(e => new EmployeeDirectoryListRow(
                 e.Id,
-                e.EmployeeCode,
+                e.EmployeeCodeCustom ?? e.EmployeeCodeSystem,
                 e.UserId,
                 e.FullName,
                 e.FirstName,

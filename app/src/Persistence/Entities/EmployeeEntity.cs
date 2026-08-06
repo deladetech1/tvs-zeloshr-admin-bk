@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using ZelosHR.Api.Entities.Employees;
 
 namespace ZelosHR.Api.Persistence.Entities;
@@ -6,7 +7,17 @@ namespace ZelosHR.Api.Persistence.Entities;
 public sealed class EmployeeEntity
 {
     public Guid Id { get; set; }
-    public string EmployeeCode { get; set; } = default!;
+    public string EmployeeCodeSystem { get; set; } = default!;
+    public string? EmployeeCodeCustom { get; set; }
+
+    /// <summary>Display code: custom when set, otherwise system-generated.</summary>
+    [NotMapped]
+    public string EmployeeCode
+    {
+        get => EmployeeCodeResolver.Display(EmployeeCodeSystem, EmployeeCodeCustom);
+        set => EmployeeCodeSystem = value.Trim();
+    }
+
     public string TenantId { get; set; } = default!;
     public string OrgId { get; set; } = default!;
     public string? UserId { get; set; }

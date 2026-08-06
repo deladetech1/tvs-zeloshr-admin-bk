@@ -11,9 +11,10 @@ internal static class EmployeeEntityInsertDefaults
     /// <summary>Columns with NOT NULL in tvs-sqlscript (no nullable employment/org fields).</summary>
     internal static void EnsureRequiredColumns(EmployeeEntity entity)
     {
-        entity.EmployeeCode = string.IsNullOrWhiteSpace(entity.EmployeeCode)
-            ? throw new InvalidOperationException("EmployeeCode must be set before insert.")
-            : entity.EmployeeCode.Trim();
+        entity.EmployeeCodeSystem = string.IsNullOrWhiteSpace(entity.EmployeeCodeSystem)
+            ? throw new InvalidOperationException("EmployeeCodeSystem must be set before insert.")
+            : entity.EmployeeCodeSystem.Trim();
+        entity.EmployeeCodeCustom = EmployeeCodeResolver.NormalizeCustom(entity.EmployeeCodeCustom);
 
         entity.TenantId = string.IsNullOrWhiteSpace(entity.TenantId)
             ? throw new InvalidOperationException("TenantId must be set before insert.")

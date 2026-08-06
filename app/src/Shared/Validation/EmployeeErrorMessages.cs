@@ -7,6 +7,9 @@ public static class EmployeeErrorMessages
         "We could not assign a new employee number (for example ZEL-0005). "
         + "Wait a few seconds and submit again. If this keeps happening, contact support.";
 
+    public const string EmployeeCustomCodeAlreadyExists =
+        "This employee_code_custom is already assigned to another employee in your organisation.";
+
     public const string WorkEmailUsedByAnotherOrganisation =
         "This work email is already used by someone in another organisation. "
         + "Use a different work email, or ask your administrator for help.";

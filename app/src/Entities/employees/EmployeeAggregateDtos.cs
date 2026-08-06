@@ -147,6 +147,10 @@ public sealed class EmployeeAggregateIdentityDto
     /// <summary>Display name. Required on create.</summary>
     public string FullName { get; init; } = string.Empty;
 
+    /// <summary>Optional admin-provided code. System code is always allocated separately.</summary>
+    [JsonPropertyName("employee_code_custom")]
+    public string? EmployeeCodeCustom { get; init; }
+
     public DateOnly? DateOfBirth { get; init; }
 
     [SwaggerAllowedValues(typeof(EmployeeFieldOptions), nameof(EmployeeFieldOptions.Genders))]
@@ -301,7 +305,12 @@ public class EmployeeAggregateCompensationDto
 public sealed class EmployeeAggregateReadDto
 {
     public required Guid Id { get; init; }
+
+    /// <summary>Display code: <c>employee_code_custom ?? employee_code_system</c>.</summary>
     public required string EmployeeCode { get; init; }
+
+    public required string EmployeeCodeSystem { get; init; }
+    public string? EmployeeCodeCustom { get; init; }
     public string? UserId { get; init; }
     public EmployeeAggregateIdentityReadDto Identity { get; init; } = new();
     public EmployeeAggregateEmploymentReadDto? Employment { get; init; }

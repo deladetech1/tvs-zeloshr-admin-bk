@@ -116,14 +116,15 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
             var term = $"%{query.Search.Trim()}%";
             employeeQuery = employeeQuery.Where(e =>
                 EF.Functions.ILike(e.FullName, term)
-                || EF.Functions.ILike(e.EmployeeCode, term)
+                || EF.Functions.ILike(e.EmployeeCodeSystem, term)
+                || (e.EmployeeCodeCustom != null && EF.Functions.ILike(e.EmployeeCodeCustom, term))
                 || (e.JobTitle != null && EF.Functions.ILike(e.JobTitle, term)));
         }
 
         var total = await employeeQuery.CountAsync(ct);
         var employeeIds = await employeeQuery
             .OrderBy(e => e.FullName)
-            .ThenBy(e => e.EmployeeCode)
+            .ThenBy(e => e.EmployeeCodeCustom ?? e.EmployeeCodeSystem)
             .Skip((query.Page - 1) * query.Size)
             .Take(query.Size)
             .Select(e => e.Id)
@@ -851,7 +852,8 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
             var codeTerm = $"%{queryParams.EmployeeCode.Trim()}%";
             var codeEmployeeIds = db.Employees.AsNoTracking()
                 .Where(e => e.TenantId == tenantId && e.OrgId == orgId && !e.IsDeleted)
-                .Where(e => EF.Functions.ILike(e.EmployeeCode, codeTerm))
+                .Where(e => EF.Functions.ILike(e.EmployeeCodeSystem, codeTerm)
+                    || (e.EmployeeCodeCustom != null && EF.Functions.ILike(e.EmployeeCodeCustom, codeTerm)))
                 .Select(e => e.Id);
             query = query.Where(r => codeEmployeeIds.Contains(r.EmployeeId));
         }
@@ -863,7 +865,8 @@ public sealed class LeaveRepository(ZelosHrDbContext db) : ILeaveRepository
                 .Where(e => e.TenantId == tenantId && e.OrgId == orgId && !e.IsDeleted)
                 .Where(e =>
                     EF.Functions.ILike(e.FullName, term)
-                    || EF.Functions.ILike(e.EmployeeCode, term)
+                    || EF.Functions.ILike(e.EmployeeCodeSystem, term)
+                || (e.EmployeeCodeCustom != null && EF.Functions.ILike(e.EmployeeCodeCustom, term))
                     || (e.JobTitle != null && EF.Functions.ILike(e.JobTitle, term)))
                 .Select(e => e.Id);
 

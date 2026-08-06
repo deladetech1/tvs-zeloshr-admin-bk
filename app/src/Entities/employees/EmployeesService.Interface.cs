@@ -37,33 +37,40 @@ public partial class EmployeesService
         if (await _employees.ExistsByGhanaCardAsync(normalized, _tenant.TenantId, ct: ct))
             return Respons<EmployeeReadDto>.Fail(DuplicateGhanaCardMessage, statusCode: 409);
 
-        var entity = dto.ToEntity(_tenant.TenantId, _tenant.OrgId, employeeCode: string.Empty);
+        var entity = dto.ToEntity(_tenant.TenantId, _tenant.OrgId);
         entity.GhanaCardNumber = normalized;
 
-        var planned = await _codeGen.PlanAllocationAsync(
-            _tenant.TenantId, _tenant.OrgId, requestedCode: null, ct);
+        var planned = await _codeGen.PlanCreateAsync(
+            _tenant.TenantId, _tenant.OrgId, dto.EmployeeCodeCustom, ct);
         if (!planned.Success)
             return Respons<EmployeeReadDto>.ValidationError(planned.Errors!);
 
         var plan = planned.Plan!;
-        var maxAttempts = plan.UseRetry ? EmployeeIdFormatRules.MaxAttempts : 1;
+        var maxAttempts = EmployeeIdFormatRules.MaxAttempts;
         for (var attempt = 0; attempt < maxAttempts; attempt++)
         {
-            entity.EmployeeCode = plan.UseRetry
-                ? _codeGen.FormatCode(plan.Format, plan.StartSequence + attempt)
-                : plan.InitialCode;
+            _codeGen.ApplyToEntity(entity, plan, attempt);
 
             try
             {
                 await _employees.AddAsync(entity, ct);
-                _logger.LogInformation("Created employee {EmployeeId} code={EmployeeCode}", entity.Id, entity.EmployeeCode);
+                _logger.LogInformation(
+                    "Created employee {EmployeeId} code={EmployeeCode} system={EmployeeCodeSystem}",
+                    entity.Id,
+                    entity.EmployeeCode,
+                    entity.EmployeeCodeSystem);
                 return Respons<EmployeeReadDto>.Ok(entity.ToReadDto(), "Employee created.", statusCode: 201);
             }
             catch (Microsoft.EntityFrameworkCore.DbUpdateException ex) when (PostgresUniqueViolation.IsGhanaCard(ex))
             {
                 return Respons<EmployeeReadDto>.Fail(DuplicateGhanaCardMessage, statusCode: 409);
             }
-            catch (Microsoft.EntityFrameworkCore.DbUpdateException ex) when (PostgresUniqueViolation.IsEmployeeCode(ex))
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException ex) when (PostgresUniqueViolation.IsEmployeeCustomCode(ex))
+            {
+                return Respons<EmployeeReadDto>.Fail(
+                    EmployeeErrorMessages.EmployeeCustomCodeAlreadyExists, statusCode: 409);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException ex) when (PostgresUniqueViolation.IsEmployeeSystemCode(ex))
             {
                 if (attempt == maxAttempts - 1)
                 {

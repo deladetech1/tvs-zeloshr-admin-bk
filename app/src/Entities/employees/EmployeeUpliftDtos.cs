@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace ZelosHR.Api.Entities.Employees;
 
 /// <summary>Standard read model for uplift CRUD and tests.</summary>
@@ -5,6 +7,8 @@ public sealed class EmployeeReadDto
 {
     public Guid Id { get; init; }
     public string EmployeeCode { get; init; } = default!;
+    public string EmployeeCodeSystem { get; init; } = default!;
+    public string? EmployeeCodeCustom { get; init; }
     public string FirstName { get; init; } = default!;
     public string? MiddleName { get; init; }
     public string LastName { get; init; } = default!;
@@ -30,6 +34,9 @@ public sealed class EmployeeWriteDto
     public string FirstName { get; init; } = default!;
     public string LastName { get; init; } = default!;
     public string? MiddleName { get; init; }
+
+    [JsonPropertyName("employee_code_custom")]
+    public string? EmployeeCodeCustom { get; init; }
     public string? GhanaCardNumber { get; init; }
     public string? Email { get; init; }
     public string? Phone { get; init; }

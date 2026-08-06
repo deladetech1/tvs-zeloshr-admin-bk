@@ -113,7 +113,8 @@ public sealed class EmployeeRepository(ZelosHrDbContext db) : IEmployeeRepositor
             query = query.Where(e =>
                 EF.Functions.ILike(e.FirstName, pattern)
                 || EF.Functions.ILike(e.LastName, pattern)
-                || EF.Functions.ILike(e.EmployeeCode, pattern));
+                || EF.Functions.ILike(e.EmployeeCodeSystem, pattern)
+                || (e.EmployeeCodeCustom != null && EF.Functions.ILike(e.EmployeeCodeCustom, pattern)));
         }
 
         if (departmentId.HasValue)
@@ -260,11 +261,11 @@ public sealed class EmployeeRepository(ZelosHrDbContext db) : IEmployeeRepositor
         return affected > 0;
     }
 
-    public async Task<IReadOnlyList<string>> ListEmployeeCodesAsync(
+    public async Task<IReadOnlyList<string>> ListEmployeeSystemCodesAsync(
         string tenantId, CancellationToken ct = default) =>
         await db.Employees.AsNoTracking()
             .Where(e => e.TenantId == tenantId)
-            .Select(e => e.EmployeeCode)
+            .Select(e => e.EmployeeCodeSystem)
             .ToListAsync(ct);
 
     public async Task<long> GetNextEmployeeSequenceAsync(
@@ -272,7 +273,7 @@ public sealed class EmployeeRepository(ZelosHrDbContext db) : IEmployeeRepositor
     {
         var codes = await db.Employees.AsNoTracking()
             .Where(e => e.TenantId == tenantId)
-            .Select(e => e.EmployeeCode)
+            .Select(e => e.EmployeeCodeSystem)
             .ToListAsync(ct);
 
         long max = 0;
@@ -308,7 +309,7 @@ public sealed class EmployeeRepository(ZelosHrDbContext db) : IEmployeeRepositor
                 e.Id,
                 e.UserId,
                 e.FullName,
-                e.EmployeeCode,
+                EmployeeCodeResolver.Display(e.EmployeeCodeSystem, e.EmployeeCodeCustom),
                 e.JobTitle,
                 e.DepartmentId,
                 e.Department?.Name,

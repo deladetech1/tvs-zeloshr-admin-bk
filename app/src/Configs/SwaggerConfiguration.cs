@@ -176,7 +176,7 @@ public static class SwaggerConfiguration
                     4. **Update** — `PUT /api/v1/company/id-format/update` (full replacement; same fields as create plus `id`)
                     5. **Delete** — `DELETE /api/v1/company/id-format/delete?id=` (`id` must match GET /get)
 
-                    `separator`: `hyphen` · `none` · `underscore` · `slash`. When `auto_generate` is false, create flows require `employee_code`.
+                    `separator`: `hyphen` · `none` · `underscore` · `slash`. Every create allocates `employee_code_system` from this format. Optional `employee_code_custom` on create when the admin has their own numbering; when `auto_generate` is false, `employee_code_custom` is required.
 
                     ---
 

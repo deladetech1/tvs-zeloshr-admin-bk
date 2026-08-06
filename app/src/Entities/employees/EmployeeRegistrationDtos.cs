@@ -55,7 +55,12 @@ public sealed record CreateEmployeeRequest
 public sealed record EmployeeRegistrationReadDto
 {
     public required Guid Id { get; init; }
+
+    /// <summary>Display code: <c>employee_code_custom ?? employee_code_system</c>.</summary>
     public required string EmployeeCode { get; init; }
+
+    public required string EmployeeCodeSystem { get; init; }
+    public string? EmployeeCodeCustom { get; init; }
     public required string FullName { get; init; }
     public string? UserId { get; init; }
     public bool IsDraft { get; init; }
@@ -101,4 +106,8 @@ public sealed record CreateDraftRequest
 
     /// <summary>Import an existing <c>cp_users</c> row instead of creating one on finalise.</summary>
     public string? ExistingUserId { get; init; }
+
+    /// <summary>Optional admin code. <c>employee_code_system</c> is always generated from org ID format.</summary>
+    [JsonPropertyName("employee_code_custom")]
+    public string? EmployeeCodeCustom { get; init; }
 }

@@ -535,6 +535,8 @@ internal static class SwaggerExamples
     {
         ["id"] = SampleEmployeeId.ToString(),
         ["employee_code"] = "EMP-000042",
+        ["employee_code_system"] = "ZEL-0042",
+        ["employee_code_custom"] = "EMP-000042",
         ["full_name"] = "Ada Lovelace",
         ["user_id"] = "usr_cp_abc123",
         ["is_draft"] = true,
@@ -1150,6 +1152,7 @@ internal static class SwaggerExamples
         {
             ["full_name"] = "Ada Lovelace",
             ["phone"] = "+233201234567",
+            ["employee_code_custom"] = "HR-0042",
         },
         ["education"] = new JsonArray(),
         ["certifications"] = new JsonArray(),
@@ -1349,6 +1352,8 @@ internal static class SwaggerExamples
             {
                 ["id"] = SampleEmployeeId.ToString(),
                 ["employee_code"] = "EMP-000042",
+                ["employee_code_system"] = "ZEL-0042",
+                ["employee_code_custom"] = "EMP-000042",
                 ["user_id"] = "usr_cp_abc123",
                 ["identity"] = IdentitySection(withCustomField: true, forRead: true, withExtendedIdentity: true),
                 ["employment"] = EmploymentSection(withNames: true),
