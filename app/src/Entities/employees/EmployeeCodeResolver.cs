@@ -6,8 +6,13 @@ namespace ZelosHR.Api.Entities.Employees;
 /// </summary>
 internal static class EmployeeCodeResolver
 {
-    internal static string Display(string system, string? custom) =>
-        !string.IsNullOrWhiteSpace(custom) ? custom.Trim() : system.Trim();
+    internal static string Display(string? system, string? custom)
+    {
+        if (!string.IsNullOrWhiteSpace(custom))
+            return custom.Trim();
+
+        return string.IsNullOrWhiteSpace(system) ? string.Empty : system.Trim();
+    }
 
     internal static string? NormalizeCustom(string? custom) =>
         string.IsNullOrWhiteSpace(custom) ? null : custom.Trim();
