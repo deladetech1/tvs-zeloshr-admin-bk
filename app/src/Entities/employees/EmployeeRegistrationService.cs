@@ -841,7 +841,7 @@ public sealed class EmployeeRegistrationService
         {
             Id = e.Id,
             EmployeeCode = e.EmployeeCode,
-            EmployeeCodeSystem = e.EmployeeCodeSystem,
+            EmployeeCodeSystem = e.EmployeeCodeSystem ?? string.Empty,
             EmployeeCodeCustom = e.EmployeeCodeCustom,
             FullName = EmployeeIdentityResolver.ResolveFullName(e, cp),
             UserId = e.UserId,
