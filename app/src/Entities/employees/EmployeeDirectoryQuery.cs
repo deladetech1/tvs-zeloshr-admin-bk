@@ -116,7 +116,8 @@ public static class EmployeeDirectoryQueryBuilder
                     e.last_name ILIKE @Search OR
                     e.middle_name ILIKE @Search OR
                     COALESCE(e.full_name, '') ILIKE @Search OR
-                    e.employee_code ILIKE @Search OR
+                    e.employee_code_system ILIKE @Search OR
+                    COALESCE(e.employee_code_custom, '') ILIKE @Search OR
                     COALESCE(e.job_title, '') ILIKE @Search OR
                     COALESCE(e.work_email, '') ILIKE @Search OR
                     COALESCE(e.personal_email, '') ILIKE @Search OR
@@ -193,7 +194,7 @@ public static class EmployeeDirectoryQueryBuilder
 
         var column = sortBy?.Trim().ToLowerInvariant() switch
         {
-            "employeecode" or "employeeid" or "id" => "e.employee_code",
+            "employeecode" or "employeeid" or "id" => "COALESCE(NULLIF(e.employee_code_custom, ''), e.employee_code_system)",
             "department" => "d.name",
             "status" => "e.employment_status",
             "employmenttype" or "type" => "e.employment_type",
@@ -319,7 +320,8 @@ public static class EmployeeDirectoryQueryBuilder
                 || (e.FirstName != null && EF.Functions.ILike(e.FirstName, pattern))
                 || (e.LastName != null && EF.Functions.ILike(e.LastName, pattern))
                 || (e.MiddleName != null && EF.Functions.ILike(e.MiddleName, pattern))
-                || EF.Functions.ILike(e.EmployeeCode, pattern)
+                || EF.Functions.ILike(e.EmployeeCodeSystem, pattern)
+                || (e.EmployeeCodeCustom != null && EF.Functions.ILike(e.EmployeeCodeCustom, pattern))
                 || (e.JobTitle != null && EF.Functions.ILike(e.JobTitle, pattern))
                 || (e.WorkEmail != null && EF.Functions.ILike(e.WorkEmail, pattern))
                 || (e.PersonalEmail != null && EF.Functions.ILike(e.PersonalEmail, pattern))
@@ -336,7 +338,8 @@ public static class EmployeeDirectoryQueryBuilder
             || (e.FirstName != null && EF.Functions.ILike(e.FirstName, pattern))
             || (e.LastName != null && EF.Functions.ILike(e.LastName, pattern))
             || (e.MiddleName != null && EF.Functions.ILike(e.MiddleName, pattern))
-            || EF.Functions.ILike(e.EmployeeCode, pattern)
+            || EF.Functions.ILike(e.EmployeeCodeSystem, pattern)
+            || (e.EmployeeCodeCustom != null && EF.Functions.ILike(e.EmployeeCodeCustom, pattern))
             || (e.JobTitle != null && EF.Functions.ILike(e.JobTitle, pattern))
             || (e.WorkEmail != null && EF.Functions.ILike(e.WorkEmail, pattern))
             || (e.PersonalEmail != null && EF.Functions.ILike(e.PersonalEmail, pattern))
@@ -626,8 +629,8 @@ public static class EmployeeDirectoryQueryBuilder
         return key switch
         {
             "employeecode" or "employeeid" or "id" => desc
-                ? query.OrderByDescending(e => e.EmployeeCode)
-                : query.OrderBy(e => e.EmployeeCode),
+                ? query.OrderByDescending(e => e.EmployeeCodeCustom ?? e.EmployeeCodeSystem)
+                : query.OrderBy(e => e.EmployeeCodeCustom ?? e.EmployeeCodeSystem),
             "department" => desc
                 ? query.OrderByDescending(e => e.Department!.Name)
                 : query.OrderBy(e => e.Department!.Name),

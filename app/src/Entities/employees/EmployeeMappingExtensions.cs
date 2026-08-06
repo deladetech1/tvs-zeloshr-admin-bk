@@ -9,6 +9,8 @@ internal static class EmployeeMappingExtensions
     {
         Id = entity.Id,
         EmployeeCode = entity.EmployeeCode,
+        EmployeeCodeSystem = entity.EmployeeCodeSystem,
+        EmployeeCodeCustom = entity.EmployeeCodeCustom,
         FirstName = entity.FirstName,
         MiddleName = entity.MiddleName,
         LastName = entity.LastName,
@@ -30,11 +32,10 @@ internal static class EmployeeMappingExtensions
     };
 
     public static EmployeeEntity ToEntity(
-        this CreateEmployeeServiceWriteDto dto, string tenantId, string orgId, string employeeCode) =>
+        this CreateEmployeeServiceWriteDto dto, string tenantId, string orgId) =>
         new()
         {
             Id = Guid.NewGuid(),
-            EmployeeCode = employeeCode,
             TenantId = tenantId,
             OrgId = orgId,
             FirstName = dto.FirstName.Trim(),
@@ -53,11 +54,10 @@ internal static class EmployeeMappingExtensions
             EmploymentStatus = EmploymentStatusValues.Active,
         };
 
-    public static EmployeeEntity ToEntity(this EmployeeWriteDto dto, string tenantId, string orgId, string employeeCode) =>
+    public static EmployeeEntity ToEntity(this EmployeeWriteDto dto, string tenantId, string orgId) =>
         new()
         {
             Id = Guid.NewGuid(),
-            EmployeeCode = employeeCode,
             TenantId = tenantId,
             OrgId = orgId,
             FirstName = dto.FirstName.Trim(),

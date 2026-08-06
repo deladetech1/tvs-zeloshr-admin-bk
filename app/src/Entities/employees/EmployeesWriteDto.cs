@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace ZelosHR.Api.Entities.Employees;
 
@@ -61,4 +62,7 @@ public sealed class CreateEmployeeServiceWriteDto
     public required string PersonalPhone { get; init; }
     public required string ResidentialAddress { get; init; }
     public required string GhanaPostGps { get; init; }
+
+    [JsonPropertyName("employee_code_custom")]
+    public string? EmployeeCodeCustom { get; init; }
 }

@@ -36,7 +36,7 @@ public class EmployeeIdFormatServiceTests
                 .Returns(DefaultEntity());
         }
 
-        employeeRepo.ListEmployeeCodesAsync("t1", Arg.Any<CancellationToken>())
+        employeeRepo.ListEmployeeSystemCodesAsync("t1", Arg.Any<CancellationToken>())
             .Returns(["ZEL-0102"]);
 
         var codeGen = new EmployeeCodeGenerationService(formatRepo, employeeRepo);

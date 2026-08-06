@@ -57,20 +57,17 @@ public partial class EmployeesService : IEmployeesService, IEmployeeLookup
         if (await _employees.ExistsByGhanaCardAsync(normalizedGhanaCard, tenantId, ct: ct))
             return Respons<CreateEmployeeServiceReadDto>.Fail(DuplicateGhanaCardMessage, statusCode: 409);
 
-        var entity = data.ToEntity(tenantId, orgId, employeeCode: string.Empty);
+        var entity = data.ToEntity(tenantId, orgId);
 
-        var planned = await _codeGen.PlanAllocationAsync(tenantId, orgId, requestedCode: null, ct);
+        var planned = await _codeGen.PlanCreateAsync(tenantId, orgId, data.EmployeeCodeCustom, ct);
         if (!planned.Success)
             return Respons<CreateEmployeeServiceReadDto>.ValidationError(planned.Errors!);
 
         var plan = planned.Plan!;
-        var maxAttempts = plan.UseRetry ? EmployeeIdFormatRules.MaxAttempts : 1;
+        var maxAttempts = EmployeeIdFormatRules.MaxAttempts;
         for (var attempt = 0; attempt < maxAttempts; attempt++)
         {
-            var employeeCode = plan.UseRetry
-                ? _codeGen.FormatCode(plan.Format, plan.StartSequence + attempt)
-                : plan.InitialCode;
-            entity.EmployeeCode = employeeCode;
+            _codeGen.ApplyToEntity(entity, plan, attempt);
 
             try
             {
@@ -78,13 +75,15 @@ public partial class EmployeesService : IEmployeesService, IEmployeeLookup
                 _logger.LogInformation(
                     "Created employee {EmployeeId} code={EmployeeCode} tenant={TenantId}",
                     entity.Id,
-                    employeeCode,
+                    entity.EmployeeCode,
                     tenantId);
 
                 return Respons<CreateEmployeeServiceReadDto>.Ok(new CreateEmployeeServiceReadDto
                 {
                     Id = entity.Id,
-                    EmployeeCode = employeeCode,
+                    EmployeeCode = entity.EmployeeCode,
+                    EmployeeCodeSystem = entity.EmployeeCodeSystem,
+                    EmployeeCodeCustom = entity.EmployeeCodeCustom,
                     FirstName = entity.FirstName,
                     MiddleName = entity.MiddleName,
                     LastName = entity.LastName,
@@ -95,7 +94,12 @@ public partial class EmployeesService : IEmployeesService, IEmployeeLookup
                 _logger.LogWarning(ex, "Duplicate Ghana Card on create");
                 return Respons<CreateEmployeeServiceReadDto>.Fail(DuplicateGhanaCardMessage, statusCode: 409);
             }
-            catch (DbUpdateException ex) when (PostgresUniqueViolation.IsEmployeeCode(ex))
+            catch (DbUpdateException ex) when (PostgresUniqueViolation.IsEmployeeCustomCode(ex))
+            {
+                return Respons<CreateEmployeeServiceReadDto>.Fail(
+                    EmployeeErrorMessages.EmployeeCustomCodeAlreadyExists, statusCode: 409);
+            }
+            catch (DbUpdateException ex) when (PostgresUniqueViolation.IsEmployeeSystemCode(ex))
             {
                 if (attempt == maxAttempts - 1)
                 {

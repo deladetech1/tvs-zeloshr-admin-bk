@@ -46,78 +46,62 @@ public sealed class EmployeeCodeGenerationService
         EmployeeIdFormatEntity format,
         CancellationToken ct = default)
     {
-        var codes = await _employees.ListEmployeeCodesAsync(tenantId, ct);
+        var codes = await _employees.ListEmployeeSystemCodesAsync(tenantId, ct);
         return EmployeeIdFormatRules.ComputeNextSequence(codes, format);
     }
 
     public string FormatCode(EmployeeIdFormatEntity format, long sequence) =>
         EmployeeIdFormatRules.Format(format, sequence);
 
-    public async Task<(bool Success, string? Code, Dictionary<string, string>? Errors)> ResolveForCreateAsync(
-        string tenantId,
-        string orgId,
-        string? requestedCode,
-        CancellationToken ct = default)
-    {
-        var resolved = await TryGetFormatAsync(tenantId, orgId, ct);
-        if (!resolved.Success)
-            return (false, null, resolved.Errors);
-
-        var format = resolved.Format!;
-        if (format.AutoGenerate)
-        {
-            var next = await ComputeNextSequenceAsync(tenantId, format, ct);
-            return (true, EmployeeIdFormatRules.Format(format, next), null);
-        }
-
-        if (string.IsNullOrWhiteSpace(requestedCode))
-        {
-            return (false, null, new Dictionary<string, string>
-            {
-                ["employee_code"] =
-                    "Employee ID is required. Auto-generate is disabled for this organisation — provide employee_code.",
-            });
-        }
-
-        var trimmed = requestedCode.Trim();
-        if (trimmed.Length > EmployeeIdFormatRules.MaxEmployeeCodeLength)
-        {
-            return (false, null, new Dictionary<string, string>
-            {
-                ["employee_code"] =
-                    $"Employee ID must be at most {EmployeeIdFormatRules.MaxEmployeeCodeLength} characters.",
-            });
-        }
-
-        return (true, trimmed, null);
-    }
-
-    public sealed record CodeAllocationPlan(
+    public sealed record EmployeeCodeCreatePlan(
         EmployeeIdFormatEntity Format,
         long StartSequence,
-        string InitialCode,
-        bool UseRetry);
+        string InitialSystemCode,
+        string? CustomCode);
 
-    public async Task<(bool Success, CodeAllocationPlan? Plan, Dictionary<string, string>? Errors)>
-        PlanAllocationAsync(
+    public async Task<(bool Success, EmployeeCodeCreatePlan? Plan, Dictionary<string, string>? Errors)>
+        PlanCreateAsync(
             string tenantId,
             string orgId,
-            string? requestedCode,
+            string? requestedCustomCode,
             CancellationToken ct = default)
     {
-        var resolved = await ResolveForCreateAsync(tenantId, orgId, requestedCode, ct);
-        if (!resolved.Success)
-            return (false, null, resolved.Errors);
-
         var formatResult = await TryGetFormatAsync(tenantId, orgId, ct);
         if (!formatResult.Success)
             return (false, null, formatResult.Errors);
 
         var format = formatResult.Format!;
-        if (!format.AutoGenerate)
-            return (true, new CodeAllocationPlan(format, 0, resolved.Code!, UseRetry: false), null);
+        var customCode = EmployeeCodeResolver.NormalizeCustom(requestedCustomCode);
+
+        if (customCode is null && !format.AutoGenerate)
+        {
+            return (false, null, new Dictionary<string, string>
+            {
+                ["employee_code_custom"] =
+                    "employee_code_custom is required. Auto-generate is disabled for this organisation.",
+            });
+        }
+
+        if (customCode is not null && customCode.Length > EmployeeIdFormatRules.MaxEmployeeCodeLength)
+        {
+            return (false, null, new Dictionary<string, string>
+            {
+                ["employee_code_custom"] =
+                    $"employee_code_custom must be at most {EmployeeIdFormatRules.MaxEmployeeCodeLength} characters.",
+            });
+        }
 
         var startSeq = await ComputeNextSequenceAsync(tenantId, format, ct);
-        return (true, new CodeAllocationPlan(format, startSeq, FormatCode(format, startSeq), UseRetry: true), null);
+        var systemCode = FormatCode(format, startSeq);
+        return (true, new EmployeeCodeCreatePlan(format, startSeq, systemCode, customCode), null);
     }
+
+    public void ApplyToEntity(EmployeeEntity entity, EmployeeCodeCreatePlan plan, int attempt)
+    {
+        entity.EmployeeCodeSystem = FormatCode(plan.Format, plan.StartSequence + attempt);
+        entity.EmployeeCodeCustom = plan.CustomCode;
+    }
+
+    public string ResolveSystemCode(EmployeeCodeCreatePlan plan, int attempt) =>
+        FormatCode(plan.Format, plan.StartSequence + attempt);
 }

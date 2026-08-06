@@ -103,6 +103,7 @@ public sealed class EmployeeAggregateService
             var draft = await _registration.CreateDraftAsync(
                 request.Identity.FullName,
                 existingUserId: null,
+                employeeCodeCustom: request.Identity.EmployeeCodeCustom,
                 ct: ct);
             if (!draft.Success || draft.Data is null)
             {
@@ -940,6 +941,8 @@ public sealed class EmployeeAggregateService
         {
             Id = entity.Id,
             EmployeeCode = entity.EmployeeCode,
+            EmployeeCodeSystem = entity.EmployeeCodeSystem,
+            EmployeeCodeCustom = entity.EmployeeCodeCustom,
             UserId = entity.UserId,
             Identity = EmployeeAggregateReadMapper.BuildIdentity(
                 fullName,

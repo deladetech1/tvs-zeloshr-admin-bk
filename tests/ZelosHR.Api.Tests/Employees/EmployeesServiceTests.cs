@@ -43,7 +43,7 @@ public class EmployeesServiceTests
                 Separator = EmployeeIdFormatSeparator.Hyphen,
                 AutoGenerate = true,
             });
-        _repo.ListEmployeeCodesAsync(TestDefaults.TenantId, Arg.Any<CancellationToken>())
+        _repo.ListEmployeeSystemCodesAsync(TestDefaults.TenantId, Arg.Any<CancellationToken>())
             .Returns(Array.Empty<string>());
 
         _sut = new EmployeesService(
@@ -124,7 +124,7 @@ public class EmployeesServiceTests
     {
         _repo.ExistsByGhanaCardAsync(Arg.Any<string>(), TestDefaults.TenantId, null, Arg.Any<CancellationToken>())
             .Returns(false);
-        _repo.ListEmployeeCodesAsync(TestDefaults.TenantId, Arg.Any<CancellationToken>())
+        _repo.ListEmployeeSystemCodesAsync(TestDefaults.TenantId, Arg.Any<CancellationToken>())
             .Returns(Array.Empty<string>());
         _repo.AddAsync(Arg.Any<EmployeeEntity>(), Arg.Any<CancellationToken>())
             .Returns(ci => ci.Arg<EmployeeEntity>());

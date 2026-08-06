@@ -167,14 +167,18 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
         {
             b.ToTable("zhr_employees");
             b.HasKey(x => x.Id);
-            b.Property(x => x.EmployeeCode).HasMaxLength(32).IsRequired();
+            b.Property(x => x.EmployeeCodeSystem).HasMaxLength(32).IsRequired();
+            b.Property(x => x.EmployeeCodeCustom).HasMaxLength(32);
             b.Property(x => x.FullName).HasMaxLength(500).IsRequired();
             b.Property(x => x.LifecycleState).HasDefaultValue("Pre-hire").IsRequired();
             b.Property(x => x.LifecycleStatus).HasDefaultValue("draft").IsRequired();
             b.Property(x => x.IsDraft).HasDefaultValue(true);
             b.Property(x => x.EmploymentStatus).HasDefaultValue("Active").IsRequired();
             b.Property(x => x.IsDeleted).HasDefaultValue(false);
-            b.HasIndex(x => new { x.TenantId, x.EmployeeCode }).IsUnique();
+            b.HasIndex(x => new { x.TenantId, x.EmployeeCodeSystem }).IsUnique();
+            b.HasIndex(x => new { x.TenantId, x.EmployeeCodeCustom })
+                .IsUnique()
+                .HasFilter("employee_code_custom IS NOT NULL AND employee_code_custom <> ''");
             b.HasIndex(x => new { x.TenantId, x.GhanaCardNumber })
                 .IsUnique()
                 .HasFilter("ghana_card_number IS NOT NULL AND ghana_card_number <> ''");

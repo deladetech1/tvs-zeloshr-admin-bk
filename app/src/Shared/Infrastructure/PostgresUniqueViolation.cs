@@ -5,10 +5,18 @@ namespace ZelosHR.Api.Shared.Infrastructure;
 
 internal static class PostgresUniqueViolation
 {
-    internal static bool IsEmployeeCode(DbUpdateException ex) =>
+    internal static bool IsEmployeeSystemCode(DbUpdateException ex) =>
         ex.InnerException is PostgresException pg
         && pg.SqlState == PostgresErrorCodes.UniqueViolation
-        && pg.ConstraintName?.Contains("employee_code", StringComparison.OrdinalIgnoreCase) == true;
+        && pg.ConstraintName?.Contains("employee_code_system", StringComparison.OrdinalIgnoreCase) == true;
+
+    internal static bool IsEmployeeCustomCode(DbUpdateException ex) =>
+        ex.InnerException is PostgresException pg
+        && pg.SqlState == PostgresErrorCodes.UniqueViolation
+        && pg.ConstraintName?.Contains("employee_code_custom", StringComparison.OrdinalIgnoreCase) == true;
+
+    internal static bool IsEmployeeCode(DbUpdateException ex) =>
+        IsEmployeeSystemCode(ex) || IsEmployeeCustomCode(ex);
 
     internal static bool IsEmployeeUserId(DbUpdateException ex) =>
         ex.InnerException is PostgresException pg

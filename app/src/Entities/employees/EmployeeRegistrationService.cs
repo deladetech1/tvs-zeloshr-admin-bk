@@ -81,7 +81,7 @@ public sealed class EmployeeRegistrationService
     }
 
     public async Task<Respons<EmployeeRegistrationReadDto>> CreateDraftAsync(
-        string fullName, string? existingUserId, string? employeeCode = null, CancellationToken ct = default)
+        string fullName, string? existingUserId, string? employeeCodeCustom = null, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(fullName) && string.IsNullOrWhiteSpace(existingUserId))
             return Respons<EmployeeRegistrationReadDto>.ValidationError(
@@ -114,18 +114,16 @@ public sealed class EmployeeRegistrationService
         var now = DateTimeOffset.UtcNow;
         var entity = NewDraftEntity(userId, draftDisplayName, now);
 
-        var planned = await _codeGen.PlanAllocationAsync(
-            _tenant.TenantId, _tenant.OrgId, employeeCode, ct);
+        var planned = await _codeGen.PlanCreateAsync(
+            _tenant.TenantId, _tenant.OrgId, employeeCodeCustom, ct);
         if (!planned.Success)
             return Respons<EmployeeRegistrationReadDto>.ValidationError(planned.Errors!);
 
         var plan = planned.Plan!;
-        var maxAttempts = plan.UseRetry ? EmployeeIdFormatRules.MaxAttempts : 1;
+        var maxAttempts = EmployeeIdFormatRules.MaxAttempts;
         for (var attempt = 0; attempt < maxAttempts; attempt++)
         {
-            entity.EmployeeCode = plan.UseRetry
-                ? _codeGen.FormatCode(plan.Format, plan.StartSequence + attempt)
-                : plan.InitialCode;
+            _codeGen.ApplyToEntity(entity, plan, attempt);
             var savepoint = $"draft_code_{attempt}";
             var transaction = _db.Database.CurrentTransaction;
             if (transaction is not null)
@@ -144,7 +142,15 @@ public sealed class EmployeeRegistrationService
                 return Respons<EmployeeRegistrationReadDto>.Fail(
                     EmployeeErrorMessages.UserAlreadyLinkedToEmployee, statusCode: 409);
             }
-            catch (DbUpdateException ex) when (PostgresUniqueViolation.IsEmployeeCode(ex))
+            catch (DbUpdateException ex) when (PostgresUniqueViolation.IsEmployeeCustomCode(ex))
+            {
+                if (transaction is not null)
+                    await transaction.RollbackToSavepointAsync(savepoint, ct);
+                _db.Entry(entity).State = EntityState.Detached;
+                return Respons<EmployeeRegistrationReadDto>.Fail(
+                    EmployeeErrorMessages.EmployeeCustomCodeAlreadyExists, statusCode: 409);
+            }
+            catch (DbUpdateException ex) when (PostgresUniqueViolation.IsEmployeeSystemCode(ex))
             {
                 if (transaction is not null)
                     await transaction.RollbackToSavepointAsync(savepoint, ct);
@@ -164,7 +170,7 @@ public sealed class EmployeeRegistrationService
     }
 
     public Task<Respons<EmployeeRegistrationReadDto>> ImportAsync(string userId, CancellationToken ct = default) =>
-        CreateDraftAsync(string.Empty, userId, employeeCode: null, ct);
+        CreateDraftAsync(string.Empty, userId, employeeCodeCustom: null, ct);
 
     public async Task<Respons<ImportEmployeesResult>> ImportManyAsync(
         IReadOnlyList<string> userIds,
@@ -835,6 +841,8 @@ public sealed class EmployeeRegistrationService
         {
             Id = e.Id,
             EmployeeCode = e.EmployeeCode,
+            EmployeeCodeSystem = e.EmployeeCodeSystem ?? string.Empty,
+            EmployeeCodeCustom = e.EmployeeCodeCustom,
             FullName = EmployeeIdentityResolver.ResolveFullName(e, cp),
             UserId = e.UserId,
             IsDraft = e.IsDraft,

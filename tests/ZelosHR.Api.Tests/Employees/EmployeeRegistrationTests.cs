@@ -50,7 +50,7 @@ public class EmployeeRegistrationTests
         formatRepo.GetEntityAsync(
                 Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(DefaultIdFormat());
-        employeeRepo.ListEmployeeCodesAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        employeeRepo.ListEmployeeSystemCodesAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(Array.Empty<string>());
         return new EmployeeCodeGenerationService(formatRepo, employeeRepo);
     }
@@ -127,7 +127,7 @@ public class EmployeeRegistrationTests
     [Fact]
     public async Task CreateDraft_WithFullNameOnly_SavesWithIsDraftTrue()
     {
-        _employees.ListEmployeeCodesAsync(TestDefaults.TenantId, Arg.Any<CancellationToken>())
+        _employees.ListEmployeeSystemCodesAsync(TestDefaults.TenantId, Arg.Any<CancellationToken>())
             .Returns(Array.Empty<string>());
         EmployeeEntity? saved = null;
         _employees.AddAsync(Arg.Any<EmployeeEntity>(), Arg.Any<CancellationToken>())
@@ -149,7 +149,7 @@ public class EmployeeRegistrationTests
     [Fact]
     public async Task CreateDraft_GeneratesEmployeeCode_InZelFormat()
     {
-        _employees.ListEmployeeCodesAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _employees.ListEmployeeSystemCodesAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(Enumerable.Range(1, 288).Select(i => $"ZEL-{i:D4}").ToList());
         EmployeeEntity? saved = null;
         _employees.AddAsync(Arg.Any<EmployeeEntity>(), Arg.Any<CancellationToken>())
@@ -162,13 +162,37 @@ public class EmployeeRegistrationTests
         var result = await _sut.CreateDraftAsync("Test User", null);
 
         result.Data!.EmployeeCode.Should().Be("ZEL-0289");
-        saved!.EmployeeCode.Should().Be("ZEL-0289");
+        saved!.EmployeeCodeSystem.Should().Be("ZEL-0289");
+        saved.EmployeeCodeCustom.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task CreateDraft_WithCustomCode_UsesCustomForDisplayAndKeepsSystemCode()
+    {
+        _employees.ListEmployeeSystemCodesAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Array.Empty<string>());
+        EmployeeEntity? saved = null;
+        _employees.AddAsync(Arg.Any<EmployeeEntity>(), Arg.Any<CancellationToken>())
+            .Returns(ci =>
+            {
+                saved = ci.Arg<EmployeeEntity>();
+                return Task.FromResult(saved);
+            });
+
+        var result = await _sut.CreateDraftAsync("Test User", null, employeeCodeCustom: "HR-0042");
+
+        result.Success.Should().BeTrue();
+        result.Data!.EmployeeCode.Should().Be("HR-0042");
+        result.Data.EmployeeCodeSystem.Should().Be("ZEL-0001");
+        result.Data.EmployeeCodeCustom.Should().Be("HR-0042");
+        saved!.EmployeeCodeSystem.Should().Be("ZEL-0001");
+        saved.EmployeeCodeCustom.Should().Be("HR-0042");
     }
 
     [Fact]
     public async Task CreateDraft_WhenEmployeeCodeCollides_RetriesWithNextSequence()
     {
-        _employees.ListEmployeeCodesAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _employees.ListEmployeeSystemCodesAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new[] { "ZEL-0001" });
         var collision = new DbUpdateException(
             "duplicate",
@@ -177,7 +201,7 @@ public class EmployeeRegistrationTests
                 severity: "ERROR",
                 invariantSeverity: "ERROR",
                 sqlState: PostgresErrorCodes.UniqueViolation,
-                constraintName: "ix_zhr_employees_tenant_id_employee_code"));
+                constraintName: "ix_zhr_employees_tenant_id_employee_code_system"));
         _employees.AddAsync(Arg.Any<EmployeeEntity>(), Arg.Any<CancellationToken>())
             .Returns(
                 _ => Task.FromException<EmployeeEntity>(collision),
