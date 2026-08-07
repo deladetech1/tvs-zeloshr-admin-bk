@@ -27,6 +27,10 @@ namespace ZelosHR.Api.Entities.Employees;
 ///
 /// **Currency:** Use <c>compensation.currency_id</c> (FK to <c>core_platform.cp_currencies</c>), not a currency code.
 ///
+/// **Employee code (create):** optional `identity.employee_code_custom` (admin label). Backend always allocates
+/// `employee_code_system` from org ID format (`GET /company/id-format/get`). Response includes display
+/// `employee_code` = custom ?? system. Do not send `employee_code` or `employee_code_system` on create.
+///
 /// See operation **Examples** dropdown for <c>full_profile</c> and <c>minimal</c> payloads.
 /// </remarks>
 public sealed class CreateEmployeeAggregateRequest

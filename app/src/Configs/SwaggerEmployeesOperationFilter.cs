@@ -81,6 +81,22 @@ public sealed class SwaggerEmployeesOperationFilter : IOperationFilter
             return;
         }
 
+        if (method.Equals("POST", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/employees/add", StringComparison.OrdinalIgnoreCase))
+        {
+            SetJsonResponseExample(operation, 200, SwaggerExamples.EmployeeAggregateReadResponse());
+            operation.Description = AppendDescription(operation.Description,
+                """
+                **Employee code:** optional write field `identity.employee_code_custom` (max 32 chars). Do not send `employee_code` or `employee_code_system`.
+                Backend always allocates `employee_code_system` from org ID format (`GET /company/id-format/get`).
+                Response: `employee_code` (display = custom ?? system), `employee_code_system`, `employee_code_custom`.
+                When ID format `auto_generate` is false, `employee_code_custom` is required on create.
+
+                See request **Examples** → `full_profile` or `minimal` (both show `identity.employee_code_custom`).
+                Expand schema: `CreateEmployeeAggregateRequest` → `identity` → `employee_code_custom`.
+                """);
+            return;
+        }
+
         if (method.Equals("POST", StringComparison.OrdinalIgnoreCase) && path.Equals("api/v1/employees/import", StringComparison.OrdinalIgnoreCase))
         {
             SetJsonRequestExample(operation, SwaggerExamples.ImportEmployeesRequestBody());

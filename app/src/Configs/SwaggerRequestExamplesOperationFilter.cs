@@ -38,12 +38,16 @@ public sealed class SwaggerRequestExamplesOperationFilter : IOperationFilter
                     """
                     Creates employee and links cp_users when work_email is set. Attach files via document_ids (from POST /file/post/multiple).
                     Read response returns documents[] (DocumentReadDto with presigned URLs).
+                    Optional identity.employee_code_custom (admin code); response includes employee_code, employee_code_system, employee_code_custom.
                     employment.employment_type_id — pick from GET /employment-types/list; read returns nested employment.employment_type.id.
                     """),
                 ["minimal"] = Example(
                     SwaggerExamples.CreateEmployeeDraft(),
                     "Minimal",
-                    "Only identity.full_name and identity.phone are required. Omit work_email to save without linking cp_users yet."),
+                    """
+                    Only identity.full_name and identity.phone are required. Optional identity.employee_code_custom.
+                    Omit work_email to save without linking cp_users yet. Response always includes employee_code_system; employee_code = custom ?? system.
+                    """),
             };
         }
 
