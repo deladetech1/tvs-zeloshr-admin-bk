@@ -169,6 +169,7 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
             b.HasKey(x => x.Id);
             b.Property(x => x.EmployeeCodeSystem).HasMaxLength(32).IsRequired();
             b.Property(x => x.EmployeeCodeCustom).HasMaxLength(32);
+            b.Ignore(x => x.EmployeeCode);
             b.Property(x => x.FullName).HasMaxLength(500).IsRequired();
             b.Property(x => x.LifecycleState).HasDefaultValue("Pre-hire").IsRequired();
             b.Property(x => x.LifecycleStatus).HasDefaultValue("draft").IsRequired();

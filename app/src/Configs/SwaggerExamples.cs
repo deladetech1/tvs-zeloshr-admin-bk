@@ -1012,6 +1012,7 @@ internal static class SwaggerExamples
         ["identity"] = new JsonObject
         {
             ["full_name"] = "Ada Lovelace",
+            ["employee_code_custom"] = "HR-0042",
             ["date_of_birth"] = "1990-05-15",
             ["gender"] = "female",
             ["country"] = "Ghana",
@@ -1432,6 +1433,9 @@ internal static class SwaggerExamples
                 ? CustomFieldsForSection(EmployeeCustomFieldSections.Identity)
                 : EmptyCustomFields(EmployeeCustomFieldSections.Identity),
         };
+
+        if (!forRead)
+            obj["employee_code_custom"] = "HR-0042";
 
         if (withExtendedIdentity || forRead)
         {

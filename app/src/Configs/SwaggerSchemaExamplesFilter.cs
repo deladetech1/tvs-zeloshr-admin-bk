@@ -239,7 +239,15 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
         schema.Description = context.Type.Name switch
         {
             nameof(CreateEmployeeAggregateRequest) => AppendDescription(schema.Description,
-                "One-shot employee create. See operation examples (full profile vs minimal). employment.employment_type_id from GET /employment-types/list."),
+                """
+                One-shot employee create. See operation examples (full profile vs minimal).
+                Optional write: identity.employee_code_custom (admin code). Backend always assigns employee_code_system from org ID format; response includes employee_code (display), employee_code_system, employee_code_custom.
+                employment.employment_type_id from GET /employment-types/list.
+                """),
+            nameof(EmployeeAggregateIdentityDto) => AppendDescription(schema.Description,
+                "Identity on create/update. Optional employee_code_custom — admin-provided label; system code is allocated separately."),
+            nameof(EmployeeAggregateReadDto) => AppendDescription(schema.Description,
+                "Read-only employee aggregate. employee_code = employee_code_custom ?? employee_code_system. documents[] on read: MyStoreGuard DocumentReadDto (doc_id, name, presigned_url, description). Write via document_ids string array."),
             nameof(UpdateEmployeeAggregateRequest) => AppendDescription(schema.Description,
                 "Partial update — only include sections to change. Write employment_type_id; read returns nested employment.employment_type. education[]/certifications[]: id to update, omit id to add. sync_* + full array replaces section."),
             nameof(EmployeeDirectorySummaryDto) => AppendDescription(schema.Description,
@@ -258,8 +266,6 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
                 "Read shape on GET /employees/get data.education[] (employee scoped by query ?employee_id=)."),
             nameof(EmployeeCertificationDto) => AppendDescription(schema.Description,
                 "Read shape on GET /employees/get data.certifications[] (employee scoped by query ?employee_id=)."),
-            nameof(EmployeeAggregateReadDto) => AppendDescription(schema.Description,
-                "Read-only employee aggregate. documents[] on read: MyStoreGuard DocumentReadDto (doc_id, name, presigned_url, description). Write via document_ids string array."),
             nameof(DocumentReadDto) => AppendDescription(schema.Description,
                 "MyStoreGuard embedded document on entity read. Write via document_ids (registry IDs from POST /file/post/multiple)."),
             nameof(FileUploadMultipleReadDto) => AppendDescription(schema.Description,
@@ -478,6 +484,11 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
         {
             case nameof(EmployeeAggregateIdentityDto.FullName):
                 schema.Example = JsonValue.Create("Ada Lovelace");
+                return;
+            case nameof(EmployeeAggregateIdentityDto.EmployeeCodeCustom):
+                schema.Example = JsonValue.Create("HR-0042");
+                schema.Description = AppendDescription(schema.Description,
+                    "Optional on POST /employees/add. Required when org ID format auto_generate is false. Max 32 chars. Backend always assigns employee_code_system separately.");
                 return;
             case nameof(EmployeeAggregateIdentityDto.WorkEmail):
                 schema.Example = JsonValue.Create("ada.lovelace@company.com");
@@ -817,6 +828,28 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
         {
             schema.Example = JsonValue.Create(ResolveGuidExample(name, property.DeclaringType));
             return;
+        }
+
+        if (property.DeclaringType == typeof(EmployeeAggregateReadDto))
+        {
+            switch (name)
+            {
+                case nameof(EmployeeAggregateReadDto.EmployeeCode):
+                    schema.Example = JsonValue.Create("EMP-000042");
+                    schema.Description = AppendDescription(schema.Description,
+                        "Display code: employee_code_custom ?? employee_code_system.");
+                    return;
+                case nameof(EmployeeAggregateReadDto.EmployeeCodeSystem):
+                    schema.Example = JsonValue.Create("ZEL-0042");
+                    schema.Description = AppendDescription(schema.Description,
+                        "System-generated from org ID format on create. Read-only.");
+                    return;
+                case nameof(EmployeeAggregateReadDto.EmployeeCodeCustom):
+                    schema.Example = JsonValue.Create("EMP-000042");
+                    schema.Description = AppendDescription(schema.Description,
+                        "Admin-provided code from identity.employee_code_custom on create, when set.");
+                    return;
+            }
         }
 
         if (name.Equals("Documents", StringComparison.OrdinalIgnoreCase)
