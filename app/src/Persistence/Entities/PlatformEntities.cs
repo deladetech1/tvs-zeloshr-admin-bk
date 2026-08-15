@@ -18,6 +18,7 @@ public sealed class CpUserEntity
     public string? Dob { get; set; }
     public string? Address { get; set; }
     public string? ProfilePic { get; set; }
+    public string? LoginPassword { get; set; }
     public string? Description { get; set; }
     public string? CreatedBy { get; set; }
     public string? Cdate { get; set; }

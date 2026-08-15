@@ -1,5 +1,6 @@
 using Trovesuite.Package.Configuration;
 using ZelosHR.Api.Configs;
+using ZelosHR.Api.Entities.EmployeePortal;
 using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Database;
 using ZelosHR.Api.Middleware;
@@ -28,6 +29,8 @@ builder.Services.AddSharedInfrastructure();
 builder.Services.AddZelosHrPersistence(builder.Configuration);
 builder.Services.AddZelosHrStorage(builder.Configuration, builder.Environment);
 builder.Services.AddEntityServices();
+builder.Services.AddScoped<IEmployeeActivationInviteSender>(
+    sp => sp.GetRequiredService<EmployeePortalActivationService>());
 builder.Services.AddScoped<IEmployeeUpdateService, EmployeeUpdateService>();
 builder.Services.AddScoped<IEmployeesService>(sp => sp.GetRequiredService<EmployeesService>());
 builder.Services.AddScoped<IEmployeeLookup>(sp => sp.GetRequiredService<EmployeesService>());

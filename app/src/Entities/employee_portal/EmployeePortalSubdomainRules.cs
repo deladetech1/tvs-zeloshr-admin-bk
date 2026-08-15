@@ -55,5 +55,15 @@ internal static partial class EmployeePortalSubdomainRules
         return null;
     }
 
-    internal static string PortalHost(string subdomain) => $"{subdomain}.zeloshr.com";
+    internal static string PortalHost(string subdomain, string? portalDomain = null)
+    {
+        var domain = string.IsNullOrWhiteSpace(portalDomain) ? "zeloshr.com" : portalDomain.Trim().TrimStart('.');
+        return $"{subdomain}.{domain}";
+    }
+
+    internal static string BuildActivationUrl(string subdomain, string token, string? portalDomain = null)
+    {
+        var host = PortalHost(subdomain, portalDomain);
+        return $"https://{host}/activate/{token}";
+    }
 }

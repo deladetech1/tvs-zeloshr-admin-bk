@@ -12,6 +12,7 @@ public sealed class EmployeePortalSubdomainService
     private readonly IEmployeePortalSubdomainRepository _subdomains;
     private readonly ICpUserRepository _cpUsers;
     private readonly string _appId;
+    private readonly string _portalDomain;
 
     public EmployeePortalSubdomainService(
         IEmployeePortalSubdomainRepository subdomains,
@@ -21,6 +22,7 @@ public sealed class EmployeePortalSubdomainService
         _subdomains = subdomains;
         _cpUsers = cpUsers;
         _appId = appSettings.Value.AppId;
+        _portalDomain = appSettings.Value.EmployeePortalDomain;
     }
 
     public async Task<Respons<EmployeePortalSubdomainListDto>> ListAsync(
@@ -177,7 +179,7 @@ public sealed class EmployeePortalSubdomainService
         return Respons<EmployeePortalResolveDto>.Ok(new EmployeePortalResolveDto
         {
             Subdomain = entity.Subdomain,
-            PortalUrl = EmployeePortalSubdomainRules.PortalHost(entity.Subdomain),
+            PortalUrl = EmployeePortalSubdomainRules.PortalHost(entity.Subdomain, _portalDomain),
             TenantId = entity.TenantId,
             OrgId = entity.OrgId,
             BusId = entity.BusId,
@@ -200,7 +202,7 @@ public sealed class EmployeePortalSubdomainService
         {
             Id = entity.Id.ToString(),
             Subdomain = entity.Subdomain,
-            PortalUrl = EmployeePortalSubdomainRules.PortalHost(entity.Subdomain),
+            PortalUrl = EmployeePortalSubdomainRules.PortalHost(entity.Subdomain, _portalDomain),
             TenantId = entity.TenantId,
             OrgId = entity.OrgId,
             BusId = entity.BusId,
