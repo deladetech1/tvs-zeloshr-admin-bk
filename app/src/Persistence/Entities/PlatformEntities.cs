@@ -34,6 +34,8 @@ public sealed class CpMemberEntity
     public string UserId { get; set; } = default!;
     public string DeleteStatus { get; set; } = CorePlatformConstants.DeleteStatus.NotDeleted;
     public bool IsActive { get; set; } = true;
+    public string? Description { get; set; }
+    public string? CreatedBy { get; set; }
 }
 
 /// <summary>core_platform.cp_login_settings — required for platform auth.</summary>

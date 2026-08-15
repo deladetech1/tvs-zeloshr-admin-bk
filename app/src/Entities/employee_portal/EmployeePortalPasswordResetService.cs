@@ -6,13 +6,18 @@ using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Persistence.Entities;
 using ZelosHR.Api.Persistence.Repositories;
-using ZelosHR.Api.Shared.Constants;
 
 namespace ZelosHR.Api.Entities.EmployeePortal;
 
-public sealed class EmployeePortalActivationService : IEmployeeActivationInviteSender
+public sealed class EmployeePortalPasswordResetService
 {
-    private readonly IEmployeeActivationRepository _activation;
+    private const string GenericRequestMessage =
+        "If an account exists for that email address, we've sent a password reset link.";
+
+    private const string RateLimitMessage =
+        "For security, we limit the number of password reset requests. Please wait a while before trying again.";
+
+    private readonly IEmployeeActivationRepository _tokens;
     private readonly IEmployeePortalSubdomainRepository _subdomains;
     private readonly IEmployeeRepository _employees;
     private readonly ICpUserRepository _cpUsers;
@@ -20,10 +25,10 @@ public sealed class EmployeePortalActivationService : IEmployeeActivationInviteS
     private readonly ICpBusinessRepository _businesses;
     private readonly IHelper _helper;
     private readonly AppSettings _appSettings;
-    private readonly ILogger<EmployeePortalActivationService> _logger;
+    private readonly ILogger<EmployeePortalPasswordResetService> _logger;
 
-    public EmployeePortalActivationService(
-        IEmployeeActivationRepository activation,
+    public EmployeePortalPasswordResetService(
+        IEmployeeActivationRepository tokens,
         IEmployeePortalSubdomainRepository subdomains,
         IEmployeeRepository employees,
         ICpUserRepository cpUsers,
@@ -31,9 +36,9 @@ public sealed class EmployeePortalActivationService : IEmployeeActivationInviteS
         ICpBusinessRepository businesses,
         IHelper helper,
         IOptions<AppSettings> appSettings,
-        ILogger<EmployeePortalActivationService> logger)
+        ILogger<EmployeePortalPasswordResetService> logger)
     {
-        _activation = activation;
+        _tokens = tokens;
         _subdomains = subdomains;
         _employees = employees;
         _cpUsers = cpUsers;
@@ -44,50 +49,50 @@ public sealed class EmployeePortalActivationService : IEmployeeActivationInviteS
         _logger = logger;
     }
 
-    public async Task<Respons<EmployeeActivationValidateDto>> ValidateTokenAsync(
+    public async Task<Respons<EmployeePasswordResetValidateDto>> ValidateTokenAsync(
         string? token,
         CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(token))
         {
-            return Respons<EmployeeActivationValidateDto>.ValidationError(new Dictionary<string, string>
+            return Respons<EmployeePasswordResetValidateDto>.ValidationError(new Dictionary<string, string>
             {
-                ["token"] = "Activation token is required.",
+                ["token"] = "Reset token is required.",
             });
         }
 
-        var row = await _activation.FindActiveTokenAsync(token, ct);
+        var row = await _tokens.FindActivePasswordResetTokenAsync(token, ct);
         if (row is null)
         {
-            return Respons<EmployeeActivationValidateDto>.Ok(new EmployeeActivationValidateDto
+            return Respons<EmployeePasswordResetValidateDto>.Ok(new EmployeePasswordResetValidateDto
             {
                 IsValid = false,
                 IsExpired = false,
-                IsAlreadyActivated = false,
+                IsNotActivated = false,
             });
         }
 
         var expiresAt = ResolveExpiresAt(row.Otp.Cdatetime);
         var isExpired = DateTimeOffset.UtcNow > expiresAt;
 
-        if (row.HasPassword)
+        if (!row.HasPassword)
         {
-            return Respons<EmployeeActivationValidateDto>.Ok(new EmployeeActivationValidateDto
+            return Respons<EmployeePasswordResetValidateDto>.Ok(new EmployeePasswordResetValidateDto
             {
                 IsValid = false,
                 IsExpired = isExpired,
-                IsAlreadyActivated = true,
+                IsNotActivated = true,
                 ExpiresAt = expiresAt,
             });
         }
 
         if (isExpired)
         {
-            return Respons<EmployeeActivationValidateDto>.Ok(new EmployeeActivationValidateDto
+            return Respons<EmployeePasswordResetValidateDto>.Ok(new EmployeePasswordResetValidateDto
             {
                 IsValid = false,
                 IsExpired = true,
-                IsAlreadyActivated = false,
+                IsNotActivated = false,
                 ExpiresAt = expiresAt,
             });
         }
@@ -97,11 +102,11 @@ public sealed class EmployeePortalActivationService : IEmployeeActivationInviteS
         var branding = await ResolveBrandingAsync(row.User.TenantId, orgId, ct);
         var (firstName, _) = SplitName(row.User.Fullname);
 
-        return Respons<EmployeeActivationValidateDto>.Ok(new EmployeeActivationValidateDto
+        return Respons<EmployeePasswordResetValidateDto>.Ok(new EmployeePasswordResetValidateDto
         {
             IsValid = true,
             IsExpired = false,
-            IsAlreadyActivated = false,
+            IsNotActivated = false,
             FirstName = firstName,
             CompanyName = branding.CompanyName,
             Subdomain = branding.Subdomain,
@@ -109,52 +114,60 @@ public sealed class EmployeePortalActivationService : IEmployeeActivationInviteS
         });
     }
 
-    public async Task<Respons<EmployeeActivationSetPasswordResultDto>> SetPasswordAsync(
-        EmployeeActivationSetPasswordDto body,
+    public async Task<Respons<EmployeePasswordResetSetPasswordResultDto>> SetPasswordAsync(
+        EmployeePasswordResetSetPasswordDto body,
         CancellationToken ct = default)
     {
         var errors = ValidateSetPasswordBody(body);
         if (errors is not null)
-            return Respons<EmployeeActivationSetPasswordResultDto>.ValidationError(errors);
+            return Respons<EmployeePasswordResetSetPasswordResultDto>.ValidationError(errors);
 
-        var row = await _activation.FindActiveTokenAsync(body.Token!, ct);
+        var row = await _tokens.FindActivePasswordResetTokenAsync(body.Token!, ct);
         if (row is null)
         {
-            return Respons<EmployeeActivationSetPasswordResultDto>.Fail(
-                "Invalid or expired activation link.",
+            return Respons<EmployeePasswordResetSetPasswordResultDto>.Fail(
+                "Invalid or expired reset link.",
                 statusCode: StatusCodes.Status400BadRequest);
         }
 
-        if (row.HasPassword)
+        if (!row.HasPassword)
         {
-            return Respons<EmployeeActivationSetPasswordResultDto>.ValidationError(new Dictionary<string, string>
+            return Respons<EmployeePasswordResetSetPasswordResultDto>.ValidationError(new Dictionary<string, string>
             {
-                ["token"] = "This account has already been activated. Sign in or use Forgot password.",
+                ["token"] = "This account has not been activated yet. Use the activation link from your welcome email.",
             });
         }
 
         var expiresAt = ResolveExpiresAt(row.Otp.Cdatetime);
         if (DateTimeOffset.UtcNow > expiresAt)
         {
-            return Respons<EmployeeActivationSetPasswordResultDto>.ValidationError(new Dictionary<string, string>
+            return Respons<EmployeePasswordResetSetPasswordResultDto>.ValidationError(new Dictionary<string, string>
             {
-                ["token"] = "This activation link has expired. Request a new link from the employee portal.",
+                ["token"] = "This reset link has expired. Request a new link from the employee portal.",
             });
         }
 
-        var policy = await _activation.GetActivePasswordPolicyAsync(row.User.TenantId, ct);
+        var policy = await _tokens.GetActivePasswordPolicyAsync(row.User.TenantId, ct);
         var passwordErrors = EmployeePortalPasswordValidator.Validate(body.Password!, policy);
         if (passwordErrors.Count > 0)
         {
-            return Respons<EmployeeActivationSetPasswordResultDto>.ValidationError(
+            return Respons<EmployeePasswordResetSetPasswordResultDto>.ValidationError(
                 passwordErrors.Select((msg, i) => new KeyValuePair<string, string>($"password[{i}]", msg))
                     .ToDictionary(kv => kv.Key, kv => kv.Value));
         }
 
+        if (EmployeePortalPasswordValidator.MatchesCurrentPassword(body.Password!, row.User.LoginPassword))
+        {
+            return Respons<EmployeePasswordResetSetPasswordResultDto>.ValidationError(new Dictionary<string, string>
+            {
+                ["password"] = "Must not match your current password.",
+            });
+        }
+
         var hashed = EmployeePortalPasswordHasher.Hash(body.Password!);
-        await _activation.SetUserPasswordAsync(row.User.TenantId, row.User.Id, hashed, ct);
+        await _tokens.SetUserPasswordAsync(row.User.TenantId, row.User.Id, hashed, ct);
         await _cpUsers.EnsureCpMemberAsync(row.User.Id, row.User.TenantId, createdBy: row.User.Id, ct);
-        await _activation.ConsumeTokenAsync(row.Otp.Id, row.Otp.TenantId, ct);
+        await _tokens.ConsumeTokenAsync(row.Otp.Id, row.Otp.TenantId, ct);
 
         var branding = await ResolveBrandingAsync(row.User.TenantId, null, ct);
         var portalUrl = branding.Subdomain is not null
@@ -162,11 +175,11 @@ public sealed class EmployeePortalActivationService : IEmployeeActivationInviteS
             : _appSettings.AppUrl.Trim().TrimEnd('/');
 
         _logger.LogInformation(
-            "Employee activation completed for user {UserId} in tenant {TenantId}.",
+            "Employee password reset completed for user {UserId} in tenant {TenantId}.",
             row.User.Id,
             row.User.TenantId);
 
-        return Respons<EmployeeActivationSetPasswordResultDto>.Ok(new EmployeeActivationSetPasswordResultDto
+        return Respons<EmployeePasswordResetSetPasswordResultDto>.Ok(new EmployeePasswordResetSetPasswordResultDto
         {
             PortalUrl = portalUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase)
                 ? portalUrl
@@ -175,24 +188,31 @@ public sealed class EmployeePortalActivationService : IEmployeeActivationInviteS
         });
     }
 
-    public async Task<Respons<EmployeeActivationResendResultDto>> ResendAsync(
-        EmployeeActivationResendDto body,
-        CancellationToken ct = default)
-    {
-        const string genericMessage =
-            "If an eligible employee account exists, a new activation link has been sent to the work email provided.";
+    public Task<Respons<EmployeePasswordResetRequestResultDto>> RequestAsync(
+        EmployeePasswordResetRequestDto body,
+        CancellationToken ct = default) =>
+        SendResetLinkAsync(body, ct);
 
-        var errors = ValidateResendBody(body);
+    public Task<Respons<EmployeePasswordResetRequestResultDto>> ResendAsync(
+        EmployeePasswordResetRequestDto body,
+        CancellationToken ct = default) =>
+        SendResetLinkAsync(body, ct);
+
+    private async Task<Respons<EmployeePasswordResetRequestResultDto>> SendResetLinkAsync(
+        EmployeePasswordResetRequestDto body,
+        CancellationToken ct)
+    {
+        var errors = ValidateRequestBody(body);
         if (errors is not null)
-            return Respons<EmployeeActivationResendResultDto>.ValidationError(errors);
+            return Respons<EmployeePasswordResetRequestResultDto>.ValidationError(errors);
 
         var normalizedSubdomain = EmployeePortalSubdomainRules.Normalize(body.Subdomain!);
         var portal = await _subdomains.GetBySubdomainAsync(normalizedSubdomain, ct);
         if (portal is null)
         {
-            return Respons<EmployeeActivationResendResultDto>.Ok(new EmployeeActivationResendResultDto
+            return Respons<EmployeePasswordResetRequestResultDto>.Ok(new EmployeePasswordResetRequestResultDto
             {
-                Message = genericMessage,
+                Message = GenericRequestMessage,
             });
         }
 
@@ -200,9 +220,9 @@ public sealed class EmployeePortalActivationService : IEmployeeActivationInviteS
         var cpUser = await _cpUsers.FindByEmailAsync(workEmail, portal.TenantId, ct);
         if (cpUser is null)
         {
-            return Respons<EmployeeActivationResendResultDto>.Ok(new EmployeeActivationResendResultDto
+            return Respons<EmployeePasswordResetRequestResultDto>.Ok(new EmployeePasswordResetRequestResultDto
             {
-                Message = genericMessage,
+                Message = GenericRequestMessage,
             });
         }
 
@@ -214,92 +234,68 @@ public sealed class EmployeePortalActivationService : IEmployeeActivationInviteS
             || string.IsNullOrWhiteSpace(employee.UserId)
             || !EmployeeOnboardingInviteEligibility.IsEligible(employee.EmploymentStatus))
         {
-            return Respons<EmployeeActivationResendResultDto>.Ok(new EmployeeActivationResendResultDto
+            return Respons<EmployeePasswordResetRequestResultDto>.Ok(new EmployeePasswordResetRequestResultDto
             {
-                Message = genericMessage,
+                Message = GenericRequestMessage,
             });
         }
 
-        if (await _activation.UserHasPasswordAsync(portal.TenantId, employee.UserId, ct))
+        if (!await _tokens.UserHasPasswordAsync(portal.TenantId, employee.UserId, ct))
         {
-            return Respons<EmployeeActivationResendResultDto>.Ok(new EmployeeActivationResendResultDto
+            return Respons<EmployeePasswordResetRequestResultDto>.Ok(new EmployeePasswordResetRequestResultDto
             {
-                Message = genericMessage,
+                Message = GenericRequestMessage,
             });
+        }
+
+        if (await IsRateLimitedAsync(portal.TenantId, cpUser.Id, ct))
+        {
+            return Respons<EmployeePasswordResetRequestResultDto>.Fail(
+                RateLimitMessage,
+                statusCode: StatusCodes.Status429TooManyRequests);
         }
 
         try
         {
-            await SendActivationEmailAsync(
+            await SendResetEmailAsync(
                 employee,
+                cpUser,
                 portal.Subdomain,
                 portal.TenantId,
                 portal.OrgId,
                 portal.BusId,
-                ct,
-                cpUser);
+                ct);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(
                 ex,
-                "Activation resend email failed for employee {EmployeeId}.",
+                "Password reset email failed for employee {EmployeeId}.",
                 employee.Id);
         }
 
-        return Respons<EmployeeActivationResendResultDto>.Ok(new EmployeeActivationResendResultDto
+        return Respons<EmployeePasswordResetRequestResultDto>.Ok(new EmployeePasswordResetRequestResultDto
         {
-            Message = genericMessage,
+            Message = GenericRequestMessage,
         });
     }
 
-    /// <summary>Creates a token and sends the activation email when portal subdomain is configured.</summary>
-    public async Task IssueAndSendActivationAsync(
+    private async Task SendResetEmailAsync(
         EmployeeEntity employee,
         CpUserDto cpUser,
-        string tenantId,
-        string orgId,
-        string busId,
-        CancellationToken ct = default)
-    {
-        if (await _activation.UserHasPasswordAsync(tenantId, cpUser.Id, ct))
-            return;
-
-        var portal = await _subdomains.GetEntityAsync(tenantId, orgId, ct);
-        if (portal is null)
-        {
-            _logger.LogWarning(
-                "Skipping activation email for employee {EmployeeId}: portal subdomain not configured.",
-                employee.Id);
-            return;
-        }
-
-        await SendActivationEmailAsync(employee, portal.Subdomain, tenantId, orgId, busId, ct, cpUser);
-    }
-
-    private async Task SendActivationEmailAsync(
-        EmployeeEntity employee,
         string subdomain,
         string tenantId,
         string orgId,
         string busId,
-        CancellationToken ct,
-        CpUserDto? cpUser = null)
+        CancellationToken ct)
     {
-        cpUser ??= new CpUserDto(
-            employee.UserId!,
-            employee.FullName,
-            employee.WorkEmail ?? string.Empty,
-            null,
-            true);
-
         var workEmail = EmployeeIdentityResolver.ResolveWorkEmail(employee, cpUser);
         if (string.IsNullOrWhiteSpace(workEmail))
             return;
 
         var token = GenerateToken();
         var time = _helper.CurrentDateTime();
-        await _activation.CreateActivationTokenAsync(
+        await _tokens.CreatePasswordResetTokenAsync(
             tenantId,
             cpUser.Id,
             workEmail,
@@ -312,32 +308,41 @@ public sealed class EmployeePortalActivationService : IEmployeeActivationInviteS
 
         var branding = await ResolveBrandingAsync(tenantId, orgId, busId, subdomain, ct);
         var (firstName, _) = SplitName(EmployeeIdentityResolver.ResolveFullName(employee, cpUser));
-        var activationUrl = EmployeePortalSubdomainRules.BuildActivationUrl(
+        var resetUrl = EmployeePortalSubdomainRules.BuildPasswordResetUrl(
             subdomain, token, _appSettings.EmployeePortalDomain);
-        var expiryDays = Math.Max(1, _appSettings.EmployeeActivationExpiryDays).ToString();
+        var expiryHours = Math.Max(1, _appSettings.EmployeePasswordResetExpiryHours).ToString();
 
         var variables = new Dictionary<string, string?>(StringComparer.Ordinal)
         {
             ["company_name"] = branding.CompanyName,
             ["company_short_name"] = branding.CompanyShortName,
             ["first_name"] = firstName,
-            ["activation_url"] = activationUrl,
-            ["expiry_days"] = expiryDays,
+            ["reset_url"] = resetUrl,
+            ["expiry_hours"] = expiryHours,
         };
 
         await _helper.SendNotificationAsync(
             workEmail.Trim(),
-            $"Activate your {branding.CompanyShortName} employee account",
-            EmployeePortalActivationTemplates.TextTemplate,
-            EmployeePortalActivationTemplates.HtmlTemplate,
+            $"Reset your {branding.CompanyShortName} employee portal password",
+            EmployeePortalPasswordResetTemplates.TextTemplate,
+            EmployeePortalPasswordResetTemplates.HtmlTemplate,
             variables,
             tenantId,
             ct);
 
         _logger.LogInformation(
-            "Activation email sent to {WorkEmail} for employee {EmployeeId}.",
+            "Password reset email sent to {WorkEmail} for employee {EmployeeId}.",
             workEmail,
             employee.Id);
+    }
+
+    private async Task<bool> IsRateLimitedAsync(string tenantId, string userId, CancellationToken ct)
+    {
+        var windowMinutes = Math.Max(1, _appSettings.EmployeePasswordResetRateLimitWindowMinutes);
+        var maxRequests = Math.Max(1, _appSettings.EmployeePasswordResetRateLimitMax);
+        var since = DateTimeOffset.UtcNow.AddMinutes(-windowMinutes);
+        var count = await _tokens.CountRecentPasswordResetTokensAsync(tenantId, userId, since, ct);
+        return count >= maxRequests;
     }
 
     private async Task<(string CompanyName, string CompanyShortName, string? Subdomain)> ResolveBrandingAsync(
@@ -376,8 +381,8 @@ public sealed class EmployeePortalActivationService : IEmployeeActivationInviteS
     private DateTimeOffset ResolveExpiresAt(DateTimeOffset? createdAt)
     {
         var created = createdAt ?? DateTimeOffset.UtcNow;
-        var days = Math.Max(1, _appSettings.EmployeeActivationExpiryDays);
-        return created.AddDays(days);
+        var hours = Math.Max(1, _appSettings.EmployeePasswordResetExpiryHours);
+        return created.AddHours(hours);
     }
 
     private static string GenerateToken()
@@ -398,11 +403,11 @@ public sealed class EmployeePortalActivationService : IEmployeeActivationInviteS
             : (parts[0], string.Join(' ', parts.Skip(1)));
     }
 
-    private static Dictionary<string, string>? ValidateSetPasswordBody(EmployeeActivationSetPasswordDto body)
+    private static Dictionary<string, string>? ValidateSetPasswordBody(EmployeePasswordResetSetPasswordDto body)
     {
         var errors = new Dictionary<string, string>();
         if (string.IsNullOrWhiteSpace(body.Token))
-            errors["token"] = "Activation token is required.";
+            errors["token"] = "Reset token is required.";
         if (string.IsNullOrWhiteSpace(body.Password))
             errors["password"] = "Password is required.";
         if (string.IsNullOrWhiteSpace(body.ConfirmPassword))
@@ -413,7 +418,7 @@ public sealed class EmployeePortalActivationService : IEmployeeActivationInviteS
         return errors.Count > 0 ? errors : null;
     }
 
-    private static Dictionary<string, string>? ValidateResendBody(EmployeeActivationResendDto body)
+    private static Dictionary<string, string>? ValidateRequestBody(EmployeePasswordResetRequestDto body)
     {
         var errors = new Dictionary<string, string>();
         var subdomainErrors = EmployeePortalSubdomainRules.Validate(body.Subdomain);

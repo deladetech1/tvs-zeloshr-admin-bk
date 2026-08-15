@@ -303,6 +303,11 @@ internal static class SwaggerExamples
             nameof(EmployeeActivationResendResultDto) => EnvelopeOk(EmployeeActivationResendData()),
             nameof(EmployeeActivationSetPasswordDto) => EmployeeActivationSetPasswordBody(),
             nameof(EmployeeActivationResendDto) => EmployeeActivationResendBody(),
+            nameof(EmployeePasswordResetValidateDto) => EnvelopeOk(EmployeePasswordResetValidateData()),
+            nameof(EmployeePasswordResetSetPasswordResultDto) => EnvelopeOk(EmployeePasswordResetSetPasswordData()),
+            nameof(EmployeePasswordResetRequestResultDto) => EnvelopeOk(EmployeePasswordResetRequestData()),
+            nameof(EmployeePasswordResetSetPasswordDto) => EmployeePasswordResetSetPasswordBody(),
+            nameof(EmployeePasswordResetRequestDto) => EmployeePasswordResetRequestBody(),
             nameof(CreateEmployeePortalSubdomainDto) => CreateEmployeePortalSubdomainBody(),
             nameof(UpdateEmployeePortalSubdomainDto) => UpdateEmployeePortalSubdomainBody(),
             nameof(PublicHolidayListDto) => LeaveHolidayListResponse(),
@@ -2974,6 +2979,47 @@ internal static class SwaggerExamples
     };
 
     internal static JsonObject EmployeeActivationResendBody() => new()
+    {
+        ["subdomain"] = "btl",
+        ["work_email"] = "ama@btl.example.com",
+    };
+
+    internal static JsonObject EmployeePasswordResetValidateResponse() => EnvelopeOk(EmployeePasswordResetValidateData());
+
+    internal static JsonObject EmployeePasswordResetValidateData() => new()
+    {
+        ["is_valid"] = true,
+        ["is_expired"] = false,
+        ["is_not_activated"] = false,
+        ["first_name"] = "Ama",
+        ["company_name"] = "BTL Holdings Ltd",
+        ["subdomain"] = "btl",
+        ["expires_at"] = "2026-08-15T13:00:00Z",
+    };
+
+    internal static JsonObject EmployeePasswordResetSetPasswordResponse() => EnvelopeOk(EmployeePasswordResetSetPasswordData());
+
+    internal static JsonObject EmployeePasswordResetSetPasswordData() => new()
+    {
+        ["portal_url"] = "https://btl.dev.zeloshr.com",
+        ["work_email"] = "ama@btl.example.com",
+    };
+
+    internal static JsonObject EmployeePasswordResetSetPasswordBody() => new()
+    {
+        ["token"] = "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456",
+        ["password"] = "NewSecurePass1!",
+        ["confirm_password"] = "NewSecurePass1!",
+    };
+
+    internal static JsonObject EmployeePasswordResetRequestResponse() => EnvelopeOk(EmployeePasswordResetRequestData());
+
+    internal static JsonObject EmployeePasswordResetRequestData() => new()
+    {
+        ["message"] = "If an account exists for that email address, we've sent a password reset link.",
+    };
+
+    internal static JsonObject EmployeePasswordResetRequestBody() => new()
     {
         ["subdomain"] = "btl",
         ["work_email"] = "ama@btl.example.com",

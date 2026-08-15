@@ -194,9 +194,18 @@ public static class SwaggerConfiguration
 
                     **Employee activation (no auth):** When HR finalises an employee, an activation email is sent to the org portal subdomain with an `/activate/` path and one-time token (TTL from `EmployeeActivationExpiryDays`, default 7 days).
 
-                    1. **Validate token** — `GET /api/v1/public/employee-portal/activation/validate?token=`
-                    2. **Set password** — `POST /api/v1/public/employee-portal/activation/set-password` (`token`, `password`, `confirm_password`)
-                    3. **Resend link** — `POST /api/v1/public/employee-portal/activation/resend` (`subdomain`, `work_email`)
+                    1. **Validate token** — `GET /api/v1/employee-portal/activation/validate?token=`
+                    2. **Set password** — `POST /api/v1/employee-portal/activation/set-password` (`token`, `password`, `confirm_password`)
+                    3. **Resend link** — `POST /api/v1/employee-portal/activation/resend` (`subdomain`, `work_email`)
+
+                    **Forgot password (no auth):** Link-based reset for activated employees (TTL from `EmployeePasswordResetExpiryHours`, default 1 hour). Rate-limited via `EmployeePasswordResetRateLimitMax` / `EmployeePasswordResetRateLimitWindowMinutes`.
+
+                    1. **Request link** — `POST /api/v1/employee-portal/password-reset/request` (`subdomain`, `work_email`)
+                    2. **Validate token** — `GET /api/v1/employee-portal/password-reset/validate?token=`
+                    3. **Set password** — `POST /api/v1/employee-portal/password-reset/set-password` (`token`, `password`, `confirm_password`)
+                    4. **Resend link** — `POST /api/v1/employee-portal/password-reset/resend` (`subdomain`, `work_email`)
+
+                    **Sign-in (Core Platform):** After activation or reset, employees authenticate at `POST /api/v1/landingpage/login` on Core Platform (`username` = work email, `password`). Completing portal set-password also creates `cp_members` so login is allowed.
 
                     Employee self-service routes use `/employees/user/*` (scoped to the logged-in employee via `zhr_employees.user_id`).
 

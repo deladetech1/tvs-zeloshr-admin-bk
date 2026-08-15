@@ -53,6 +53,25 @@ internal static partial class EmployeePortalPasswordValidator
         return errors;
     }
 
+    public static bool MatchesCurrentPassword(string password, string? currentHash)
+    {
+        if (string.IsNullOrWhiteSpace(currentHash))
+            return false;
+
+        try
+        {
+            var bytes = Encoding.UTF8.GetBytes(password);
+            if (bytes.Length > 72)
+                password = Encoding.UTF8.GetString(bytes, 0, 72);
+
+            return BCrypt.Net.BCrypt.Verify(password, currentHash);
+        }
+        catch (BCrypt.Net.SaltParseException)
+        {
+            return false;
+        }
+    }
+
     private static IReadOnlyList<string> ValidateDefault(string password)
     {
         var errors = new List<string>();

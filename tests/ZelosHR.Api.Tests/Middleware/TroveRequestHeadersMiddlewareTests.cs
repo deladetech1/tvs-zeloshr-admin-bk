@@ -129,6 +129,40 @@ public class TroveRequestHeadersMiddlewareTests
     }
 
     [Fact]
+    public async Task ActivationPath_SkipsHeaderEnforcement()
+    {
+        var ctx = CreateContext("/api/v1/employee-portal/activation/validate");
+        var nextCalled = false;
+        var sut = CreateSut(_ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        });
+        var platform = ValidPlatform();
+
+        await sut.InvokeAsync(ctx, IntegrationOptions(), AppSettingsOptions(), platform);
+
+        nextCalled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task PasswordResetPath_SkipsHeaderEnforcement()
+    {
+        var ctx = CreateContext("/api/v1/employee-portal/password-reset/validate");
+        var nextCalled = false;
+        var sut = CreateSut(_ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        });
+        var platform = ValidPlatform();
+
+        await sut.InvokeAsync(ctx, IntegrationOptions(), AppSettingsOptions(), platform);
+
+        nextCalled.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task HealthPath_SkipsHeaderEnforcement()
     {
         var ctx = CreateContext("/api/v1/health");

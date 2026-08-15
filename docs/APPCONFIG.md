@@ -23,6 +23,9 @@ Environment variables and Container App secrets **override** the same keys using
 | `AppUrl`, `AppId` | Public URL; must use `app-zeloshr` for Trove `app-id` header |
 | `EmployeePortalDomain` | Apex domain for employee portal hosts (e.g. `dev.zeloshr.com`, `zeloshr.com`) |
 | `EmployeeActivationExpiryDays` | Activation email link TTL in days (default `7`) |
+| `EmployeePasswordResetExpiryHours` | Password reset link TTL in hours (default `1`) |
+| `EmployeePasswordResetRateLimitMax` | Max reset emails per employee per window (default `5`) |
+| `EmployeePasswordResetRateLimitWindowMinutes` | Rate-limit window in minutes (default `60`) |
 | `RunDatabaseMigrations` | Must stay `false` in prod (schema from tvs-sqlscript) |
 | `CorePlatformUsersTable`, `CorePlatformMembersTable` | Optional table overrides |
 | `ActivityLogsTable`, `EmployeesTable` | Optional table overrides |

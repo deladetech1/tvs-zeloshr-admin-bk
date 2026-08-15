@@ -203,6 +203,11 @@ public sealed class SwaggerSchemaExamplesFilter : ISchemaFilter
             nameof(EmployeeActivationResendResultDto) => SwaggerExamples.EmployeeActivationResendData(),
             nameof(EmployeeActivationSetPasswordDto) => SwaggerExamples.EmployeeActivationSetPasswordBody(),
             nameof(EmployeeActivationResendDto) => SwaggerExamples.EmployeeActivationResendBody(),
+            nameof(EmployeePasswordResetValidateDto) => SwaggerExamples.EmployeePasswordResetValidateData(),
+            nameof(EmployeePasswordResetSetPasswordResultDto) => SwaggerExamples.EmployeePasswordResetSetPasswordData(),
+            nameof(EmployeePasswordResetRequestResultDto) => SwaggerExamples.EmployeePasswordResetRequestData(),
+            nameof(EmployeePasswordResetSetPasswordDto) => SwaggerExamples.EmployeePasswordResetSetPasswordBody(),
+            nameof(EmployeePasswordResetRequestDto) => SwaggerExamples.EmployeePasswordResetRequestBody(),
             nameof(CreateEmployeePortalSubdomainDto) => SwaggerExamples.CreateEmployeePortalSubdomainBody(),
             nameof(UpdateEmployeePortalSubdomainDto) => SwaggerExamples.UpdateEmployeePortalSubdomainBody(),
             nameof(EmploymentTypeListQuery) => new JsonObject

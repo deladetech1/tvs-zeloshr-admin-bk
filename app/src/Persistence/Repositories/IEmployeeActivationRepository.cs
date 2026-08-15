@@ -38,4 +38,28 @@ public interface IEmployeeActivationRepository
     Task ConsumeTokenAsync(string otpId, string tenantId, CancellationToken ct = default);
 
     Task<bool> UserHasPasswordAsync(string tenantId, string userId, CancellationToken ct = default);
+
+    Task<string> CreatePasswordResetTokenAsync(
+        string tenantId,
+        string userId,
+        string email,
+        string token,
+        string? createdBy,
+        string cdate,
+        string ctime,
+        DateTimeOffset cdatetime,
+        CancellationToken ct = default);
+
+    Task DeactivateUserPasswordResetTokensAsync(
+        string tenantId,
+        string userId,
+        CancellationToken ct = default);
+
+    Task<EmployeeActivationTokenRow?> FindActivePasswordResetTokenAsync(string token, CancellationToken ct = default);
+
+    Task<int> CountRecentPasswordResetTokensAsync(
+        string tenantId,
+        string userId,
+        DateTimeOffset since,
+        CancellationToken ct = default);
 }

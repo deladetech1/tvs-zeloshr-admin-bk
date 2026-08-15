@@ -85,6 +85,13 @@ public sealed class SwaggerGenerationTests
         document.Paths.Should().ContainKey("/api/v1/company/portal-subdomain/update");
         document.Paths.Should().ContainKey("/api/v1/company/portal-subdomain/delete");
         document.Paths.Should().ContainKey("/api/v1/public/employee-portal/resolve");
+        document.Paths.Should().ContainKey("/api/v1/employee-portal/activation/validate");
+        document.Paths.Should().ContainKey("/api/v1/employee-portal/activation/set-password");
+        document.Paths.Should().ContainKey("/api/v1/employee-portal/activation/resend");
+        document.Paths.Should().ContainKey("/api/v1/employee-portal/password-reset/request");
+        document.Paths.Should().ContainKey("/api/v1/employee-portal/password-reset/validate");
+        document.Paths.Should().ContainKey("/api/v1/employee-portal/password-reset/set-password");
+        document.Paths.Should().ContainKey("/api/v1/employee-portal/password-reset/resend");
     }
 
     private sealed class TestWebHostEnvironment : IWebHostEnvironment
