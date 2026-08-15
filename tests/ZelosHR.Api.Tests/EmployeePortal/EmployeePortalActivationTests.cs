@@ -45,4 +45,28 @@ public class EmployeePortalSubdomainActivationUrlTests
         EmployeePortalSubdomainRules.BuildActivationUrl("deladetech", "abc123", "dev.zeloshr.com")
             .Should().Be("https://deladetech.dev.zeloshr.com/activate/abc123");
     }
+
+    [Fact]
+    public void BuildPasswordResetUrl_uses_portal_domain()
+    {
+        EmployeePortalSubdomainRules.BuildPasswordResetUrl("deladetech", "abc123", "dev.zeloshr.com")
+            .Should().Be("https://deladetech.dev.zeloshr.com/reset-password/abc123");
+    }
+}
+
+public class EmployeePortalPasswordHasherTests
+{
+    [Fact]
+    public void MatchesCurrentPassword_detects_same_password()
+    {
+        var hash = EmployeePortalPasswordHasher.Hash("SecurePass1!");
+        EmployeePortalPasswordValidator.MatchesCurrentPassword("SecurePass1!", hash).Should().BeTrue();
+    }
+
+    [Fact]
+    public void MatchesCurrentPassword_rejects_different_password()
+    {
+        var hash = EmployeePortalPasswordHasher.Hash("SecurePass1!");
+        EmployeePortalPasswordValidator.MatchesCurrentPassword("DifferentPass1!", hash).Should().BeFalse();
+    }
 }

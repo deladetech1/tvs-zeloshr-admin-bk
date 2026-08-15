@@ -61,9 +61,9 @@ internal static partial class EmployeePortalSubdomainRules
         return $"{subdomain}.{domain}";
     }
 
-    internal static string BuildActivationUrl(string subdomain, string token, string? portalDomain = null)
+    internal static string BuildPasswordResetUrl(string subdomain, string token, string? portalDomain = null)
     {
         var host = PortalHost(subdomain, portalDomain);
-        return $"https://{host}/activate/{token}";
+        return $"https://{host}/reset-password/{token}";
     }
 }

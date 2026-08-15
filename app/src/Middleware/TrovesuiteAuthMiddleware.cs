@@ -20,6 +20,8 @@ public class TrovesuiteAuthMiddleware
         new("/health"),
         new("/swagger"),
         new("/api/v1/public"),
+        new("/api/v1/employee-portal/activation"),
+        new("/api/v1/employee-portal/password-reset"),
         new("/"),
     ];
 

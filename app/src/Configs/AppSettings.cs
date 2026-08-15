@@ -42,6 +42,15 @@ public class AppSettings
     /// <summary>Activation link TTL in days (email copy and token validation).</summary>
     public int EmployeeActivationExpiryDays { get; set; } = 7;
 
+    /// <summary>Password reset link TTL in hours (email copy and token validation).</summary>
+    public int EmployeePasswordResetExpiryHours { get; set; } = 1;
+
+    /// <summary>Max password reset emails per employee within the rate-limit window.</summary>
+    public int EmployeePasswordResetRateLimitMax { get; set; } = 5;
+
+    /// <summary>Rate-limit window in minutes for password reset requests.</summary>
+    public int EmployeePasswordResetRateLimitWindowMinutes { get; set; } = 60;
+
     /// <summary>
     /// When false (default), schema is owned by tvs-sqlscript; API does not run embedded SQL on startup.
     /// </summary>
