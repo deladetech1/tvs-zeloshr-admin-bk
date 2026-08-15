@@ -251,8 +251,8 @@ public sealed class EmployeePortalActivationService : IEmployeeActivationInviteS
         });
     }
 
-    /// <summary>Creates a token and sends the activation email. Returns the plain token (for tests).</summary>
-    public async Task<string?> IssueAndSendActivationAsync(
+    /// <summary>Creates a token and sends the activation email when portal subdomain is configured.</summary>
+    public async Task IssueAndSendActivationAsync(
         EmployeeEntity employee,
         CpUserDto cpUser,
         string tenantId,
@@ -261,7 +261,7 @@ public sealed class EmployeePortalActivationService : IEmployeeActivationInviteS
         CancellationToken ct = default)
     {
         if (await _activation.UserHasPasswordAsync(tenantId, cpUser.Id, ct))
-            return null;
+            return;
 
         var portal = await _subdomains.GetEntityAsync(tenantId, orgId, ct);
         if (portal is null)
@@ -269,11 +269,10 @@ public sealed class EmployeePortalActivationService : IEmployeeActivationInviteS
             _logger.LogWarning(
                 "Skipping activation email for employee {EmployeeId}: portal subdomain not configured.",
                 employee.Id);
-            return null;
+            return;
         }
 
         await SendActivationEmailAsync(employee, portal.Subdomain, tenantId, orgId, busId, ct, cpUser);
-        return null;
     }
 
     private async Task SendActivationEmailAsync(
