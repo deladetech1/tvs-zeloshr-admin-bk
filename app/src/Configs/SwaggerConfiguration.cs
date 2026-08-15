@@ -192,7 +192,7 @@ public static class SwaggerConfiguration
 
                     **Public bootstrap (no auth):** `GET /api/v1/public/employee-portal/resolve?subdomain=` — returns Trove context for the portal login page.
 
-                    **Employee activation (no auth):** When HR finalises an employee, an activation email is sent with a link to `{{subdomain}}.{{EmployeePortalDomain}}/activate/{{token}}` (default TTL: `EmployeeActivationExpiryDays`, 7 days).
+                    **Employee activation (no auth):** When HR finalises an employee, an activation email is sent to the org portal subdomain with an `/activate/` path and one-time token (TTL from `EmployeeActivationExpiryDays`, default 7 days).
 
                     1. **Validate token** — `GET /api/v1/public/employee-portal/activation/validate?token=`
                     2. **Set password** — `POST /api/v1/public/employee-portal/activation/set-password` (`token`, `password`, `confirm_password`)
