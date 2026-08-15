@@ -205,6 +205,8 @@ public static class SwaggerConfiguration
                     3. **Set password** — `POST /api/v1/employee-portal/password-reset/set-password` (`token`, `password`, `confirm_password`)
                     4. **Resend link** — `POST /api/v1/employee-portal/password-reset/resend` (`subdomain`, `work_email`)
 
+                    **Sign-in (Core Platform):** After activation or reset, employees authenticate at `POST /api/v1/landingpage/login` on Core Platform (`username` = work email, `password`). Completing portal set-password also creates `cp_members` so login is allowed.
+
                     Employee self-service routes use `/employees/user/*` (scoped to the logged-in employee via `zhr_employees.user_id`).
 
                     Conformance: `docs/MYSTOREGUARD_API_CONFORMANCE.md` · Navigation: `GET /api/v1/navigation`

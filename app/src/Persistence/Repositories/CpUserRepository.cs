@@ -295,6 +295,34 @@ public sealed class CpUserRepository(ZelosHrDbContext db) : ICpUserRepository
         return Task.CompletedTask;
     }
 
+    public async Task EnsureCpMemberAsync(
+        string userId,
+        string tenantId,
+        string? createdBy,
+        CancellationToken ct = default)
+    {
+        var exists = await db.CpMembers.AsNoTracking()
+            .AnyAsync(
+                m => m.TenantId == tenantId
+                     && m.UserId == userId
+                     && m.DeleteStatus == CorePlatformConstants.DeleteStatus.NotDeleted,
+                ct);
+        if (exists)
+            return;
+
+        db.CpMembers.Add(new CpMemberEntity
+        {
+            Id = Guid.NewGuid().ToString(),
+            TenantId = tenantId,
+            UserId = userId,
+            IsActive = true,
+            DeleteStatus = CorePlatformConstants.DeleteStatus.NotDeleted,
+            Description = EmployeePortalAuthConstants.CpMemberDescription,
+            CreatedBy = createdBy ?? userId,
+        });
+        await db.SaveChangesAsync(ct);
+    }
+
     public async Task EnsureUserLocationAsync(
         string userId,
         string tenantId,

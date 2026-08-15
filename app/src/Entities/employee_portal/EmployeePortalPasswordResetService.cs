@@ -166,6 +166,7 @@ public sealed class EmployeePortalPasswordResetService
 
         var hashed = EmployeePortalPasswordHasher.Hash(body.Password!);
         await _tokens.SetUserPasswordAsync(row.User.TenantId, row.User.Id, hashed, ct);
+        await _cpUsers.EnsureCpMemberAsync(row.User.Id, row.User.TenantId, createdBy: row.User.Id, ct);
         await _tokens.ConsumeTokenAsync(row.Otp.Id, row.Otp.TenantId, ct);
 
         var branding = await ResolveBrandingAsync(row.User.TenantId, null, ct);

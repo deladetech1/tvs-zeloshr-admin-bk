@@ -6,6 +6,7 @@ using ZelosHR.Api.Entities.Employees;
 using ZelosHR.Api.Entities.Shared;
 using ZelosHR.Api.Persistence.Entities;
 using ZelosHR.Api.Persistence.Repositories;
+using ZelosHR.Api.Shared.Constants;
 
 namespace ZelosHR.Api.Entities.EmployeePortal;
 
@@ -152,6 +153,7 @@ public sealed class EmployeePortalActivationService : IEmployeeActivationInviteS
 
         var hashed = EmployeePortalPasswordHasher.Hash(body.Password!);
         await _activation.SetUserPasswordAsync(row.User.TenantId, row.User.Id, hashed, ct);
+        await _cpUsers.EnsureCpMemberAsync(row.User.Id, row.User.TenantId, createdBy: row.User.Id, ct);
         await _activation.ConsumeTokenAsync(row.Otp.Id, row.Otp.TenantId, ct);
 
         var branding = await ResolveBrandingAsync(row.User.TenantId, null, ct);

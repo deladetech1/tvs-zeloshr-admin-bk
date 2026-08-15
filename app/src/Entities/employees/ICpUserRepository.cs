@@ -90,4 +90,13 @@ public interface ICpUserRepository
         string busId,
         string locId,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Creates <c>cp_members</c> when absent so Core Platform login succeeds after portal activation.
+    /// </summary>
+    Task EnsureCpMemberAsync(
+        string userId,
+        string tenantId,
+        string? createdBy,
+        CancellationToken ct = default);
 }
