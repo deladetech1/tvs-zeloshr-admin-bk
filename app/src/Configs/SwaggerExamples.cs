@@ -298,6 +298,11 @@ internal static class SwaggerExamples
             nameof(EmployeePortalSubdomainReadDto) => EnvelopeOk(EmployeePortalSubdomainData()),
             nameof(EmployeePortalSubdomainListDto) => EmployeePortalSubdomainListResponse(),
             nameof(EmployeePortalResolveDto) => EnvelopeOk(EmployeePortalResolveData()),
+            nameof(EmployeeActivationValidateDto) => EnvelopeOk(EmployeeActivationValidateData()),
+            nameof(EmployeeActivationSetPasswordResultDto) => EnvelopeOk(EmployeeActivationSetPasswordData()),
+            nameof(EmployeeActivationResendResultDto) => EnvelopeOk(EmployeeActivationResendData()),
+            nameof(EmployeeActivationSetPasswordDto) => EmployeeActivationSetPasswordBody(),
+            nameof(EmployeeActivationResendDto) => EmployeeActivationResendBody(),
             nameof(CreateEmployeePortalSubdomainDto) => CreateEmployeePortalSubdomainBody(),
             nameof(UpdateEmployeePortalSubdomainDto) => UpdateEmployeePortalSubdomainBody(),
             nameof(PublicHolidayListDto) => LeaveHolidayListResponse(),
@@ -2901,7 +2906,7 @@ internal static class SwaggerExamples
         {
             ["id"] = SampleEmployeePortalSubdomainId.ToString(),
             ["subdomain"] = "btl",
-            ["portal_url"] = "btl.zeloshr.com",
+            ["portal_url"] = "btl.dev.zeloshr.com",
             ["tenant_id"] = "tenant_demo",
             ["org_id"] = "org_demo",
             ["bus_id"] = "bus_demo",
@@ -2914,7 +2919,7 @@ internal static class SwaggerExamples
     internal static JsonObject EmployeePortalResolveData() => new()
     {
         ["subdomain"] = "btl",
-        ["portal_url"] = "btl.zeloshr.com",
+        ["portal_url"] = "btl.dev.zeloshr.com",
         ["tenant_id"] = "tenant_demo",
         ["org_id"] = "org_demo",
         ["bus_id"] = "bus_demo",
@@ -2931,6 +2936,47 @@ internal static class SwaggerExamples
     {
         ["id"] = SampleEmployeePortalSubdomainId.ToString(),
         ["subdomain"] = "btl",
+    };
+
+    internal static JsonObject EmployeeActivationValidateResponse() => EnvelopeOk(EmployeeActivationValidateData());
+
+    internal static JsonObject EmployeeActivationValidateData() => new()
+    {
+        ["is_valid"] = true,
+        ["is_expired"] = false,
+        ["is_already_activated"] = false,
+        ["first_name"] = "Ama",
+        ["company_name"] = "BTL Holdings Ltd",
+        ["subdomain"] = "btl",
+        ["expires_at"] = "2026-08-15T12:00:00Z",
+    };
+
+    internal static JsonObject EmployeeActivationSetPasswordResponse() => EnvelopeOk(EmployeeActivationSetPasswordData());
+
+    internal static JsonObject EmployeeActivationSetPasswordData() => new()
+    {
+        ["portal_url"] = "https://btl.dev.zeloshr.com",
+        ["work_email"] = "ama@btl.example.com",
+    };
+
+    internal static JsonObject EmployeeActivationSetPasswordBody() => new()
+    {
+        ["token"] = "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456",
+        ["password"] = "SecurePass1!",
+        ["confirm_password"] = "SecurePass1!",
+    };
+
+    internal static JsonObject EmployeeActivationResendResponse() => EnvelopeOk(EmployeeActivationResendData());
+
+    internal static JsonObject EmployeeActivationResendData() => new()
+    {
+        ["message"] = "If an eligible employee account exists, a new activation link has been sent to the work email provided.",
+    };
+
+    internal static JsonObject EmployeeActivationResendBody() => new()
+    {
+        ["subdomain"] = "btl",
+        ["work_email"] = "ama@btl.example.com",
     };
 
     internal static JsonObject UpdateCompanyLocalizationBody() => new()

@@ -31,6 +31,36 @@ public sealed class SwaggerEmployeePortalSubdomainOperationFilter : IOperationFi
                 Public bootstrap for the employee portal app. No JWT or Trove headers required.
                 Returns tenant_id, org_id, bus_id, loc_id, and app_id for login/API calls.
                 """);
+            return;
+        }
+
+        if (path.StartsWith("api/v1/public/employee-portal/activation", StringComparison.OrdinalIgnoreCase))
+        {
+            ApplyActivation(operation, method, path);
+        }
+    }
+
+    private static void ApplyActivation(OpenApiOperation operation, string method, string path)
+    {
+        switch (path)
+        {
+            case "api/v1/public/employee-portal/activation/validate" when method.Equals("GET", StringComparison.OrdinalIgnoreCase):
+                SetJsonResponseExample(operation, 200, SwaggerExamples.EmployeeActivationValidateResponse());
+                operation.Summary ??= "Validate employee activation token";
+                operation.Description = SwaggerOptionFormat.Append(operation.Description,
+                    "Public — no auth. Returns whether the token is valid, expired, or already used.");
+                return;
+
+            case "api/v1/public/employee-portal/activation/set-password" when method.Equals("POST", StringComparison.OrdinalIgnoreCase):
+                SetJsonResponseExample(operation, 200, SwaggerExamples.EmployeeActivationSetPasswordResponse());
+                SetJsonResponseExample(operation, 400, SwaggerExamples.EnvelopeFor(typeof(Respons<EmployeeActivationSetPasswordResultDto>), 400));
+                operation.Summary ??= "Set password via activation token";
+                return;
+
+            case "api/v1/public/employee-portal/activation/resend" when method.Equals("POST", StringComparison.OrdinalIgnoreCase):
+                SetJsonResponseExample(operation, 200, SwaggerExamples.EmployeeActivationResendResponse());
+                operation.Summary ??= "Resend employee activation link";
+                return;
         }
     }
 

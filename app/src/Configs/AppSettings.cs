@@ -36,6 +36,12 @@ public class AppSettings
     public string AppUrl { get; set; } = "https://zeloshr.com";
     public string AppId { get; set; } = "app-zeloshr";
 
+    /// <summary>Employee portal apex domain (e.g. <c>dev.zeloshr.com</c> or <c>zeloshr.com</c>).</summary>
+    public string EmployeePortalDomain { get; set; } = "zeloshr.com";
+
+    /// <summary>Activation link TTL in days (email copy and token validation).</summary>
+    public int EmployeeActivationExpiryDays { get; set; } = 7;
+
     /// <summary>
     /// When false (default), schema is owned by tvs-sqlscript; API does not run embedded SQL on startup.
     /// </summary>

@@ -14,6 +14,8 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
     public DbSet<CpGroupLocationEntity> CpGroupLocations => Set<CpGroupLocationEntity>();
     public DbSet<CpBusinessAppLocationEntity> BusinessAppLocations => Set<CpBusinessAppLocationEntity>();
     public DbSet<CpBusinessEntity> CpBusinesses => Set<CpBusinessEntity>();
+    public DbSet<CpOtpEntity> CpOtps => Set<CpOtpEntity>();
+    public DbSet<CpPasswordPolicyEntity> CpPasswordPolicies => Set<CpPasswordPolicyEntity>();
     public DbSet<HrEmployeeEntity> HrEmployees => Set<HrEmployeeEntity>();
     public DbSet<DepartmentEntity> Departments => Set<DepartmentEntity>();
     public DbSet<BranchEntity> Branches => Set<BranchEntity>();
@@ -66,8 +68,34 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
             b.Property(x => x.Dob).HasColumnName("dob");
             b.Property(x => x.Address).HasColumnName("address");
             b.Property(x => x.ProfilePic).HasColumnName("profile_pic");
+            b.Property(x => x.LoginPassword).HasColumnName("login_password");
             b.Property(x => x.Cdate).HasColumnName("cdate");
             b.Property(x => x.Ctime).HasColumnName("ctime");
+        });
+
+        modelBuilder.Entity<CpOtpEntity>(b =>
+        {
+            b.ToTable("cp_otps", "core_platform", t => t.ExcludeFromMigrations());
+            b.HasKey(x => new { x.Id, x.TenantId });
+            b.Property(x => x.OtpCode).HasColumnName("otp_code");
+            b.Property(x => x.IsActive).HasColumnName("is_active");
+            b.Property(x => x.CreatedBy).HasColumnName("created_by");
+            b.Property(x => x.UpdatedBy).HasColumnName("updated_by");
+            b.Property(x => x.Cdatetime).HasColumnName("cdatetime");
+        });
+
+        modelBuilder.Entity<CpPasswordPolicyEntity>(b =>
+        {
+            b.ToTable("cp_password_policies", "core_platform", t => t.ExcludeFromMigrations());
+            b.HasKey(x => new { x.Id, x.TenantId });
+            b.Property(x => x.EnforcePasswordPolicy).HasColumnName("enforce_password_policy");
+            b.Property(x => x.MinLength).HasColumnName("min_length");
+            b.Property(x => x.RequireUppercase).HasColumnName("require_uppercase");
+            b.Property(x => x.RequireLowercase).HasColumnName("require_lowercase");
+            b.Property(x => x.RequireNumbers).HasColumnName("require_numbers");
+            b.Property(x => x.RequireSpecialChars).HasColumnName("require_special_chars");
+            b.Property(x => x.SpecialCharsList).HasColumnName("special_chars_list");
+            b.Property(x => x.IsActive).HasColumnName("is_active");
         });
 
         modelBuilder.Entity<CpMemberEntity>(b =>

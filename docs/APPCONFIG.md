@@ -21,6 +21,8 @@ Environment variables and Container App secrets **override** the same keys using
 | `SecretKey`, `Algorithm`, `AccessTokenExpireMinutes` | Legacy JWT helpers / Swagger dev token fallback |
 | `CorsOrigins` | Comma-separated allowed origins (include `http://localhost:3003` for local frontends). When empty, the API falls back to localhost ports 3000/3003/8080 for local UI dev. |
 | `AppUrl`, `AppId` | Public URL; must use `app-zeloshr` for Trove `app-id` header |
+| `EmployeePortalDomain` | Apex domain for employee portal hosts (e.g. `dev.zeloshr.com`, `zeloshr.com`) |
+| `EmployeeActivationExpiryDays` | Activation email link TTL in days (default `7`) |
 | `RunDatabaseMigrations` | Must stay `false` in prod (schema from tvs-sqlscript) |
 | `CorePlatformUsersTable`, `CorePlatformMembersTable` | Optional table overrides |
 | `ActivityLogsTable`, `EmployeesTable` | Optional table overrides |
