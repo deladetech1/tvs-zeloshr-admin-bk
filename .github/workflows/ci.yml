@@ -41,19 +41,28 @@ jobs:
           PKG: ${{ secrets.PACKAGES_TOKEN }}
           FALLBACK: ${{ github.token }}
         run: |
-          TOKEN="${PKG:-}"
-          if [[ -z "$TOKEN" ]]; then
-            echo "::warning::PACKAGES_TOKEN secret empty — falling back to GITHUB_TOKEN (packages:read)"
-            TOKEN="${FALLBACK}"
+          # Prefer GITHUB_TOKEN for CI restore. Org PACKAGES_TOKEN can be
+          # non-empty yet expired (classic ghp_ ~40 chars → NU1301 401) and
+          # would block the fallback. MyStoreGuard CI needs no NuGet PAT;
+          # .NET jobs need packages:read + Trovesuite.Package ACL for this repo.
+          TOKEN="${FALLBACK:-}"
+          SOURCE="GITHUB_TOKEN"
+          if [[ -z "$TOKEN" && -n "${PKG:-}" ]]; then
+            TOKEN="$PKG"
+            SOURCE="PACKAGES_TOKEN"
+          elif [[ -n "${PKG:-}" ]]; then
+            echo "::notice::Ignoring org PACKAGES_TOKEN for CI — using GITHUB_TOKEN (packages:read)."
           fi
           if [[ -z "$TOKEN" ]]; then
-            echo "::error::No token available for GitHub Packages (set PACKAGES_TOKEN or enable packages:read)."
+            echo "::error::No token available for GitHub Packages (enable packages:read or set PACKAGES_TOKEN)."
             exit 1
           fi
           # Single-key .env for Compose (avoid duplicate/empty PACKAGES_TOKEN= lines).
           printf 'PACKAGES_TOKEN=%s\n' "$TOKEN" > app/.env
-          echo "token_len=${#TOKEN}" >> "$GITHUB_STEP_SUMMARY"
-          # Expose for subsequent steps / compose interpolation (masked by Actions).
+          {
+            echo "nuget_token_source=${SOURCE}"
+            echo "token_len=${#TOKEN}"
+          } >> "$GITHUB_STEP_SUMMARY"
           echo "PACKAGES_TOKEN=$TOKEN" >> "$GITHUB_ENV"
 
       - name: Unit tests (Docker Compose)
