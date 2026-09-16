@@ -18,6 +18,12 @@ public static class SwaggerGroups
         Countries,
         CompanySettings,
         EmployeePortal,
+        Attendance,
+        Clock,
+        Timesheet,
+        Team,
+        Adjustments,
+        Devices,
     };
 
     public static bool IsVisibleInSwagger(string? groupName) =>
@@ -34,6 +40,11 @@ public static class SwaggerGroups
     public const string AuditLogs = "Audit Logs";
     public const string Users = "Users";
     public const string Attendance = "Attendance";
+    public const string Clock = "Clock";
+    public const string Timesheet = "Timesheet";
+    public const string Team = "Team";
+    public const string Adjustments = "Adjustments";
+    public const string Devices = "Devices";
     public const string Leave = "Leave";
     public const string Countries = "Countries";
     public const string CompanySettings = "Company Settings";

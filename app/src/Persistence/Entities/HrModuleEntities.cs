@@ -1,23 +1,5 @@
 namespace ZelosHR.Api.Persistence.Entities;
 
-public sealed class AttendanceRecordEntity
-{
-    public Guid Id { get; set; }
-    public string TenantId { get; set; } = default!;
-    public string OrgId { get; set; } = default!;
-    public Guid EmployeeId { get; set; }
-    public string EmployeeFullName { get; set; } = default!;
-    public string? EmployeeCode { get; set; }
-    public string? DepartmentName { get; set; }
-    public string? BranchName { get; set; }
-    public DateOnly AttendanceDate { get; set; }
-    public TimeOnly? ClockIn { get; set; }
-    public TimeOnly? ClockOut { get; set; }
-    public string Status { get; set; } = default!;
-    public decimal? HoursWorked { get; set; }
-    public DateTimeOffset CreatedAt { get; set; }
-}
-
 public sealed class LeaveRequestEntity
 {
     public Guid Id { get; set; }

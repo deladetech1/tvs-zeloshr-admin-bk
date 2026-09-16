@@ -83,7 +83,9 @@ public sealed class AttendanceRepository(ZelosHrDbContext db) : IAttendanceRepos
             ClockOut = PersistenceMappingHelpers.ParseTime(clockOut),
             Status = status,
             HoursWorked = hoursWorked,
+            CaptureSource = "web",
             CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
         };
         db.AttendanceRecords.Add(entity);
         await db.SaveChangesAsync(ct);
@@ -130,6 +132,7 @@ public sealed class AttendanceRepository(ZelosHrDbContext db) : IAttendanceRepos
         if (!changed)
             return null;
 
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
         return ToDto(entity);
     }

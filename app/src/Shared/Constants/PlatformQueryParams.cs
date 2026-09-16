@@ -67,6 +67,10 @@ public static class PlatformQueryParams
     public const string EducationId = "education_id";
     public const string CertificationId = "certification_id";
     public const string DocumentId = "document_id";
+    public const string DeviceId = "device_id";
+    public const string PunchId = "punch_id";
+    public const string AdjustmentId = "adjustment_id";
+    public const string Scope = "scope";
     public const string AttendanceId = "attendance_id";
     public const string LeaveRequestId = "leave_request_id";
     public const string LeaveBalanceId = "leave_balance_id";

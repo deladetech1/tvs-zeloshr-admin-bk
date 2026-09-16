@@ -29,6 +29,9 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
     public DbSet<AuditLogEntity> AuditLogs => Set<AuditLogEntity>();
     public DbSet<LifecycleEventEntity> LifecycleEvents => Set<LifecycleEventEntity>();
     public DbSet<AttendanceRecordEntity> AttendanceRecords => Set<AttendanceRecordEntity>();
+    public DbSet<PunchEntity> Punches => Set<PunchEntity>();
+    public DbSet<AdjustmentEntity> Adjustments => Set<AdjustmentEntity>();
+    public DbSet<DeviceEntity> Devices => Set<DeviceEntity>();
     public DbSet<LeaveRequestEntity> LeaveRequests => Set<LeaveRequestEntity>();
     public DbSet<LeaveBalanceEntity> LeaveBalances => Set<LeaveBalanceEntity>();
     public DbSet<LeaveTypeEntity> LeaveTypes => Set<LeaveTypeEntity>();
@@ -367,7 +370,34 @@ public sealed class ZelosHrDbContext(DbContextOptions<ZelosHrDbContext> options)
 
         modelBuilder.Entity<AuditLogEntity>(b => { b.ToTable("zhr_audit_logs"); b.HasKey(x => x.Id); });
         modelBuilder.Entity<LifecycleEventEntity>(b => { b.ToTable("zhr_lifecycle_events"); b.HasKey(x => x.Id); });
-        modelBuilder.Entity<AttendanceRecordEntity>(b => { b.ToTable("zhr_attendance_records"); b.HasKey(x => x.Id); });
+        modelBuilder.Entity<AttendanceRecordEntity>(b =>
+        {
+            b.ToTable("att_attendance_records", "attendance");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.HoursWorked).HasPrecision(5, 2);
+            b.Property(x => x.CaptureSource).HasDefaultValue("web");
+            b.HasIndex(x => new { x.TenantId, x.OrgId, x.EmployeeId, x.AttendanceDate }).IsUnique();
+        });
+        modelBuilder.Entity<PunchEntity>(b =>
+        {
+            b.ToTable("att_punches", "attendance");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Source).HasDefaultValue("web");
+            b.HasIndex(x => new { x.TenantId, x.OrgId, x.EmployeeId, x.PunchedAt });
+            b.HasIndex(x => x.AttendanceId);
+        });
+        modelBuilder.Entity<AdjustmentEntity>(b =>
+        {
+            b.ToTable("att_adjustments", "attendance");
+            b.HasKey(x => x.Id);
+            b.HasIndex(x => new { x.TenantId, x.OrgId, x.EmployeeId, x.AttendanceDate });
+        });
+        modelBuilder.Entity<DeviceEntity>(b =>
+        {
+            b.ToTable("att_devices", "attendance");
+            b.HasKey(x => x.Id);
+            b.HasIndex(x => new { x.TenantId, x.OrgId, x.Name });
+        });
         modelBuilder.Entity<LeaveRequestEntity>(b =>
         {
             b.ToTable("zhr_leave_requests");
