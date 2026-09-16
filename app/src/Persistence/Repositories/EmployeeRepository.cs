@@ -358,4 +358,21 @@ public sealed class EmployeeRepository(ZelosHrDbContext db) : IEmployeeRepositor
             lineManagerIds.ToHashSet(),
             headOfDepartmentIds.ToHashSet());
     }
+
+    public async Task<IReadOnlyList<AttendanceRosterItem>> ListActiveAttendanceRosterAsync(
+        string tenantId, string orgId, CancellationToken ct = default)
+    {
+        var rows = await Scoped(tenantId, orgId)
+            .Where(e => !e.IsDraft)
+            .OrderBy(e => e.FullName)
+            .Select(e => new AttendanceRosterItem(
+                e.Id,
+                e.FullName,
+                e.JobTitle,
+                e.Department != null ? e.Department.Name : null,
+                e.Branch != null ? e.Branch.Name : null,
+                e.ReportsToId))
+            .ToListAsync(ct);
+        return rows;
+    }
 }

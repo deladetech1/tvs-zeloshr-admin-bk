@@ -98,6 +98,7 @@ jobs:
           TID: ${{ vars.TVS_TENANT_ID }}
           SID: ${{ steps.env.outputs.subscription_id }}
           PKG: ${{ secrets.PACKAGES_TOKEN }}
+          FALLBACK: ${{ github.token }}
         run: |
           echo "branch          = ${{ github.ref_name }}"
           echo "env             = ${{ steps.env.outputs.env }}"
@@ -105,12 +106,19 @@ jobs:
           echo "client-id       length=${#CID}"
           echo "tenant-id       length=${#TID}"
           echo "subscription-id length=${#SID}"
-          echo "packages-token  length=${#PKG}"
+          # Prefer GITHUB_TOKEN — org PACKAGES_TOKEN may be expired but non-empty.
+          TOKEN="${FALLBACK:-}"
+          SOURCE="GITHUB_TOKEN"
+          if [[ -z "$TOKEN" && -n "${PKG:-}" ]]; then
+            TOKEN="$PKG"
+            SOURCE="PACKAGES_TOKEN"
+          fi
+          echo "packages-token  source=${SOURCE} length=${#TOKEN}"
           [[ -z "$CID" ]] && echo "::error::client-id is empty (TROVESUITE_AZURE_CLIENT_ID)" && exit 1
           [[ -z "$TID" ]] && echo "::error::tenant-id is empty (AZURE_TENANT_ID)" && exit 1
           [[ -z "$SID" ]] && echo "::error::subscription-id is empty (TROVESUITE_*_AZURE_SUBSCRIPTION_ID)" && exit 1
-          [[ -z "$PKG" ]] && echo "::error::PACKAGES_TOKEN is empty (org secret — PAT with read:packages for Trovesuite.Package)" && exit 1
-          echo "PACKAGES_TOKEN=$PKG" >> "$GITHUB_ENV"
+          [[ -z "$TOKEN" ]] && echo "::error::No packages token (GITHUB_TOKEN / PACKAGES_TOKEN)" && exit 1
+          echo "PACKAGES_TOKEN=$TOKEN" >> "$GITHUB_ENV"
           echo "All required deploy inputs are present."
 
       - name: OIDC subject (must exist in Azure App Registration)

@@ -6,9 +6,12 @@ WORKDIR /src
 COPY nuget.config ./
 COPY app/ZelosHR.Api.csproj app/
 
+# PAT: username deladetech1. GITHUB_TOKEN (ghs_*): use x-access-token.
 RUN if [ -n "$PACKAGES_TOKEN" ]; then \
+      NUGET_USER=deladetech1; \
+      case "$PACKAGES_TOKEN" in ghs_*|gho_*) NUGET_USER=x-access-token ;; esac; \
       dotnet nuget update source github-deladetech1 \
-        --username deladetech1 \
+        --username "$NUGET_USER" \
         --password "$PACKAGES_TOKEN" \
         --store-password-in-clear-text \
         --configfile nuget.config; \

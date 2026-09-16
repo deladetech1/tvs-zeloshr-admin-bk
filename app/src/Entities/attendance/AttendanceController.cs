@@ -7,7 +7,7 @@ using ZelosHR.Api.Shared.Tenant;
 namespace ZelosHR.Api.Entities.Attendance;
 
 [ApiController]
-[ApiExplorerSettings(GroupName = SwaggerGroups.Attendance, IgnoreApi = true)]
+[ApiExplorerSettings(GroupName = SwaggerGroups.Attendance)]
 [Route("api/v1/attendance")]
 [Produces("application/json")]
 public class AttendanceController : ControllerBase

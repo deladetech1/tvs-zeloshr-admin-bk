@@ -36,23 +36,45 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Require GitHub Packages token
+        id: pkg
         env:
           PKG: ${{ secrets.PACKAGES_TOKEN }}
+          FALLBACK: ${{ github.token }}
         run: |
-          if [[ -z "$PKG" ]]; then
-            echo "::error::Repository secret PACKAGES_TOKEN is required (PAT with read:packages for Trovesuite.Package). See docs/CICD.md"
+          # Prefer GITHUB_TOKEN for CI restore. Org PACKAGES_TOKEN can be
+          # non-empty yet expired (classic ghp_ ~40 chars → NU1301 401) and
+          # would block the fallback. MyStoreGuard CI needs no NuGet PAT;
+          # .NET jobs need packages:read + Trovesuite.Package ACL for this repo.
+          TOKEN="${FALLBACK:-}"
+          SOURCE="GITHUB_TOKEN"
+          if [[ -z "$TOKEN" && -n "${PKG:-}" ]]; then
+            TOKEN="$PKG"
+            SOURCE="PACKAGES_TOKEN"
+          elif [[ -n "${PKG:-}" ]]; then
+            echo "::notice::Ignoring org PACKAGES_TOKEN for CI — using GITHUB_TOKEN (packages:read)."
+          fi
+          if [[ -z "$TOKEN" ]]; then
+            echo "::error::No token available for GitHub Packages (enable packages:read or set PACKAGES_TOKEN)."
             exit 1
           fi
-          printf 'PACKAGES_TOKEN=%s\n' "$PKG" >> app/.env
+          # Single-key .env for Compose (avoid duplicate/empty PACKAGES_TOKEN= lines).
+          printf 'PACKAGES_TOKEN=%s\n' "$TOKEN" > app/.env
+          {
+            echo "nuget_token_source=${SOURCE}"
+            echo "token_len=${#TOKEN}"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "PACKAGES_TOKEN=$TOKEN" >> "$GITHUB_ENV"
 
       - name: Unit tests (Docker Compose)
+        env:
+          PACKAGES_TOKEN: ${{ env.PACKAGES_TOKEN }}
         run: |
           chmod +x scripts/compose.sh scripts/compose/*.sh
           ./scripts/compose.sh test
 
       - name: Docker build (API)
         env:
-          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+          PACKAGES_TOKEN: ${{ env.PACKAGES_TOKEN }}
         run: |
           docker build \
             --build-arg PACKAGES_TOKEN="$PACKAGES_TOKEN" \

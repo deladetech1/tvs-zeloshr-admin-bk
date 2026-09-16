@@ -74,4 +74,8 @@ public interface IEmployeeRepository : IRepository<EmployeeEntity, Guid>
         string tenantId,
         string orgId,
         CancellationToken ct = default);
+
+    /// <summary>Active (non-draft, non-deleted) employees for attendance team views.</summary>
+    Task<IReadOnlyList<AttendanceRosterItem>> ListActiveAttendanceRosterAsync(
+        string tenantId, string orgId, CancellationToken ct = default);
 }
